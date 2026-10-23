@@ -126,7 +126,6 @@ if (lim === "cap" || lim === "soak") {
   if (amps !== (ev.last_amps ?? -1)) { ev.last_amps = amps; flow.set("ev", ev);
     node.send([null, null, { payload: amps > 0 ? amps : 6 }, { payload: amps > 0 ? 1 : 0 }]); }
 }
-const eff = flow.get("effective") || {};
 const hbAge = (Date.now() - (flow.get("last_hb") || 0)) / 1000;
 let reason = null;
 if (Date.now() >= plan.end_at) reason = "window_end";
