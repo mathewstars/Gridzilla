@@ -7,6 +7,18 @@ Built at the Energy Bridge Critical Infrastructure Hackathon, Vienna, 23–25 Oc
 
 Team: Mathew, Peter, Matthew.
 
+## The problem
+
+**Home batteries are now the largest storage fleet in Europe, and the grid operator cannot see or use a single one of them.** In a crisis everyone gets cut equally, including the houses that could have ridden through.
+
+- **Slovakia:** no DSO sends signals to home storage. The only flexibility pilot (SEPS, Nano Energies, SSD, 2022–2023) served the TSO's ancillary services, not the street transformer.
+- **Germany:** §14a EnWG (2024) lets a DSO dim new batteries, wallboxes and heat pumps to 4.2 kW. Grid charging only, never discharge, never pre-charge. Used in under 1 % of hours.
+- **Ukraine:** almost 3 GWh of batteries installed in 2025, mostly in homes. Ukrenergo publishes outage queues over Telegram and people charge by hand before their slot. Not one battery is coordinated with the operator.
+
+**Pitch in thirty seconds.** A street transformer is hit, or the country is short of power, and the operator starts cutting streets. On that street sit seventy kilowatt hours of batteries that nobody told to charge last night. Gridzilla is the signal that fills them before the event, drains them while the grid is short, and rations them while the street is dark. It works on Victron, GoodWe and anything else, it never gives the operator raw control, and every house keeps it on a leash.
+
+**What it is worth.** Per street little, per penetration a lot: fifteen batteries at 5 kW on a sixty-house street are about 30 % of a 250 kVA transformer for two to three hours. In a crisis the unit is hours of avoided outage, not kilowatts. For the DSO the money is in deferred transformer upgrades and less curtailment. EVs come next: same signals, one new registry field for where the car is plugged in.
+
 ## The idea in one paragraph
 
 A distribution system operator (DSO) sees a transformer or feeder about to overload. Today its only tools are curtailing PV or building more grid. Gridzilla gives it a third tool: a **signed, bounded, segment-scoped signal** that tells the batteries in that segment how much the home may import or export for a limited time. The signal reaches Victron, GoodWe and any other system through three vendor-agnostic paths, and always ends in a **local policy agent** that merges it with the owner's own limits before anything is written to the inverter. The DSO never gets raw control of a device.

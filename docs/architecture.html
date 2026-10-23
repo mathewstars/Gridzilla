@@ -89,6 +89,41 @@ li { margin-bottom: 6px; }
   <p class="lede">A DSO-controlled platform that sends signed charge and discharge signals to home batteries in a congested grid segment, reaching Victron, GoodWe and any other system through three vendor-agnostic paths, with the owner's limits and a fail-safe enforced at the device.</p>
 </header>
 
+<h2>The problem</h2>
+<p class="lede"><strong>Home batteries are now the largest storage fleet in Europe, and the grid operator cannot see or use a single one of them.</strong> In a crisis everyone gets cut equally, including the houses that could have ridden through.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h3><span class="tag bad">Slovakia</span> nothing at DSO level</h3>
+    <p>No Slovak distribution operator sends signals to home storage. The only flexibility pilot, SEPS and Nano Energies with Stredoslovenská distribučná in 2022 to 2023, served the transmission operator's ancillary services, not the street transformer.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag bad">Germany</span> the best case is a dimmer switch</h3>
+    <p>§14a EnWG, in force since 2024, lets a DSO dim new batteries, wallboxes and heat pumps to 4.2 kW. Grid charging only, never discharge, never pre-charge, through certified gateways. Used in under one percent of hours.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag bad">Ukraine</span> three gigawatt hours, zero coordination</h3>
+    <p>Almost 3 GWh of batteries installed in 2025, five times 2024, mostly in homes. Ukrenergo publishes outage queues over Telegram and people charge by hand before their slot. Winter 2025 to 2026 brought blackouts over 48 hours in sub-zero weather.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag ok">Gridzilla</span> the missing signal</h3>
+    <p>One signed, bounded, vendor-agnostic signal from the DSO to that fleet. Congestion is the everyday justification. Outage preparation is the reason it matters.</p>
+  </div>
+</div>
+
+<h3>What it is worth, honestly</h3>
+<ul>
+  <li><strong>Per street, little; per penetration, a lot.</strong> Four houses with 70 kWh barely move a 250 kVA transformer. A sixty-house street with fifteen batteries at 5 kW is 75 kW, about 30 percent of the transformer, for two to three hours. That is the difference between shedding the street and not.</li>
+  <li><strong>In a crisis the unit is hours, not kilowatts.</strong> Houses in the program ride through their shedding queue on a battery the platform filled the night before. That is measurable, and it is what an operator under attack would pay for today.</li>
+  <li><strong>For the DSO the money is in deferral.</strong> Fewer transformer upgrades, less curtailment. Germany wrote §14a for exactly that reason, which is the proof that the economic case exists.</li>
+  <li><strong>Vehicles come next.</strong> An EV is a 60 kWh battery with wheels. Same signals, one new registry field: which segment the car is plugged into right now. Scaling story, not part of the deliverable.</li>
+</ul>
+
+<h3>Pitch in thirty seconds</h3>
+<div class="note">
+<p>A street transformer is hit, or the country is short of power, and the operator starts cutting streets. On that street sit seventy kilowatt hours of batteries that nobody told to charge last night. Gridzilla is the signal that fills them before the event, drains them while the grid is short, and rations them while the street is dark. It works on Victron, GoodWe and anything else, it never gives the operator raw control, and every house keeps it on a leash.</p>
+</div>
+
 <h2>1. The big picture</h2>
 <p>The DSO never talks to an inverter directly. It publishes a signal for a grid segment. The signal travels over one of three paths and ends in a local policy agent next to the battery. That agent is the only thing that writes to the inverter, and it always merges the signal with the owner's own limits.</p>
 
