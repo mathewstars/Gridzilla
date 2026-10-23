@@ -39,17 +39,32 @@ flowchart LR
   DEV -.->|ack · refusal · measured kW| GZ
 ```
 
-## The signal
+## The signals
 
-An envelope at the grid connection point, never a device setpoint.
+A signal is an envelope at the grid connection point, never a device setpoint.
+
+**Everyday case: congestion on a street transformer**
 
 | Mode | When | Effect |
 |---|---|---|
 | `ABSORB` | PV surplus congestion | lower export limit, allow grid charging |
-| `SUPPORT` | load peak congestion | lower import limit, battery covers the house |
+| `SUPPORT` | load peak, or grid up but short of generation | lower import limit, houses run on their batteries, demand on the transformer and everything above it drops |
 | `RELEASE` | event over | owner mode resumes (also on expiry or lost heartbeat) |
 
-Fields: `segment_id`, `mode`, `import_limit_kw`, `export_limit_kw`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.
+**Crisis case: outage, destroyed transformer, load shedding**
+
+| Mode | When | Effect | Realistic today |
+|---|---|---|---|
+| `PREPARE` | warning: forecast attack, storm, planned shedding window | charge to a target SoC by a deadline, staggered and power-capped so the charging itself does not overload the transformer or deepen an upstream deficit | yes, people in Ukraine do it by hand from the outage calendar |
+| `SUPPORT` | grid up but short | as above; this is "discharge when energy is valuable", and it needs no export at all | yes, this is what demand flexibility services pay for |
+| `STRETCH` | street dead, expected restoration time known | each house islands on its own inverter; the agent rations discharge and sheds heat pump, EV charger and boiler to last until restoration | partly, needs a comms path that survives the outage (GX LTE) or a cached schedule |
+| `RECOVER` | transformer replaced | staggered recharge so 70 kWh of batteries do not refill on top of cold-load pickup | yes |
+
+A dead transformer cannot be fed from the street: inverters must disconnect from a dead grid and there is no grid-forming anchor. A street island from home batteries is the future slide, not the product.
+
+Fields: `segment_id`, `mode`, `import_limit_kw`, `export_limit_kw`, `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.
+
+`PREPARE` and `STRETCH` are signed schedules the agent executes offline if the link dies. Live heartbeats apply to the congestion limits only, where losing contact must revert to owner mode.
 
 ## Security principles
 
@@ -61,6 +76,7 @@ Fields: `segment_id`, `mode`, `import_limit_kw`, `export_limit_kw`, `valid_from`
 6. Replay protection through sequence numbers and short validity windows.
 7. Randomized ramps so no signal can create a synchronized step on the grid.
 8. The DSO sees aggregate segment data, not household behaviour.
+9. `PREPARE` and `STRETCH` can only raise target SoC or lower discharge. `SUPPORT` is the only signal that spends energy and it is capped in depth and duration, so a compromised platform cannot drain the street the night before a strike.
 
 ## Reference installation and demo
 

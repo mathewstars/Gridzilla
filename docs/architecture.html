@@ -313,7 +313,138 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>3. Inside the local policy agent</h2>
+<h2>3. Resilience: the outage scenario</h2>
+<p>Congestion is the everyday case. The case that makes Gridzilla matter is the one from the flipchart: a transformer is destroyed, as in Ukraine, or a region runs short of generation and the DSO has to shed load. The platform prepares the street before the event and stretches the batteries through it.</p>
+
+<figure>
+<div class="frame">
+<svg viewBox="0 0 1120 430" role="img" aria-label="A 22 kV line feeds a street transformer, which feeds a 400/230 V street of five houses. Four houses are in the program with 15 kWh batteries and 10 kW feed-in, one is not. The transformer reports load and status to the DSO. The Gridzilla platform sends PREPARE, SUPPORT, STRETCH and RECOVER signals over a communication path independent of the power line. When the transformer is destroyed the street is dead and each house islands on its own battery, so the only useful signal is STRETCH.">
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+    <marker id="arr3A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+  </defs>
+  <!-- MV line -->
+  <g stroke="currentColor" stroke-width="2.5" fill="none">
+    <line x1="20" y1="80" x2="250" y2="80"/>
+  </g>
+  <text x="24" y="68" font-size="12" fill="currentColor" font-weight="600">22 kV medium voltage</text>
+  <!-- transformer -->
+  <g fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="278" cy="80" r="22" fill="var(--surface)"/>
+    <circle cx="306" cy="80" r="22" fill="var(--surface)"/>
+  </g>
+  <text x="292" y="124" font-size="12" fill="currentColor" text-anchor="middle" font-weight="600">street transformer</text>
+  <text x="292" y="140" font-size="11" fill="currentColor" text-anchor="middle">250 kVA, monitored</text>
+  <g stroke="var(--bad)" stroke-width="3" fill="none">
+    <line x1="262" y1="50" x2="322" y2="110"/>
+    <line x1="322" y1="50" x2="262" y2="110"/>
+  </g>
+  <text x="340" y="62" font-size="11" fill="var(--bad)" font-weight="600">destroyed or offline</text>
+  <!-- LV bus -->
+  <g stroke="currentColor" stroke-width="2.5" fill="none">
+    <line x1="328" y1="80" x2="380" y2="80"/>
+    <line x1="380" y1="80" x2="380" y2="200"/>
+    <line x1="60" y1="200" x2="760" y2="200"/>
+  </g>
+  <text x="392" y="170" font-size="12" fill="currentColor" font-weight="600">400 / 230 V street</text>
+  <!-- houses -->
+  <g fill="none" stroke="currentColor" stroke-width="1.4">
+    <line x1="110" y1="200" x2="110" y2="236"/>
+    <line x1="260" y1="200" x2="260" y2="236"/>
+    <line x1="410" y1="200" x2="410" y2="236"/>
+    <line x1="560" y1="200" x2="560" y2="236"/>
+    <line x1="710" y1="200" x2="710" y2="236"/>
+    <rect x="50" y="236" width="120" height="120" rx="4" fill="var(--surface)" stroke="var(--ok)" stroke-width="2"/>
+    <rect x="200" y="236" width="120" height="120" rx="4" fill="var(--surface)" stroke="var(--ok)" stroke-width="2"/>
+    <rect x="350" y="236" width="120" height="120" rx="4" fill="var(--surface)" stroke="var(--ok)" stroke-width="2"/>
+    <rect x="500" y="236" width="120" height="120" rx="4" fill="var(--surface)" stroke="var(--ok)" stroke-width="2"/>
+    <rect x="650" y="236" width="120" height="120" rx="4" fill="var(--surface)" stroke-dasharray="4 3"/>
+  </g>
+  <g font-size="11" fill="currentColor" text-anchor="middle">
+    <text x="110" y="256" font-weight="600">House 1 · OK</text>
+    <text x="110" y="274">smart meter</text>
+    <text x="110" y="290">inverter, 10 kW feed-in</text>
+    <text x="110" y="306">battery 15 kWh</text>
+    <text x="110" y="326" fill="var(--ok)" font-weight="600">policy agent</text>
+    <text x="110" y="344" font-size="10" opacity=".75">islands on its own</text>
+    <text x="260" y="256" font-weight="600">House 2 · OK</text>
+    <text x="260" y="274">smart meter</text>
+    <text x="260" y="290">inverter, 10 kW feed-in</text>
+    <text x="260" y="306">battery 15 kWh</text>
+    <text x="260" y="326" fill="var(--ok)" font-weight="600">policy agent</text>
+    <text x="260" y="344" font-size="10" opacity=".75">islands on its own</text>
+    <text x="410" y="256" font-weight="600">House 3 · OK</text>
+    <text x="410" y="274">smart meter</text>
+    <text x="410" y="290">inverter, 10 kW feed-in</text>
+    <text x="410" y="306">battery 20 kWh</text>
+    <text x="410" y="326" fill="var(--ok)" font-weight="600">policy agent</text>
+    <text x="410" y="344" font-size="10" opacity=".75">islands on its own</text>
+    <text x="560" y="256" font-weight="600">House 4 · OK</text>
+    <text x="560" y="274">smart meter</text>
+    <text x="560" y="290">inverter, 10 kW feed-in</text>
+    <text x="560" y="306">battery 20 kWh</text>
+    <text x="560" y="326" fill="var(--ok)" font-weight="600">policy agent</text>
+    <text x="560" y="344" font-size="10" opacity=".75">islands on its own</text>
+    <text x="710" y="256" font-weight="600">House 5 · not in program</text>
+    <text x="710" y="274">smart meter only</text>
+    <text x="710" y="290">no battery</text>
+    <text x="710" y="326" font-size="10" opacity=".75">untouched by signals</text>
+    <text x="710" y="344" font-size="10" opacity=".75">dark when the street is dark</text>
+  </g>
+  <text x="60" y="390" font-size="12" fill="currentColor" font-weight="600">70 kWh of storage in the program on this transformer</text>
+  <text x="60" y="408" font-size="11" fill="currentColor">PREPARE fills it in the quiet hours before the event. SUPPORT drains it while the grid is up but short. STRETCH rations it while the street is dead.</text>
+  <!-- DSO + platform -->
+  <g fill="none" stroke="var(--accent)" stroke-width="2">
+    <rect x="840" y="40" width="260" height="150" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="12" fill="currentColor">
+    <text x="852" y="62" font-weight="600" fill="var(--accent)">DSO · Gridzilla platform</text>
+    <text x="852" y="84" font-size="11">transformer load, status, outage detection</text>
+    <text x="852" y="102" font-size="11">expected restoration time from repair crews</text>
+    <text x="852" y="124" font-size="11" font-weight="600">signals: PREPARE · SUPPORT ·</text>
+    <text x="852" y="140" font-size="11" font-weight="600">STRETCH · RECOVER</text>
+    <text x="852" y="162" font-size="10" opacity=".75">signed schedules, executed offline</text>
+    <text x="852" y="178" font-size="10" opacity=".75">by the agent if the link dies</text>
+  </g>
+  <!-- data from TF -->
+  <path d="M292,30 L292,16 L960,16 L960,38" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr3)"/>
+  <text x="620" y="12" font-size="10" fill="currentColor" text-anchor="middle">transformer data</text>
+  <!-- signals to houses -->
+  <path d="M840,160 L800,160 L800,296 L774,296" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr3A)" opacity=".35"/>
+  <path d="M800,296 L800,380 L30,380 L30,296 L48,296" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr3A)"/>
+  <text x="808" y="218" font-size="10" fill="var(--accent)">signals over mobile or internet,</text>
+  <text x="808" y="232" font-size="10" fill="var(--accent)">not over the power line</text>
+</svg>
+</div>
+<figcaption>Figure 3. The street from the flipchart, corrected. While the transformer is alive, the batteries can relieve it and the grid above it. Once it is destroyed, the street is dead by law and physics: inverters must disconnect from a dead grid, and each house can only island on its own battery. The platform's job then is to have filled the batteries beforehand and to make them last.</figcaption>
+</figure>
+
+<h3>Four regimes, four signals</h3>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Situation</th><th>Signal</th><th>What the batteries do</th><th>Realistic today?</th></tr></thead>
+<tbody>
+<tr><td>Warning: forecast attack, storm, planned shedding window, repair outage</td><td><span class="tag sig">PREPARE</span> target SoC by time T, max charge power P</td><td>Charge to full in the quiet hours before the event, staggered so the transformer and the upstream deficit are not hit by 70 kWh of charging at once</td><td><span class="tag ok">Yes</span> People in Ukraine do this by hand from the published outage calendar. Automating it across vendors is the gap.</td></tr>
+<tr><td>Grid up but short: generation deficit, damaged transmission, evening peak</td><td><span class="tag sig">SUPPORT</span> import limit</td><td>Houses run on their batteries. Demand on the transformer and everything above it drops, so the operator sheds fewer customers. No export needed, works with a 0 kW feed-in limit</td><td><span class="tag ok">Yes</span> This is what the UK Demand Flexibility Service and vendor virtual power plants already pay for. The DSO-controlled, system-agnostic version is new.</td></tr>
+<tr><td>Street dead: transformer destroyed or line down</td><td><span class="tag sig">STRETCH</span> expected restoration time</td><td>Each house islands on its own inverter. The agent rations discharge to last until restoration: lower inverter power limit, drop heat pump, EV charger and boiler, keep fridge, heating control, router, lights</td><td><span class="tag ok">Partly</span> Victron and GoodWe both island on grid loss today. The signal needs a comms path that survives the outage, such as a GX LTE modem, or a schedule cached beforehand.</td></tr>
+<tr><td>Restoration: transformer replaced, street re-energized</td><td><span class="tag sig">RECOVER</span> staggered recharge window</td><td>Batteries do not all recharge at once on top of cold-load pickup. Each agent gets its own slot and ramp</td><td><span class="tag ok">Yes</span> Straightforward; the same ramp mechanism as the congestion case.</td></tr>
+<tr><td>Street island: home batteries supply neighbours through the dead transformer's LV network</td><td>none</td><td>Not possible with today's inverters. It needs one grid-forming anchor, synchronization between inverters, the DSO isolating the segment, and changes to anti-islanding rules</td><td><span class="tag bad">Not today</span> Keep as the future slide: a DSO-owned grid-forming street battery as anchor, homes follow it.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>What the flipchart got right and what to change</h3>
+<ul>
+  <li><strong>Right:</strong> slow, coordinated charging before the event. Synchronized charging is itself a transformer overload and worsens an upstream deficit, so PREPARE carries a deadline and a power cap and the agent schedules the charge into the cheapest, quietest hours.</li>
+  <li><strong>Right:</strong> transformer data to the DSO. Load and status of the transformer is the trigger for every regime and the proof for settlement.</li>
+  <li><strong>Right:</strong> program membership. The OK and BL houses on the sketch are the registry: signals only ever reach registered devices behind that transformer.</li>
+  <li><strong>Change:</strong> "discharge when energy is valuable" means discharge while the grid is up but short. That is self-supply, not export. A destroyed transformer cannot be fed from the street.</li>
+  <li><strong>Change:</strong> the control plane will be cut in exactly the moments it matters. Home routers die with the street. So PREPARE and STRETCH are signed schedules with a validity window that the agent executes offline, and a GX LTE modem or similar is the recommended out-of-band path. Live heartbeats stay for the congestion limits only, where losing contact must revert to owner mode.</li>
+  <li><strong>Add:</strong> STRETCH and RECOVER. Stretching the battery over a known restoration time and recharging the street gently afterwards are the two signals the sketch was missing.</li>
+  <li><strong>Security consequence:</strong> an attacker who controls the platform could drain every battery the night before a strike. The policy guard therefore treats PREPARE and STRETCH as owner-favourable only: they can raise target SoC and lower discharge, never the reverse. SUPPORT is the only signal that spends energy, and it is capped in depth and duration as before.</li>
+</ul>
+
+<h2>4. Inside the local policy agent</h2>
 <p>This is where cybersecurity and owner protection live, and it is the same logic on all three paths. For the demo it is a Node-RED flow on a Cerbo GX. In a vendor cloud it would be the same rules in firmware.</p>
 
 <figure>
@@ -366,10 +497,10 @@ li { margin-bottom: 6px; }
   </g>
 </svg>
 </div>
-<figcaption>Figure 2. Every signal passes the same gate. Only the green step touches the owner's settings, and it can only tighten the DSO envelope, never loosen the owner's own limits. Revert is the default state: the agent has to keep hearing heartbeats to stay in grid-serving mode.</figcaption>
+<figcaption>Figure 4. Every signal passes the same gate. Only the green step touches the owner's settings, and it can only tighten the DSO envelope, never loosen the owner's own limits. Revert is the default state: the agent has to keep hearing heartbeats to stay in grid-serving mode.</figcaption>
 </figure>
 
-<h2>4. Worked example: a Victron plant on VRM</h2>
+<h2>5. Worked example: a Victron plant on VRM</h2>
 <p>One of the plants on VRM is the reference installation. Cerbo GX, MultiPlus-II, MPPT chargers, a battery with BMS, and a grid meter at the connection point. The local policy agent is a Node-RED flow on Venus OS. This is also the live demo for the interim pitch.</p>
 
 <div class="tablewrap">
@@ -383,6 +514,8 @@ li { margin-bottom: 6px; }
 <tr><td>Owner veto</td><td>ESS minimum SoC, BatteryLife, DVCC current limits</td><td>Discharge depth limit, backup reserve</td><td>Device-side reserve</td></tr>
 <tr><td>Measurement</td><td>ET340 / EM540 grid meter via D-Bus, MQTT to VRM</td><td>GoodWe smart meter</td><td>Any meter at the connection point</td></tr>
 <tr><td>Revert</td><td>Flow restores saved ESS values on expiry or lost heartbeat</td><td>Restore saved mode</td><td>Restore saved limits</td></tr>
+<tr><td>PREPARE: charge by deadline</td><td>Scheduled charging with target SoC, charge power cap via DVCC</td><td>Eco-mode charge slot with target SoC</td><td>Charge schedule</td></tr>
+<tr><td>STRETCH: island rationing</td><td>MultiPlus-II islands on grid loss; flow lowers inverter power limit, opens relay for non-critical loads, AC-out-2 drops automatically</td><td>Backup port carries critical loads; schedule drops heat pump and EV charger via EMS</td><td>Load shedding by EMS</td></tr>
 </tbody>
 </table>
 </div>
@@ -400,7 +533,7 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>5. Threats and controls</h2>
+<h2>6. Threats and controls</h2>
 <p>The threat model starts from how these systems are deployed today: Modbus TCP without authentication on home networks, port forwarding to reach the GX remotely, and vendor clouds that can push settings to whole fleets.</p>
 
 <div class="tablewrap">
@@ -416,11 +549,13 @@ li { margin-bottom: 6px; }
 <tr><td><span class="tag bad">T7</span> Loss of platform availability</td><td>Fail-safe revert to owner mode; the grid loses flexibility but never stability</td><td>Agent</td></tr>
 <tr><td><span class="tag bad">T8</span> Household behaviour leaks to the DSO</td><td>Platform receives aggregate segment data and per-event acknowledgements only</td><td>Platform</td></tr>
 <tr><td><span class="tag bad">T9</span> Disputes over compensation</td><td>Both sides keep signed logs; settlement uses the meter at the connection point</td><td>Audit log</td></tr>
+<tr><td><span class="tag bad">T10</span> Attacker drains the street before a strike</td><td>PREPARE and STRETCH can only raise target SoC or lower discharge; SUPPORT is capped in depth and duration; a sudden fleet-wide SUPPORT with no congestion data behind it is refused by the policy guard</td><td>Platform, agent</td></tr>
+<tr><td><span class="tag bad">T11</span> Control plane cut during the outage</td><td>Signed schedules with validity windows cached at the agent; out-of-band mobile link; owner mode as the fallback</td><td>Agent</td></tr>
 </tbody>
 </table>
 </div>
 
-<h2>6. Sequence of one congestion event</h2>
+<h2>7. Sequence of one congestion event</h2>
 <div class="tablewrap">
 <table class="seq">
 <thead><tr><th>Step</th><th>DSO</th><th>Platform</th><th>Home agent</th></tr></thead>
@@ -436,9 +571,9 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>7. What goes into the IES profile, and what stays in the pitch</h2>
+<h2>8. What goes into the IES profile, and what stays in the pitch</h2>
 <ul>
-  <li><strong>Profile (the deliverable):</strong> actors, the three signal modes, the transactions (register, publish signal, acknowledge, heartbeat, release, report), the security requirements per transaction, and the owner-protection rules. No protocols, no registers.</li>
+  <li><strong>Profile (the deliverable):</strong> actors, the congestion signals and the four resilience signals, the transactions (register, publish signal, acknowledge, heartbeat, release, report), the security requirements per transaction, and the owner-protection rules. No protocols, no registers.</li>
   <li><strong>Pitch (evidence):</strong> the Victron mapping, the GoodWe mapping and the live demo, to show the profile is implementable on hardware sold today.</li>
   <li><strong>Open questions for the mentors:</strong> who runs the segment registry, how registration is tied to the meter point, and whether Path C must be mandatory for compensation.</li>
 </ul>
