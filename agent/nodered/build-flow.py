@@ -40,20 +40,20 @@ const dev = {json.dumps(a.device)};
 flow.set("device_id", dev);
 flow.set("platform", {json.dumps(a.platform)});
 flow.set("path", {json.dumps(a.path)});
-const dir = require("path").join(os.homedir(), ".node-red", "gridzilla"); fs.mkdirSync(dir, {{ recursive: true }}); flow.set("dir", dir);
-const kp = require("path").join(dir, "device.key.pem");
+const dir = os.homedir() + "/.node-red/gridzilla"; fs.mkdirSync(dir, {{ recursive: true }}); flow.set("dir", dir);
+const kp = dir + "/device.key.pem";
 if (!fs.existsSync(kp)) {{ const {{ privateKey }} = crypto.generateKeyPairSync("ed25519"); fs.writeFileSync(kp, privateKey.export({{ type: "pkcs8", format: "pem" }}), {{ mode: 0o600 }}); }}
 const priv = crypto.createPrivateKey(fs.readFileSync(kp));
 flow.set("device_priv", priv.export({{ type: "pkcs8", format: "pem" }}).toString());
 flow.set("device_pub", crypto.createPublicKey(priv).export({{ type: "spki", format: "pem" }}).toString());
-const pp = require("path").join(dir, "platform.pub.pem"); if (fs.existsSync(pp)) flow.set("platform_pub", fs.readFileSync(pp, "utf8"));
-const st = require("path").join(dir, "state.json"); if (fs.existsSync(st)) {{ const j = JSON.parse(fs.readFileSync(st, "utf8")); flow.set("last_seq", j.last_seq || 0); flow.set("last_hb_seq", j.last_hb_seq || 0); }}
+const pp = dir + "/platform.pub.pem"; if (fs.existsSync(pp)) flow.set("platform_pub", fs.readFileSync(pp, "utf8"));
+const st = dir + "/state.json"; if (fs.existsSync(st)) {{ const j = JSON.parse(fs.readFileSync(st, "utf8")); flow.set("last_seq", j.last_seq || 0); flow.set("last_hb_seq", j.last_hb_seq || 0); }}
 if (!flow.get("owner")) flow.set("owner", {{ min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }});
 msg.url = flow.get("platform") + "/api/pubkey"; msg.method = "GET";
 return msg;
 """
 F_PIN = """
-if (!flow.get("platform_pub")) { flow.set("platform_pub", msg.payload); fs.writeFileSync(require("path").join(flow.get("dir"), "platform.pub.pem"), msg.payload); node.warn("platform key pinned (TOFU) and stored"); }
+if (!flow.get("platform_pub")) { flow.set("platform_pub", msg.payload); fs.writeFileSync(flow.get("dir") + "/platform.pub.pem", msg.payload); node.warn("platform key pinned (TOFU) and stored"); }
 msg.url = flow.get("platform") + "/api/register"; msg.method = "POST";
 msg.headers = { "Content-Type": "application/json" };
 msg.payload = { device: flow.get("device_id"), pubkey_pem: flow.get("device_pub") };
@@ -66,7 +66,7 @@ else node.status({ fill: "red", shape: "ring", text: "registration failed" });
 return null;
 """
 F_VERIFY = open("verify.js").read().replace('flow.set("last_seq", doc.seq);',
-  'flow.set("last_seq", doc.seq); try { fs.writeFileSync(require("path").join(flow.get("dir"), "state.json"), JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get("last_hb_seq") || 0 })); } catch (e) {}')
+  'flow.set("last_seq", doc.seq); try { fs.writeFileSync(flow.get("dir") + "/state.json", JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get("last_hb_seq") || 0 })); } catch (e) {}')
 F_MERGE = open("merge.js").read()
 F_SIGN = """
 // sign an ack document with the device key -> envelope
