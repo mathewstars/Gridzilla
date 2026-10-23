@@ -257,8 +257,8 @@ function drawCharts() {
   loadChart.update();
 
   const devs = devOrder.filter(d => S.devices[d].path.includes(selNode));
-  socChart.data.labels = devs;
-  socChart.data.datasets[0].data = devs.map(d => (S.devices[d].telemetry || {}).soc ?? 0);
+  socChart.data.labels = devs.map(d => S.devices[d].telemetry ? d : d + " (offline)");
+  socChart.data.datasets[0].data = devs.map(d => S.devices[d].telemetry ? S.devices[d].telemetry.soc : null);   // offline = gap, not 0
   socChart.data.datasets[0].backgroundColor = devs.map(d => SERIES[devOrder.indexOf(d) % 5]);
   socChart.update();
 
