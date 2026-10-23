@@ -195,6 +195,8 @@ if MQTT_USER:
 
 
 def on_connect(client, userdata, flags, rc, props=None):
+    if rc != 0:
+        log("mqtt", f"connect to {BROKER} refused: {rc}"); return
     log("mqtt", f"connected to {BROKER}" + (" (TLS)" if MQTT_TLS else " (plain)"))
     client.subscribe([("gridzilla/ack/#", 1), ("gridzilla/state/#", 0)])
 
@@ -229,7 +231,11 @@ def on_message(client, userdata, m):
             device=dev, status=ack["status"])
 
 
-mq.on_connect, mq.on_message = on_connect, on_message
+def on_disconnect(client, userdata, flags, rc, props=None):
+    log("mqtt", f"disconnected from {BROKER} (rc {rc}), reconnecting")
+
+
+mq.on_connect, mq.on_message, mq.on_disconnect = on_connect, on_message, on_disconnect
 
 
 def heartbeat_loop():
@@ -480,7 +486,8 @@ def replay(seq: int):
 
 
 def main():
-    mq.connect(host, int(port), keepalive=30)
+    mq.reconnect_delay_set(min_delay=2, max_delay=30)
+    mq.connect_async(host, int(port), keepalive=30)   # never block or crash on a broker outage; paho reconnects
     mq.loop_start()
     threading.Thread(target=heartbeat_loop, daemon=True).start()
     threading.Thread(target=sampler_loop, daemon=True).start()
