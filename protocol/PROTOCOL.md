@@ -66,7 +66,7 @@ Which fields each mode may carry (the policy guard refuses anything else):
 
 | Mode | Allowed fields | Intent |
 |---|---|---|
-| `PREPARE` | `target_soc`, `charge_max_kw` | Fill before the event, gently. Can only raise SoC. The agent picks the cheapest window before `valid_to`; the DSO waives the network fee in that window; the guard refuses a PREPARE with no following SUPPORT or outage window. |
+| `PREPARE` | `target_soc`, `charge_max_kw` | Fill before the event, gently. Can only raise SoC; the guard refuses `target_soc` below 50. Target design, not in the hackathon build: the agent picks the cheapest window before `valid_to`, the DSO waives the network fee in that window, and the guard refuses a PREPARE with no following SUPPORT or outage window. Today the agent starts charging at `valid_from`. |
 | `ABSORB` | `export_max_kw`, `charge_max_kw`, `max_soc_by` | PV surplus. The agent works down a ladder: make room in the morning, charge the battery at noon, shift loads (boiler, heat pump, EV) into the surplus, and only then curtail. Curtailed energy is reported in the ack and compensated, or credited to the supplier's virtual battery as if exported. Pair with an evening `SUPPORT` so the same energy is exported later, paid. |
 | `SUPPORT` | `import_max_kw`, `export_min_kw` | Peak or deficit: "take 3 kW only", "give at least 2 kW". |
 | `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). **Implies `export_max_kw = 0`**: the agent locks export so nothing can backfeed into a line under repair. Anti-islanding already prevents it; the signal says it anyway. |
@@ -91,7 +91,7 @@ See `ack.schema.json`. Sent on every accepted or rejected signal, and again on r
 | `path` | The device's path in the tree. |
 | `seq` | The signal's `seq`, or `null` for a spontaneous revert. |
 | `status` | `applied`, `partial`, `refused`, `reverted` |
-| `reason` | `null`, `min_soc`, `owner_limit`, `stale_seq`, `bad_sig`, `out_of_scope`, `expired`, `bad_mode`, `heartbeat_lost`, `window_end` |
+| `reason` | `null`, `min_soc`, `owner_limit`, `stale_seq`, `bad_sig`, `out_of_scope`, `expired`, `bad_mode`, `heartbeat_lost`, `window_end`, `opt_out` |
 | `applied` | The limits actually in force after merging with owner limits. |
 | `soc` | Percent. |
 | `grid_kw` | Measured at the connection point. Positive = import, negative = export. |
@@ -100,7 +100,7 @@ See `ack.schema.json`. Sent on every accepted or rejected signal, and again on r
 
 ## Merge rule
 
-`effective = tighter(signal, owner)` for every field. Owner limits are: `min_soc`, `max_charge_kw`, `max_discharge_kw`, `feedin_max_kw`, `opt_out`. A signal can never loosen an owner limit. If `export_min_kw` cannot be met because `soc <= min_soc`, the device applies `export_min_kw = 0` and acks `partial` with reason `min_soc`.
+`effective = tighter(signal, owner)` for every field. Owner limits are: `min_soc`, `max_charge_kw`, `max_discharge_kw`, `feedin_max_kw`, `opt_out`. A signal can never loosen an owner limit: `export_max_kw` is applied as `min(signal, feedin_max_kw)`, and a `STRETCH` always sets `export_max_kw = 0`. An owner with `opt_out` refuses every signal except `RELEASE` with reason `opt_out`. If `export_min_kw` cannot be met because `soc <= min_soc`, the device applies `export_min_kw = 0` and acks `partial` with reason `min_soc`.
 
 ## Settlement
 

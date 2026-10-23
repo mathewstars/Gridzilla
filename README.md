@@ -76,7 +76,7 @@ A signal is an envelope at the grid connection point, never a device setpoint.
 
 A dead transformer cannot be fed from the street: inverters must disconnect from a dead grid and there is no grid-forming anchor. A street island from home batteries is the future slide, not the product.
 
-Fields: `segment_id`, `mode`, `import_max_kw`, `export_max_kw`, `export_min_kw` (forced feed-in), `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.
+Fields: `segment`, `mode`, `import_max_kw`, `export_max_kw`, `export_min_kw` (forced feed-in), `charge_max_kw`, `discharge_max_kw`, `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `note`. The payload is wrapped in a signed envelope (`v`, `kid`, `payload`, `sig`). Full definition: [`protocol/PROTOCOL.md`](protocol/PROTOCOL.md).
 
 `PREPARE` and `STRETCH` are signed schedules the agent executes offline if the link dies. Live heartbeats apply to the congestion limits only, where losing contact must revert to owner mode.
 
@@ -132,7 +132,22 @@ curl -X POST localhost:8080/api/signal -H 'Content-Type: application/json' \
   -d '{"segment":"feeder:turiec-3","mode":"SUPPORT","import_max_kw":3,"export_min_kw":2,"duration_min":120}'
 ```
 
-The platform generates its Ed25519 key on first start (`platform/keys/`, private key is git-ignored). Agents fetch the public key once and pin it. Each agent generates its own device key and registers its public key with the platform.
+**On Windows** (PowerShell), the same steps:
+
+```powershell
+# 1. broker (or run mosquitto in Docker)
+winget install EclipseFoundation.Mosquitto
+& "C:\Program Files\mosquitto\mosquitto.exe" -p 1883
+
+# 2. platform
+py -m venv .venv; .venv\Scripts\pip install -r platform\requirements.txt
+cd platform; ..\.venv\Scripts\python gridzilla.py
+
+# 3. simulated houses
+cd agent; npm install; node sim-agent.js
+```
+
+The platform generates its Ed25519 key on first start (`platform/keys/`, private key is git-ignored). Agents fetch the public key once and pin it. Each agent generates its own device key and registers its public key with the platform. Simulated agents remember the last accepted `seq` in `agent/keys/<device>.seq`; if you reset the platform (delete `platform/state.json`), delete those files too, or every new signal is refused as `stale_seq`.
 
 ## Repository layout
 

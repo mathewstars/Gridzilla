@@ -59,13 +59,18 @@ function sign(doc, privKey) {
   return JSON.stringify({ v: 1, kid: "dev", payload, sig });
 }
 
+// Last accepted seq survives a restart, so a replay inside the 120 s freshness window is still refused.
+const seqFile = id => path.join(KEYS, `${id}.seq`);
+function loadSeq(id) { try { return +fs.readFileSync(seqFile(id), "utf8") || 0; } catch { return 0; } }
+function saveSeq(id, seq) { fs.writeFileSync(seqFile(id), String(seq)); }
+
 // ------------------------------------------------------------ house model
 function makeHouse(cfg, keys) {
   return {
     cfg, keys,
     soc: cfg.soc ?? 60,
     simMinutes: (cfg.start_hour ?? 16) * 60,
-    lastSeq: 0,
+    lastSeq: loadSeq(cfg.id),
     lastHb: Date.now(),
     signal: null,          // active parsed signal
     effective: null,       // merged limits in force
@@ -154,7 +159,8 @@ function merge(h, sig) {
   const eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null, charge_max_kw: null, discharge_max_kw: null, target_soc: null, max_soc_by: null };
   let status = "applied", reason = null;
   if (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;
-  if (sig.export_max_kw != null) eff.export_max_kw = sig.export_max_kw;
+  if (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, h.cfg.feedin_max_kw); // never above the owner's feed-in limit
+  if (sig.mode === "STRETCH") eff.export_max_kw = 0;                        // street is dark: lock export, no backfeed
   if (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);
   if (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);
   if (sig.target_soc != null) eff.target_soc = sig.target_soc;             // can only raise SoC: always owner-favourable
@@ -191,7 +197,7 @@ function onSignal(h, env, platformPub) {
   if (sig.seq <= h.lastSeq) { log(h.cfg.id, `refused: stale_seq (${sig.seq} <= ${h.lastSeq})`); return ack(h, sig.seq, "refused", "stale_seq"); }
   if (age > 120 || age < -30) return ack(h, sig.seq, "refused", "expired");
   if (Date.parse(sig.valid_to) < Date.now()) return ack(h, sig.seq, "refused", "expired");
-  h.lastSeq = sig.seq;
+  h.lastSeq = sig.seq; saveSeq(h.cfg.id, sig.seq);
   if (sig.mode === "RELEASE") { h.effective = null; h.signal = null; log(h.cfg.id, "RELEASE -> owner mode"); return ack(h, sig.seq, "applied", null); }
   const { eff, status, reason } = merge(h, sig);
   if (status === "refused") return ack(h, sig.seq, status, reason);

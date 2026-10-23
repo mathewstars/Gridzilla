@@ -29,7 +29,8 @@ const eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_m
 let status = "applied", reason = null;
 
 if (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;
-if (sig.export_max_kw != null) eff.export_max_kw = sig.export_max_kw;
+if (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, o.feedin_max_kw);  // never above the owner's feed-in limit
+if (sig.mode === "STRETCH") eff.export_max_kw = 0;                            // street is dark: lock export, no backfeed
 if (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);
 if (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);
 if (sig.target_soc != null) eff.target_soc = sig.target_soc;                 // only ever raises SoC
