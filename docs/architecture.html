@@ -614,6 +614,7 @@ li { margin-bottom: 6px; }
 <tr><td>Revert</td><td>Flow restores saved ESS values on expiry or lost heartbeat</td><td>Restore saved mode</td><td>Restore saved limits</td></tr>
 <tr><td>PREPARE: charge by deadline</td><td>Scheduled charging with target SoC, charge power cap via DVCC</td><td>Eco-mode charge slot with target SoC</td><td>Charge schedule</td></tr>
 <tr><td>STRETCH: island rationing</td><td>MultiPlus-II islands on grid loss; flow lowers inverter power limit, opens relay for non-critical loads, AC-out-2 drops automatically</td><td>Backup port carries critical loads; schedule drops heat pump and EV charger via EMS</td><td>Load shedding by EMS</td></tr>
+<tr><td>EV charger: first lever</td><td>Victron EV Charging Station on D-Bus: Manual mode, SetCurrent 6 to 16 A under an import cap, raised under an export cap, StartStop 0 in STRETCH, mode and current restored on revert</td><td>OCPP charging profile, or go-e / Modbus current limit</td><td>OCPP 1.6J / 2.0.1 SetChargingProfile</td></tr>
 </tbody>
 </table>
 </div>
@@ -650,18 +651,18 @@ li { margin-bottom: 6px; }
   <rect x="296" y="16" width="800" height="528" rx="6" fill="var(--home)" opacity=".5"/>
   <g font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7" letter-spacing=".06em">
     <text x="28" y="36">OPERATORS · TAILSCALE</text>
-    <text x="308" y="36">SITE LAN 192.168.90.0/23</text>
+    <text x="308" y="36">PUBLIC INTERNET · DSO SIDE AND HOME SIDE ON DIFFERENT NETWORKS</text>
   </g>
   <!-- operators -->
   <g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="36" y="60" width="200" height="70" rx="4" fill="var(--surface)"/></g>
-  <g font-size="12" fill="currentColor"><text x="48" y="82" font-weight="600">Operator laptops</text><text x="48" y="100" font-size="11">Mathew, Peter, Matthew</text><text x="48" y="118" font-size="11">dashboard :8080 over the tailnet</text></g>
+  <g font-size="12" fill="currentColor"><text x="48" y="82" font-weight="600">Operator laptops</text><text x="48" y="100" font-size="11">Mathew, Peter, Matthew</text><text x="48" y="118" font-size="11">https://gridzilla.victronlab.sk</text></g>
   <g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="36" y="170" width="200" height="120" rx="4" fill="var(--surface)"/></g>
   <g font-size="12" fill="currentColor"><text x="48" y="192" font-weight="600">DGX Spark · LLM gateway :9000</text><text x="48" y="210" font-size="11">token-protected, OpenAI-compatible</text><text x="48" y="228" font-size="11">DeepSeek-V4.1-Flash behind it</text><text x="48" y="246" font-size="11">model server not reachable directly</text><text x="48" y="270" font-size="10" opacity=".75">advisor only: proposes, never signs</text></g>
   <!-- platform host -->
   <g fill="none" stroke="var(--accent)" stroke-width="2"><rect x="320" y="60" width="300" height="250" rx="4" fill="var(--surface)"/></g>
   <g font-size="12" fill="currentColor">
-    <text x="332" y="82" font-weight="600" fill="var(--accent)">DSO platform host · 192.168.90.119</text>
-    <text x="332" y="98" font-size="11" opacity=".75">Fedora Asahi, user systemd units, survive logout</text>
+    <text x="332" y="82" font-weight="600" fill="var(--accent)">DSO platform · gridzilla.victronlab.sk</text>
+    <text x="332" y="98" font-size="11" opacity=".75">Ubuntu server, user systemd units; TLS and proxy in front</text>
   </g>
   <g fill="none" stroke="currentColor" stroke-width="1"><rect x="332" y="110" width="276" height="40" rx="3"/><rect x="332" y="158" width="276" height="70" rx="3"/><rect x="332" y="236" width="276" height="60" rx="3"/></g>
   <g font-size="11" fill="currentColor">
@@ -672,17 +673,17 @@ li { margin-bottom: 6px; }
   <!-- cerbo -->
   <g fill="none" stroke="var(--ok)" stroke-width="2"><rect x="700" y="60" width="380" height="330" rx="4" fill="var(--surface)"/></g>
   <g font-size="12" fill="currentColor">
-    <text x="712" y="82" font-weight="600" fill="var(--ok)">Cerbo GX · 192.168.90.147 · Venus OS Large</text>
+    <text x="712" y="82" font-weight="600" fill="var(--ok)">Cerbo GX at the plant · Venus OS Large</text>
     <text x="712" y="98" font-size="11" opacity=".75">Node-RED 4.1.11, external modules on, Victron palette</text>
   </g>
   <g fill="none" stroke="currentColor" stroke-width="1"><rect x="712" y="110" width="356" height="150" rx="3"/><rect x="712" y="268" width="356" height="110" rx="3"/></g>
   <g font-size="11" fill="currentColor">
-    <text x="722" y="127" font-weight="600">Node-RED flow "Gridzilla agent" (42 nodes)</text>
+    <text x="722" y="127" font-weight="600">Node-RED flow "Gridzilla agent" (52 nodes)</text>
     <text x="722" y="144">mqtt in × 5 → verify (Ed25519, seq, freshness, scope, cohort)</text>
     <text x="722" y="160">→ merge with owner limits (min SoC read from ESS)</text>
     <text x="722" y="176">→ apply plan: random ramp, then writes → sign ack → mqtt out</text>
     <text x="722" y="192">watchdog every 5 s: window end or 120 s without heartbeat → revert</text>
-    <text x="722" y="208">telemetry every 10 s: SoC, grid kW, mode</text>
+    <text x="722" y="208">telemetry every 10 s: SoC, grid kW, EV kW, mode</text>
     <text x="722" y="228" opacity=".75">device key generated on the GX, public key registered once</text>
     <text x="722" y="244" opacity=".75">platform key pinned on first contact, then trusted only if unchanged</text>
     <text x="722" y="285" font-weight="600">D-Bus on Venus OS</text>
@@ -690,7 +691,7 @@ li { margin-bottom: 6px; }
     <text x="722" y="318">MaxFeedInPower · MaxChargePower · MaxDischargePower · AcPowerSetPoint</text>
     <text x="722" y="336">reads: com.victronenergy.system /Dc/Battery/Soc, /Ac/Grid/L1..3/Power</text>
     <text x="722" y="352">reads: BatteryLife/MinimumSocLimit (owner veto, never written)</text>
-    <text x="722" y="370" opacity=".75">MultiPlus-II · battery · grid meter behind it</text>
+    <text x="722" y="370" opacity=".75">MultiPlus-II · battery · grid meter · EV Charging Station (throttled first, 6 A floor)</text>
   </g>
   <!-- VRM -->
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"><rect x="700" y="430" width="380" height="60" rx="4" fill="var(--surface)"/></g>
@@ -722,7 +723,7 @@ li { margin-bottom: 6px; }
   <text x="320" y="538" font-size="11" fill="currentColor">Verified 23 Oct: Cerbo registered over TLS to mqtt.victronlab.sk, telemetry SoC 20 %, grid 2.5 kW; RELEASE acknowledged "applied" with a signature the platform verified.</text>
 </svg>
 </div>
-<figcaption>Figure 5. The control plane as deployed. A public TLS broker with a real certificate, one Node-RED flow on the GX. The platform signs, the GX verifies and acks with its own key, and everything the GX does is outbound. The operators and the advisor reach the platform over a private overlay network; the vendor cloud only watches.</figcaption>
+<figcaption>Figure 5. The control plane as deployed. DSO side and home side on different networks, joined only by a public TLS broker with a real certificate; one Node-RED flow on the GX that also throttles the EV charger before it touches the battery. The platform signs, the GX verifies and acks with its own key, and everything the GX does is outbound. The operators and the advisor reach the platform over a private overlay network; the vendor cloud only watches.</figcaption>
 </figure>
 
 <h3>One signal through the stack</h3>
