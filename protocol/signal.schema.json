@@ -111,6 +111,18 @@
       ],
       "minimum": 0,
       "maximum": 100
+    },
+    "cohort": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 2,
+      "maxItems": 2
     }
   }
 }

@@ -32,6 +32,7 @@ const doc = JSON.parse(env.payload);
 if (msg.topic === "gridzilla/hb") { flow.set("last_hb", Date.now()); return [null, null, { hb: true }]; }
 
 if (!(flow.get("path") || []).includes(doc.segment)) return null;        // not for me
+if (doc.cohort && (parseInt(crypto.createHash("sha256").update(flow.get("device_id")).digest("hex").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort
 
 const lastSeq = flow.get("last_seq") || 0;
 if (doc.seq <= lastSeq) { node.warn(`stale_seq ${doc.seq} <= ${lastSeq}`); return [null, ack(doc.seq, "refused", "stale_seq"), null]; }

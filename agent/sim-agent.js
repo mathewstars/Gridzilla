@@ -193,6 +193,7 @@ function onSignal(h, env, platformPub) {
   const sig = verifyEnvelope(env, platformPub);
   if (!sig) { log(h.cfg.id, "refused: bad_sig"); return ack(h, null, "refused", "bad_sig"); }
   if (!h.cfg.path.includes(sig.segment)) return;                               // not for me, silently ignore
+  if (sig.cohort && (parseInt(crypto.createHash("sha256").update(h.cfg.id).digest("hex").slice(0, 8), 16) % sig.cohort[1]) !== sig.cohort[0]) return; // not my cohort
   const age = (Date.now() - Date.parse(sig.issued_at)) / 1000;
   if (sig.seq <= h.lastSeq) { log(h.cfg.id, `refused: stale_seq (${sig.seq} <= ${h.lastSeq})`); return ack(h, sig.seq, "refused", "stale_seq"); }
   if (age > 120 || age < -30) return ack(h, sig.seq, "refused", "expired");

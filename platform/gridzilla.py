@@ -226,7 +226,9 @@ def devices_under(node):
 
 
 # ---------------------------------------------------------------- compose and send
-def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0):
+def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None):
+    if cohort is not None and not (len(cohort) == 2 and 0 <= cohort[0] < cohort[1] <= 16):
+        raise HTTPException(400, "cohort must be [k, n] with k < n <= 16")
     err = guard(segment, mode, fields, duration_min)
     if err:
         log("guard", f"REFUSED {mode} for {segment}: {err}")
@@ -239,7 +241,7 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0):
             "v": 1, "seq": seq, "issued_at": iso(now()), "segment": segment, "mode": mode,
             "valid_from": iso(t0), "valid_to": iso(t0 + timedelta(minutes=duration_min)),
             **{k: fields.get(k) for k in ALL_FIELDS},
-            "ramp_s": POLICY["ramp_s"], "note": note or "",
+            "ramp_s": POLICY["ramp_s"], "note": note or "", "cohort": cohort,
         }
         if mode == "RELEASE":
             state["active"].pop(segment, None)
@@ -250,7 +252,7 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0):
             state["support_count"][key] = state["support_count"].get(key, 0) + 1
         persist()
     mq.publish(f"gridzilla/sig/{segment}", envelope(doc), qos=1)
-    log("signal", f"seq {seq} {mode} -> {segment} " + " ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
+    log("signal", f"seq {seq} {mode} -> {segment}" + (f" cohort {cohort[0]}/{cohort[1]} " if cohort else " ") + " ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
         + f" for {duration_min} min", seq=seq, mode=mode, segment=segment)
     return doc
 
@@ -341,6 +343,7 @@ class Signal(BaseModel):
     duration_min: int = 60
     start_in_min: int = 0
     note: str = ""
+    cohort: Optional[list] = None
 
 
 class Register(BaseModel):
@@ -382,7 +385,7 @@ def register(r: Register):
 @app.post("/api/signal")
 def post_signal(s: Signal):
     fields = {k: getattr(s, k) for k in ALL_FIELDS}
-    return send_signal(s.segment, s.mode, fields, s.duration_min, s.note, s.start_in_min)
+    return send_signal(s.segment, s.mode, fields, s.duration_min, s.note, s.start_in_min, s.cohort)
 
 
 @app.post("/api/advise")

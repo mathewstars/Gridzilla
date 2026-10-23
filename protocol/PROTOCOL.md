@@ -39,7 +39,7 @@ Nodes are `kind:name`. Kinds, top down: `region`, `sub` (110/22 kV substation), 
 ["region:sk", "sub:martin", "feeder:turiec-3", "tf:blatnica-1"]
 ```
 
-A device accepts a signal only if `signal.segment` is in its `path`.
+A device accepts a signal only if `signal.segment` is in its `path` and, when `cohort` is set, its id falls in that cohort.
 
 ## Signal
 
@@ -60,6 +60,7 @@ See `signal.schema.json`. Fields:
 | `target_soc` | number or null | Percent to reach by `valid_to` (`PREPARE`). |
 | `max_soc_by` | number or null | Percent to be at or **below** by `valid_from` (`ABSORB`): make room for the midday surplus by running the morning load from the battery. |
 | `ramp_s` | [min, max] | Device picks a random ramp in this range. |
+| `cohort` | [k, n] or null | Address only the devices whose `sha256(device_id) mod n == k`. Lets the platform stagger a segment: cohort [0,2] exports in the morning and charges at noon, cohort [1,2] the reverse, so the transformer never sees everyone at once and nobody is curtailed. No registry change needed; the device checks itself. |
 | `note` | string | Operator text, shown to the owner. |
 
 Which fields each mode may carry (the policy guard refuses anything else):

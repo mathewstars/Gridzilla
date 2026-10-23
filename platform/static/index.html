@@ -77,6 +77,10 @@
       <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
       <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
     </div>
+    <div class="row">
+      <div><label>Cohort k (blank = all)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
+      <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
+    </div>
     <label>Note to owners</label>
     <input id="note" placeholder="Transformer Blatnica-1 near limit 17:00–19:00">
     <button class="primary" onclick="send()">Sign and publish</button>
@@ -132,6 +136,8 @@ async function send() {
   const body = {segment: document.getElementById("segment").value, mode,
     duration_min: +document.getElementById("duration_min").value, start_in_min: +document.getElementById("start_in_min").value,
     note: document.getElementById("note").value};
+  const ck = document.getElementById("cohort_k").value, cn = document.getElementById("cohort_n").value;
+  if (ck !== "" && cn !== "") body.cohort = [+ck, +cn];
   MODE_FIELDS[mode].forEach(f => body[f] = +document.getElementById(f).value);
   document.getElementById("err").textContent = "";
   try { const d = await api("signal", body); lastSeq = d.seq; } catch (e) { document.getElementById("err").textContent = "Guard refused: " + e.message; }
