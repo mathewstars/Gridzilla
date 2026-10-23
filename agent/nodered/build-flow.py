@@ -16,6 +16,7 @@ ap.add_argument("--broker-port", default="1883")
 ap.add_argument("--tls", action="store_true", help="MQTT over TLS (8883), server cert verified against system CAs")
 ap.add_argument("--mqtt-user", default="")
 ap.add_argument("--mqtt-pass", default="")
+ap.add_argument("--evcharger", default="", help="D-Bus instance of a Victron EV Charging Station, e.g. 40; empty = none")
 ap.add_argument("--device", default="vic-atzgersdorf-07")
 ap.add_argument("--path", nargs="+", default=["region:at", "sub:wien-sued", "feeder:liesing-3", "tf:atzgersdorf-1"])
 a = ap.parse_args()
@@ -77,12 +78,15 @@ return msg;
 """
 F_APPLY = """
 // msg.payload = plan {writes:[{setting,value}], start_at, end_at, watchdog} or "revert"
+// outputs 0-3: ESS settings; 4: EV /SetCurrent (A); 5: EV /StartStop (0/1); 6: EV /Mode (0 manual)
 const W = { "/Settings/CGwacs/MaxFeedInPower": 0, "/Settings/CGwacs/MaxChargePower": 1, "/Settings/CGwacs/MaxDischargePower": 2, "/Settings/CGwacs/AcPowerSetPoint": 3 };
-const out = [null, null, null, null];
+const out = [null, null, null, null, null, null, null];
 if (msg.payload === "revert") {
   const saved = flow.get("saved") || {};
   for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };
-  flow.set("effective", null); flow.set("plan", null);
+  const ev = flow.get("ev_saved");
+  if (ev) { out[6] = { payload: ev.mode }; out[4] = { payload: ev.setcurrent }; out[5] = { payload: ev.startstop }; flow.set("ev_saved", null); }
+  flow.set("effective", null); flow.set("plan", null); flow.set("ev_limit", null);
   node.status({ fill: "grey", shape: "ring", text: "owner mode" });
   return out;
 }
@@ -91,16 +95,37 @@ if (!flow.get("saved")) flow.set("saved", { ...(flow.get("current") || {}) });  
 flow.set("plan", plan);
 const delay = Math.max(0, plan.start_at - Date.now());
 setTimeout(() => {
-  const o = [null, null, null, null];
+  const o = [null, null, null, null, null, null, null];
   for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };
+  // EV charger: first lever. Remember mode/current/startstop once, switch to manual, apply a current ceiling.
+  const eff = flow.get("effective") || {}, evp = flow.get("ev") || {};
+  if (flow.get("ev_present")) {
+    if (!flow.get("ev_saved")) flow.set("ev_saved", { mode: evp.mode ?? 0, setcurrent: evp.setcurrent ?? 16, startstop: evp.startstop ?? 1 });
+    o[6] = { payload: 0 };                                                   // manual: our current setting is honoured
+    if (eff.mode === "STRETCH") { o[5] = { payload: 0 }; flow.set("ev_limit", 0); }
+    else if (eff.import_max_kw != null) flow.set("ev_limit", "cap");        // live loop below keeps grid <= cap by trimming the car first
+    else if (eff.export_max_kw != null) flow.set("ev_limit", "soak");       // live loop raises the car to absorb surplus
+  }
   node.send(o);
   node.status({ fill: "yellow", shape: "dot", text: (flow.get("effective") || {}).mode + " until " + new Date(plan.end_at).toISOString().slice(11, 16) });
 }, delay);
 return null;
 """
 F_WATCH = """
-// every 5 s: window end or heartbeat loss -> revert
+// every 5 s: (a) EV current loop while a cap is active, (b) window end or heartbeat loss -> revert
 const plan = flow.get("plan"); if (!plan) return null;
+const eff = flow.get("effective") || {};
+const lim = flow.get("ev_limit"), ev = flow.get("ev") || {};
+if (lim === "cap" || lim === "soak") {
+  const perAmp = (ev.power > 100 && ev.setcurrent > 0) ? ev.power / ev.setcurrent : 230 * (ev.phases || 1);   // W per ampere, measured when charging
+  const gridW = (flow.get("grid_kw") || 0) * 1000, evW = ev.power || 0;
+  let targetW = lim === "cap" ? Math.max(0, eff.import_max_kw * 1000 - (gridW - evW)) : Math.max(0, evW + (-(eff.export_max_kw * 1000) - gridW) * -1);
+  let amps = Math.floor(targetW / perAmp);
+  amps = Math.min(amps, ev.maxcurrent || 16);
+  if (amps < 6) amps = 0;                                                     // below 6 A the car stops anyway: pause instead of a dead band
+  if (amps !== (ev.last_amps ?? -1)) { ev.last_amps = amps; flow.set("ev", ev);
+    node.send([null, null, { payload: amps > 0 ? amps : 6 }, { payload: amps > 0 ? 1 : 0 }]); }
+}
 const eff = flow.get("effective") || {};
 const hbAge = (Date.now() - (flow.get("last_hb") || 0)) / 1000;
 let reason = null;
@@ -111,12 +136,13 @@ const ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, "Z");
 const ack = { topic: `gridzilla/ack/${flow.get("device_id")}`, ackdoc: { v: 1, device: flow.get("device_id"), path: flow.get("path"), seq: null,
   status: "reverted", reason, applied: {}, soc: flow.get("soc") || 0, grid_kw: flow.get("grid_kw") || 0, ts } };
 node.warn("REVERT: " + reason);
-return [{ payload: "revert" }, ack];
+return [{ payload: "revert" }, ack, null, null];
 """
 F_TELEM = """
 const eff = flow.get("effective");
 msg.topic = `gridzilla/state/${flow.get("device_id")}`;
-msg.payload = JSON.stringify({ soc: flow.get("soc") || 0, grid_kw: flow.get("grid_kw") || 0, mode: eff ? eff.mode : "owner",
+const ev = flow.get("ev") || {};
+msg.payload = JSON.stringify({ soc: flow.get("soc") || 0, grid_kw: flow.get("grid_kw") || 0, mode: eff ? eff.mode : "owner", ev_kw: (ev.power || 0) / 1000, ev_status: ev.status ?? null,
   ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, "Z") });
 return msg;
 """
@@ -159,7 +185,7 @@ for i, t in enumerate([f"gridzilla/sig/{p}" for p in a.path] + ["gridzilla/hb"])
 f_merge = fn("merge with owner limits", F_MERGE, outputs=3, libs=False, x=680, y=220)
 f_sign = fn("sign ack", F_SIGN, x=940, y=300)
 m_ack = add(type="mqtt out", name="ack", topic="", qos="1", retain="false", broker=broker, x=1140, y=300)
-f_apply = fn("apply plan / revert", F_APPLY, outputs=4, libs=False, x=940, y=200)
+f_apply = fn("apply plan / revert", F_APPLY, outputs=7, libs=False, x=940, y=200)
 outs = []
 for i, (p, nm) in enumerate([("/Settings/CGwacs/MaxFeedInPower", "ESS max feed-in W"), ("/Settings/CGwacs/MaxChargePower", "ESS max charge W"),
                              ("/Settings/CGwacs/MaxDischargePower", "ESS max discharge W"), ("/Settings/CGwacs/AcPowerSetPoint", "ESS grid setpoint W")]):
@@ -170,13 +196,29 @@ f_sched = fn("schedule revert", "flow.set('plan_end', msg.payload.end_at); retur
 next(n for n in nodes if n["id"] == f_verify)["wires"] = [[f_merge], [f_sign], []]
 next(n for n in nodes if n["id"] == f_merge)["wires"] = [[f_apply], [f_sign], [f_sched]]
 next(n for n in nodes if n["id"] == f_sign)["wires"] = [[m_ack]]
-next(n for n in nodes if n["id"] == f_apply)["wires"] = [[o] for o in outs]
+ev_outs = []
+if a.evcharger:
+    svc = f"com.victronenergy.evcharger/{a.evcharger}"
+    for p, nm in [("/SetCurrent", "EV set current A"), ("/StartStop", "EV start/stop"), ("/Mode", "EV mode (0 manual)")]:
+        ev_outs.append(add(type="victron-output-custom", name=nm, service=svc, path=p, serviceObj={"service": svc, "name": "EV charger"},
+                           pathObj={"path": p, "type": "integer", "name": nm}, initial="", onlyChanges=False, x=1200, y=340 + len(ev_outs) * 40))
+next(n for n in nodes if n["id"] == f_apply)["wires"] = [[o] for o in outs] + ([[ev_outs[0]], [ev_outs[1]], [ev_outs[2]]] if ev_outs else [[], [], []])
 
 # ------------------------------------------------------------------ watchdog
 i_wd = add(type="inject", name="every 5 s", props=[{"p": "payload"}], repeat="5", crontab="", once=False, onceDelay=0.1, topic="", payload="", payloadType="date", x=130, y=480)
-f_wd = fn("watchdog: window end / heartbeat lost", F_WATCH, outputs=2, libs=False, x=420, y=480, )
+f_wd = fn("watchdog + EV loop", F_WATCH, outputs=4, libs=False, x=420, y=480, )
 next(n for n in nodes if n["id"] == i_wd)["wires"] = [[f_wd]]
-next(n for n in nodes if n["id"] == f_wd)["wires"] = [[f_apply], [f_sign]]
+next(n for n in nodes if n["id"] == f_wd)["wires"] = [[f_apply], [f_sign]] + ([[ev_outs[0]], [ev_outs[1]]] if ev_outs else [[], []])
+if a.evcharger:
+    svc = f"com.victronenergy.evcharger/{a.evcharger}"
+    f_ev = fn("flow.ev", """
+const ev = flow.get("ev") || {}; const k = { "/Ac/Power": "power", "/Mode": "mode", "/Status": "status", "/SetCurrent": "setcurrent", "/MaxCurrent": "maxcurrent", "/StartStop": "startstop", "/Ac/L2/Power": "l2" }[msg.path || msg.topic];
+if (k) { ev[k] = msg.payload; if (k === "l2") ev.phases = msg.payload > 50 ? 3 : 1; flow.set("ev", ev); flow.set("ev_present", true); }
+return null;""", libs=False, x=420, y=1120)
+    for i, p in enumerate(["/Ac/Power", "/Mode", "/Status", "/SetCurrent", "/MaxCurrent", "/StartStop", "/Ac/L2/Power"]):
+        e = add(type="victron-input-custom", name=f"EV {p}", service=svc, path=p, serviceObj={"service": svc, "name": "EV charger"},
+                pathObj={"path": p, "type": "float", "name": p}, initial="", onlyChanges=False, roundValues="0", x=160, y=1100 + i * 40)
+        next(n for n in nodes if n["id"] == e)["wires"] = [[f_ev]]
 
 # ------------------------------------------------------------------ measurements and telemetry
 v_soc = add(type="victron-input-custom", name="battery SoC", service="com.victronenergy.system", path="/Dc/Battery/Soc",

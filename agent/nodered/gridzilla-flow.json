@@ -10,11 +10,11 @@
   "type": "mqtt-broker",
   "z": null,
   "name": "gridzilla broker",
-  "broker": "192.168.90.119",
-  "port": "1883",
+  "broker": "mqtt.victronlab.sk",
+  "port": "8883",
   "clientid": "gz-vic-atzgersdorf-07",
   "autoConnect": true,
-  "usetls": false,
+  "usetls": true,
   "verifyservercert": true,
   "protocolVersion": "4",
   "keepalive": "30",
@@ -23,7 +23,11 @@
   "birthTopic": "",
   "closeTopic": "",
   "willTopic": "",
-  "id": "e16ff613dfe847e2",
+  "credentials": {
+   "user": "gz-devices",
+   "password": ""
+  },
+  "id": "6ce871c82be045e1",
   "wires": []
  },
  {
@@ -31,7 +35,7 @@
   "z": null,
   "name": "venus",
   "showValues": true,
-  "id": "7d6300e8e4d84c18",
+  "id": "6489431289ea4d48",
   "wires": []
  },
  {
@@ -51,18 +55,18 @@
   "payloadType": "date",
   "x": 120,
   "y": 60,
-  "id": "3db4503398ad49c4",
+  "id": "6d136e384d4d4aec",
   "z": "gz_tab",
   "wires": [
    [
-    "033a906b465b41a3"
+    "c35c8040210448aa"
    ]
   ]
  },
  {
   "type": "function",
   "name": "init + device key",
-  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"vic-atzgersdorf-07\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"http://192.168.90.119:8080\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
+  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"vic-atzgersdorf-07\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"https://gridzilla.victronlab.sk\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -83,11 +87,11 @@
   ],
   "x": 320,
   "y": 60,
-  "id": "033a906b465b41a3",
+  "id": "c35c8040210448aa",
   "z": "gz_tab",
   "wires": [
    [
-    "5d11de2d3c9f4025"
+    "0479aca9371240a1"
    ]
   ]
  },
@@ -102,11 +106,11 @@
   "authType": "",
   "x": 540,
   "y": 60,
-  "id": "5d11de2d3c9f4025",
+  "id": "0479aca9371240a1",
   "z": "gz_tab",
   "wires": [
    [
-    "75a5a88b06ff4928"
+    "3abc4e7683b14c2e"
    ]
   ]
  },
@@ -134,11 +138,11 @@
   ],
   "x": 760,
   "y": 60,
-  "id": "75a5a88b06ff4928",
+  "id": "3abc4e7683b14c2e",
   "z": "gz_tab",
   "wires": [
    [
-    "48102d88720f4bf4"
+    "bd4097b4c3484d3f"
    ]
   ]
  },
@@ -153,11 +157,11 @@
   "authType": "",
   "x": 980,
   "y": 60,
-  "id": "48102d88720f4bf4",
+  "id": "bd4097b4c3484d3f",
   "z": "gz_tab",
   "wires": [
    [
-    "7cdbe33d50ba4d0a"
+    "add293e655644708"
    ]
   ]
  },
@@ -172,7 +176,7 @@
   "libs": [],
   "x": 1180,
   "y": 60,
-  "id": "7cdbe33d50ba4d0a",
+  "id": "add293e655644708",
   "z": "gz_tab",
   "wires": []
  },
@@ -200,14 +204,14 @@
   ],
   "x": 420,
   "y": 220,
-  "id": "c609dc55939f4a45",
+  "id": "e05d881716f14f41",
   "z": "gz_tab",
   "wires": [
    [
-    "d58fe21c32b14fe2"
+    "2d09b2e1be194113"
    ],
    [
-    "1d8aa22a4e0b4425"
+    "e01b5a254c494c62"
    ],
    []
   ]
@@ -218,7 +222,7 @@
   "topic": "gridzilla/sig/region:at",
   "qos": "1",
   "datatype": "json",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -227,10 +231,10 @@
   "y": 160,
   "wires": [
    [
-    "c609dc55939f4a45"
+    "e05d881716f14f41"
    ]
   ],
-  "id": "af35c7501ed446ec",
+  "id": "73ef91c5976b44aa",
   "z": "gz_tab"
  },
  {
@@ -239,7 +243,7 @@
   "topic": "gridzilla/sig/sub:wien-sued",
   "qos": "1",
   "datatype": "json",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -248,10 +252,10 @@
   "y": 200,
   "wires": [
    [
-    "c609dc55939f4a45"
+    "e05d881716f14f41"
    ]
   ],
-  "id": "b7fa33ef39274188",
+  "id": "2af79b856dac4656",
   "z": "gz_tab"
  },
  {
@@ -260,7 +264,7 @@
   "topic": "gridzilla/sig/feeder:liesing-3",
   "qos": "1",
   "datatype": "json",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -269,10 +273,10 @@
   "y": 240,
   "wires": [
    [
-    "c609dc55939f4a45"
+    "e05d881716f14f41"
    ]
   ],
-  "id": "6f397867c4d24853",
+  "id": "512a6bcffbd949d1",
   "z": "gz_tab"
  },
  {
@@ -281,7 +285,7 @@
   "topic": "gridzilla/sig/tf:atzgersdorf-1",
   "qos": "1",
   "datatype": "json",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -290,10 +294,10 @@
   "y": 280,
   "wires": [
    [
-    "c609dc55939f4a45"
+    "e05d881716f14f41"
    ]
   ],
-  "id": "5076a3d54b644c1c",
+  "id": "9e4d4c1f0754450f",
   "z": "gz_tab"
  },
  {
@@ -302,7 +306,7 @@
   "topic": "gridzilla/hb",
   "qos": "1",
   "datatype": "json",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -311,10 +315,10 @@
   "y": 320,
   "wires": [
    [
-    "c609dc55939f4a45"
+    "e05d881716f14f41"
    ]
   ],
-  "id": "dd8456d2b00c4756",
+  "id": "c91780f720144a9e",
   "z": "gz_tab"
  },
  {
@@ -328,17 +332,17 @@
   "libs": [],
   "x": 680,
   "y": 220,
-  "id": "d58fe21c32b14fe2",
+  "id": "2d09b2e1be194113",
   "z": "gz_tab",
   "wires": [
    [
-    "ffe9056f929746ec"
+    "db1db620c3ce4bf9"
    ],
    [
-    "1d8aa22a4e0b4425"
+    "e01b5a254c494c62"
    ],
    [
-    "3af19295ce6345f0"
+    "5d94ceaa57f74c6b"
    ]
   ]
  },
@@ -366,11 +370,11 @@
   ],
   "x": 940,
   "y": 300,
-  "id": "1d8aa22a4e0b4425",
+  "id": "e01b5a254c494c62",
   "z": "gz_tab",
   "wires": [
    [
-    "0b87795df1c54003"
+    "acd99523e35d45df"
    ]
   ]
  },
@@ -380,38 +384,47 @@
   "topic": "",
   "qos": "1",
   "retain": "false",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "x": 1140,
   "y": 300,
-  "id": "0b87795df1c54003",
+  "id": "acd99523e35d45df",
   "z": "gz_tab",
   "wires": []
  },
  {
   "type": "function",
   "name": "apply plan / revert",
-  "func": "// msg.payload = plan {writes:[{setting,value}], start_at, end_at, watchdog} or \"revert\"\nconst W = { \"/Settings/CGwacs/MaxFeedInPower\": 0, \"/Settings/CGwacs/MaxChargePower\": 1, \"/Settings/CGwacs/MaxDischargePower\": 2, \"/Settings/CGwacs/AcPowerSetPoint\": 3 };\nconst out = [null, null, null, null];\nif (msg.payload === \"revert\") {\n  const saved = flow.get(\"saved\") || {};\n  for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };\n  flow.set(\"effective\", null); flow.set(\"plan\", null);\n  node.status({ fill: \"grey\", shape: \"ring\", text: \"owner mode\" });\n  return out;\n}\nconst plan = msg.payload;\nif (!flow.get(\"saved\")) flow.set(\"saved\", { ...(flow.get(\"current\") || {}) });   // snapshot once, restore on revert\nflow.set(\"plan\", plan);\nconst delay = Math.max(0, plan.start_at - Date.now());\nsetTimeout(() => {\n  const o = [null, null, null, null];\n  for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };\n  node.send(o);\n  node.status({ fill: \"yellow\", shape: \"dot\", text: (flow.get(\"effective\") || {}).mode + \" until \" + new Date(plan.end_at).toISOString().slice(11, 16) });\n}, delay);\nreturn null;",
-  "outputs": 4,
+  "func": "// msg.payload = plan {writes:[{setting,value}], start_at, end_at, watchdog} or \"revert\"\n// outputs 0-3: ESS settings; 4: EV /SetCurrent (A); 5: EV /StartStop (0/1); 6: EV /Mode (0 manual)\nconst W = { \"/Settings/CGwacs/MaxFeedInPower\": 0, \"/Settings/CGwacs/MaxChargePower\": 1, \"/Settings/CGwacs/MaxDischargePower\": 2, \"/Settings/CGwacs/AcPowerSetPoint\": 3 };\nconst out = [null, null, null, null, null, null, null];\nif (msg.payload === \"revert\") {\n  const saved = flow.get(\"saved\") || {};\n  for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };\n  const ev = flow.get(\"ev_saved\");\n  if (ev) { out[6] = { payload: ev.mode }; out[4] = { payload: ev.setcurrent }; out[5] = { payload: ev.startstop }; flow.set(\"ev_saved\", null); }\n  flow.set(\"effective\", null); flow.set(\"plan\", null); flow.set(\"ev_limit\", null);\n  node.status({ fill: \"grey\", shape: \"ring\", text: \"owner mode\" });\n  return out;\n}\nconst plan = msg.payload;\nif (!flow.get(\"saved\")) flow.set(\"saved\", { ...(flow.get(\"current\") || {}) });   // snapshot once, restore on revert\nflow.set(\"plan\", plan);\nconst delay = Math.max(0, plan.start_at - Date.now());\nsetTimeout(() => {\n  const o = [null, null, null, null, null, null, null];\n  for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };\n  // EV charger: first lever. Remember mode/current/startstop once, switch to manual, apply a current ceiling.\n  const eff = flow.get(\"effective\") || {}, evp = flow.get(\"ev\") || {};\n  if (flow.get(\"ev_present\")) {\n    if (!flow.get(\"ev_saved\")) flow.set(\"ev_saved\", { mode: evp.mode ?? 0, setcurrent: evp.setcurrent ?? 16, startstop: evp.startstop ?? 1 });\n    o[6] = { payload: 0 };                                                   // manual: our current setting is honoured\n    if (eff.mode === \"STRETCH\") { o[5] = { payload: 0 }; flow.set(\"ev_limit\", 0); }\n    else if (eff.import_max_kw != null) flow.set(\"ev_limit\", \"cap\");        // live loop below keeps grid <= cap by trimming the car first\n    else if (eff.export_max_kw != null) flow.set(\"ev_limit\", \"soak\");       // live loop raises the car to absorb surplus\n  }\n  node.send(o);\n  node.status({ fill: \"yellow\", shape: \"dot\", text: (flow.get(\"effective\") || {}).mode + \" until \" + new Date(plan.end_at).toISOString().slice(11, 16) });\n}, delay);\nreturn null;",
+  "outputs": 7,
   "noerr": 0,
   "initialize": "",
   "finalize": "",
   "libs": [],
   "x": 940,
   "y": 200,
-  "id": "ffe9056f929746ec",
+  "id": "db1db620c3ce4bf9",
   "z": "gz_tab",
   "wires": [
    [
-    "2231d95ca9bf41b1"
+    "42d6142f12da446c"
    ],
    [
-    "9138be1a4fc14515"
+    "33dffdadd6d64b71"
    ],
    [
-    "755cc53e308a4652"
+    "3b075d76d0ef4e6d"
    ],
    [
-    "8673937f7ada4df9"
+    "9d3b7909d6a64517"
+   ],
+   [
+    "0f9ab5a547e6445b"
+   ],
+   [
+    "e79000d590cd4f88"
+   ],
+   [
+    "6b85f91bdee641bb"
    ]
   ]
  },
@@ -433,10 +446,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 160,
-  "id": "2231d95ca9bf41b1",
+  "id": "42d6142f12da446c",
   "z": "gz_tab",
   "wires": [],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-output-custom",
@@ -456,10 +469,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 200,
-  "id": "9138be1a4fc14515",
+  "id": "33dffdadd6d64b71",
   "z": "gz_tab",
   "wires": [],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-output-custom",
@@ -479,10 +492,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 240,
-  "id": "755cc53e308a4652",
+  "id": "3b075d76d0ef4e6d",
   "z": "gz_tab",
   "wires": [],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-output-custom",
@@ -502,10 +515,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 280,
-  "id": "8673937f7ada4df9",
+  "id": "9d3b7909d6a64517",
   "z": "gz_tab",
   "wires": [],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "function",
@@ -518,9 +531,78 @@
   "libs": [],
   "x": 940,
   "y": 380,
-  "id": "3af19295ce6345f0",
+  "id": "5d94ceaa57f74c6b",
   "z": "gz_tab",
   "wires": []
+ },
+ {
+  "type": "victron-output-custom",
+  "name": "EV set current A",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/SetCurrent",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/SetCurrent",
+   "type": "integer",
+   "name": "EV set current A"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "x": 1200,
+  "y": 340,
+  "id": "0f9ab5a547e6445b",
+  "z": "gz_tab",
+  "wires": [],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-output-custom",
+  "name": "EV start/stop",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/StartStop",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/StartStop",
+   "type": "integer",
+   "name": "EV start/stop"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "x": 1200,
+  "y": 380,
+  "id": "e79000d590cd4f88",
+  "z": "gz_tab",
+  "wires": [],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-output-custom",
+  "name": "EV mode (0 manual)",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/Mode",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/Mode",
+   "type": "integer",
+   "name": "EV mode (0 manual)"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "x": 1200,
+  "y": 420,
+  "id": "6b85f91bdee641bb",
+  "z": "gz_tab",
+  "wires": [],
+  "client": "6489431289ea4d48"
  },
  {
   "type": "inject",
@@ -539,35 +621,252 @@
   "payloadType": "date",
   "x": 130,
   "y": 480,
-  "id": "6d92f83de6324c01",
+  "id": "26f98431017c45ed",
   "z": "gz_tab",
   "wires": [
    [
-    "0555c90f81614267"
+    "91360935a33a4503"
    ]
   ]
  },
  {
   "type": "function",
-  "name": "watchdog: window end / heartbeat lost",
-  "func": "// every 5 s: window end or heartbeat loss -> revert\nconst plan = flow.get(\"plan\"); if (!plan) return null;\nconst eff = flow.get(\"effective\") || {};\nconst hbAge = (Date.now() - (flow.get(\"last_hb\") || 0)) / 1000;\nlet reason = null;\nif (Date.now() >= plan.end_at) reason = \"window_end\";\nelse if (plan.watchdog && hbAge > plan.hb_timeout_s) reason = \"heartbeat_lost\";\nif (!reason) return null;\nconst ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = { topic: `gridzilla/ack/${flow.get(\"device_id\")}`, ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq: null,\n  status: \"reverted\", reason, applied: {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, ts } };\nnode.warn(\"REVERT: \" + reason);\nreturn [{ payload: \"revert\" }, ack];",
-  "outputs": 2,
+  "name": "watchdog + EV loop",
+  "func": "// every 5 s: (a) EV current loop while a cap is active, (b) window end or heartbeat loss -> revert\nconst plan = flow.get(\"plan\"); if (!plan) return null;\nconst eff = flow.get(\"effective\") || {};\nconst lim = flow.get(\"ev_limit\"), ev = flow.get(\"ev\") || {};\nif (lim === \"cap\" || lim === \"soak\") {\n  const perAmp = (ev.power > 100 && ev.setcurrent > 0) ? ev.power / ev.setcurrent : 230 * (ev.phases || 1);   // W per ampere, measured when charging\n  const gridW = (flow.get(\"grid_kw\") || 0) * 1000, evW = ev.power || 0;\n  let targetW = lim === \"cap\" ? Math.max(0, eff.import_max_kw * 1000 - (gridW - evW)) : Math.max(0, evW + (-(eff.export_max_kw * 1000) - gridW) * -1);\n  let amps = Math.floor(targetW / perAmp);\n  amps = Math.min(amps, ev.maxcurrent || 16);\n  if (amps < 6) amps = 0;                                                     // below 6 A the car stops anyway: pause instead of a dead band\n  if (amps !== (ev.last_amps ?? -1)) { ev.last_amps = amps; flow.set(\"ev\", ev);\n    node.send([null, null, { payload: amps > 0 ? amps : 6 }, { payload: amps > 0 ? 1 : 0 }]); }\n}\nconst eff = flow.get(\"effective\") || {};\nconst hbAge = (Date.now() - (flow.get(\"last_hb\") || 0)) / 1000;\nlet reason = null;\nif (Date.now() >= plan.end_at) reason = \"window_end\";\nelse if (plan.watchdog && hbAge > plan.hb_timeout_s) reason = \"heartbeat_lost\";\nif (!reason) return null;\nconst ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = { topic: `gridzilla/ack/${flow.get(\"device_id\")}`, ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq: null,\n  status: \"reverted\", reason, applied: {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, ts } };\nnode.warn(\"REVERT: \" + reason);\nreturn [{ payload: \"revert\" }, ack, null, null];",
+  "outputs": 4,
   "noerr": 0,
   "initialize": "",
   "finalize": "",
   "libs": [],
   "x": 420,
   "y": 480,
-  "id": "0555c90f81614267",
+  "id": "91360935a33a4503",
   "z": "gz_tab",
   "wires": [
    [
-    "ffe9056f929746ec"
+    "db1db620c3ce4bf9"
    ],
    [
-    "1d8aa22a4e0b4425"
+    "e01b5a254c494c62"
+   ],
+   [
+    "0f9ab5a547e6445b"
+   ],
+   [
+    "e79000d590cd4f88"
    ]
   ]
+ },
+ {
+  "type": "function",
+  "name": "flow.ev",
+  "func": "const ev = flow.get(\"ev\") || {}; const k = { \"/Ac/Power\": \"power\", \"/Mode\": \"mode\", \"/Status\": \"status\", \"/SetCurrent\": \"setcurrent\", \"/MaxCurrent\": \"maxcurrent\", \"/StartStop\": \"startstop\", \"/Ac/L2/Power\": \"l2\" }[msg.path || msg.topic];\nif (k) { ev[k] = msg.payload; if (k === \"l2\") ev.phases = msg.payload > 50 ? 3 : 1; flow.set(\"ev\", ev); flow.set(\"ev_present\", true); }\nreturn null;",
+  "outputs": 1,
+  "noerr": 0,
+  "initialize": "",
+  "finalize": "",
+  "libs": [],
+  "x": 420,
+  "y": 1120,
+  "id": "6a5b497a97304a76",
+  "z": "gz_tab",
+  "wires": []
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /Ac/Power",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/Ac/Power",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/Ac/Power",
+   "type": "float",
+   "name": "/Ac/Power"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1100,
+  "id": "756f5a39c32a494f",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /Mode",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/Mode",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/Mode",
+   "type": "float",
+   "name": "/Mode"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1140,
+  "id": "a45dd6b53c584109",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /Status",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/Status",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/Status",
+   "type": "float",
+   "name": "/Status"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1180,
+  "id": "6d425570bc3f4cdb",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /SetCurrent",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/SetCurrent",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/SetCurrent",
+   "type": "float",
+   "name": "/SetCurrent"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1220,
+  "id": "4558e71c36ae4191",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /MaxCurrent",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/MaxCurrent",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/MaxCurrent",
+   "type": "float",
+   "name": "/MaxCurrent"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1260,
+  "id": "81be1c6725434a5a",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /StartStop",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/StartStop",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/StartStop",
+   "type": "float",
+   "name": "/StartStop"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1300,
+  "id": "ec7d3a2579d842e1",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
+ },
+ {
+  "type": "victron-input-custom",
+  "name": "EV /Ac/L2/Power",
+  "service": "com.victronenergy.evcharger/40",
+  "path": "/Ac/L2/Power",
+  "serviceObj": {
+   "service": "com.victronenergy.evcharger/40",
+   "name": "EV charger"
+  },
+  "pathObj": {
+   "path": "/Ac/L2/Power",
+   "type": "float",
+   "name": "/Ac/L2/Power"
+  },
+  "initial": "",
+  "onlyChanges": false,
+  "roundValues": "0",
+  "x": 160,
+  "y": 1340,
+  "id": "e28ea142d92e4433",
+  "z": "gz_tab",
+  "wires": [
+   [
+    "6a5b497a97304a76"
+   ]
+  ],
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -588,14 +887,14 @@
   "roundValues": "1",
   "x": 140,
   "y": 580,
-  "id": "1d5e614f351b4bc0",
+  "id": "ffb3eb19a9f54f38",
   "z": "gz_tab",
   "wires": [
    [
-    "22c0ad5c0db5440d"
+    "f280c16b0ed54189"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "function",
@@ -608,7 +907,7 @@
   "libs": [],
   "x": 380,
   "y": 580,
-  "id": "22c0ad5c0db5440d",
+  "id": "f280c16b0ed54189",
   "z": "gz_tab",
   "wires": []
  },
@@ -623,7 +922,7 @@
   "libs": [],
   "x": 380,
   "y": 640,
-  "id": "935a9d9d53f445e8",
+  "id": "e8f618126dc14468",
   "z": "gz_tab",
   "wires": []
  },
@@ -646,14 +945,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 640,
-  "id": "095d9aebb5b94f2f",
+  "id": "ee2715d0637b40ca",
   "z": "gz_tab",
   "wires": [
    [
-    "935a9d9d53f445e8"
+    "e8f618126dc14468"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -674,14 +973,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 680,
-  "id": "2b877d9bd2d74d0c",
+  "id": "7133896b16694577",
   "z": "gz_tab",
   "wires": [
    [
-    "935a9d9d53f445e8"
+    "e8f618126dc14468"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -702,14 +1001,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 720,
-  "id": "44e99b8b63104bc4",
+  "id": "ddf7be51a785431f",
   "z": "gz_tab",
   "wires": [
    [
-    "935a9d9d53f445e8"
+    "e8f618126dc14468"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "function",
@@ -722,7 +1021,7 @@
   "libs": [],
   "x": 420,
   "y": 800,
-  "id": "0a60388ddf08484a",
+  "id": "1dbea91cd5e545bc",
   "z": "gz_tab",
   "wires": []
  },
@@ -745,14 +1044,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 780,
-  "id": "97091521d89d428d",
+  "id": "731f0e44e2b14d36",
   "z": "gz_tab",
   "wires": [
    [
-    "0a60388ddf08484a"
+    "1dbea91cd5e545bc"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -773,14 +1072,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 820,
-  "id": "402b1376b7294f3f",
+  "id": "a887b6b66b874ff8",
   "z": "gz_tab",
   "wires": [
    [
-    "0a60388ddf08484a"
+    "1dbea91cd5e545bc"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -801,14 +1100,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 860,
-  "id": "56a95105d3684f5f",
+  "id": "c114f5d87c8d4aef",
   "z": "gz_tab",
   "wires": [
    [
-    "0a60388ddf08484a"
+    "1dbea91cd5e545bc"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -829,14 +1128,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 900,
-  "id": "7c09a3edd0fd43b2",
+  "id": "f9908cfcbab84e33",
   "z": "gz_tab",
   "wires": [
    [
-    "0a60388ddf08484a"
+    "1dbea91cd5e545bc"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "victron-input-custom",
@@ -857,14 +1156,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 960,
-  "id": "9b8d2d80ceca4aeb",
+  "id": "1e8f2474c84c4e76",
   "z": "gz_tab",
   "wires": [
    [
-    "8113151dfa144216"
+    "25e6c9245e074479"
    ]
   ],
-  "client": "7d6300e8e4d84c18"
+  "client": "6489431289ea4d48"
  },
  {
   "type": "function",
@@ -877,7 +1176,7 @@
   "libs": [],
   "x": 420,
   "y": 960,
-  "id": "8113151dfa144216",
+  "id": "25e6c9245e074479",
   "z": "gz_tab",
   "wires": []
  },
@@ -898,18 +1197,18 @@
   "payloadType": "date",
   "x": 130,
   "y": 1040,
-  "id": "f0e6de8609464847",
+  "id": "547fd5f44d724c94",
   "z": "gz_tab",
   "wires": [
    [
-    "75431933b1964868"
+    "cb4b8564e122492f"
    ]
   ]
  },
  {
   "type": "function",
   "name": "telemetry",
-  "func": "const eff = flow.get(\"effective\");\nmsg.topic = `gridzilla/state/${flow.get(\"device_id\")}`;\nmsg.payload = JSON.stringify({ soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, mode: eff ? eff.mode : \"owner\",\n  ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") });\nreturn msg;",
+  "func": "const eff = flow.get(\"effective\");\nmsg.topic = `gridzilla/state/${flow.get(\"device_id\")}`;\nconst ev = flow.get(\"ev\") || {};\nmsg.payload = JSON.stringify({ soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, mode: eff ? eff.mode : \"owner\", ev_kw: (ev.power || 0) / 1000, ev_status: ev.status ?? null,\n  ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") });\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -917,11 +1216,11 @@
   "libs": [],
   "x": 380,
   "y": 1040,
-  "id": "75431933b1964868",
+  "id": "cb4b8564e122492f",
   "z": "gz_tab",
   "wires": [
    [
-    "aeeacf109bbf44df"
+    "4a40eeada74b4b5b"
    ]
   ]
  },
@@ -931,10 +1230,10 @@
   "topic": "",
   "qos": "0",
   "retain": "false",
-  "broker": "e16ff613dfe847e2",
+  "broker": "6ce871c82be045e1",
   "x": 600,
   "y": 1040,
-  "id": "aeeacf109bbf44df",
+  "id": "4a40eeada74b4b5b",
   "z": "gz_tab",
   "wires": []
  }
