@@ -120,8 +120,9 @@ brew install mosquitto && /opt/homebrew/opt/mosquitto/sbin/mosquitto -p 1883
 # 2. DSO platform + dashboard  ->  http://localhost:8080
 python3 -m venv .venv && .venv/bin/pip install -r platform/requirements.txt
 cd platform && ../.venv/bin/python gridzilla.py
-#    optional advisor (local DeepSeek, OpenAI-compatible):
-#    GZ_LLM_URL=http://spark-1:8000/v1 GZ_LLM_MODEL=deepseek-v4.1 ../.venv/bin/python gridzilla.py
+#    with the advisor: copy platform/.env.example to platform/.env, set GZ_LLM_KEY (gateway token), then
+./run.sh
+#    The advisor talks ONLY to the LLM gateway on :9000. The model server itself must not be reachable.
 
 # 3. four simulated houses (two villages on one 22 kV feeder), two with EV chargers
 cd agent && npm install && node sim-agent.js          # GZ_SPEED=1 (default) = 1 simulated minute per second; use 2-4 to see SoC move fast
