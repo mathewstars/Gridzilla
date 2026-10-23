@@ -665,7 +665,7 @@ li { margin-bottom: 6px; }
   </g>
   <g fill="none" stroke="currentColor" stroke-width="1"><rect x="332" y="110" width="276" height="40" rx="3"/><rect x="332" y="158" width="276" height="70" rx="3"/><rect x="332" y="236" width="276" height="60" rx="3"/></g>
   <g font-size="11" fill="currentColor">
-    <text x="342" y="127" font-weight="600">Mosquitto :1883</text><text x="342" y="142">rootless podman, LAN only, signals are signed anyway</text>
+    <text x="342" y="127" font-weight="600">Broker: mqtt.victronlab.sk:8883 (public, TLS)</text><text x="342" y="142">Let's Encrypt, credentials + topic ACL; local fallback on this box</text>
     <text x="342" y="175" font-weight="600">Gridzilla platform :8080</text><text x="342" y="190">registry tree · policy guard · Ed25519 signing · heartbeat 30 s</text><text x="342" y="205">ack verification · history · operator board · advisor</text><text x="342" y="220" opacity=".75">private key on disk, 0600, never in git</text>
     <text x="342" y="253" font-weight="600">Simulated houses × 4</text><text x="342" y="268">same agent logic, two villages, two with EV chargers</text><text x="342" y="283" opacity=".75">each stands for ten real houses on the board</text>
   </g>
@@ -705,7 +705,7 @@ li { margin-bottom: 6px; }
   </g>
   <g font-size="10" fill="currentColor" text-anchor="middle">
     <text x="659" y="118" fill="var(--accent)">signals + heartbeat</text>
-    <text x="659" y="146">MQTT, GX subscribes</text>
+    <text x="659" y="146">MQTT over TLS, GX subscribes</text>
     <text x="659" y="188" fill="var(--ok)">signed acks</text>
     <text x="659" y="216">telemetry 10 s</text>
   </g>
@@ -719,10 +719,10 @@ li { margin-bottom: 6px; }
   <text x="595" y="50" font-size="10" fill="currentColor" text-anchor="middle">once: GET /api/pubkey, POST /api/register (device public key)</text>
   <!-- not used -->
   <text x="320" y="520" font-size="11" fill="currentColor">Not used by Gridzilla: Modbus TCP, VRM remote control, any inbound port on the GX. The GX only opens outbound connections.</text>
-  <text x="320" y="538" font-size="11" fill="currentColor">Verified 23 Oct 21:01 UTC: Cerbo registered, telemetry SoC 20 %, grid 2.6 kW; RELEASE seq 1 acknowledged "applied" with a signature the platform verified.</text>
+  <text x="320" y="538" font-size="11" fill="currentColor">Verified 23 Oct: Cerbo registered over TLS to mqtt.victronlab.sk, telemetry SoC 20 %, grid 2.5 kW; RELEASE acknowledged "applied" with a signature the platform verified.</text>
 </svg>
 </div>
-<figcaption>Figure 5. The control plane as deployed. One LAN, one broker, one Node-RED flow on the GX. The platform signs, the GX verifies and acks with its own key, and everything the GX does is outbound. The operators and the advisor reach the platform over a private overlay network; the vendor cloud only watches.</figcaption>
+<figcaption>Figure 5. The control plane as deployed. A public TLS broker with a real certificate, one Node-RED flow on the GX. The platform signs, the GX verifies and acks with its own key, and everything the GX does is outbound. The operators and the advisor reach the platform over a private overlay network; the vendor cloud only watches.</figcaption>
 </figure>
 
 <h3>One signal through the stack</h3>

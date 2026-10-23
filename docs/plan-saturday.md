@@ -12,8 +12,8 @@ Three people, one day, one real battery. The protocol is frozen in `protocol/PRO
 
 ## Status Friday night
 
-- DSO platform, Mosquitto and four simulated houses run as user services on the Linux box on the site LAN (192.168.90.119). Dashboard on :8080, reachable over Tailscale. Advisor wired to the LLM gateway on :9000.
-- The real Cerbo GX (192.168.90.147, portal c0619ab3794e) runs the "Gridzilla agent" Node-RED flow, registered its key, sends telemetry, and acknowledged a RELEASE with a verified signature.
+- Public broker: `mqtts://mqtt.victronlab.sk:8883` on cruiser, Let's Encrypt, credentials + ACL (vault items `gridzilla mqtt - gz-platform` / `gz-devices`). Platform and four simulated houses run as user services on the Linux box on the site LAN (192.168.90.119), dashboard on :8080 over Tailscale, advisor on the LLM gateway :9000. The local Mosquitto on that box stays as fallback (edit `platform/.env`, `GZ_BROKER=127.0.0.1:1883`, drop the TLS lines).
+- The real Cerbo GX (192.168.90.147, portal c0619ab3794e) runs the "Gridzilla agent" Node-RED flow over the public TLS broker, registered its key, sends telemetry, and acknowledged RELEASE signals with verified signatures (last: seq 2 via mqtt.victronlab.sk).
 - Not yet done on the real plant: a limiting signal. Battery was at 20 % on Friday night; first live SUPPORT after PV has charged it on Saturday, or a PREPARE in the morning.
 - Redeploy the flow: `agent/nodered/build-flow.py` then `deploy-flow.sh` (needs NR_PASS = GX security-profile password, username admin).
 

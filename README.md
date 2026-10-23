@@ -114,7 +114,8 @@ The reference plant is a Victron ESS system (Cerbo GX, MultiPlus-II, MPPT, batte
 ## Quickstart (the whole stack on one laptop)
 
 ```bash
-# 1. broker
+# 1. broker: the public one is mqtts://mqtt.victronlab.sk:8883 (TLS, credentials in the vault: 'gridzilla mqtt - gz-platform' / 'gz-devices')
+#    local fallback for offline work:
 brew install mosquitto && /opt/homebrew/opt/mosquitto/sbin/mosquitto -p 1883
 
 # 2. DSO platform + dashboard  ->  http://localhost:8080
@@ -126,7 +127,7 @@ cd platform && ../.venv/bin/python gridzilla.py
 
 # 3. four simulated houses (two villages on one 22 kV feeder), two with EV chargers
 cd agent && npm install && node sim-agent.js          # GZ_SPEED=1 (default) = 1 simulated minute per second; use 2-4 to see SoC move fast
-#    remote broker/platform: GZ_PLATFORM=http://<host>:8080 GZ_BROKER=mqtt://<host>:1883 node sim-agent.js
+#    public broker: GZ_BROKER=mqtts://mqtt.victronlab.sk:8883 GZ_MQTT_USER=gz-devices GZ_MQTT_PASS=... node sim-agent.js
 
 # 4. send a signal from the dashboard, or:
 curl -X POST localhost:8080/api/signal -H 'Content-Type: application/json' \

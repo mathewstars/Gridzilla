@@ -4,7 +4,9 @@ Frozen for the hackathon. Change it only by changing this file and the schemas n
 
 ## Transport
 
-MQTT, any broker. The home side only ever **subscribes** and **publishes**; it never listens on a port.
+MQTT over TLS, any broker. The home side only ever **subscribes** and **publishes**; it never listens on a port.
+
+As deployed: `mqtts://mqtt.victronlab.sk:8883`, Mosquitto 2.0 with a Let's Encrypt certificate (auto-renewed by certbot), no plaintext listener on the internet, username and password per role, and a topic access list: the platform role may read and write `gridzilla/#`; the device role may only read `gridzilla/sig/#` and `gridzilla/hb` and only write `gridzilla/ack/#` and `gridzilla/state/#`. The broker is trusted for delivery only; authority stays in the signatures.
 
 | Topic | Direction | Payload | QoS |
 |---|---|---|---|
