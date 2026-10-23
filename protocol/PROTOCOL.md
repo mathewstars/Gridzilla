@@ -58,6 +58,7 @@ See `signal.schema.json`. Fields:
 | `charge_max_kw` | number or null | Ceiling on battery charge power. |
 | `discharge_max_kw` | number or null | Ceiling on battery discharge power. |
 | `target_soc` | number or null | Percent to reach by `valid_to` (`PREPARE`). |
+| `max_soc_by` | number or null | Percent to be at or **below** by `valid_from` (`ABSORB`): make room for the midday surplus by running the morning load from the battery. |
 | `ramp_s` | [min, max] | Device picks a random ramp in this range. |
 | `note` | string | Operator text, shown to the owner. |
 
@@ -66,7 +67,7 @@ Which fields each mode may carry (the policy guard refuses anything else):
 | Mode | Allowed fields | Intent |
 |---|---|---|
 | `PREPARE` | `target_soc`, `charge_max_kw` | Fill before the event, gently. Can only raise SoC. The agent picks the cheapest window before `valid_to`; the DSO waives the network fee in that window; the guard refuses a PREPARE with no following SUPPORT or outage window. |
-| `ABSORB` | `export_max_kw`, `charge_max_kw` | PV surplus: cap export, allow charging. |
+| `ABSORB` | `export_max_kw`, `charge_max_kw`, `max_soc_by` | PV surplus. The agent works down a ladder: make room in the morning, charge the battery at noon, shift loads (boiler, heat pump, EV) into the surplus, and only then curtail. Curtailed energy is reported in the ack and compensated, or credited to the supplier's virtual battery as if exported. Pair with an evening `SUPPORT` so the same energy is exported later, paid. |
 | `SUPPORT` | `import_max_kw`, `export_min_kw` | Peak or deficit: "take 3 kW only", "give at least 2 kW". |
 | `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). **Implies `export_max_kw = 0`**: the agent locks export so nothing can backfeed into a line under repair. Anti-islanding already prevents it; the signal says it anyway. |
 | `RECOVER` | `charge_max_kw` | After restoration: staggered recharge. |
@@ -94,6 +95,7 @@ See `ack.schema.json`. Sent on every accepted or rejected signal, and again on r
 | `applied` | The limits actually in force after merging with owner limits. |
 | `soc` | Percent. |
 | `grid_kw` | Measured at the connection point. Positive = import, negative = export. |
+| `curtailed_kwh` | Optional. Energy the inverter could have produced but did not because of the signal, since the window began. Basis for compensation. |
 | `ts` | ISO 8601 UTC. |
 
 ## Merge rule

@@ -3,25 +3,114 @@
   "$id": "https://github.com/mathewstars/Gridzilla/protocol/signal.schema.json",
   "title": "Gridzilla signal v1",
   "type": "object",
-  "required": ["v", "seq", "issued_at", "segment", "mode", "valid_from", "valid_to", "ramp_s"],
+  "required": [
+    "v",
+    "seq",
+    "issued_at",
+    "segment",
+    "mode",
+    "valid_from",
+    "valid_to",
+    "ramp_s"
+  ],
   "additionalProperties": false,
   "properties": {
-    "v": { "const": 1 },
-    "seq": { "type": "integer", "minimum": 1 },
-    "issued_at": { "type": "string", "format": "date-time" },
-    "segment": { "type": "string", "pattern": "^(region|sub|feeder|tf):[a-z0-9-]+$" },
-    "mode": { "enum": ["PREPARE", "ABSORB", "SUPPORT", "STRETCH", "RECOVER", "RELEASE"] },
-    "valid_from": { "type": "string", "format": "date-time" },
-    "valid_to": { "type": "string", "format": "date-time" },
-    "import_max_kw": { "type": ["number", "null"], "minimum": 0 },
-    "export_max_kw": { "type": ["number", "null"], "minimum": 0 },
-    "export_min_kw": { "type": ["number", "null"], "minimum": 0 },
-    "charge_max_kw": { "type": ["number", "null"], "minimum": 0 },
-    "discharge_max_kw": { "type": ["number", "null"], "minimum": 0 },
-    "target_soc": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
-    "ramp_s": {
-      "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2
+    "v": {
+      "const": 1
     },
-    "note": { "type": "string", "maxLength": 200 }
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "segment": {
+      "type": "string",
+      "pattern": "^(region|sub|feeder|tf):[a-z0-9-]+$"
+    },
+    "mode": {
+      "enum": [
+        "PREPARE",
+        "ABSORB",
+        "SUPPORT",
+        "STRETCH",
+        "RECOVER",
+        "RELEASE"
+      ]
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_to": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "import_max_kw": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "export_max_kw": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "export_min_kw": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "charge_max_kw": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "discharge_max_kw": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "target_soc": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ramp_s": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "max_soc_by": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    }
   }
 }

@@ -35,13 +35,13 @@ LLM_MODEL = os.environ.get("GZ_LLM_MODEL", "deepseek-v4.1")
 
 MODE_FIELDS = {
     "PREPARE": {"target_soc", "charge_max_kw"},
-    "ABSORB": {"export_max_kw", "charge_max_kw"},
+    "ABSORB": {"export_max_kw", "charge_max_kw", "max_soc_by"},
     "SUPPORT": {"import_max_kw", "export_min_kw"},
     "STRETCH": {"discharge_max_kw"},
     "RECOVER": {"charge_max_kw"},
     "RELEASE": set(),
 }
-ALL_FIELDS = ["import_max_kw", "export_max_kw", "export_min_kw", "charge_max_kw", "discharge_max_kw", "target_soc"]
+ALL_FIELDS = ["import_max_kw", "export_max_kw", "export_min_kw", "charge_max_kw", "discharge_max_kw", "target_soc", "max_soc_by"]
 
 
 def now():
@@ -337,6 +337,7 @@ class Signal(BaseModel):
     charge_max_kw: Optional[float] = None
     discharge_max_kw: Optional[float] = None
     target_soc: Optional[float] = None
+    max_soc_by: Optional[float] = None
     duration_min: int = 60
     start_in_min: int = 0
     note: str = ""

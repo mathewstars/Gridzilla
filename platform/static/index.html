@@ -71,6 +71,7 @@
       <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
       <div id="f-discharge_max_kw"><label>discharge_max_kw</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
       <div id="f-target_soc"><label>target_soc %</label><input id="target_soc" type="number" step="5" value="100"></div>
+      <div id="f-max_soc_by"><label>max_soc_by % · make room</label><input id="max_soc_by" type="number" step="5" value="40"></div>
     </div>
     <div class="row">
       <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
@@ -106,9 +107,9 @@
 
 <script>
 const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
-const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw"],
+const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw","max_soc_by"],
   SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
-const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc"];
+const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc","max_soc_by"];
 let mode = "SUPPORT", S = null, lastSeq = null;
 
 function setMode(m) {

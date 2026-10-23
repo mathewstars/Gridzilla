@@ -108,6 +108,9 @@ function step(h) {
     grid = 0;
     batt = pv >= load ? Math.min(pv - load, chargeMax) : -Math.min(load - pv, dischargeMax);
   } else {
+    if (e.max_soc_by != null && h.soc > e.max_soc_by && load > pv) {  // ABSORB make-room: run the house from the battery, no export
+      batt = -Math.min(load - pv, dischargeMax); grid = load - pv + batt;
+    }
     if (e.target_soc != null && h.soc < e.target_soc) {               // PREPARE: charge from grid
       batt = chargeMax; grid = load - pv + batt;
     }
@@ -126,7 +129,7 @@ function step(h) {
       const over = -e.export_max_kw - grid;
       const extra = Math.min(over, chargeMax - batt);
       batt += extra; grid = load - pv + batt;
-      if (grid < -e.export_max_kw) grid = -e.export_max_kw;            // rest is curtailed PV
+      if (grid < -e.export_max_kw) { h.curtailed_kwh = (h.curtailed_kwh || 0) + (-e.export_max_kw - grid) * dtH; grid = -e.export_max_kw; } // rest is curtailed PV, counted for compensation
     }
   }
   h.soc = clamp(h.soc + (batt * dtH) / cfg.kwh * 100, 0, 100);
@@ -141,19 +144,21 @@ function step(h) {
     ack(h, h.signal ? h.signal.seq : null, "partial", "min_soc");
   }
   if (!spending) h.reportedMinSoc = false;
+  if (!h.effective) h.curtailed_kwh = 0;
 }
 
 // ------------------------------------------------------------ agent logic (same as the Node-RED flow)
 function merge(h, sig) {
   const o = h.cfg.owner;
   if (o.opt_out) return { eff: null, status: "refused", reason: "opt_out" };
-  const eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null, charge_max_kw: null, discharge_max_kw: null, target_soc: null };
+  const eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null, charge_max_kw: null, discharge_max_kw: null, target_soc: null, max_soc_by: null };
   let status = "applied", reason = null;
   if (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;
   if (sig.export_max_kw != null) eff.export_max_kw = sig.export_max_kw;
   if (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);
   if (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);
   if (sig.target_soc != null) eff.target_soc = sig.target_soc;             // can only raise SoC: always owner-favourable
+  if (sig.max_soc_by != null) eff.max_soc_by = Math.max(sig.max_soc_by, o.min_soc); // make room, never below the owner reserve
   if (sig.export_min_kw != null) {
     const cap = Math.min(h.cfg.feedin_max_kw, o.max_discharge_kw);
     if (h.soc <= o.min_soc) { eff.export_min_kw = 0; status = "partial"; reason = "min_soc"; }
@@ -165,7 +170,8 @@ function merge(h, sig) {
 
 function ack(h, seq, status, reason) {
   const doc = { v: 1, device: h.cfg.id, path: h.cfg.path, seq, status, reason,
-    applied: h.effective || {}, soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), ts: nowIso() };
+    applied: h.effective || {}, soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), ts: nowIso(),
+    curtailed_kwh: h.curtailed_kwh ? +h.curtailed_kwh.toFixed(2) : null };
   h.mq.publish(`gridzilla/ack/${h.cfg.id}`, sign(doc, h.keys.priv), { qos: 1 });
   log(h.cfg.id, `ack ${status}${reason ? " (" + reason + ")" : ""} seq=${seq} soc=${h.soc.toFixed(0)}% grid=${h.grid_kw.toFixed(1)}kW`);
 }
