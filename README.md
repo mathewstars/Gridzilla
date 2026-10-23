@@ -72,6 +72,8 @@ A signal is an envelope at the grid connection point, never a device setpoint.
 | `STRETCH` | street dead, expected restoration time known | each house islands on its own inverter; the agent rations discharge and sheds heat pump, EV charger and boiler to last until restoration | partly, needs a comms path that survives the outage (GX LTE) or a cached schedule |
 | `RECOVER` | transformer replaced | staggered recharge so 70 kWh of batteries do not refill on top of cold-load pickup | yes |
 
+**Segments are a tree.** A signal targets the level where the constraint is: street transformer (`tf:mosovce-2`), 22 kV feeder (`feeder:turiec-3`), 110/22 kV substation (`sub:martin`) or region (`region:sk`). Batteries in Blatnica can relieve a feeder or substation that also serves Mošovce, by feeding in through their own transformer in reverse, but they cannot relieve Mošovce's own street transformer. The agent accepts only signals for nodes it sits under.
+
 A dead transformer cannot be fed from the street: inverters must disconnect from a dead grid and there is no grid-forming anchor. A street island from home batteries is the future slide, not the product.
 
 Fields: `segment_id`, `mode`, `import_max_kw`, `export_max_kw`, `export_min_kw` (forced feed-in), `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.

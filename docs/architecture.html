@@ -337,7 +337,7 @@ li { margin-bottom: 6px; }
 <table>
 <thead><tr><th>Field</th><th>Meaning</th><th>Security role</th></tr></thead>
 <tbody>
-<tr><td><code>segment_id</code></td><td>Transformer or feeder the signal applies to</td><td>Device accepts only its own segment</td></tr>
+<tr><td><code>segment_id</code></td><td>Node in the grid tree the signal applies to: street transformer, 22 kV feeder, 110/22 kV substation, or region</td><td>Device accepts only signals for a node it sits under; a signal for one feeder cannot reach the next</td></tr>
 <tr><td><code>mode</code></td><td>ABSORB, SUPPORT or RELEASE</td><td>Closed set, no free-form commands</td></tr>
 <tr><td><code>import_max_kw</code></td><td>Import cap at the grid connection point, the peak tool ("take 3 kW only")</td><td>A ceiling the meter can check, never a setpoint</td></tr>
 <tr><td><code>export_max_kw</code></td><td>Export cap, the PV surplus tool</td><td>A ceiling the meter can check</td></tr>
@@ -455,6 +455,22 @@ li { margin-bottom: 6px; }
 </div>
 <figcaption>Figure 3. The street from the flipchart, corrected. While the transformer is alive, the batteries can relieve it and the grid above it. Once it is destroyed, the street is dead by law and physics: inverters must disconnect from a dead grid, and each house can only island on its own battery. The platform's job then is to have filled the batteries beforehand and to make them last.</figcaption>
 </figure>
+
+<h3>Segments are a tree, not a transformer</h3>
+<p>Two villages on the same 22 kV feeder, say Blatnica and Mošovce in Turiec, each have their own street transformer. If Blatnica's batteries feed in, the power goes up through Blatnica's transformer in reverse, along the 22 kV line, and down into Mošovce. That relieves the feeder and the 110/22 kV substation, which in rural Slovakia are the usual bottleneck. It does not relieve Mošovce's own transformer, and Blatnica's transformer becomes the new limit in reverse.</p>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Constraint</th><th>Who can help</th><th>Signal target</th></tr></thead>
+<tbody>
+<tr><td>Street transformer in Mošovce</td><td>Only batteries behind that transformer</td><td><code>tf:mosovce-2</code></td></tr>
+<tr><td>22 kV feeder from the substation</td><td>Every battery on that feeder, in every village</td><td><code>feeder:turiec-3</code></td></tr>
+<tr><td>110/22 kV substation, or the region above it</td><td>Every battery under the substation</td><td><code>sub:martin</code></td></tr>
+<tr><td>National generation deficit</td><td>Everyone</td><td><code>region:sk</code></td></tr>
+<tr><td>22 kV line between the villages is down</td><td>Nobody, each village is on its own</td><td>STRETCH per village</td></tr>
+</tbody>
+</table>
+</div>
+<p>The registry stores each device's position in that tree. The policy guard scopes every signal to one node, and the agent accepts a signal only for nodes it sits under. The aggregate the DSO sees is per node, so it can tell how much flexibility a feeder has without seeing any one house.</p>
 
 <h3>Four regimes, four signals</h3>
 <div class="tablewrap">
