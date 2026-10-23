@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gridzilla</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column, wide figures spill into scrollable frames; engineering-document feel */
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --fg: #1d2229;
+  --muted: #5b6470;
+  --line: #cfd3d8;
+  --accent: #c7641a;        /* signal amber: the DSO signal path */
+  --accent-soft: #fbe9d8;
+  --ok: #2d7a4f;
+  --ok-soft: #dcefe3;
+  --bad: #b23a3a;
+  --bad-soft: #f6dddd;
+  --home: #e9eef5;          /* home trust zone */
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181c; --surface: #1d2127; --fg: #e8e6e0; --muted: #a2a9b3; --line: #3a414a;
+    --accent: #e8893a; --accent-soft: #3a2a1c; --ok: #5fc48a; --ok-soft: #1e3328;
+    --bad: #e46b6b; --bad-soft: #3a2222; --home: #232a34; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181c; --surface: #1d2127; --fg: #e8e6e0; --muted: #a2a9b3; --line: #3a414a;
+  --accent: #e8893a; --accent-soft: #3a2a1c; --ok: #5fc48a; --ok-soft: #1e3328;
+  --bad: #e46b6b; --bad-soft: #3a2222; --home: #232a34; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: 1.5; }
+.wrap {
+  max-width: 1040px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+header { display: grid; gap: 8px; margin-bottom: 36px; border-bottom: 2px solid var(--fg); padding-bottom: 20px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 46px); line-height: 1.05; margin: 0; font-weight: 700; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 24px; margin: 44px 0 12px; font-weight: 600; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-size: 18px; margin: 24px 0 8px; font-weight: 600; }
+p { max-width: 68ch; margin: 0 0 12px; }
+.lede { font-size: 17px; color: var(--muted); max-width: 70ch; }
+figure { margin: 16px 0 8px; }
+.frame { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.frame svg { display: block; min-width: 720px; max-width: 100%; height: auto; margin: 0 auto; font-family: var(--font-body); }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 16px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td code, p code, li code { font-family: var(--font-mono); font-size: 13px; background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }
+.tablewrap { overflow-x: auto; }
+.tablewrap table { min-width: 640px; }
+ul { padding-left: 20px; max-width: 72ch; }
+li { margin-bottom: 6px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; min-width: 0; }
+.card h3 { margin-top: 0; }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-right: 6px; }
+.tag.sig { background: var(--accent-soft); color: var(--accent); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.bad { background: var(--bad-soft); color: var(--bad); }
+.seq { font-family: var(--font-mono); font-size: 13px; }
+.seq td:first-child { white-space: nowrap; color: var(--muted); }
+.note { border-left: 3px solid var(--accent); padding: 8px 14px; background: var(--surface); margin: 16px 0; max-width: 72ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 22px; height: 0; border-top: 2px solid currentColor; vertical-align: middle; margin-right: 6px; }
+.legend .sigl { color: var(--accent); }
+.legend .telel::before { border-top-style: dashed; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+<style>body{margin:0;font-size:14px}img{max-width:100%}</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Energy Bridge Critical Infrastructure Hackathon · Vienna, 23–25 Oct 2026 · Grid-Serving Storage track</div>
+  <h1>Gridzilla: a grid signaling platform for grid-serving storage</h1>
+  <p class="lede">A DSO-controlled platform that sends signed charge and discharge signals to home batteries in a congested grid segment, reaching Victron, GoodWe and any other system through three vendor-agnostic paths, with the owner's limits and a fail-safe enforced at the device.</p>
+</header>
+
+<h2>1. The big picture</h2>
+<p>The DSO never talks to an inverter directly. It publishes a signal for a grid segment. The signal travels over one of three paths and ends in a local policy agent next to the battery. That agent is the only thing that writes to the inverter, and it always merges the signal with the owner's own limits.</p>
+
+<p>Gridzilla is the DSO's monster. It stomps on congestion, but every house keeps it on a leash.</p>
+<figure>
+<div class="frame">
+<svg viewBox="0 0 1120 640" role="img" aria-label="DSO grid operations feed a Grid Signaling Platform that publishes signed signals per grid segment. The signal reaches home batteries via a vendor cloud path, a local agent path, or a standards gateway path. A local policy agent at each home merges the signal with owner limits before writing to the Victron, GoodWe or other inverter. Telemetry and acknowledgements flow back to the platform.">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.2">
+    <!-- zones -->
+    <rect x="16" y="16" width="300" height="608" rx="6" stroke-dasharray="5 4" opacity=".5"/>
+    <rect x="356" y="16" width="200" height="608" rx="6" stroke-dasharray="5 4" opacity=".5"/>
+    <rect x="596" y="16" width="508" height="608" rx="6" fill="var(--home)" stroke="none"/>
+    <rect x="596" y="16" width="508" height="608" rx="6" stroke-dasharray="5 4" opacity=".5"/>
+  </g>
+  <g font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7" letter-spacing=".06em">
+    <text x="28" y="36">DSO ZONE · OPERATOR TRUST</text>
+    <text x="368" y="36">TRANSPORT PATHS</text>
+    <text x="608" y="36">HOME ZONE · OWNER TRUST</text>
+  </g>
+
+  <!-- DSO grid operations -->
+  <g fill="none" stroke="currentColor" stroke-width="1.4">
+    <rect x="36" y="56" width="260" height="96" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="13" fill="currentColor">
+    <text x="48" y="78" font-weight="600">DSO grid operations</text>
+    <text x="48" y="100" font-size="12">Grid monitoring (SCADA, smart meters)</text>
+    <text x="48" y="118" font-size="12">Congestion forecast per segment</text>
+    <text x="48" y="136" font-size="12">Operator decides: absorb / support / release</text>
+  </g>
+  <line x1="166" y1="152" x2="166" y2="190" stroke="currentColor" stroke-width="1.4" marker-end="url(#arr)"/>
+  <text x="174" y="176" font-size="11" fill="currentColor">need for segment S</text>
+
+  <!-- Grid Signaling Platform -->
+  <g fill="none" stroke="var(--accent)" stroke-width="2">
+    <rect x="36" y="194" width="260" height="400" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="13" fill="currentColor">
+    <text x="48" y="218" font-weight="600" fill="var(--accent)">Gridzilla signaling platform</text>
+    <text x="48" y="236" font-size="11" opacity=".75">operated by the DSO</text>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="1" opacity=".9">
+    <rect x="48" y="250" width="236" height="48" rx="3"/>
+    <rect x="48" y="306" width="236" height="48" rx="3"/>
+    <rect x="48" y="362" width="236" height="48" rx="3"/>
+    <rect x="48" y="418" width="236" height="48" rx="3"/>
+    <rect x="48" y="474" width="236" height="48" rx="3"/>
+    <rect x="48" y="530" width="236" height="48" rx="3"/>
+  </g>
+  <g font-size="12" fill="currentColor">
+    <text x="58" y="268" font-weight="600">Segment registry</text>
+    <text x="58" y="284" font-size="11">which device sits behind which transformer</text>
+    <text x="58" y="324" font-weight="600">Signal composer</text>
+    <text x="58" y="340" font-size="11">envelope per segment: kW limits, window, mode</text>
+    <text x="58" y="380" font-weight="600">Policy guard</text>
+    <text x="58" y="396" font-size="11">max duration, max activations, rate limits</text>
+    <text x="58" y="436" font-weight="600">Signing service (HSM)</text>
+    <text x="58" y="452" font-size="11">every signal signed, timestamped, scoped</text>
+    <text x="58" y="492" font-weight="600">Publish bus</text>
+    <text x="58" y="508" font-size="11">topic per segment, devices subscribe</text>
+    <text x="58" y="548" font-weight="600">Audit and settlement log</text>
+    <text x="58" y="564" font-size="11">what was sent, what was done, who gets paid</text>
+  </g>
+
+  <!-- bus out to three paths -->
+  <g stroke="var(--accent)" stroke-width="2" fill="none">
+    <line x1="296" y1="498" x2="330" y2="498"/>
+    <line x1="330" y1="150" x2="330" y2="498"/>
+    <line x1="330" y1="150" x2="372" y2="150" marker-end="url(#arrA)"/>
+    <line x1="330" y1="330" x2="372" y2="330" marker-end="url(#arrA)"/>
+    <line x1="330" y1="498" x2="372" y2="498" marker-end="url(#arrA)"/>
+  </g>
+  <text x="300" y="490" font-size="10" fill="var(--accent)">signed</text>
+  <text x="300" y="514" font-size="10" fill="var(--accent)">signal</text>
+
+  <!-- path boxes -->
+  <g fill="none" stroke="currentColor" stroke-width="1.4">
+    <rect x="376" y="100" width="160" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="376" y="280" width="160" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="376" y="448" width="160" height="100" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="12" fill="currentColor">
+    <text x="388" y="120" font-weight="600">Path A · Vendor cloud</text>
+    <text x="388" y="138" font-size="11">VRM, SEMS portal, other portals</text>
+    <text x="388" y="156" font-size="11">relay the signal unchanged</text>
+    <text x="388" y="174" font-size="11">to the devices they manage</text>
+    <text x="388" y="192" font-size="10" opacity=".7">fastest to roll out, cloud in the loop</text>
+
+    <text x="388" y="300" font-weight="600">Path B · Local agent</text>
+    <text x="388" y="318" font-size="11">Node-RED on Cerbo GX,</text>
+    <text x="388" y="336" font-size="11">Home Assistant, EMS subscribe</text>
+    <text x="388" y="354" font-size="11">to the segment topic directly</text>
+    <text x="388" y="372" font-size="10" opacity=".7">no vendor cloud, outbound-only</text>
+
+    <text x="388" y="468" font-weight="600">Path C · Standards gateway</text>
+    <text x="388" y="486" font-size="11">EEBus / OpenADR / control box</text>
+    <text x="388" y="504" font-size="11">behind a smart meter gateway</text>
+    <text x="388" y="522" font-size="11">(§14a EnWG style)</text>
+    <text x="388" y="540" font-size="10" opacity=".7">regulated, certified, slowest</text>
+  </g>
+
+  <!-- arrows into home zone -->
+  <g stroke="var(--accent)" stroke-width="2" fill="none">
+    <line x1="536" y1="150" x2="616" y2="150" marker-end="url(#arrA)"/>
+    <line x1="536" y1="330" x2="616" y2="330" marker-end="url(#arrA)"/>
+    <line x1="536" y1="498" x2="616" y2="498" marker-end="url(#arrA)"/>
+  </g>
+
+  <!-- local policy agent column -->
+  <g fill="none" stroke="var(--ok)" stroke-width="2">
+    <rect x="620" y="100" width="190" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="620" y="280" width="190" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="620" y="448" width="190" height="100" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="12" fill="currentColor">
+    <text x="632" y="120" font-weight="600" fill="var(--ok)">Local policy agent</text>
+    <text x="632" y="138" font-size="11">verify signature and window</text>
+    <text x="632" y="156" font-size="11">merge with owner limits</text>
+    <text x="632" y="174" font-size="11">heartbeat, revert on silence</text>
+    <text x="632" y="192" font-size="10" opacity=".7">runs inside vendor firmware/app</text>
+
+    <text x="632" y="300" font-weight="600" fill="var(--ok)">Local policy agent</text>
+    <text x="632" y="318" font-size="11">same rules, as a Node-RED flow</text>
+    <text x="632" y="336" font-size="11">or HA integration</text>
+    <text x="632" y="354" font-size="11">only writer to the inverter</text>
+    <text x="632" y="372" font-size="10" opacity=".7">the victronlab demo path</text>
+
+    <text x="632" y="468" font-weight="600" fill="var(--ok)">Local policy agent</text>
+    <text x="632" y="486" font-size="11">inside the control box</text>
+    <text x="632" y="504" font-size="11">or the EMS behind it</text>
+    <text x="632" y="522" font-size="11">same rules</text>
+    <text x="632" y="540" font-size="10" opacity=".7">device sees only a bounded limit</text>
+  </g>
+
+  <!-- arrows agent -> device -->
+  <g stroke="currentColor" stroke-width="1.4" fill="none">
+    <line x1="810" y1="150" x2="880" y2="150" marker-end="url(#arr)"/>
+    <line x1="810" y1="330" x2="880" y2="330" marker-end="url(#arr)"/>
+    <line x1="810" y1="498" x2="880" y2="498" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="10" fill="currentColor">
+    <text x="818" y="142">bounded limit</text>
+    <text x="818" y="322">bounded limit</text>
+    <text x="818" y="490">bounded limit</text>
+  </g>
+
+  <!-- devices -->
+  <g fill="none" stroke="currentColor" stroke-width="1.4">
+    <rect x="884" y="100" width="200" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="884" y="280" width="200" height="100" rx="4" fill="var(--surface)"/>
+    <rect x="884" y="448" width="200" height="100" rx="4" fill="var(--surface)"/>
+  </g>
+  <g font-size="12" fill="currentColor">
+    <text x="896" y="120" font-weight="600">GoodWe ET + battery</text>
+    <text x="896" y="138" font-size="11">export limit, eco-mode schedule</text>
+    <text x="896" y="156" font-size="11">via SEMS or local Modbus</text>
+    <text x="896" y="174" font-size="11">meter at grid connection point</text>
+
+    <text x="896" y="300" font-weight="600">Victron ESS plant</text>
+    <text x="896" y="318" font-size="11">Cerbo GX · MultiPlus-II · MPPT</text>
+    <text x="896" y="336" font-size="11">ESS max charge / discharge, feed-in</text>
+    <text x="896" y="354" font-size="11">ET340 / EM540 grid meter</text>
+    <text x="896" y="372" font-size="10" opacity=".7">example: plants on VRM</text>
+
+    <text x="896" y="468" font-weight="600">Any other inverter</text>
+    <text x="896" y="486" font-size="11">SMA, Fronius, Huawei, Sungrow...</text>
+    <text x="896" y="504" font-size="11">via EEBus, SunSpec, Modbus</text>
+    <text x="896" y="522" font-size="11">meter at grid connection point</text>
+  </g>
+
+  <!-- telemetry return (dashed) -->
+  <g stroke="currentColor" stroke-width="1.2" fill="none" stroke-dasharray="5 4">
+    <path d="M884,190 L860,190 L860,600 L300,600 L300,572" marker-end="url(#arr)"/>
+    <path d="M884,370 L860,370"/>
+    <path d="M884,538 L860,538"/>
+  </g>
+  <text x="560" y="616" font-size="11" fill="currentColor" text-anchor="middle">ack · refusal · measured kW at grid connection point · signed by the device</text>
+</svg>
+</div>
+<figcaption>Figure 1. The signal is composed, bounded and signed once on the DSO side. Three transport paths carry the same signal. Every path ends in a local policy agent that merges it with owner limits, so the inverter never sees a raw DSO command. The return path (dashed) carries acknowledgements and measurements for audit and settlement.</figcaption>
+<div class="legend"><span class="sigl">signed DSO signal</span><span>bounded limit written to inverter</span><span class="telel">telemetry and acknowledgements</span></div>
+</figure>
+
+<div class="note">
+<strong>Why the platform is the main point.</strong> Vendor clouds, local agents and standards gateways all change over time. The platform's job is to own the one thing that must stay stable: a signed, bounded, segment-scoped signal with a clear meaning. Vendors integrate with that signal once, on whichever path suits them.
+</div>
+
+<h2>2. The signal</h2>
+<p>A signal is an envelope at the grid connection point, never a device setpoint. The DSO says how much the home may import or export and for how long. The home decides how to achieve it with whatever hardware it has.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h3><span class="tag sig">ABSORB</span> PV surplus congestion</h3>
+    <p>Midday, feeder voltage rising. Signal: lower the export limit and allow grid charging. The battery soaks up local PV instead of pushing it onto the feeder.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag sig">SUPPORT</span> load peak congestion</h3>
+    <p>Evening, heat pumps and chargers on. Signal: lower the import limit. The battery covers the house load, so the transformer sees less demand.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag sig">RELEASE</span> event over</h3>
+    <p>Explicit end of the event. Also implied when the window expires or the heartbeat stops. Owner mode resumes.</p>
+  </div>
+</div>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Field</th><th>Meaning</th><th>Security role</th></tr></thead>
+<tbody>
+<tr><td><code>segment_id</code></td><td>Transformer or feeder the signal applies to</td><td>Device accepts only its own segment</td></tr>
+<tr><td><code>mode</code></td><td>ABSORB, SUPPORT or RELEASE</td><td>Closed set, no free-form commands</td></tr>
+<tr><td><code>import_limit_kw</code>, <code>export_limit_kw</code></td><td>Allowed power at the grid connection point during the window</td><td>Always a limit, never a setpoint</td></tr>
+<tr><td><code>valid_from</code>, <code>valid_to</code></td><td>Window, bounded by platform policy (e.g. max 4 h)</td><td>Expired or future-dated signals are rejected</td></tr>
+<tr><td><code>ramp_s</code></td><td>Ramp time, randomized per device within a range</td><td>No synchronized step on the grid</td></tr>
+<tr><td><code>seq</code>, <code>issued_at</code></td><td>Monotonic sequence and timestamp</td><td>Replay protection</td></tr>
+<tr><td><code>signature</code></td><td>Platform signature over all fields</td><td>Spoofed signals fail verification</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>3. Inside the local policy agent</h2>
+<p>This is where cybersecurity and owner protection live, and it is the same logic on all three paths. For the demo it is a Node-RED flow on a Cerbo GX. In a vendor cloud it would be the same rules in firmware.</p>
+
+<figure>
+<div class="frame">
+<svg viewBox="0 0 1120 250" role="img" aria-label="Pipeline inside the local policy agent: receive signal, verify signature and freshness, check scope, merge with owner limits, apply to inverter, run heartbeat and expiry timer, then revert to owner mode. Rejected signals are logged and acknowledged as refused.">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.4">
+    <rect x="20" y="40" width="130" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="180" y="40" width="140" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="350" y="40" width="140" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="520" y="40" width="160" height="70" rx="4" fill="var(--surface)" stroke="var(--ok)" stroke-width="2"/>
+    <rect x="710" y="40" width="130" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="870" y="40" width="130" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="1030" y="40" width="80" height="70" rx="4" fill="var(--surface)"/>
+    <rect x="350" y="170" width="330" height="54" rx="4" fill="var(--surface)" stroke="var(--bad)" stroke-width="2"/>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4" fill="none">
+    <line x1="150" y1="75" x2="178" y2="75" marker-end="url(#arr2)"/>
+    <line x1="320" y1="75" x2="348" y2="75" marker-end="url(#arr2)"/>
+    <line x1="490" y1="75" x2="518" y2="75" marker-end="url(#arr2)"/>
+    <line x1="680" y1="75" x2="708" y2="75" marker-end="url(#arr2)"/>
+    <line x1="840" y1="75" x2="868" y2="75" marker-end="url(#arr2)"/>
+    <line x1="1000" y1="75" x2="1028" y2="75" marker-end="url(#arr2)"/>
+    <line x1="250" y1="110" x2="250" y2="197" stroke="var(--bad)"/>
+    <line x1="250" y1="197" x2="348" y2="197" stroke="var(--bad)" marker-end="url(#arr2)"/>
+    <line x1="420" y1="110" x2="420" y2="168" stroke="var(--bad)" marker-end="url(#arr2)"/>
+    <path d="M935,110 L935,150 L1070,150 L1070,110" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+  </g>
+  <g font-size="12" fill="currentColor" text-anchor="middle">
+    <text x="85" y="68" font-weight="600">Receive</text>
+    <text x="85" y="86" font-size="11">from path A, B or C</text>
+    <text x="250" y="68" font-weight="600">Verify</text>
+    <text x="250" y="86" font-size="11">signature, seq, freshness</text>
+    <text x="420" y="68" font-weight="600">Check scope</text>
+    <text x="420" y="86" font-size="11">my segment, my device</text>
+    <text x="600" y="68" font-weight="600" fill="var(--ok)">Merge with owner limits</text>
+    <text x="600" y="86" font-size="11">min SoC, max current, opt-out</text>
+    <text x="600" y="102" font-size="10" opacity=".75">result = min(signal, owner)</text>
+    <text x="775" y="68" font-weight="600">Apply</text>
+    <text x="775" y="86" font-size="11">write limits, ramp</text>
+    <text x="935" y="68" font-weight="600">Watch</text>
+    <text x="935" y="86" font-size="11">heartbeat and expiry</text>
+    <text x="1070" y="68" font-weight="600">Revert</text>
+    <text x="1070" y="86" font-size="11">owner mode</text>
+    <text x="515" y="192" font-weight="600" fill="var(--bad)">Reject</text>
+    <text x="515" y="210" font-size="11">log locally, send signed refusal with reason</text>
+    <text x="1002" y="144" font-size="10">silence or expiry</text>
+  </g>
+</svg>
+</div>
+<figcaption>Figure 2. Every signal passes the same gate. Only the green step touches the owner's settings, and it can only tighten the DSO envelope, never loosen the owner's own limits. Revert is the default state: the agent has to keep hearing heartbeats to stay in grid-serving mode.</figcaption>
+</figure>
+
+<h2>4. Worked example: a Victron plant on VRM</h2>
+<p>One of the plants on VRM is the reference installation. Cerbo GX, MultiPlus-II, MPPT chargers, a battery with BMS, and a grid meter at the connection point. The local policy agent is a Node-RED flow on Venus OS. This is also the live demo for the interim pitch.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Signal element</th><th>Victron ESS (Venus OS)</th><th>GoodWe ET series</th><th>Generic</th></tr></thead>
+<tbody>
+<tr><td>Register, declare capability</td><td>VRM device inventory, inverter rating, battery capacity from BMS or SmartShunt</td><td>SEMS portal inventory, inverter and battery rating</td><td>SunSpec model data</td></tr>
+<tr><td>ABSORB: export limit</td><td><code>/Settings/CGwacs/MaxFeedInPower</code></td><td>Export power limit</td><td>Export limit register</td></tr>
+<tr><td>ABSORB: allow grid charge</td><td><code>/Settings/CGwacs/MaxChargePower</code>, scheduled charging</td><td>Eco-mode charge slot with power %</td><td>Charge limit</td></tr>
+<tr><td>SUPPORT: import limit</td><td>Grid setpoint plus <code>/Settings/CGwacs/MaxDischargePower</code></td><td>Eco-mode discharge slot with power %</td><td>Discharge limit</td></tr>
+<tr><td>Owner veto</td><td>ESS minimum SoC, BatteryLife, DVCC current limits</td><td>Discharge depth limit, backup reserve</td><td>Device-side reserve</td></tr>
+<tr><td>Measurement</td><td>ET340 / EM540 grid meter via D-Bus, MQTT to VRM</td><td>GoodWe smart meter</td><td>Any meter at the connection point</td></tr>
+<tr><td>Revert</td><td>Flow restores saved ESS values on expiry or lost heartbeat</td><td>Restore saved mode</td><td>Restore saved limits</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Demo script, three minutes</h3>
+<div class="tablewrap">
+<table class="seq">
+<thead><tr><th>t</th><th>Grid Signaling Platform (mock)</th><th>Cerbo GX agent</th><th>What the audience sees</th></tr></thead>
+<tbody>
+<tr><td>0:00</td><td>Publishes ABSORB for segment S, export limit 2 kW, charge allowed, 20 min window</td><td>Verifies, merges, writes feed-in limit and charge power, ramps over 30 s</td><td>VRM: export drops, battery charge rises</td></tr>
+<tr><td>0:45</td><td>Publishes SUPPORT asking for discharge below owner's min SoC</td><td>Merge yields owner limit, signal partially refused with reason</td><td>Refusal event in the log, battery stays above reserve</td></tr>
+<tr><td>1:30</td><td>Replays an old signed signal</td><td>Rejected: stale sequence number</td><td>Rejected event, no change on the inverter</td></tr>
+<tr><td>2:00</td><td>Heartbeat stops (simulated platform outage)</td><td>Timer expires, saved ESS values restored</td><td>System back in normal owner mode</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>5. Threats and controls</h2>
+<p>The threat model starts from how these systems are deployed today: Modbus TCP without authentication on home networks, port forwarding to reach the GX remotely, and vendor clouds that can push settings to whole fleets.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Threat</th><th>Control</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td><span class="tag bad">T1</span> Spoofed or tampered signal</td><td>Platform signs every signal; agent verifies against a pinned platform key</td><td>Platform, agent</td></tr>
+<tr><td><span class="tag bad">T2</span> Replay of an old signal</td><td>Monotonic sequence number and short validity window</td><td>Agent</td></tr>
+<tr><td><span class="tag bad">T3</span> Compromised platform or operator account sends mass charge or discharge</td><td>Policy guard caps duration, magnitude and frequency; envelopes not setpoints; randomized ramps; per-segment scope so one signal cannot address the whole country</td><td>Platform, agent</td></tr>
+<tr><td><span class="tag bad">T4</span> Compromised vendor cloud (Path A)</td><td>Cloud relays signals but cannot forge them; the agent still verifies the platform signature end to end</td><td>Agent</td></tr>
+<tr><td><span class="tag bad">T5</span> Inbound attack on the home network</td><td>Outbound-only subscription from the agent; no port forwarding, no inbound listener</td><td>Agent, transport</td></tr>
+<tr><td><span class="tag bad">T6</span> Rogue or fake device joins the segment</td><td>Registration binds device identity to meter point and segment; device signs its telemetry</td><td>Registry</td></tr>
+<tr><td><span class="tag bad">T7</span> Loss of platform availability</td><td>Fail-safe revert to owner mode; the grid loses flexibility but never stability</td><td>Agent</td></tr>
+<tr><td><span class="tag bad">T8</span> Household behaviour leaks to the DSO</td><td>Platform receives aggregate segment data and per-event acknowledgements only</td><td>Platform</td></tr>
+<tr><td><span class="tag bad">T9</span> Disputes over compensation</td><td>Both sides keep signed logs; settlement uses the meter at the connection point</td><td>Audit log</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>6. Sequence of one congestion event</h2>
+<div class="tablewrap">
+<table class="seq">
+<thead><tr><th>Step</th><th>DSO</th><th>Platform</th><th>Home agent</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Forecasts overload on segment S for 17:00–19:00</td><td></td><td></td></tr>
+<tr><td>2</td><td>Requests SUPPORT, import limit 3 kW</td><td>Checks policy, signs, publishes to topic S</td><td></td></tr>
+<tr><td>3</td><td></td><td></td><td>Receives, verifies, merges, applies, sends signed ack with available kW</td></tr>
+<tr><td>4</td><td>Sees aggregate availability for S</td><td>Aggregates acks, logs</td><td>Sends heartbeat acks every few minutes</td></tr>
+<tr><td>5</td><td></td><td>Sends heartbeat every minute</td><td>Keeps limits while heartbeats arrive</td></tr>
+<tr><td>6</td><td>Overload passes early at 18:30</td><td>Publishes RELEASE</td><td>Restores owner mode, sends measured energy</td></tr>
+<tr><td>7</td><td></td><td>Settles compensation from meter data</td><td>Owner sees the event and credit in the app</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>7. What goes into the IES profile, and what stays in the pitch</h2>
+<ul>
+  <li><strong>Profile (the deliverable):</strong> actors, the three signal modes, the transactions (register, publish signal, acknowledge, heartbeat, release, report), the security requirements per transaction, and the owner-protection rules. No protocols, no registers.</li>
+  <li><strong>Pitch (evidence):</strong> the Victron mapping, the GoodWe mapping and the live demo, to show the profile is implementable on hardware sold today.</li>
+  <li><strong>Open questions for the mentors:</strong> who runs the segment registry, how registration is tied to the meter point, and whether Path C must be mandatory for compensation.</li>
+</ul>
+</div>
+</body>
+</html>
