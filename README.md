@@ -60,7 +60,7 @@ A signal is an envelope at the grid connection point, never a device setpoint.
 | Mode | When | Effect |
 |---|---|---|
 | `ABSORB` | PV surplus congestion | lower export limit, allow grid charging |
-| `SUPPORT` | load peak, or grid up but short of generation | lower import limit, houses run on their batteries, demand on the transformer and everything above it drops |
+| `SUPPORT` | load peak, or grid up but short of generation | **import cap** ("take 3 kW only"): houses run on their batteries; and when the street needs more, **forced feed-in** ("give at least 2 kW"): batteries export to the neighbours, paid per kWh |
 | `RELEASE` | event over | owner mode resumes (also on expiry or lost heartbeat) |
 
 **Crisis case: outage, destroyed transformer, load shedding**
@@ -74,9 +74,24 @@ A signal is an envelope at the grid connection point, never a device setpoint.
 
 A dead transformer cannot be fed from the street: inverters must disconnect from a dead grid and there is no grid-forming anchor. A street island from home batteries is the future slide, not the product.
 
-Fields: `segment_id`, `mode`, `import_limit_kw`, `export_limit_kw`, `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.
+Fields: `segment_id`, `mode`, `import_max_kw`, `export_max_kw`, `export_min_kw` (forced feed-in), `target_soc`, `valid_from`, `valid_to`, `ramp_s`, `seq`, `issued_at`, `signature`.
 
 `PREPARE` and `STRETCH` are signed schedules the agent executes offline if the link dies. Live heartbeats apply to the congestion limits only, where losing contact must revert to owner mode.
+
+## Enforcement and settlement
+
+A DSO will not pay for a promise, and a household can switch any agent off. Gridzilla solves that by measuring where the household cannot touch and paying only for what the meter proves.
+
+Every signal is a **limit at the connection point**: a ceiling on import, a ceiling on export, or a floor on export. Each is a yes/no check per 15-minute interval on the DSO's own smart meter. No baseline, no counterfactual, nothing to inflate.
+
+1. **Meter is the judge.** Settlement runs on the DSO smart meter, never on inverter telemetry. Agent acks are for real-time awareness and audit.
+2. **No ack, no pay.** The agent signs acknowledgements with a device key. Switched off or tampered with, the signatures stop.
+3. **Compliance gates the perks.** Availability fee and the relaxed feed-in limit are paid against measured compliance. Three strikes a year and the household leaves the program and loses the connection terms that got it in.
+4. **The DSO's existing hammer.** Smart meters already have remote disconnect and load limiting. Program members are exempt from shedding only while the meter shows compliance.
+
+Cheating on `PREPARE` or `STRETCH` only hurts the cheater. Cheating on the import cap or forced feed-in is visible at the meter and simply unpaid, with the strike and disconnect backstop behind it.
+
+**Household incentives:** connection and feed-in rights (join the program, get connected or get a higher feed-in limit), an availability fee per kW per year paid against compliance, payment per kWh delivered under forced feed-in, and in a crisis a full battery before the outage, a shorter shedding queue and priority restoration. **Protection:** owner-set minimum SoC the DSO can never touch, a cap on cycles per year, opt-out from the app, aggregate data only.
 
 ## Security principles
 

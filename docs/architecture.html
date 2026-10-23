@@ -325,7 +325,7 @@ li { margin-bottom: 6px; }
   </div>
   <div class="card">
     <h3><span class="tag sig">SUPPORT</span> load peak congestion</h3>
-    <p>Evening, heat pumps and chargers on. Signal: lower the import limit. The battery covers the house load, so the transformer sees less demand.</p>
+    <p>Evening, heat pumps and chargers on. Signal: cap the import, "take 3 kW only", and when the street needs more, require a minimum feed-in, "give at least 2 kW". The battery covers the house and, if asked, the neighbours.</p>
   </div>
   <div class="card">
     <h3><span class="tag sig">RELEASE</span> event over</h3>
@@ -339,7 +339,9 @@ li { margin-bottom: 6px; }
 <tbody>
 <tr><td><code>segment_id</code></td><td>Transformer or feeder the signal applies to</td><td>Device accepts only its own segment</td></tr>
 <tr><td><code>mode</code></td><td>ABSORB, SUPPORT or RELEASE</td><td>Closed set, no free-form commands</td></tr>
-<tr><td><code>import_limit_kw</code>, <code>export_limit_kw</code></td><td>Allowed power at the grid connection point during the window</td><td>Always a limit, never a setpoint</td></tr>
+<tr><td><code>import_max_kw</code></td><td>Import cap at the grid connection point, the peak tool ("take 3 kW only")</td><td>A ceiling the meter can check, never a setpoint</td></tr>
+<tr><td><code>export_max_kw</code></td><td>Export cap, the PV surplus tool</td><td>A ceiling the meter can check</td></tr>
+<tr><td><code>export_min_kw</code></td><td>Forced feed-in, the only signal that spends the owner's energy for the street ("give at least 2 kW")</td><td>A floor the meter can check; bounded by owner SoC and feed-in limit; paid per kWh</td></tr>
 <tr><td><code>valid_from</code>, <code>valid_to</code></td><td>Window, bounded by platform policy (e.g. max 4 h)</td><td>Expired or future-dated signals are rejected</td></tr>
 <tr><td><code>ramp_s</code></td><td>Ramp time, randomized per device within a range</td><td>No synchronized step on the grid</td></tr>
 <tr><td><code>seq</code>, <code>issued_at</code></td><td>Monotonic sequence and timestamp</td><td>Replay protection</td></tr>
@@ -479,7 +481,51 @@ li { margin-bottom: 6px; }
   <li><strong>Security consequence:</strong> an attacker who controls the platform could drain every battery the night before a strike. The policy guard therefore treats PREPARE and STRETCH as owner-favourable only: they can raise target SoC and lower discharge, never the reverse. SUPPORT is the only signal that spends energy, and it is capped in depth and duration as before.</li>
 </ul>
 
-<h2>4. Inside the local policy agent</h2>
+<h2>4. Enforcement and settlement</h2>
+<p>A DSO will not pay for a promise, and a household can switch any agent off. Gridzilla does not solve that with control. It solves it by measuring at a point the household cannot touch and paying only for what the meter proves.</p>
+
+<h3>Limits are verifiable, reductions are not</h3>
+<p>Demand-response schemes that pay for a reduction against a baseline get gamed by inflating the baseline. Every Gridzilla signal is a limit at the connection point: a ceiling on import, a ceiling on export, or a floor on export. Each is a yes or no question per 15-minute interval on the DSO's own smart meter. There is no counterfactual to argue about.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Step</th><th>Mechanism</th><th>What it stops</th></tr></thead>
+<tbody>
+<tr><td>1 · Meter is the judge</td><td>Settlement runs on the DSO smart meter at the connection point, never on inverter telemetry. Agent acks give real-time awareness and audit only</td><td>Faked telemetry</td></tr>
+<tr><td>2 · No ack, no pay</td><td>The agent signs acknowledgements with a device key. Switched off or tampered with, the signatures stop</td><td>Silent opt-out while collecting the fee</td></tr>
+<tr><td>3 · Compliance gates the perks</td><td>Availability fee and the relaxed feed-in limit are paid against measured compliance per quarter. Three strikes a year and the household leaves the program and loses the connection terms that got it in</td><td>Joining for the perk and ignoring the signals</td></tr>
+<tr><td>4 · The DSO's existing hammer</td><td>Smart meters already have remote disconnect and load limiting. Program members are exempt from shedding only while the meter shows compliance. Cheat during a peak and you are cut with everyone else</td><td>Cheating in the one moment it matters</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Who gets hurt by cheating on each signal</h3>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Signal</th><th>How to cheat</th><th>Who pays for it</th><th>Response</th></tr></thead>
+<tbody>
+<tr><td>PREPARE</td><td>Do not charge before the outage</td><td>The cheater, dark house</td><td>None needed</td></tr>
+<tr><td>STRETCH</td><td>Ignore the rationing</td><td>The cheater, battery dies early</td><td>None needed</td></tr>
+<tr><td>ABSORB, export cap</td><td>Export above the cap</td><td>The transformer</td><td>Meter check; DSOs already enforce export caps contractually</td></tr>
+<tr><td>SUPPORT, import cap</td><td>Import above the cap to save the battery</td><td>The street</td><td>Meter check, clawback, strike, disconnect backstop</td></tr>
+<tr><td>SUPPORT, forced feed-in</td><td>Export less than the floor</td><td>The street, and the DSO that paid</td><td>Paid per kWh actually exported, so under-delivery is simply unpaid; strike if the ack promised more than the meter shows</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Why the DSO prefers this to control</h3>
+<p>A DSO that takes raw control of a customer's inverter takes on the battery, the warranty, the fire and the complaint. Pay-on-meter keeps the DSO where it already is: it owns the meter, sets the limit, measures compliance and settles. The household owns the device and the risk. That is the split the German regulator chose, and the one a Slovak DSO could adopt without new hardware.</p>
+
+<h3>What the household gets</h3>
+<ul>
+  <li><strong>Connection and feed-in rights.</strong> Join the program and get connected, or get a higher feed-in limit, because the DSO can now bound your behaviour in the rare hours it matters. Worth more than any payment where transformers are full.</li>
+  <li><strong>Availability fee</strong> per kilowatt of declared flexibility per year, paid against compliance. Germany pays 110 to 190 € a year per device, or a 60 percent grid-fee discount.</li>
+  <li><strong>Payment per kWh</strong> delivered under forced feed-in, measured at the meter.</li>
+  <li><strong>In a crisis:</strong> a full battery before the outage, a shorter shedding queue, priority restoration, and rationing that turns an eight-hour battery into a twenty-hour one.</li>
+  <li><strong>Protection:</strong> owner-set minimum SoC the DSO can never touch, a cap on cycles per year, opt-out from the app, aggregate data only.</li>
+</ul>
+
+<h2>5. Inside the local policy agent</h2>
 <p>This is where cybersecurity and owner protection live, and it is the same logic on all three paths. For the demo it is a Node-RED flow on a Cerbo GX. In a vendor cloud it would be the same rules in firmware.</p>
 
 <figure>
@@ -535,7 +581,7 @@ li { margin-bottom: 6px; }
 <figcaption>Figure 4. Every signal passes the same gate. Only the green step touches the owner's settings, and it can only tighten the DSO envelope, never loosen the owner's own limits. Revert is the default state: the agent has to keep hearing heartbeats to stay in grid-serving mode.</figcaption>
 </figure>
 
-<h2>5. Worked example: a Victron plant on VRM</h2>
+<h2>6. Worked example: a Victron plant on VRM</h2>
 <p>One of the plants on VRM is the reference installation. Cerbo GX, MultiPlus-II, MPPT chargers, a battery with BMS, and a grid meter at the connection point. The local policy agent is a Node-RED flow on Venus OS. This is also the live demo for the interim pitch.</p>
 
 <div class="tablewrap">
@@ -545,7 +591,8 @@ li { margin-bottom: 6px; }
 <tr><td>Register, declare capability</td><td>VRM device inventory, inverter rating, battery capacity from BMS or SmartShunt</td><td>SEMS portal inventory, inverter and battery rating</td><td>SunSpec model data</td></tr>
 <tr><td>ABSORB: export limit</td><td><code>/Settings/CGwacs/MaxFeedInPower</code></td><td>Export power limit</td><td>Export limit register</td></tr>
 <tr><td>ABSORB: allow grid charge</td><td><code>/Settings/CGwacs/MaxChargePower</code>, scheduled charging</td><td>Eco-mode charge slot with power %</td><td>Charge limit</td></tr>
-<tr><td>SUPPORT: import limit</td><td>Grid setpoint plus <code>/Settings/CGwacs/MaxDischargePower</code></td><td>Eco-mode discharge slot with power %</td><td>Discharge limit</td></tr>
+<tr><td>SUPPORT: import cap</td><td>Grid setpoint plus <code>/Settings/CGwacs/MaxDischargePower</code></td><td>Eco-mode discharge slot with power %</td><td>Discharge limit</td></tr>
+<tr><td>SUPPORT: forced feed-in</td><td>Negative grid setpoint (<code>/Settings/CGwacs/AcPowerSetPoint</code>) within <code>MaxFeedInPower</code>, floor on SoC</td><td>Eco-mode discharge slot with export enabled</td><td>Export setpoint within limits</td></tr>
 <tr><td>Owner veto</td><td>ESS minimum SoC, BatteryLife, DVCC current limits</td><td>Discharge depth limit, backup reserve</td><td>Device-side reserve</td></tr>
 <tr><td>Measurement</td><td>ET340 / EM540 grid meter via D-Bus, MQTT to VRM</td><td>GoodWe smart meter</td><td>Any meter at the connection point</td></tr>
 <tr><td>Revert</td><td>Flow restores saved ESS values on expiry or lost heartbeat</td><td>Restore saved mode</td><td>Restore saved limits</td></tr>
@@ -568,7 +615,7 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>6. Threats and controls</h2>
+<h2>7. Threats and controls</h2>
 <p>The threat model starts from how these systems are deployed today: Modbus TCP without authentication on home networks, port forwarding to reach the GX remotely, and vendor clouds that can push settings to whole fleets.</p>
 
 <div class="tablewrap">
@@ -590,13 +637,13 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>7. Sequence of one congestion event</h2>
+<h2>8. Sequence of one congestion event</h2>
 <div class="tablewrap">
 <table class="seq">
 <thead><tr><th>Step</th><th>DSO</th><th>Platform</th><th>Home agent</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Forecasts overload on segment S for 17:00–19:00</td><td></td><td></td></tr>
-<tr><td>2</td><td>Requests SUPPORT, import limit 3 kW</td><td>Checks policy, signs, publishes to topic S</td><td></td></tr>
+<tr><td>2</td><td>Requests SUPPORT, import cap 3 kW, feed-in floor 2 kW</td><td>Checks policy, signs, publishes to topic S</td><td></td></tr>
 <tr><td>3</td><td></td><td></td><td>Receives, verifies, merges, applies, sends signed ack with available kW</td></tr>
 <tr><td>4</td><td>Sees aggregate availability for S</td><td>Aggregates acks, logs</td><td>Sends heartbeat acks every few minutes</td></tr>
 <tr><td>5</td><td></td><td>Sends heartbeat every minute</td><td>Keeps limits while heartbeats arrive</td></tr>
@@ -606,7 +653,7 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>8. What goes into the IES profile, and what stays in the pitch</h2>
+<h2>9. What goes into the IES profile, and what stays in the pitch</h2>
 <ul>
   <li><strong>Profile (the deliverable):</strong> actors, the congestion signals and the four resilience signals, the transactions (register, publish signal, acknowledge, heartbeat, release, report), the security requirements per transaction, and the owner-protection rules. No protocols, no registers.</li>
   <li><strong>Pitch (evidence):</strong> the Victron mapping, the GoodWe mapping and the live demo, to show the profile is implementable on hardware sold today.</li>
