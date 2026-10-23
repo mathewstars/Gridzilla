@@ -65,10 +65,10 @@ Which fields each mode may carry (the policy guard refuses anything else):
 
 | Mode | Allowed fields | Intent |
 |---|---|---|
-| `PREPARE` | `target_soc`, `charge_max_kw` | Fill before the event, gently. Can only raise SoC. |
+| `PREPARE` | `target_soc`, `charge_max_kw` | Fill before the event, gently. Can only raise SoC. The agent picks the cheapest window before `valid_to`; the DSO waives the network fee in that window; the guard refuses a PREPARE with no following SUPPORT or outage window. |
 | `ABSORB` | `export_max_kw`, `charge_max_kw` | PV surplus: cap export, allow charging. |
 | `SUPPORT` | `import_max_kw`, `export_min_kw` | Peak or deficit: "take 3 kW only", "give at least 2 kW". |
-| `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). |
+| `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). **Implies `export_max_kw = 0`**: the agent locks export so nothing can backfeed into a line under repair. Anti-islanding already prevents it; the signal says it anyway. |
 | `RECOVER` | `charge_max_kw` | After restoration: staggered recharge. |
 | `RELEASE` | none | End of event. |
 
