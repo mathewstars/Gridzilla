@@ -1,0 +1,10 @@
+[
+  { "id": "sim-blatnica-12", "kw": 5,  "kwh": 15, "feedin_max_kw": 5,  "pv_kwp": 6,  "soc": 70, "start_hour": 16,
+    "base_load_kw": 0.5, "peak_load_kw": 3.0, "owner": { "min_soc": 20, "max_charge_kw": 5,  "max_discharge_kw": 5,  "opt_out": false } },
+  { "id": "sim-blatnica-19", "kw": 8,  "kwh": 20, "feedin_max_kw": 8,  "pv_kwp": 10, "soc": 22, "start_hour": 16,
+    "base_load_kw": 0.8, "peak_load_kw": 4.0, "owner": { "min_soc": 20, "max_charge_kw": 8,  "max_discharge_kw": 8,  "opt_out": false } },
+  { "id": "sim-mosovce-03",  "kw": 10, "kwh": 20, "feedin_max_kw": 10, "pv_kwp": 12, "soc": 85, "start_hour": 16,
+    "base_load_kw": 0.7, "peak_load_kw": 5.0, "owner": { "min_soc": 30, "max_charge_kw": 10, "max_discharge_kw": 6,  "opt_out": false } },
+  { "id": "sim-mosovce-08",  "kw": 5,  "kwh": 10, "feedin_max_kw": 5,  "pv_kwp": 4,  "soc": 55, "start_hour": 16,
+    "base_load_kw": 0.4, "peak_load_kw": 2.5, "owner": { "min_soc": 25, "max_charge_kw": 5,  "max_discharge_kw": 5,  "opt_out": false } }
+]

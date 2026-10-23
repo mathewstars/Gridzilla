@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gridzilla operator</title>
+<style>
+  :root { --bg:#15181c; --panel:#1d2127; --fg:#e8e6e0; --muted:#a2a9b3; --line:#3a414a; --acc:#e8893a; --ok:#5fc48a; --bad:#e46b6b; --warn:#e6c45a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
+  header { display:flex; align-items:baseline; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:20px; margin:0; color:var(--acc); letter-spacing:.02em; }
+  header .meta { color:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:12px; }
+  main { display:grid; grid-template-columns: 300px 1fr 1fr; gap:14px; padding:14px 20px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; min-width:0; }
+  h2 { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; font-weight:600; }
+  .node { display:flex; justify-content:space-between; align-items:center; padding:5px 6px; border-radius:4px; cursor:pointer; font-family:"IBM Plex Mono", monospace; font-size:12px; }
+  .node:hover, .node.sel { background:#262c35; }
+  .node .n { color:var(--fg); }
+  .node .agg { color:var(--muted); }
+  .node .active { color:var(--acc); font-weight:600; }
+  .d1{padding-left:6px}.d2{padding-left:20px}.d3{padding-left:34px}.d4{padding-left:48px}
+  label { display:block; font-size:12px; color:var(--muted); margin-top:8px; }
+  input, select, textarea, button { font:inherit; color:var(--fg); background:#262c35; border:1px solid var(--line); border-radius:4px; padding:6px 8px; width:100%; }
+  textarea { min-height:60px; resize:vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  button { cursor:pointer; width:auto; margin-top:10px; }
+  button.primary { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
+  button.ghost { background:transparent; }
+  .modes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .modes button { margin:0; padding:5px 10px; font-size:12px; }
+  .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
+  table { width:100%; border-collapse:collapse; font-size:12px; font-family:"IBM Plex Mono", monospace; }
+  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; }
+  .st-applied{color:var(--ok)} .st-partial{color:var(--warn)} .st-refused{color:var(--bad)} .st-reverted{color:var(--muted)}
+  .log { font-family:"IBM Plex Mono", monospace; font-size:12px; max-height:320px; overflow:auto; }
+  .log div { padding:3px 0; border-bottom:1px dashed #2a3039; }
+  .log .k { color:var(--muted); display:inline-block; width:64px; }
+  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--bad)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:#8ab4f8} .log .k-demo{color:var(--warn)}
+  .err { color:var(--bad); font-size:12px; margin-top:6px; min-height:16px; }
+  .prop { background:#262c35; border-left:3px solid #8ab4f8; padding:8px 10px; margin-top:8px; font-size:12px; display:none; }
+  .wide { grid-column: 1 / -1; }
+  .pill { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); }
+  .pill.bad { color:var(--bad); border-color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>GRIDZILLA</h1>
+  <span class="meta" id="meta">connecting…</span>
+  <span class="pill" id="hbpill">heartbeat on</span>
+</header>
+<main>
+  <section>
+    <h2>Grid tree</h2>
+    <div id="tree"></div>
+  </section>
+
+  <section>
+    <h2>Compose signal</h2>
+    <label>Segment</label>
+    <select id="segment"></select>
+    <label>Mode</label>
+    <div class="modes" id="modes"></div>
+    <div class="row">
+      <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-export_max_kw"><label>export_max_kw</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-discharge_max_kw"><label>discharge_max_kw</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
+      <div id="f-target_soc"><label>target_soc %</label><input id="target_soc" type="number" step="5" value="100"></div>
+    </div>
+    <div class="row">
+      <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
+      <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
+    </div>
+    <label>Note to owners</label>
+    <input id="note" placeholder="Transformer Blatnica-1 near limit 17:00–19:00">
+    <button class="primary" onclick="send()">Sign and publish</button>
+    <button class="ghost" onclick="demo('heartbeat/pause')">Pause heartbeat (outage)</button>
+    <button class="ghost" onclick="demo('heartbeat/resume')">Resume</button>
+    <button class="ghost" onclick="replay()">Replay last signal</button>
+    <div class="err" id="err"></div>
+
+    <h2 style="margin-top:16px">Ask the advisor <span class="pill" id="llmpill">LLM off</span></h2>
+    <textarea id="situation" placeholder="Feeder Turiec-3 forecast 110 % load 17:00–19:00. Drone strike warning for the region tonight."></textarea>
+    <button onclick="advise()">Propose a signal</button>
+    <div class="prop" id="prop"></div>
+  </section>
+
+  <section>
+    <h2>Devices</h2>
+    <table>
+      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>status</th><th>applied</th><th>sig</th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table>
+  </section>
+
+  <section class="wide">
+    <h2>Log</h2>
+    <div class="log" id="log"></div>
+  </section>
+</main>
+
+<script>
+const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
+const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw"],
+  SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
+const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc"];
+let mode = "SUPPORT", S = null, lastSeq = null;
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.textContent === m));
+  ALL.forEach(f => document.getElementById("f-" + f).style.display = MODE_FIELDS[m].includes(f) ? "" : "none");
+  document.getElementById("duration_min").value = m === "STRETCH" ? 720 : (m === "PREPARE" ? 240 : 120);
+}
+document.getElementById("modes").innerHTML = MODES.map(m => `<button onclick="setMode('${m}')">${m}</button>`).join("");
+setMode(mode);
+
+async function api(path, body) {
+  const r = await fetch("/api/" + path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: "POST"});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.detail || r.statusText);
+  return j;
+}
+
+async function send() {
+  const body = {segment: document.getElementById("segment").value, mode,
+    duration_min: +document.getElementById("duration_min").value, start_in_min: +document.getElementById("start_in_min").value,
+    note: document.getElementById("note").value};
+  MODE_FIELDS[mode].forEach(f => body[f] = +document.getElementById(f).value);
+  document.getElementById("err").textContent = "";
+  try { const d = await api("signal", body); lastSeq = d.seq; } catch (e) { document.getElementById("err").textContent = "Guard refused: " + e.message; }
+  refresh();
+}
+async function demo(p) { try { await api(p); } catch (e) { document.getElementById("err").textContent = e.message; } refresh(); }
+async function replay() { if (lastSeq == null) return; try { await api("replay/" + lastSeq); } catch (e) { document.getElementById("err").textContent = e.message; } }
+
+async function advise() {
+  const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
+  try {
+    const p = await api("advise", {situation: document.getElementById("situation").value});
+    box.innerHTML = `<b>${p.mode} → ${p.segment}</b> ${JSON.stringify(p.fields)} for ${p.duration_min} min<br>${p.rationale || ""}<br>` +
+      (p.guard ? `<span style="color:var(--bad)">guard: ${p.guard}</span>` : `<span style="color:var(--ok)">guard ok</span>`) +
+      `<br><button onclick='fill(${JSON.stringify(p)})'>Load into form</button>`;
+  } catch (e) { box.textContent = "advisor error: " + e.message; }
+}
+function fill(p) {
+  document.getElementById("segment").value = p.segment; setMode(p.mode);
+  Object.entries(p.fields || {}).forEach(([k, v]) => { const el = document.getElementById(k); if (el && v != null) el.value = v; });
+  document.getElementById("duration_min").value = p.duration_min || 120;
+  document.getElementById("start_in_min").value = p.start_in_min || 0;
+  document.getElementById("note").value = p.note || "";
+}
+
+function depth(tree, n) { let d = 0; while (tree[n].parent) { n = tree[n].parent; d++; } return d; }
+
+async function refresh() {
+  try { S = await (await fetch("/api/state")).json(); } catch { return; }
+  document.getElementById("meta").textContent = `${S.now} · seq ${S.seq}`;
+  const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill" + (S.hb_paused ? " bad" : "");
+  document.getElementById("llmpill").textContent = S.llm ? "DeepSeek local" : "LLM off";
+  const sel = document.getElementById("segment");
+  if (!sel.options.length) Object.keys(S.tree).forEach(n => sel.add(new Option(n, n)));
+  document.getElementById("tree").innerHTML = Object.keys(S.tree).map(n => {
+    const a = S.aggregates[n];
+    return `<div class="node d${depth(S.tree, n)} ${sel.value === n ? "sel" : ""}" onclick="document.getElementById('segment').value='${n}';refresh()">
+      <span class="n">${n}</span><span class="agg">${a.online}/${a.devices} · ${a.kwh_available} kWh ${a.active ? `<span class="active">${a.active}</span>` : ""}</span></div>`;
+  }).join("");
+  document.getElementById("devices").innerHTML = Object.values(S.devices).map(d => {
+    const t = d.telemetry || {}, a = d.ack || {};
+    const applied = a.applied ? Object.entries(a.applied).filter(([k, v]) => v != null && k !== "mode").map(([k, v]) => `${k.replace("_kw", "").replace("_max", "≤").replace("_min", "≥")}${v}`).join(" ") : "";
+    return `<tr><td>${d.id}</td><td>${d.tf.replace("tf:", "")}</td><td>${t.soc != null ? t.soc.toFixed(0) + "%" : "–"}</td><td>${t.grid_kw != null ? t.grid_kw.toFixed(1) : "–"}</td>
+      <td class="st-${a.status || ""}">${a.status || (t.soc != null ? "owner" : "offline")}${a.reason ? " (" + a.reason + ")" : ""}</td><td>${a.applied && a.applied.mode ? a.applied.mode + " " + applied : ""}</td>
+      <td>${d.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
+  }).join("");
+  document.getElementById("log").innerHTML = S.log.map(l => `<div><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${l.msg}</div>`).join("");
+}
+refresh(); setInterval(refresh, 2000);
+</script>
+</body>
+</html>

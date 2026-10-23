@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mathewstars/Gridzilla/protocol/envelope.schema.json",
+  "title": "Gridzilla signed envelope v1",
+  "description": "Every signal, heartbeat and ack on the wire. sig is an Ed25519 signature over the UTF-8 bytes of payload. Verify before parsing payload.",
+  "type": "object",
+  "required": ["v", "kid", "payload", "sig"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 1 },
+    "kid": { "type": "string" },
+    "payload": { "type": "string" },
+    "sig": { "type": "string", "contentEncoding": "base64" }
+  }
+}

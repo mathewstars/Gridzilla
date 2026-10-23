@@ -111,11 +111,43 @@ Cheating on `PREPARE` or `STRETCH` only hurts the cheater. Cheating on the impor
 
 The reference plant is a Victron ESS system (Cerbo GX, MultiPlus-II, MPPT, battery, grid meter) on VRM. The local policy agent runs as a Node-RED flow on Venus OS. Demo script: valid signal, refused signal below minimum SoC, replayed signal, platform outage with fail-safe revert. See the architecture page for the Victron and GoodWe mappings.
 
+## Quickstart (the whole stack on one laptop)
+
+```bash
+# 1. broker
+brew install mosquitto && /opt/homebrew/opt/mosquitto/sbin/mosquitto -p 1883
+
+# 2. DSO platform + dashboard  ->  http://localhost:8080
+python3 -m venv .venv && .venv/bin/pip install -r platform/requirements.txt
+cd platform && ../.venv/bin/python gridzilla.py
+#    optional advisor (local DeepSeek, OpenAI-compatible):
+#    GZ_LLM_URL=http://spark-1:8000/v1 GZ_LLM_MODEL=deepseek-v4.1 ../.venv/bin/python gridzilla.py
+
+# 3. four simulated houses (two villages on one 22 kV feeder)
+cd agent && npm install && node sim-agent.js
+#    remote broker/platform: GZ_PLATFORM=http://<host>:8080 GZ_BROKER=mqtt://<host>:1883 node sim-agent.js
+
+# 4. send a signal from the dashboard, or:
+curl -X POST localhost:8080/api/signal -H 'Content-Type: application/json' \
+  -d '{"segment":"feeder:turiec-3","mode":"SUPPORT","import_max_kw":3,"export_min_kw":2,"duration_min":120}'
+```
+
+The platform generates its Ed25519 key on first start (`platform/keys/`, private key is git-ignored). Agents fetch the public key once and pin it. Each agent generates its own device key and registers its public key with the platform.
+
 ## Repository layout
 
 ```
-docs/architecture.html   architecture page (diagrams, signal, threats, demo script)
+protocol/                PROTOCOL.md + JSON Schemas: envelope, signal, ack. Frozen.
+platform/gridzilla.py    DSO platform: registry, policy guard, Ed25519 signing, MQTT, heartbeat, dashboard, advisor
+platform/registry.yaml   grid tree (region > substation > feeder > transformer) and the devices in the program
+platform/static/         operator dashboard
+agent/sim-agent.js       simulated houses speaking the protocol (verify, scope, merge, ack, watchdog, revert)
+agent/nodered/           function-node sources and wiring for the real Cerbo GX agent
+docs/architecture.html   architecture page: diagrams, signals, threat model, enforcement, demo script
+docs/plan-saturday.md    who does what on the build day, demo script, cut order
 docs/Challenge-*.docx    the original challenge text
 ```
 
-Code for the mock platform and the Node-RED agent flow will land here during the hackathon.
+## The advisor
+
+A local DeepSeek (any OpenAI-compatible endpoint) can **propose** a signal from a situation in plain words and the live grid state. It never sends anything. The deterministic policy guard checks the proposal and a human operator approves it; only then does the platform sign. AI proposes, guard disposes.

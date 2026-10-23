@@ -1,0 +1,50 @@
+# Gridzilla registry: the grid tree and the devices in the program.
+# Tree nodes are "kind:name". Kinds top down: region, sub, feeder, tf.
+
+tree:
+  region:sk:        { parent: null }
+  sub:martin:       { parent: region:sk,       rating_kw: 40000 }
+  feeder:turiec-3:  { parent: sub:martin,      rating_kw: 4000 }
+  tf:blatnica-1:    { parent: feeder:turiec-3, rating_kw: 250, reverse_kw: 250 }
+  tf:mosovce-2:     { parent: feeder:turiec-3, rating_kw: 400, reverse_kw: 400 }
+
+devices:
+  - id: vic-blatnica-07      # the real Victron plant on VRM
+    tf: tf:blatnica-1
+    vendor: victron
+    kw: 10
+    kwh: 15
+    feedin_max_kw: 10
+  - id: sim-blatnica-12
+    tf: tf:blatnica-1
+    vendor: sim
+    kw: 5
+    kwh: 15
+    feedin_max_kw: 5
+  - id: sim-blatnica-19
+    tf: tf:blatnica-1
+    vendor: sim
+    kw: 8
+    kwh: 20
+    feedin_max_kw: 8
+  - id: sim-mosovce-03
+    tf: tf:mosovce-2
+    vendor: goodwe
+    kw: 10
+    kwh: 20
+    feedin_max_kw: 10
+  - id: sim-mosovce-08
+    tf: tf:mosovce-2
+    vendor: sim
+    kw: 5
+    kwh: 10
+    feedin_max_kw: 5
+
+policy:
+  max_window_min: 240            # except STRETCH
+  max_stretch_window_min: 4320   # 3 days
+  max_support_per_node_per_day: 2
+  max_export_min_kw_per_device: 5
+  max_import_cap_floor_kw: 2     # never cap import below this
+  heartbeat_s: 30
+  ramp_s: [20, 90]

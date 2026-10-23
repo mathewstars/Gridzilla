@@ -1,0 +1,9 @@
+{
+  "name": "gridzilla-sim-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simulated Gridzilla home agents (battery + PV + load) speaking the Gridzilla protocol",
+  "main": "sim-agent.js",
+  "scripts": { "start": "node sim-agent.js" },
+  "dependencies": { "mqtt": "5.10.1" }
+}

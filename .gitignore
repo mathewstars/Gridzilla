@@ -3,3 +3,8 @@
 *.pem
 *.key
 node_modules/
+.venv/
+*/keys/*.key.pem
+agent/keys/
+platform/state.json
+__pycache__/
