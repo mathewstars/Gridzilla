@@ -631,7 +631,119 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>7. Threats and controls</h2>
+<h2>7. As built: the Victron to DSO control plane</h2>
+<p>This is the stack that ran on the evening of 23 October, with a real Cerbo GX in Blatnica acknowledging a signed signal from the DSO platform. Nothing in it needs port forwarding, a vendor cloud, or a change to the inverter.</p>
+
+<figure>
+<div class="frame">
+<svg viewBox="0 0 1120 560" role="img" aria-label="As-built control plane. Operator laptops reach the DSO platform on a Linux box over Tailscale. The platform on the Blatnica LAN runs Mosquitto, the Gridzilla service and simulated houses. The Cerbo GX on the same LAN runs the Node-RED agent, which subscribes to signals, verifies them, merges with owner limits and writes ESS settings on D-Bus; it sends signed acks and telemetry back. The advisor goes from the platform over Tailscale to an LLM gateway in front of DeepSeek. VRM is used only to watch the result.">
+  <defs>
+    <marker id="arr7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+    <marker id="arr7A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+    <marker id="arr7G" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+  </defs>
+  <!-- zones -->
+  <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" opacity=".5">
+    <rect x="16" y="16" width="240" height="300" rx="6"/>
+    <rect x="296" y="16" width="800" height="528" rx="6"/>
+  </g>
+  <rect x="296" y="16" width="800" height="528" rx="6" fill="var(--home)" opacity=".5"/>
+  <g font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7" letter-spacing=".06em">
+    <text x="28" y="36">OPERATORS · TAILSCALE</text>
+    <text x="308" y="36">BLATNICA SITE LAN 192.168.90.0/23</text>
+  </g>
+  <!-- operators -->
+  <g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="36" y="60" width="200" height="70" rx="4" fill="var(--surface)"/></g>
+  <g font-size="12" fill="currentColor"><text x="48" y="82" font-weight="600">Operator laptops</text><text x="48" y="100" font-size="11">Mathew, Peter, Matthew</text><text x="48" y="118" font-size="11">dashboard :8080 over the tailnet</text></g>
+  <g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="36" y="170" width="200" height="120" rx="4" fill="var(--surface)"/></g>
+  <g font-size="12" fill="currentColor"><text x="48" y="192" font-weight="600">DGX Spark · LLM gateway :9000</text><text x="48" y="210" font-size="11">token-protected, OpenAI-compatible</text><text x="48" y="228" font-size="11">DeepSeek-V4.1-Flash behind it</text><text x="48" y="246" font-size="11">model server not reachable directly</text><text x="48" y="270" font-size="10" opacity=".75">advisor only: proposes, never signs</text></g>
+  <!-- platform host -->
+  <g fill="none" stroke="var(--accent)" stroke-width="2"><rect x="320" y="60" width="300" height="250" rx="4" fill="var(--surface)"/></g>
+  <g font-size="12" fill="currentColor">
+    <text x="332" y="82" font-weight="600" fill="var(--accent)">DSO platform host · 192.168.90.119</text>
+    <text x="332" y="98" font-size="11" opacity=".75">Fedora Asahi, user systemd units, survive logout</text>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="1"><rect x="332" y="110" width="276" height="40" rx="3"/><rect x="332" y="158" width="276" height="70" rx="3"/><rect x="332" y="236" width="276" height="60" rx="3"/></g>
+  <g font-size="11" fill="currentColor">
+    <text x="342" y="127" font-weight="600">Mosquitto :1883</text><text x="342" y="142">rootless podman, LAN only, signals are signed anyway</text>
+    <text x="342" y="175" font-weight="600">Gridzilla platform :8080</text><text x="342" y="190">registry tree · policy guard · Ed25519 signing · heartbeat 30 s</text><text x="342" y="205">ack verification · history · operator board · advisor</text><text x="342" y="220" opacity=".75">private key on disk, 0600, never in git</text>
+    <text x="342" y="253" font-weight="600">Simulated houses × 4</text><text x="342" y="268">same agent logic, two villages, two with EV chargers</text><text x="342" y="283" opacity=".75">each stands for ten real houses on the board</text>
+  </g>
+  <!-- cerbo -->
+  <g fill="none" stroke="var(--ok)" stroke-width="2"><rect x="700" y="60" width="380" height="330" rx="4" fill="var(--surface)"/></g>
+  <g font-size="12" fill="currentColor">
+    <text x="712" y="82" font-weight="600" fill="var(--ok)">Cerbo GX · 192.168.90.147 · Venus OS Large</text>
+    <text x="712" y="98" font-size="11" opacity=".75">Node-RED 4.1.11, external modules on, Victron palette</text>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="1"><rect x="712" y="110" width="356" height="150" rx="3"/><rect x="712" y="268" width="356" height="110" rx="3"/></g>
+  <g font-size="11" fill="currentColor">
+    <text x="722" y="127" font-weight="600">Node-RED flow "Gridzilla agent" (42 nodes)</text>
+    <text x="722" y="144">mqtt in × 5 → verify (Ed25519, seq, freshness, scope, cohort)</text>
+    <text x="722" y="160">→ merge with owner limits (min SoC read from ESS)</text>
+    <text x="722" y="176">→ apply plan: random ramp, then writes → sign ack → mqtt out</text>
+    <text x="722" y="192">watchdog every 5 s: window end or 120 s without heartbeat → revert</text>
+    <text x="722" y="208">telemetry every 10 s: SoC, grid kW, mode</text>
+    <text x="722" y="228" opacity=".75">device key generated on the GX, public key registered once</text>
+    <text x="722" y="244" opacity=".75">platform key pinned on first contact, then trusted only if unchanged</text>
+    <text x="722" y="285" font-weight="600">D-Bus on Venus OS</text>
+    <text x="722" y="302">writes: com.victronenergy.settings /Settings/CGwacs/</text>
+    <text x="722" y="318">MaxFeedInPower · MaxChargePower · MaxDischargePower · AcPowerSetPoint</text>
+    <text x="722" y="336">reads: com.victronenergy.system /Dc/Battery/Soc, /Ac/Grid/L1..3/Power</text>
+    <text x="722" y="352">reads: BatteryLife/MinimumSocLimit (owner veto, never written)</text>
+    <text x="722" y="370" opacity=".75">MultiPlus-II · battery · grid meter behind it</text>
+  </g>
+  <!-- VRM -->
+  <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"><rect x="700" y="430" width="380" height="60" rx="4" fill="var(--surface)"/></g>
+  <g font-size="11" fill="currentColor"><text x="712" y="450" font-weight="600">VRM portal (Victron cloud)</text><text x="712" y="466">monitoring only: the audience watches the battery react on VRM</text><text x="712" y="481" opacity=".75">not in the control path; Path A would relay signals through it</text></g>
+  <path d="M890,390 L890,428" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arr7)"/>
+  <!-- flows platform <-> cerbo -->
+  <g stroke="var(--accent)" stroke-width="2" fill="none">
+    <line x1="620" y1="130" x2="698" y2="130" marker-end="url(#arr7A)"/>
+  </g>
+  <g stroke="var(--ok)" stroke-width="2" fill="none">
+    <line x1="698" y1="200" x2="622" y2="200" marker-end="url(#arr7G)"/>
+  </g>
+  <g font-size="10" fill="currentColor" text-anchor="middle">
+    <text x="659" y="118" fill="var(--accent)">signals + heartbeat</text>
+    <text x="659" y="146">MQTT, GX subscribes</text>
+    <text x="659" y="188" fill="var(--ok)">signed acks</text>
+    <text x="659" y="216">telemetry 10 s</text>
+  </g>
+  <!-- flows operators -->
+  <path d="M236,95 L300,95 L300,120 L318,120" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#arr7)"/>
+  <text x="262" y="88" font-size="10" fill="currentColor">https</text>
+  <path d="M318,180 L300,180 L300,230 L238,230" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#arr7)"/>
+  <text x="258" y="222" font-size="10" fill="currentColor">/v1/chat</text>
+  <!-- registration -->
+  <path d="M720,110 L720,56 L470,56 L470,58" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#arr7)"/>
+  <text x="595" y="50" font-size="10" fill="currentColor" text-anchor="middle">once: GET /api/pubkey, POST /api/register (device public key)</text>
+  <!-- not used -->
+  <text x="320" y="520" font-size="11" fill="currentColor">Not used by Gridzilla: Modbus TCP, VRM remote control, any inbound port on the GX. The GX only opens outbound connections.</text>
+  <text x="320" y="538" font-size="11" fill="currentColor">Verified 23 Oct 21:01 UTC: Cerbo registered, telemetry SoC 20 %, grid 2.6 kW; RELEASE seq 1 acknowledged "applied" with a signature the platform verified.</text>
+</svg>
+</div>
+<figcaption>Figure 5. The control plane as deployed. One LAN, one broker, one Node-RED flow on the GX. The platform signs, the GX verifies and acks with its own key, and everything the GX does is outbound. The operators and the advisor reach the platform over a private overlay network; the vendor cloud only watches.</figcaption>
+</figure>
+
+<h3>One signal through the stack</h3>
+<div class="tablewrap">
+<table class="seq">
+<thead><tr><th>Step</th><th>Where</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Board</td><td>Operator composes SUPPORT for tf:blatnica-1, or loads the advisor's proposal. Guard checks mode, fields, window, rate, reverse rating.</td></tr>
+<tr><td>2</td><td>Platform</td><td>Sequence number incremented, document serialised, signed with the platform's Ed25519 key, published to gridzilla/sig/tf:blatnica-1, QoS 1.</td></tr>
+<tr><td>3</td><td>GX, mqtt in</td><td>The flow is subscribed to every node on its path, so it receives signals for its transformer, its feeder, its substation and the region.</td></tr>
+<tr><td>4</td><td>GX, verify</td><td>Signature over the envelope bytes with the pinned platform key. Then seq greater than last, issued within 120 s, window not expired, segment on my path, cohort match.</td></tr>
+<tr><td>5</td><td>GX, merge</td><td>Owner limits win: minimum SoC from ESS, charge and discharge caps, feed-in limit. Partial or refused is a valid outcome with a reason.</td></tr>
+<tr><td>6</td><td>GX, apply</td><td>Current ESS values saved once. After a random ramp delay, the Victron output nodes write the limits to com.victronenergy.settings.</td></tr>
+<tr><td>7</td><td>GX, ack</td><td>Ack document with status, applied limits, SoC and grid kW, signed with the device key, published to gridzilla/ack/vic-blatnica-07.</td></tr>
+<tr><td>8</td><td>Platform</td><td>Ack signature verified against the registered device key, logged, shown on the board and counted in the node aggregates.</td></tr>
+<tr><td>9</td><td>GX, watchdog</td><td>Every 5 s: at window end, or after 120 s without a valid heartbeat for live modes, the saved ESS values are written back and a reverted ack is sent.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>8. Threats and controls</h2>
 <p>The threat model starts from how these systems are deployed today: Modbus TCP without authentication on home networks, port forwarding to reach the GX remotely, and vendor clouds that can push settings to whole fleets.</p>
 
 <div class="tablewrap">
@@ -653,7 +765,7 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>8. Sequence of one congestion event</h2>
+<h2>9. Sequence of one congestion event</h2>
 <div class="tablewrap">
 <table class="seq">
 <thead><tr><th>Step</th><th>DSO</th><th>Platform</th><th>Home agent</th></tr></thead>
@@ -669,7 +781,7 @@ li { margin-bottom: 6px; }
 </table>
 </div>
 
-<h2>9. What goes into the IES profile, and what stays in the pitch</h2>
+<h2>10. What goes into the IES profile, and what stays in the pitch</h2>
 <ul>
   <li><strong>Profile (the deliverable):</strong> actors, the congestion signals and the four resilience signals, the transactions (register, publish signal, acknowledge, heartbeat, release, report), the security requirements per transaction, and the owner-protection rules. No protocols, no registers.</li>
   <li><strong>Pitch (evidence):</strong> the Victron mapping, the GoodWe mapping and the live demo, to show the profile is implementable on hardware sold today.</li>

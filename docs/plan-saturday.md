@@ -10,6 +10,13 @@ Three people, one day, one real battery. The protocol is frozen in `protocol/PRO
 | Peter | DSO side: `platform/gridzilla.py`, dashboard, DeepSeek advisor | Four signals, three refusals, heartbeat pause and replay all demoable from the dashboard |
 | Matthew | The deliverable: IES profile document, slides, demo script, backup video | Profile reviewed by a mentor, video recorded, slides final |
 
+## Status Friday night
+
+- DSO platform, Mosquitto and four simulated houses run as user services on the Linux box on the Blatnica LAN (192.168.90.119). Dashboard on :8080, reachable over Tailscale. Advisor wired to the LLM gateway on :9000.
+- The real Cerbo GX (192.168.90.147, portal c0619ab3794e) runs the "Gridzilla agent" Node-RED flow, registered its key, sends telemetry, and acknowledged a RELEASE with a verified signature.
+- Not yet done on the real plant: a limiting signal. Battery was at 20 % on Friday night; first live SUPPORT after PV has charged it on Saturday, or a PREPARE in the morning.
+- Redeploy the flow: `agent/nodered/build-flow.py` then `deploy-flow.sh` (needs NR_PASS = GX security-profile password, username admin).
+
 ## Timeline
 
 | Time | What |
