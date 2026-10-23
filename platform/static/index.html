@@ -3,74 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gridzilla operator</title>
+<title>Gridzilla control</title>
+<script src="/static/vendor/chart.umd.js"></script>
 <style>
-  :root { --bg:#15181c; --panel:#1d2127; --fg:#e8e6e0; --muted:#a2a9b3; --line:#3a414a; --acc:#e8893a; --ok:#5fc48a; --bad:#e46b6b; --warn:#e6c45a; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
-  header { display:flex; align-items:baseline; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); }
-  header h1 { font-size:20px; margin:0; color:var(--acc); letter-spacing:.02em; }
-  header .meta { color:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:12px; }
-  main { display:grid; grid-template-columns: 300px 1fr 1fr; gap:14px; padding:14px 20px; }
-  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  /* Dark-first operator board. Series colors: validated categorical palette (dark steps). Status colors are separate. */
+  :root {
+    color-scheme: dark;
+    --bg:#15181c; --panel:#1d2127; --panel2:#232934; --fg:#e8e6e0; --muted:#a2a9b3; --line:#343b45;
+    --acc:#e8893a; --acc-soft:#3a2a1c;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --ok:#5fc48a; --warn:#e6c45a; --crit:#e66767;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
+  header { display:flex; align-items:center; gap:18px; padding:10px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:5; }
+  header h1 { font-size:18px; margin:0; color:var(--acc); letter-spacing:.06em; }
+  header .sub { color:var(--muted); font-size:12px; }
+  header .clock { font-family:var(--mono); font-size:22px; margin-left:auto; font-variant-numeric:tabular-nums; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); font-family:var(--mono); }
+  .pill.ok { color:var(--ok); border-color:var(--ok); } .pill.bad { color:var(--crit); border-color:var(--crit); }
+
+  main { padding:14px 20px 40px; display:grid; gap:14px; grid-template-columns: 1.4fr 1fr; }
+  @media (max-width:1100px) { main { grid-template-columns:1fr; } }
+  .span2 { grid-column:1 / -1; }
   section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; min-width:0; }
-  h2 { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; font-weight:600; }
-  .node { display:flex; justify-content:space-between; align-items:center; padding:5px 6px; border-radius:4px; cursor:pointer; font-family:"IBM Plex Mono", monospace; font-size:12px; }
-  .node:hover, .node.sel { background:#262c35; }
-  .node .n { color:var(--fg); }
-  .node .agg { color:var(--muted); }
-  .node .active { color:var(--acc); font-weight:600; }
-  .d1{padding-left:6px}.d2{padding-left:20px}.d3{padding-left:34px}.d4{padding-left:48px}
-  label { display:block; font-size:12px; color:var(--muted); margin-top:8px; }
-  input, select, textarea, button { font:inherit; color:var(--fg); background:#262c35; border:1px solid var(--line); border-radius:4px; padding:6px 8px; width:100%; }
-  textarea { min-height:60px; resize:vertical; }
+  h2 { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  h2 .hint { text-transform:none; letter-spacing:0; font-weight:400; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+  .kpi { background:var(--panel2); border-radius:6px; padding:10px 12px; }
+  .kpi .v { font-family:var(--mono); font-size:24px; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .kpi .l { color:var(--muted); font-size:11px; margin-top:2px; }
+  .kpi.warn .v { color:var(--warn); } .kpi.crit .v { color:var(--crit); } .kpi.ok .v { color:var(--ok); }
+
+  .schem { width:100%; height:auto; display:block; font-family:var(--mono); }
+  .schem text { fill:var(--fg); font-size:11px; }
+  .schem .muted { fill:var(--muted); }
+  .schem .box { fill:var(--panel2); stroke:var(--line); }
+  .schem .box.sel { stroke:var(--acc); stroke-width:2; }
+  .schem .bar-bg { fill:#2a3039; }
+  .schem .wire { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .schem .house { stroke:var(--panel); stroke-width:1.5; }
+
+  .charts { display:grid; grid-template-columns:1fr; gap:12px; }
+  .chartbox { position:relative; height:220px; }
+  .chartbox.tall { height:260px; }
+  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; color:var(--muted); margin-top:4px; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:5px; border-radius:2px; }
+
+  label { display:block; font-size:11px; color:var(--muted); margin-top:8px; }
+  input, select, textarea { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:6px 8px; width:100%; }
+  textarea { min-height:56px; resize:vertical; }
   .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  button { cursor:pointer; width:auto; margin-top:10px; }
+  button { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:6px 12px; cursor:pointer; margin-top:10px; }
   button.primary { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
-  button.ghost { background:transparent; }
+  button.danger { border-color:var(--crit); color:var(--crit); }
   .modes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
   .modes button { margin:0; padding:5px 10px; font-size:12px; }
   .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
-  table { width:100%; border-collapse:collapse; font-size:12px; font-family:"IBM Plex Mono", monospace; }
+  .err { color:var(--crit); font-size:12px; margin-top:6px; min-height:16px; }
+  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:8px 10px; margin-top:8px; font-size:12px; display:none; }
+
+  table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
   th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  th { color:var(--muted); font-weight:500; }
-  .st-applied{color:var(--ok)} .st-partial{color:var(--warn)} .st-refused{color:var(--bad)} .st-reverted{color:var(--muted)}
-  .log { font-family:"IBM Plex Mono", monospace; font-size:12px; max-height:320px; overflow:auto; }
+  th { color:var(--muted); font-weight:500; font-size:11px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .st-applied{color:var(--ok)} .st-partial{color:var(--warn)} .st-refused{color:var(--crit)} .st-reverted{color:var(--muted)}
+  .sig { display:grid; grid-template-columns: 90px 150px 1fr 60px; gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line); font-family:var(--mono); font-size:12px; }
+  .sig .mode { color:var(--acc); font-weight:600; }
+  .bar { height:8px; background:#2a3039; border-radius:4px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--acc); }
+  .log { font-family:var(--mono); font-size:12px; max-height:260px; overflow:auto; }
   .log div { padding:3px 0; border-bottom:1px dashed #2a3039; }
-  .log .k { color:var(--muted); display:inline-block; width:64px; }
-  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--bad)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:#8ab4f8} .log .k-demo{color:var(--warn)}
-  .err { color:var(--bad); font-size:12px; margin-top:6px; min-height:16px; }
-  .prop { background:#262c35; border-left:3px solid #8ab4f8; padding:8px 10px; margin-top:8px; font-size:12px; display:none; }
-  .wide { grid-column: 1 / -1; }
-  .pill { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); }
-  .pill.bad { color:var(--bad); border-color:var(--bad); }
+  .log .k { color:var(--muted); display:inline-block; width:62px; }
+  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--crit)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:var(--s1)} .log .k-demo{color:var(--warn)}
+  .tabs { display:flex; gap:6px; }
+  .tabs button { margin:0; padding:3px 9px; font-size:11px; }
+  .tabs button.on { border-color:var(--acc); color:var(--acc); }
 </style>
 </head>
 <body>
 <header>
   <h1>GRIDZILLA</h1>
-  <span class="meta" id="meta">connecting…</span>
-  <span class="pill" id="hbpill">heartbeat on</span>
+  <span class="sub">DSO control · Turiec feeder 3</span>
+  <span class="pill" id="seqpill">seq –</span>
+  <span class="pill ok" id="hbpill">heartbeat on</span>
+  <span class="pill" id="llmpill">advisor off</span>
+  <span class="clock" id="clock">--:--</span>
 </header>
+
 <main>
-  <section>
-    <h2>Grid tree</h2>
-    <div id="tree"></div>
+  <section class="span2">
+    <div class="kpis" id="kpis"></div>
   </section>
 
   <section>
-    <h2>Compose signal</h2>
-    <label>Segment</label>
+    <h2>Grid schematic <span class="hint">click a transformer to select it</span></h2>
+    <svg id="schem" class="schem" viewBox="0 0 760 300" role="img" aria-label="Feeder schematic with transformer load bars and program houses"></svg>
+  </section>
+
+  <section>
+    <h2>Compose signal <span class="hint" id="target"></span></h2>
     <select id="segment"></select>
-    <label>Mode</label>
     <div class="modes" id="modes"></div>
     <div class="row">
       <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
       <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
-      <div id="f-export_max_kw"><label>export_max_kw</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-export_max_kw"><label>export_max_kw · cap export</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
       <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
-      <div id="f-discharge_max_kw"><label>discharge_max_kw</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
-      <div id="f-target_soc"><label>target_soc %</label><input id="target_soc" type="number" step="5" value="100"></div>
+      <div id="f-discharge_max_kw"><label>discharge_max_kw · ration</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
+      <div id="f-target_soc"><label>target_soc % · fill by deadline</label><input id="target_soc" type="number" step="5" value="100"></div>
       <div id="f-max_soc_by"><label>max_soc_by % · make room</label><input id="max_soc_by" type="number" step="5" value="40"></div>
     </div>
     <div class="row">
@@ -78,32 +121,51 @@
       <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
     </div>
     <div class="row">
-      <div><label>Cohort k (blank = all)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
+      <div><label>Cohort k (blank = everyone)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
       <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
     </div>
     <label>Note to owners</label>
     <input id="note" placeholder="Transformer Blatnica-1 near limit 17:00–19:00">
     <button class="primary" onclick="send()">Sign and publish</button>
-    <button class="ghost" onclick="demo('heartbeat/pause')">Pause heartbeat (outage)</button>
-    <button class="ghost" onclick="demo('heartbeat/resume')">Resume</button>
-    <button class="ghost" onclick="replay()">Replay last signal</button>
+    <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
+    <button onclick="demo('heartbeat/resume')">Resume</button>
+    <button onclick="replay()">Replay last</button>
     <div class="err" id="err"></div>
-
-    <h2 style="margin-top:16px">Ask the advisor <span class="pill" id="llmpill">LLM off</span></h2>
-    <textarea id="situation" placeholder="Feeder Turiec-3 forecast 110 % load 17:00–19:00. Drone strike warning for the region tonight."></textarea>
+    <h2 style="margin-top:14px">Advisor <span class="hint">proposes · guard and operator decide</span></h2>
+    <textarea id="situation" placeholder="Feeder Turiec-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
     <button onclick="advise()">Propose a signal</button>
     <div class="prop" id="prop"></div>
   </section>
 
   <section>
+    <h2>Transformer load <span class="tabs" id="nodetabs"></span></h2>
+    <div class="chartbox tall"><canvas id="loadChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating</span></div>
+  </section>
+
+  <section>
+    <h2>Program houses <span class="hint">each simulated house stands for 10</span></h2>
+    <div class="charts">
+      <div class="chartbox" style="height:150px"><canvas id="socChart"></canvas></div>
+      <div class="chartbox"><canvas id="gridChart"></canvas></div>
+    </div>
+    <div class="legend" id="devlegend"></div>
+  </section>
+
+  <section>
+    <h2>Active signals</h2>
+    <div id="signals"></div>
+  </section>
+
+  <section>
     <h2>Devices</h2>
     <table>
-      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>status</th><th>applied</th><th>sig</th></tr></thead>
+      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
     </table>
   </section>
 
-  <section class="wide">
+  <section class="span2">
     <h2>Log</h2>
     <div class="log" id="log"></div>
   </section>
@@ -114,8 +176,11 @@ const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
 const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw","max_soc_by"],
   SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
 const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc","max_soc_by"];
-let mode = "SUPPORT", S = null, lastSeq = null;
+const SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181"];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let mode = "SUPPORT", S = null, H = null, selNode = "tf:blatnica-1", lastSeq = null, devOrder = [];
 
+// ---------- compose
 function setMode(m) {
   mode = m;
   document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.textContent === m));
@@ -126,12 +191,9 @@ document.getElementById("modes").innerHTML = MODES.map(m => `<button onclick="se
 setMode(mode);
 
 async function api(path, body) {
-  const r = await fetch("/api/" + path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {method: "POST"});
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.detail || r.statusText);
-  return j;
+  const r = await fetch("/api/" + path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {method:"POST"});
+  const j = await r.json(); if (!r.ok) throw new Error(j.detail || r.statusText); return j;
 }
-
 async function send() {
   const body = {segment: document.getElementById("segment").value, mode,
     duration_min: +document.getElementById("duration_min").value, start_in_min: +document.getElementById("start_in_min").value,
@@ -145,48 +207,166 @@ async function send() {
 }
 async function demo(p) { try { await api(p); } catch (e) { document.getElementById("err").textContent = e.message; } refresh(); }
 async function replay() { if (lastSeq == null) return; try { await api("replay/" + lastSeq); } catch (e) { document.getElementById("err").textContent = e.message; } }
-
 async function advise() {
   const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
   try {
     const p = await api("advise", {situation: document.getElementById("situation").value});
-    box.innerHTML = `<b>${p.mode} → ${p.segment}</b> ${JSON.stringify(p.fields)} for ${p.duration_min} min<br>${p.rationale || ""}<br>` +
-      (p.guard ? `<span style="color:var(--bad)">guard: ${p.guard}</span>` : `<span style="color:var(--ok)">guard ok</span>`) +
-      `<br><button onclick='fill(${JSON.stringify(p)})'>Load into form</button>`;
+    box.innerHTML = `<b>${p.mode} → ${p.segment}</b> ${JSON.stringify(p.fields)} · ${p.duration_min} min<br>${p.rationale || ""}<br>` +
+      (p.guard ? `<span style="color:var(--crit)">guard: ${p.guard}</span>` : `<span style="color:var(--ok)">guard ok</span>`) +
+      `<br><button onclick='fill(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Load into form</button>`;
   } catch (e) { box.textContent = "advisor error: " + e.message; }
 }
 function fill(p) {
-  document.getElementById("segment").value = p.segment; setMode(p.mode);
+  selectNode(p.segment); setMode(p.mode);
   Object.entries(p.fields || {}).forEach(([k, v]) => { const el = document.getElementById(k); if (el && v != null) el.value = v; });
   document.getElementById("duration_min").value = p.duration_min || 120;
   document.getElementById("start_in_min").value = p.start_in_min || 0;
   document.getElementById("note").value = p.note || "";
 }
+function selectNode(n) { selNode = n; document.getElementById("segment").value = n; document.getElementById("target").textContent = "→ " + n; drawAll(); }
+document.getElementById("segment").addEventListener("change", e => selectNode(e.target.value));
 
-function depth(tree, n) { let d = 0; while (tree[n].parent) { n = tree[n].parent; d++; } return d; }
+// ---------- charts
+Chart.defaults.color = css("--muted"); Chart.defaults.borderColor = css("--line"); Chart.defaults.font.family = "IBM Plex Sans, system-ui, sans-serif"; Chart.defaults.font.size = 11;
+const baseOpts = (ySuffix, extra = {}) => ({
+  responsive: true, maintainAspectRatio: false, animation: false,
+  interaction: {mode: "index", intersect: false},
+  plugins: {legend: {display: false}, tooltip: {backgroundColor: css("--panel2"), titleColor: css("--fg"), bodyColor: css("--fg"), borderColor: css("--line"), borderWidth: 1,
+    callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(1)}${ySuffix}`}}},
+  scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 8, maxRotation: 0}}, y: {grid: {color: "#2a3039"}, ticks: {callback: v => v + ySuffix}}},
+  elements: {line: {borderWidth: 2, tension: 0.2}, point: {radius: 0, hoverRadius: 4}}, ...extra});
+const loadChart = new Chart(document.getElementById("loadChart"), {type: "line", data: {labels: [], datasets: [
+  {label: "total load", data: [], borderColor: SERIES[0], backgroundColor: SERIES[0] + "22", fill: "origin"},
+  {label: "program houses", data: [], borderColor: SERIES[1]},
+  {label: "rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5}]}, options: baseOpts(" kW")});
+const socChart = new Chart(document.getElementById("socChart"), {type: "bar", data: {labels: [], datasets: [{label: "SoC", data: [], backgroundColor: [], borderRadius: 4, borderSkipped: "start", barThickness: 14}]},
+  options: {...baseOpts("%"), indexAxis: "y", scales: {x: {min: 0, max: 100, grid: {color: "#2a3039"}, ticks: {callback: v => v + "%"}}, y: {grid: {display: false}, ticks: {font: {family: css("--mono")}}}},
+    plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => ` SoC ${c.parsed.x.toFixed(0)}%`}}}}});
+const gridChart = new Chart(document.getElementById("gridChart"), {type: "line", data: {labels: [], datasets: []}, options: baseOpts(" kW")});
+
+function hhmm(h) { const m = Math.round(h * 60); return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
+
+function drawCharts() {
+  if (!H || !S) return;
+  const nh = H.nodes[selNode] || [], rating = S.tree[selNode].rating_kw;
+  loadChart.data.labels = nh.map(p => hhmm(p.h));
+  loadChart.data.datasets[0].data = nh.map(p => p.total_kw);
+  loadChart.data.datasets[1].data = nh.map(p => p.program_kw);
+  loadChart.data.datasets[2].data = nh.map(() => rating);
+  loadChart.options.scales.y.suggestedMax = rating ? rating * 1.15 : undefined;
+  loadChart.update();
+
+  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode));
+  socChart.data.labels = devs;
+  socChart.data.datasets[0].data = devs.map(d => (S.devices[d].telemetry || {}).soc ?? 0);
+  socChart.data.datasets[0].backgroundColor = devs.map(d => SERIES[devOrder.indexOf(d) % 5]);
+  socChart.update();
+
+  const longest = devs.reduce((a, d) => (H.devices[d] || []).length > a.length ? H.devices[d] : a, []);
+  gridChart.data.labels = longest.map(p => hhmm(p.h));
+  gridChart.data.datasets = devs.map(d => ({label: d, data: (H.devices[d] || []).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
+  gridChart.update();
+  document.getElementById("devlegend").innerHTML = devs.map(d => `<span><i style="background:${SERIES[devOrder.indexOf(d) % 5]}"></i>${d}</span>`).join("") + `<span style="margin-left:auto">grid kW · + import · − export</span>`;
+}
+
+// ---------- schematic
+function statusColor(pct) { return pct == null ? css("--muted") : pct >= 100 ? css("--crit") : pct >= 85 ? css("--warn") : css("--ok"); }
+function modeColor(t, a) { if (!t) return "#3a414a"; const st = a && a.status; if (st === "refused") return css("--crit"); if (st === "partial") return css("--warn"); return t.mode && t.mode !== "owner" ? css("--acc") : css("--muted"); }
+function drawSchem() {
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const feeder = Object.keys(S.tree).find(n => n.startsWith("feeder:")), sub = Object.keys(S.tree).find(n => n.startsWith("sub:"));
+  const W = 760, colW = W / tfs.length;
+  let g = `<rect class="box ${selNode === sub ? "sel" : ""}" x="300" y="12" width="160" height="34" rx="4" onclick="selectNode('${sub}')" style="cursor:pointer"/>
+    <text x="380" y="27" text-anchor="middle">${sub}</text><text x="380" y="40" text-anchor="middle" class="muted">110 / 22 kV</text>
+    <line class="wire" x1="380" y1="46" x2="380" y2="70"/><line class="wire" x1="${colW / 2}" y1="70" x2="${W - colW / 2}" y2="70"/>
+    <text x="386" y="64" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer">${feeder} · 22 kV ${selNode === feeder ? "◀" : ""}</text>`;
+  tfs.forEach((tf, i) => {
+    const x = colW * i + 20, w = colW - 40, a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct);
+    const devs = devOrder.filter(d => S.devices[d].tf === tf);
+    g += `<line class="wire" x1="${x + w / 2}" y1="70" x2="${x + w / 2}" y2="96"/>
+      <g onclick="selectNode('${tf}')" style="cursor:pointer">
+      <rect class="box ${selNode === tf ? "sel" : ""}" x="${x}" y="96" width="${w}" height="92" rx="4"/>
+      <text x="${x + 10}" y="114">${tf}</text><text x="${x + w - 10}" y="114" text-anchor="end" class="muted">${S.tree[tf].rating_kw} kVA</text>
+      <text x="${x + 10}" y="134" class="muted">load</text><text x="${x + w - 10}" y="134" text-anchor="end" style="fill:${c}">${a.total_kw != null ? a.total_kw.toFixed(0) + " kW · " + pct + "%" : "–"}</text>
+      <rect class="bar-bg" x="${x + 10}" y="142" width="${w - 20}" height="10" rx="3"/>
+      <rect x="${x + 10}" y="142" width="${Math.min(1, (pct || 0) / 120) * (w - 20)}" height="10" rx="3" fill="${c}"/>
+      <line x1="${x + 10 + (100 / 120) * (w - 20)}" y1="138" x2="${x + 10 + (100 / 120) * (w - 20)}" y2="156" stroke="${css("--fg")}" stroke-width="1"/>
+      <text x="${x + 10}" y="176" class="muted">program ${a.program_kw != null ? (a.program_kw >= 0 ? "+" : "") + a.program_kw.toFixed(0) + " kW" : "–"} · ${a.kwh_available} kWh stored</text>
+      ${a.active ? `<text x="${x + w - 10}" y="176" text-anchor="end" style="fill:${css("--acc")}">${a.active}</text>` : ""}
+      </g>`;
+    devs.forEach((d, j) => {
+      const dx = x + 10 + j * 48 + 14, t = S.devices[d].telemetry, ak = S.devices[d].ack;
+      g += `<line class="wire" x1="${x + w / 2}" y1="188" x2="${x + w / 2}" y2="206"/><line class="wire" x1="${x + 24}" y1="206" x2="${x + 10 + (devs.length - 1) * 48 + 14}" y2="206"/>
+        <line class="wire" x1="${dx}" y1="206" x2="${dx}" y2="222"/>
+        <circle class="house" cx="${dx}" cy="236" r="13" fill="${modeColor(t, ak)}"><title>${d}${t ? `: SoC ${t.soc}% · grid ${t.grid_kw} kW · EV ${t.ev_kw ?? 0} kW · ${t.mode}` : ": offline"}</title></circle>
+        <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? Math.round(t.soc) : "–"}</text>
+        ${t && t.ev_kw > 0 ? `<text x="${dx + 15}" y="230" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
+        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${d.replace(/^(sim|vic)-[a-z]+-/, "#")}</text>`;
+    });
+    g += `<text x="${x + w - 10}" y="262" text-anchor="end" class="muted" style="font-size:9px">+${S.tree[tf].other_houses || 0} houses not in program</text>`;
+  });
+  g += `<text x="20" y="292" class="muted" style="font-size:10px">● SoC % · orange = under signal · yellow = partial · red = refused · grey = owner mode · EV = car charging</text>`;
+  document.getElementById("schem").innerHTML = g;
+}
+
+// ---------- panels
+function drawKpis() {
+  const root = S.aggregates["region:sk"];
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const worst = Math.max(...tfs.map(n => S.aggregates[n].load_pct || 0));
+  const over = tfs.filter(n => (S.aggregates[n].load_pct || 0) >= 100).length;
+  const active = Object.keys(S.active).length;
+  const online = Object.values(S.devices).filter(d => d.telemetry).length, total = Object.keys(S.devices).length;
+  const rep = Object.values(S.devices).reduce((a, d) => a + (d.represents || 1), 0);
+  const ev = Object.values(S.devices).reduce((a, d) => a + ((d.telemetry || {}).ev_kw || 0) * (d.represents || 1), 0);
+  const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  document.getElementById("kpis").innerHTML =
+    k(`${(root.kwh_available * 10).toFixed(0)} kWh`, "stored in program batteries (×10)") +
+    k(`${root.kw * 10} kW`, "inverter capacity in program (×10)") +
+    k(`${ev.toFixed(0)} kW`, "EV charging now, sheddable first (×10)", ev ? "warn" : "") +
+    k(`${worst}%`, "worst transformer load", worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
+    k(over, "transformers over rating", over ? "crit" : "ok") +
+    k(active, "active signals", active ? "warn" : "") +
+    k(`${online}/${total}`, `devices online · ${rep} houses represented`);
+}
+function drawSignals() {
+  const now = Date.now();
+  const rows = Object.entries(S.active).map(([n, s]) => {
+    const a = Date.parse(s.valid_from), b = Date.parse(s.valid_to), p = Math.max(0, Math.min(1, (now - a) / (b - a)));
+    const f = ALL.filter(k => s[k] != null).map(k => `${k.replace("_kw", "").replace("_max", "≤").replace("_min", "≥")}${s[k]}`).join(" ");
+    return `<div class="sig"><span class="mode">${s.mode}</span><span>${n}${s.cohort ? ` <span class="muted">[${s.cohort[0]}/${s.cohort[1]}]</span>` : ""}</span><span>${f} <span style="color:var(--muted)">· ${s.valid_from.slice(11, 16)}–${s.valid_to.slice(11, 16)} UTC</span><div class="bar"><i style="width:${p * 100}%"></i></div></span><span style="color:var(--muted)">seq ${s.seq}</span></div>`;
+  });
+  document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted)">none · owners run their batteries as they like</div>`;
+}
+function drawDevices() {
+  document.getElementById("devices").innerHTML = devOrder.map(d => {
+    const D = S.devices[d], t = D.telemetry || {}, a = D.ack || {};
+    return `<tr><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}</td><td>${D.tf.replace("tf:", "")}</td>
+      <td>${t.soc != null ? t.soc.toFixed(0) + "%" : "–"}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + t.grid_kw.toFixed(1) : "–"}</td>
+      <td>${t.ev_kw != null ? t.ev_kw.toFixed(1) : "–"}</td>
+      <td style="color:${t.mode && t.mode !== "owner" ? "var(--acc)" : "var(--muted)"}">${t.mode || (t.soc != null ? "owner" : "offline")}</td>
+      <td class="st-${a.status || ""}">${a.status || ""}${a.reason ? " (" + a.reason + ")" : ""}</td>
+      <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
+  }).join("");
+}
+function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `<div><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${l.msg}</div>`).join(""); }
+function drawTabs() {
+  document.getElementById("nodetabs").innerHTML = Object.keys(S.tree).filter(n => !n.startsWith("region")).map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("");
+}
+function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); }
 
 async function refresh() {
-  try { S = await (await fetch("/api/state")).json(); } catch { return; }
-  document.getElementById("meta").textContent = `${S.now} · seq ${S.seq}`;
-  const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill" + (S.hb_paused ? " bad" : "");
-  document.getElementById("llmpill").textContent = S.llm ? "DeepSeek local" : "LLM off";
+  try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }
+  devOrder = Object.keys(S.devices);
+  document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
+  document.getElementById("seqpill").textContent = "seq " + S.seq;
+  const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
+  document.getElementById("llmpill").textContent = S.llm ? "advisor: DeepSeek local" : "advisor off";
   const sel = document.getElementById("segment");
-  if (!sel.options.length) Object.keys(S.tree).forEach(n => sel.add(new Option(n, n)));
-  document.getElementById("tree").innerHTML = Object.keys(S.tree).map(n => {
-    const a = S.aggregates[n];
-    return `<div class="node d${depth(S.tree, n)} ${sel.value === n ? "sel" : ""}" onclick="document.getElementById('segment').value='${n}';refresh()">
-      <span class="n">${n}</span><span class="agg">${a.online}/${a.devices} · ${a.kwh_available} kWh ${a.active ? `<span class="active">${a.active}</span>` : ""}</span></div>`;
-  }).join("");
-  document.getElementById("devices").innerHTML = Object.values(S.devices).map(d => {
-    const t = d.telemetry || {}, a = d.ack || {};
-    const applied = a.applied ? Object.entries(a.applied).filter(([k, v]) => v != null && k !== "mode").map(([k, v]) => `${k.replace("_kw", "").replace("_max", "≤").replace("_min", "≥")}${v}`).join(" ") : "";
-    return `<tr><td>${d.id}</td><td>${d.tf.replace("tf:", "")}</td><td>${t.soc != null ? t.soc.toFixed(0) + "%" : "–"}</td><td>${t.grid_kw != null ? t.grid_kw.toFixed(1) : "–"}</td>
-      <td class="st-${a.status || ""}">${a.status || (t.soc != null ? "owner" : "offline")}${a.reason ? " (" + a.reason + ")" : ""}</td><td>${a.applied && a.applied.mode ? a.applied.mode + " " + applied : ""}</td>
-      <td>${d.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
-  }).join("");
-  document.getElementById("log").innerHTML = S.log.map(l => `<div><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${l.msg}</div>`).join("");
+  if (!sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; document.getElementById("target").textContent = "→ " + selNode; }
+  drawAll();
 }
-refresh(); setInterval(refresh, 2000);
+refresh(); setInterval(refresh, 3000);
 </script>
 </body>
 </html>

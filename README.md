@@ -123,8 +123,8 @@ cd platform && ../.venv/bin/python gridzilla.py
 #    optional advisor (local DeepSeek, OpenAI-compatible):
 #    GZ_LLM_URL=http://spark-1:8000/v1 GZ_LLM_MODEL=deepseek-v4.1 ../.venv/bin/python gridzilla.py
 
-# 3. four simulated houses (two villages on one 22 kV feeder)
-cd agent && npm install && node sim-agent.js
+# 3. four simulated houses (two villages on one 22 kV feeder), two with EV chargers
+cd agent && npm install && node sim-agent.js          # GZ_SPEED=1 (default) = 1 simulated minute per second; use 2-4 to see SoC move fast
 #    remote broker/platform: GZ_PLATFORM=http://<host>:8080 GZ_BROKER=mqtt://<host>:1883 node sim-agent.js
 
 # 4. send a signal from the dashboard, or:
@@ -159,6 +159,7 @@ platform/static/         operator dashboard
 agent/sim-agent.js       simulated houses speaking the protocol (verify, scope, merge, ack, watchdog, revert)
 agent/nodered/           function-node sources and wiring for the real Cerbo GX agent
 docs/architecture.html   architecture page: diagrams, signals, threat model, enforcement, demo script
+docs/implementers.md     how GoodWe, Huawei, SMA, Fronius, Sungrow, SolarEdge, Tesla, Home Assistant, EVCC, EEBus, OpenADR, OCPP implement the signal
 docs/plan-saturday.md    who does what on the build day, demo script, cut order
 docs/Challenge-*.docx    the original challenge text
 ```

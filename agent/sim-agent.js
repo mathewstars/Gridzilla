@@ -88,15 +88,30 @@ function profiles(h) {
   const load = base + evening + morning;
   const sun = Math.max(0, Math.sin(((hour - 6) / 12) * Math.PI));
   const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
-  return { load, pv };
+  const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
+  const plugged = ev.kw && hour >= (ev.plugged?.[0] ?? 17) && hour < (ev.plugged?.[1] ?? 23);
+  return { load, pv, evMax: plugged ? ev.kw : 0 };
 }
 
 function step(h) {
   const { cfg } = h;
   const o = cfg.owner;
   const e = h.effective || {};
-  const { load, pv } = profiles(h);
+  const { load: houseLoad, pv, evMax } = profiles(h);
   const dtH = SPEED / 60;
+  // EV charger: the most elastic load. Owner mode charges at full power when plugged in.
+  // Under an import cap it is throttled before the battery is touched; under an export cap it soaks the surplus.
+  let ev = evMax;
+  if (h.effective && h.effective.import_max_kw != null && ev > 0) {
+    const without = houseLoad - pv;                                        // import with no EV and no battery
+    ev = clamp(h.effective.import_max_kw - Math.max(0, without), 0, evMax);  // keep the cap with the charger alone if possible
+    if (ev < 1.4) ev = 0;                                                    // below 6 A single phase the car stops anyway
+  }
+  if (h.effective && h.effective.export_max_kw != null && evMax > 0 && pv - houseLoad > h.effective.export_max_kw)
+    ev = Math.min(evMax, pv - houseLoad - h.effective.export_max_kw);        // ABSORB: put the surplus into the car
+  if (h.effective && h.effective.mode === "STRETCH") ev = 0;                  // street dark: no car charging
+  const load = houseLoad + ev;
+  h.ev_kw = ev;
   const islanded = e.mode === "STRETCH";
   let chargeMax = Math.min(cfg.kw, o.max_charge_kw, e.charge_max_kw ?? Infinity);
   let dischargeMax = Math.min(cfg.kw, o.max_discharge_kw, e.discharge_max_kw ?? Infinity);
@@ -244,6 +259,6 @@ function onSignal(h, env, platformPub) {
     setInterval(() => step(h), 1000);
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
-      batt_kw: +h.batt_kw.toFixed(2), mode: h.effective ? h.effective.mode : "owner", sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
+      batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), mode: h.effective ? h.effective.mode : "owner", sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
 })();

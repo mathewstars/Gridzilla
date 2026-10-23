@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 HERE = Path(__file__).parent
@@ -113,6 +114,54 @@ state = {
     "support_count": {},   # f"{node}:{date}" -> n
 }
 LOG = collections.deque(maxlen=300)
+HIST_N = 400
+NODE_HIST = {n: collections.deque(maxlen=HIST_N) for n in TREE}
+DEV_HIST = {d: collections.deque(maxlen=HIST_N) for d in DEVICES}
+
+
+def sim_hour():
+    hs = [t.get("sim_hour") for t in state["telemetry"].values() if t.get("sim_hour") is not None]
+    return max(hs) if hs else now().hour + now().minute / 60
+
+
+def other_profile_kw(hour):
+    """kW per house not in the program: morning bump, midday PV export, evening peak."""
+    import math
+    base = 0.5
+    morning = 1.0 * math.exp(-((hour - 7) / 1.0) ** 2)
+    evening = 2.9 * math.exp(-((hour - 19) / 2.2) ** 2)      # heat pumps, cooking, a few uncontrolled EV chargers
+    sun = max(0.0, math.sin((hour - 6) / 12 * math.pi))
+    pv = -2.2 * sun * 0.5          # half of them have PV, exporting at noon
+    return base + morning + evening + pv
+
+
+def sample_history():
+    h = sim_hour()
+    with _lock:
+        for n in TREE:
+            prog = 0.0
+            for d in devices_under(n):
+                t = state["telemetry"].get(d["id"])
+                if t and t.get("grid_kw") is not None:
+                    prog += t["grid_kw"] * d.get("represents", 1)
+            other = sum(TREE[t].get("other_houses", 0) * other_profile_kw(h)
+                        for t in TREE if n in path_of(t) and t.startswith("tf:"))
+            NODE_HIST[n].append({"ts": iso(now()), "h": round(h, 2), "program_kw": round(prog, 1),
+                                 "other_kw": round(other, 1), "total_kw": round(prog + other, 1)})
+        for d in DEVICES:
+            t = state["telemetry"].get(d)
+            if t:
+                DEV_HIST[d].append({"ts": iso(now()), "h": round(h, 2), "soc": t.get("soc"), "grid_kw": t.get("grid_kw"),
+                                    "mode": t.get("mode")})
+
+
+def sampler_loop():
+    while True:
+        try:
+            sample_history()
+        except Exception as e:
+            print("[sampler]", e)
+        time.sleep(5)
 
 if STATE_FILE.exists():
     try:
@@ -273,9 +322,13 @@ def aggregates():
             a = state["acks"].get(d["id"])
             if a and a.get("status") in ("applied", "partial"):
                 applied += 1
+        last = NODE_HIST[node][-1] if NODE_HIST[node] else {}
+        rating = TREE[node].get("rating_kw")
         out[node] = {"devices": len(devs), "online": sum(1 for d in devs if d["id"] in state["telemetry"]),
                      "kwh_available": round(kwh_avail, 1), "kw": kw, "applied": applied,
-                     "active": state["active"].get(node, {}).get("mode")}
+                     "active": state["active"].get(node, {}).get("mode"),
+                     "total_kw": last.get("total_kw"), "program_kw": last.get("program_kw"), "other_kw": last.get("other_kw"),
+                     "rating_kw": rating, "load_pct": round(100 * last["total_kw"] / rating) if rating and last else None}
     return out
 
 
@@ -328,6 +381,7 @@ def ask_llm(situation: str):
 
 # ---------------------------------------------------------------- api
 app = FastAPI(title="Gridzilla")
+app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
 
 class Signal(BaseModel):
@@ -364,11 +418,17 @@ def pubkey():
 @app.get("/api/state")
 def get_state():
     with _lock:
-        return {"now": iso(now()), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
+        return {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
                 "devices": {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k),
                                 "registered": k in state["pubkeys"]} for k, v in DEVICES.items()},
                 "active": state["active"], "log": list(LOG), "hb_paused": HB_PAUSED.is_set(),
                 "llm": bool(LLM_URL), "policy": POLICY}
+
+
+@app.get("/api/history")
+def history():
+    with _lock:
+        return {"nodes": {n: list(v) for n, v in NODE_HIST.items()}, "devices": {d: list(v) for d, v in DEV_HIST.items()}}
 
 
 @app.post("/api/register")
@@ -416,6 +476,7 @@ def main():
     mq.connect(host, int(port), keepalive=30)
     mq.loop_start()
     threading.Thread(target=heartbeat_loop, daemon=True).start()
+    threading.Thread(target=sampler_loop, daemon=True).start()
     import uvicorn
     log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  llm={LLM_URL or 'off'}")
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
