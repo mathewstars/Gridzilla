@@ -224,7 +224,8 @@ function onSignal(h, env, platformPub) {
     h.signal = sig; h.effective = eff; h.lastHb = Date.now();
     ack(h, sig.seq, status, reason);
     const live = ["ABSORB", "SUPPORT"].includes(sig.mode);                     // these need heartbeats; schedules do not
-    const endIn = Date.parse(sig.valid_to) - Date.now();
+    const maxEnd = Date.parse(sig.valid_from) + (sig.mode === "STRETCH" ? 4320 : 240) * 60 * 1000;   // protocol window bound, enforced on the device
+    const endIn = Math.min(Date.parse(sig.valid_to), maxEnd) - Date.now();
     setTimeout(() => { if (h.signal === sig) revert(h, "window_end"); }, endIn);
     if (live) {
       const wd = setInterval(() => {
@@ -245,7 +246,8 @@ function onSignal(h, env, platformPub) {
     if (!reg.ok) { console.error(`${cfg.id}: registration failed: ${await reg.text()}`); continue; }
     cfg.path = (await reg.json()).path;
     const h = makeHouse(cfg, keys);
-    h.mq = mqtt.connect(BROKER, { clientId: `gz-${cfg.id}` });
+    h.mq = mqtt.connect(BROKER, { clientId: `gz-${cfg.id}`, username: process.env.GZ_MQTT_USER, password: process.env.GZ_MQTT_PASS,
+      rejectUnauthorized: true });   // BROKER may be mqtts://host:8883 (HiveMQ Cloud); the public cert is verified
     h.mq.on("connect", () => {
       cfg.path.forEach(n => h.mq.subscribe(`gridzilla/sig/${n}`, { qos: 1 }));
       h.mq.subscribe("gridzilla/hb");
@@ -253,7 +255,12 @@ function onSignal(h, env, platformPub) {
     });
     h.mq.on("message", (topic, buf) => {
       let env; try { env = JSON.parse(buf.toString()); } catch { return; }
-      if (topic === "gridzilla/hb") { if (verifyEnvelope(env, platformPub)) h.lastHb = Date.now(); return; }
+      if (topic === "gridzilla/hb") {
+        const hb = verifyEnvelope(env, platformPub); if (!hb) return;
+        const age = (Date.now() - Date.parse(hb.ts)) / 1000;
+        if (!(hb.seq > (h.lastHbSeq || 0)) || age > 90 || age < -30) return;   // replayed or stale heartbeat
+        h.lastHbSeq = hb.seq; h.lastHb = Date.now(); return;
+      }
       onSignal(h, env, platformPub);
     });
     setInterval(() => step(h), 1000);

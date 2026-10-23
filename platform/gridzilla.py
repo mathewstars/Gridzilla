@@ -29,7 +29,10 @@ from pydantic import BaseModel
 HERE = Path(__file__).parent
 KEYS = HERE / "keys"
 KID = "gz-2026-10"
-BROKER = os.environ.get("GZ_BROKER", "localhost:1883")
+BROKER = os.environ.get("GZ_BROKER", "localhost:1883")          # host:port
+MQTT_TLS = os.environ.get("GZ_MQTT_TLS", "0") == "1"             # 1 for HiveMQ Cloud / any TLS broker on 8883
+MQTT_USER = os.environ.get("GZ_MQTT_USER")
+MQTT_PASS = os.environ.get("GZ_MQTT_PASS")
 PORT = int(os.environ.get("GZ_PORT", "8080"))
 LLM_URL = os.environ.get("GZ_LLM_URL")            # e.g. http://spark-1:8000/v1
 LLM_MODEL = os.environ.get("GZ_LLM_MODEL", "deepseek-v4.1")
@@ -185,10 +188,14 @@ def log(kind, msg, **extra):
 # ---------------------------------------------------------------- mqtt
 host, port = BROKER.split(":")
 mq = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="gridzilla-platform")
+if MQTT_TLS:
+    mq.tls_set()                                   # system CA bundle; HiveMQ Cloud uses a public certificate
+if MQTT_USER:
+    mq.username_pw_set(MQTT_USER, MQTT_PASS)
 
 
 def on_connect(client, userdata, flags, rc, props=None):
-    log("mqtt", f"connected to {BROKER}")
+    log("mqtt", f"connected to {BROKER}" + (" (TLS)" if MQTT_TLS else " (plain)"))
     client.subscribe([("gridzilla/ack/#", 1), ("gridzilla/state/#", 0)])
 
 

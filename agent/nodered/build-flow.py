@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate gridzilla-flow.json: the Gridzilla agent as a Node-RED flow for Venus OS Large.
 
-    python3 build-flow.py --platform http://192.168.90.119:8080 --broker 192.168.90.119 --device vic-blatnica-07 \
-        --path region:sk sub:martin feeder:turiec-3 tf:blatnica-1 > gridzilla-flow.json
+    python3 build-flow.py --platform http://192.168.90.119:8080 --broker 192.168.90.119 --device vic-atzgersdorf-07 \
+        --path region:at sub:wien-sued feeder:liesing-3 tf:atzgersdorf-1 > gridzilla-flow.json
 
 Import in the editor (menu > Import) or push with the admin API (deploy-flow.sh).
 Victron nodes are "custom" input/output nodes on D-Bus services, so no device picking is needed in the editor.
@@ -12,8 +12,12 @@ import argparse, json, uuid
 ap = argparse.ArgumentParser()
 ap.add_argument("--platform", default="http://192.168.90.119:8080")
 ap.add_argument("--broker", default="192.168.90.119")
-ap.add_argument("--device", default="vic-blatnica-07")
-ap.add_argument("--path", nargs="+", default=["region:sk", "sub:martin", "feeder:turiec-3", "tf:blatnica-1"])
+ap.add_argument("--broker-port", default="1883")
+ap.add_argument("--tls", action="store_true", help="MQTT over TLS (8883), server cert verified against system CAs")
+ap.add_argument("--mqtt-user", default="")
+ap.add_argument("--mqtt-pass", default="")
+ap.add_argument("--device", default="vic-atzgersdorf-07")
+ap.add_argument("--path", nargs="+", default=["region:at", "sub:wien-sued", "feeder:liesing-3", "tf:atzgersdorf-1"])
 a = ap.parse_args()
 
 TAB = "gz_tab"
@@ -24,8 +28,9 @@ def add(**n):
     nodes.append(n); return n["id"]
 
 nodes.append({"id": TAB, "type": "tab", "label": "Gridzilla agent", "disabled": False, "info": "Grid-serving storage agent. Verify -> scope -> merge with owner limits -> apply -> ack -> watchdog -> revert."})
-broker = add(type="mqtt-broker", z=None, name="gridzilla broker", broker=a.broker, port="1883", clientid=f"gz-{a.device}", autoConnect=True,
-             usetls=False, protocolVersion="4", keepalive="30", cleansession=True, autoUnsubscribe=True, birthTopic="", closeTopic="", willTopic="")
+broker = add(type="mqtt-broker", z=None, name="gridzilla broker", broker=a.broker, port=a.broker_port, clientid=f"gz-{a.device}", autoConnect=True,
+             usetls=a.tls, verifyservercert=True, protocolVersion="4", keepalive="30", cleansession=True, autoUnsubscribe=True, birthTopic="", closeTopic="", willTopic="",
+             **({"credentials": {"user": a.mqtt_user, "password": a.mqtt_pass}} if a.mqtt_user else {}))
 vclient = add(type="victron-client", z=None, name="venus", showValues=True)
 
 # ------------------------------------------------------------------ function sources
@@ -35,17 +40,20 @@ const dev = {json.dumps(a.device)};
 flow.set("device_id", dev);
 flow.set("platform", {json.dumps(a.platform)});
 flow.set("path", {json.dumps(a.path)});
-if (!flow.get("device_priv")) {{
-  const {{ privateKey, publicKey }} = crypto.generateKeyPairSync("ed25519");
-  flow.set("device_priv", privateKey.export({{ type: "pkcs8", format: "pem" }}).toString());
-  flow.set("device_pub", publicKey.export({{ type: "spki", format: "pem" }}).toString());
-}}
+const dir = require("path").join(os.homedir(), ".node-red", "gridzilla"); fs.mkdirSync(dir, {{ recursive: true }}); flow.set("dir", dir);
+const kp = require("path").join(dir, "device.key.pem");
+if (!fs.existsSync(kp)) {{ const {{ privateKey }} = crypto.generateKeyPairSync("ed25519"); fs.writeFileSync(kp, privateKey.export({{ type: "pkcs8", format: "pem" }}), {{ mode: 0o600 }}); }}
+const priv = crypto.createPrivateKey(fs.readFileSync(kp));
+flow.set("device_priv", priv.export({{ type: "pkcs8", format: "pem" }}).toString());
+flow.set("device_pub", crypto.createPublicKey(priv).export({{ type: "spki", format: "pem" }}).toString());
+const pp = require("path").join(dir, "platform.pub.pem"); if (fs.existsSync(pp)) flow.set("platform_pub", fs.readFileSync(pp, "utf8"));
+const st = require("path").join(dir, "state.json"); if (fs.existsSync(st)) {{ const j = JSON.parse(fs.readFileSync(st, "utf8")); flow.set("last_seq", j.last_seq || 0); flow.set("last_hb_seq", j.last_hb_seq || 0); }}
 if (!flow.get("owner")) flow.set("owner", {{ min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }});
 msg.url = flow.get("platform") + "/api/pubkey"; msg.method = "GET";
 return msg;
 """
 F_PIN = """
-if (!flow.get("platform_pub")) { flow.set("platform_pub", msg.payload); node.warn("platform key pinned (TOFU)"); }
+if (!flow.get("platform_pub")) { flow.set("platform_pub", msg.payload); fs.writeFileSync(require("path").join(flow.get("dir"), "platform.pub.pem"), msg.payload); node.warn("platform key pinned (TOFU) and stored"); }
 msg.url = flow.get("platform") + "/api/register"; msg.method = "POST";
 msg.headers = { "Content-Type": "application/json" };
 msg.payload = { device: flow.get("device_id"), pubkey_pem: flow.get("device_pub") };
@@ -57,7 +65,8 @@ if (r && r.path) { flow.set("path", r.path); node.status({ fill: "green", shape:
 else node.status({ fill: "red", shape: "ring", text: "registration failed" });
 return null;
 """
-F_VERIFY = open("verify.js").read()
+F_VERIFY = open("verify.js").read().replace('flow.set("last_seq", doc.seq);',
+  'flow.set("last_seq", doc.seq); try { fs.writeFileSync(require("path").join(flow.get("dir"), "state.json"), JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get("last_hb_seq") || 0 })); } catch (e) {}')
 F_MERGE = open("merge.js").read()
 F_SIGN = """
 // sign an ack document with the device key -> envelope
@@ -127,15 +136,16 @@ F_OWNER = """
 const o = flow.get("owner") || {}; o.min_soc = msg.payload; flow.set("owner", o); return null;
 """
 
+LIBS = [{"var": "crypto", "module": "crypto"}, {"var": "fs", "module": "fs"}, {"var": "os", "module": "os"}]
 def fn(name, code, outputs=1, libs=True, x=0, y=0):
     return add(type="function", name=name, func=code.strip(), outputs=outputs, noerr=0, initialize="", finalize="",
-               libs=[{"var": "crypto", "module": "crypto"}] if libs else [], x=x, y=y)
+               libs=LIBS if libs else [], x=x, y=y)
 
 # ------------------------------------------------------------------ startup / registration
 i_start = add(type="inject", name="on start", props=[{"p": "payload"}], repeat="", crontab="", once=True, onceDelay="5", topic="", payload="", payloadType="date", x=120, y=60)
 f_init = fn("init + device key", F_INIT, x=320, y=60)
 h_pub = add(type="http request", name="GET /api/pubkey", method="use", ret="txt", paytoqs="ignore", url="", persist=False, authType="", x=540, y=60)
-f_pin = fn("pin platform key", F_PIN, libs=False, x=760, y=60)
+f_pin = fn("pin platform key", F_PIN, x=760, y=60)
 h_reg = add(type="http request", name="POST /api/register", method="use", ret="txt", paytoqs="ignore", url="", persist=False, authType="", x=980, y=60)
 f_reg = fn("store path", F_REG, libs=False, x=1180, y=60)
 for s, d in [(i_start, f_init), (f_init, h_pub), (h_pub, f_pin), (f_pin, h_reg), (h_reg, f_reg)]:

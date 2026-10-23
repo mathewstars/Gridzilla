@@ -72,7 +72,7 @@ A signal is an envelope at the grid connection point, never a device setpoint.
 | `STRETCH` | street dead, expected restoration time known | each house islands on its own inverter; the agent rations discharge and sheds heat pump, EV charger and boiler to last until restoration | partly, needs a comms path that survives the outage (GX LTE) or a cached schedule |
 | `RECOVER` | transformer replaced | staggered recharge so 70 kWh of batteries do not refill on top of cold-load pickup | yes |
 
-**Segments are a tree.** A signal targets the level where the constraint is: street transformer (`tf:mosovce-2`), 22 kV feeder (`feeder:turiec-3`), 110/22 kV substation (`sub:martin`) or region (`region:sk`). Batteries in Blatnica can relieve a feeder or substation that also serves Mošovce, by feeding in through their own transformer in reverse, but they cannot relieve Mošovce's own street transformer. The agent accepts only signals for nodes it sits under.
+**Segments are a tree.** A signal targets the level where the constraint is: street transformer (`tf:mauer-2`), 22 kV feeder (`feeder:liesing-3`), 110/22 kV substation Wien Süd (`sub:wien-sued`) or region (`region:at`). Batteries in Atzgersdorf can relieve a feeder or substation that also serves Mauer, by feeding in through their own transformer in reverse, but they cannot relieve Mauer's own street transformer. The agent accepts only signals for nodes it sits under.
 
 A dead transformer cannot be fed from the street: inverters must disconnect from a dead grid and there is no grid-forming anchor. A street island from home batteries is the future slide, not the product.
 
@@ -130,7 +130,7 @@ cd agent && npm install && node sim-agent.js          # GZ_SPEED=1 (default) = 1
 
 # 4. send a signal from the dashboard, or:
 curl -X POST localhost:8080/api/signal -H 'Content-Type: application/json' \
-  -d '{"segment":"feeder:turiec-3","mode":"SUPPORT","import_max_kw":3,"export_min_kw":2,"duration_min":120}'
+  -d '{"segment":"feeder:liesing-3","mode":"SUPPORT","import_max_kw":3,"export_min_kw":2,"duration_min":120}'
 ```
 
 **On Windows** (PowerShell), the same steps:

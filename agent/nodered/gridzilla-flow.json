@@ -12,9 +12,10 @@
   "name": "gridzilla broker",
   "broker": "192.168.90.119",
   "port": "1883",
-  "clientid": "gz-vic-blatnica-07",
+  "clientid": "gz-vic-atzgersdorf-07",
   "autoConnect": true,
   "usetls": false,
+  "verifyservercert": true,
   "protocolVersion": "4",
   "keepalive": "30",
   "cleansession": true,
@@ -22,7 +23,7 @@
   "birthTopic": "",
   "closeTopic": "",
   "willTopic": "",
-  "id": "9150654449c84eae",
+  "id": "f9c0164c6810407e",
   "wires": []
  },
  {
@@ -30,7 +31,7 @@
   "z": null,
   "name": "venus",
   "showValues": true,
-  "id": "64ae84b7578f45ae",
+  "id": "d8ea5329ed1b4079",
   "wires": []
  },
  {
@@ -50,18 +51,18 @@
   "payloadType": "date",
   "x": 120,
   "y": 60,
-  "id": "543f54e63e6e4cb8",
+  "id": "ece34ab35e814a82",
   "z": "gz_tab",
   "wires": [
    [
-    "f0fc43aa2e714442"
+    "5cc81f27d1274238"
    ]
   ]
  },
  {
   "type": "function",
   "name": "init + device key",
-  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"vic-blatnica-07\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"http://192.168.90.119:8080\");\nflow.set(\"path\", [\"region:sk\", \"sub:martin\", \"feeder:turiec-3\", \"tf:blatnica-1\"]);\nif (!flow.get(\"device_priv\")) {\n  const { privateKey, publicKey } = crypto.generateKeyPairSync(\"ed25519\");\n  flow.set(\"device_priv\", privateKey.export({ type: \"pkcs8\", format: \"pem\" }).toString());\n  flow.set(\"device_pub\", publicKey.export({ type: \"spki\", format: \"pem\" }).toString());\n}\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
+  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"vic-atzgersdorf-07\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"http://192.168.90.119:8080\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = require(\"path\").join(os.homedir(), \".node-red\", \"gridzilla\"); fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = require(\"path\").join(dir, \"device.key.pem\");\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = require(\"path\").join(dir, \"platform.pub.pem\"); if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = require(\"path\").join(dir, \"state.json\"); if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -70,15 +71,23 @@
    {
     "var": "crypto",
     "module": "crypto"
+   },
+   {
+    "var": "fs",
+    "module": "fs"
+   },
+   {
+    "var": "os",
+    "module": "os"
    }
   ],
   "x": 320,
   "y": 60,
-  "id": "f0fc43aa2e714442",
+  "id": "5cc81f27d1274238",
   "z": "gz_tab",
   "wires": [
    [
-    "159b8b6c2930499b"
+    "8dc8f22e39d24cd2"
    ]
   ]
  },
@@ -93,30 +102,43 @@
   "authType": "",
   "x": 540,
   "y": 60,
-  "id": "159b8b6c2930499b",
+  "id": "8dc8f22e39d24cd2",
   "z": "gz_tab",
   "wires": [
    [
-    "5eec959fd6f443f0"
+    "b400afa55629454d"
    ]
   ]
  },
  {
   "type": "function",
   "name": "pin platform key",
-  "func": "if (!flow.get(\"platform_pub\")) { flow.set(\"platform_pub\", msg.payload); node.warn(\"platform key pinned (TOFU)\"); }\nmsg.url = flow.get(\"platform\") + \"/api/register\"; msg.method = \"POST\";\nmsg.headers = { \"Content-Type\": \"application/json\" };\nmsg.payload = { device: flow.get(\"device_id\"), pubkey_pem: flow.get(\"device_pub\") };\nreturn msg;",
+  "func": "if (!flow.get(\"platform_pub\")) { flow.set(\"platform_pub\", msg.payload); fs.writeFileSync(require(\"path\").join(flow.get(\"dir\"), \"platform.pub.pem\"), msg.payload); node.warn(\"platform key pinned (TOFU) and stored\"); }\nmsg.url = flow.get(\"platform\") + \"/api/register\"; msg.method = \"POST\";\nmsg.headers = { \"Content-Type\": \"application/json\" };\nmsg.payload = { device: flow.get(\"device_id\"), pubkey_pem: flow.get(\"device_pub\") };\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
   "finalize": "",
-  "libs": [],
+  "libs": [
+   {
+    "var": "crypto",
+    "module": "crypto"
+   },
+   {
+    "var": "fs",
+    "module": "fs"
+   },
+   {
+    "var": "os",
+    "module": "os"
+   }
+  ],
   "x": 760,
   "y": 60,
-  "id": "5eec959fd6f443f0",
+  "id": "b400afa55629454d",
   "z": "gz_tab",
   "wires": [
    [
-    "b847ef2cc5a847dc"
+    "8d6d763d97b74ebd"
    ]
   ]
  },
@@ -131,11 +153,11 @@
   "authType": "",
   "x": 980,
   "y": 60,
-  "id": "b847ef2cc5a847dc",
+  "id": "8d6d763d97b74ebd",
   "z": "gz_tab",
   "wires": [
    [
-    "5ed65cb7c0d34c53"
+    "8eef3d07fe594f0a"
    ]
   ]
  },
@@ -150,14 +172,14 @@
   "libs": [],
   "x": 1180,
   "y": 60,
-  "id": "5ed65cb7c0d34c53",
+  "id": "8eef3d07fe594f0a",
   "z": "gz_tab",
   "wires": []
  },
  {
   "type": "function",
   "name": "verify + scope + freshness",
-  "func": "// Node-RED function node: VERIFY + SCOPE + FRESHNESS\n// Wire: [mqtt in: gridzilla/sig/# and gridzilla/hb] -> this -> [merge.js]\n// Setup tab: Modules -> add \"crypto\" as `crypto` (Node-RED >= 1.3, functionExternalModules: true in settings).\n// On Venus OS Large: /data/home/nodered/.node-red/settings-user.js  ->  functionExternalModules: true\n//\n// Context expected (set once at registration / in a startup inject):\n//   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)\n//   flow.device_id      : e.g. \"vic-blatnica-07\"\n//   flow.path           : [\"region:sk\",\"sub:martin\",\"feeder:turiec-3\",\"tf:blatnica-1\"]\n//   flow.last_seq       : last accepted signal seq (persisted context store recommended)\n//\n// Outputs: 1 = verified signal (msg.signal), 2 = ack to publish (msg.topic/msg.payload), 3 = heartbeat ok (msg.hb = true)\n\nconst env = msg.payload;                              // {v, kid, payload, sig}\nconst pubPem = flow.get(\"platform_pub\");\nif (!pubPem) { node.error(\"no pinned platform key\"); return null; }\n\nconst ok = env && env.v === 1 && typeof env.payload === \"string\" && typeof env.sig === \"string\" &&\n  crypto.verify(null, Buffer.from(env.payload, \"utf8\"), crypto.createPublicKey(pubPem), Buffer.from(env.sig, \"base64\"));\n\nconst ack = (seq, status, reason) => ({\n  topic: `gridzilla/ack/${flow.get(\"device_id\")}`,\n  ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq, status, reason,\n            applied: flow.get(\"effective\") || {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0,\n            ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") }\n});\n\nif (!ok) { node.warn(\"bad_sig\"); return [null, ack(null, \"refused\", \"bad_sig\"), null]; }\n\nconst doc = JSON.parse(env.payload);\n\nif (msg.topic === \"gridzilla/hb\") { flow.set(\"last_hb\", Date.now()); return [null, null, { hb: true }]; }\n\nif (!(flow.get(\"path\") || []).includes(doc.segment)) return null;        // not for me\nif (doc.cohort && (parseInt(crypto.createHash(\"sha256\").update(flow.get(\"device_id\")).digest(\"hex\").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort\n\nconst lastSeq = flow.get(\"last_seq\") || 0;\nif (doc.seq <= lastSeq) { node.warn(`stale_seq ${doc.seq} <= ${lastSeq}`); return [null, ack(doc.seq, \"refused\", \"stale_seq\"), null]; }\n\nconst age = (Date.now() - Date.parse(doc.issued_at)) / 1000;\nif (age > 120 || age < -30 || Date.parse(doc.valid_to) < Date.now()) return [null, ack(doc.seq, \"refused\", \"expired\"), null];\n\nflow.set(\"last_seq\", doc.seq);\nmsg.signal = doc;\nreturn [msg, null, null];",
+  "func": "// Node-RED function node: VERIFY + SCOPE + FRESHNESS\n// Wire: [mqtt in: gridzilla/sig/# and gridzilla/hb] -> this -> [merge.js]\n// Setup tab: Modules -> add \"crypto\" as `crypto` (Node-RED >= 1.3, functionExternalModules: true in settings).\n// On Venus OS Large: /data/home/nodered/.node-red/settings-user.js  ->  functionExternalModules: true\n//\n// Context expected (set once at registration / in a startup inject):\n//   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)\n//   flow.device_id      : e.g. \"vic-atzgersdorf-07\"\n//   flow.path           : [\"region:at\",\"sub:wien-sued\",\"feeder:liesing-3\",\"tf:atzgersdorf-1\"]\n//   flow.last_seq       : last accepted signal seq (persisted context store recommended)\n//\n// Outputs: 1 = verified signal (msg.signal), 2 = ack to publish (msg.topic/msg.payload), 3 = heartbeat ok (msg.hb = true)\n\nconst env = msg.payload;                              // {v, kid, payload, sig}\nconst pubPem = flow.get(\"platform_pub\");\nif (!pubPem) { node.error(\"no pinned platform key\"); return null; }\n\nconst ok = env && env.v === 1 && typeof env.payload === \"string\" && typeof env.sig === \"string\" &&\n  crypto.verify(null, Buffer.from(env.payload, \"utf8\"), crypto.createPublicKey(pubPem), Buffer.from(env.sig, \"base64\"));\n\nconst ack = (seq, status, reason) => ({\n  topic: `gridzilla/ack/${flow.get(\"device_id\")}`,\n  ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq, status, reason,\n            applied: flow.get(\"effective\") || {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0,\n            ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") }\n});\n\nif (!ok) { node.warn(\"bad_sig\"); return [null, ack(null, \"refused\", \"bad_sig\"), null]; }\n\nconst doc = JSON.parse(env.payload);\n\nif (msg.topic === \"gridzilla/hb\") {\n  const hbAge = (Date.now() - Date.parse(doc.ts)) / 1000;\n  if (!(doc.seq > (flow.get(\"last_hb_seq\") || 0)) || hbAge > 90 || hbAge < -30) return null;   // replayed or stale heartbeat: ignore\n  flow.set(\"last_hb_seq\", doc.seq); flow.set(\"last_hb\", Date.now());\n  return [null, null, { hb: true }];\n}\n\nif (!(flow.get(\"path\") || []).includes(doc.segment)) return null;        // not for me\nif (doc.cohort && (parseInt(crypto.createHash(\"sha256\").update(flow.get(\"device_id\")).digest(\"hex\").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort\n\nconst lastSeq = flow.get(\"last_seq\") || 0;\nif (doc.seq <= lastSeq) { node.warn(`stale_seq ${doc.seq} <= ${lastSeq}`); return [null, ack(doc.seq, \"refused\", \"stale_seq\"), null]; }\n\nconst age = (Date.now() - Date.parse(doc.issued_at)) / 1000;\nif (age > 120 || age < -30 || Date.parse(doc.valid_to) < Date.now()) return [null, ack(doc.seq, \"refused\", \"expired\"), null];\n\nflow.set(\"last_seq\", doc.seq); try { fs.writeFileSync(require(\"path\").join(flow.get(\"dir\"), \"state.json\"), JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get(\"last_hb_seq\") || 0 })); } catch (e) {}\nmsg.signal = doc;\nreturn [msg, null, null];",
   "outputs": 3,
   "noerr": 0,
   "initialize": "",
@@ -166,18 +188,26 @@
    {
     "var": "crypto",
     "module": "crypto"
+   },
+   {
+    "var": "fs",
+    "module": "fs"
+   },
+   {
+    "var": "os",
+    "module": "os"
    }
   ],
   "x": 420,
   "y": 220,
-  "id": "ff0ac5c7703046ee",
+  "id": "f7b1a792c38a4da8",
   "z": "gz_tab",
   "wires": [
    [
-    "1ef66006ab534d1a"
+    "8d0de67d0f044e67"
    ],
    [
-    "147f031dca5047a0"
+    "caf05fe170a64044"
    ],
    []
   ]
@@ -185,10 +215,10 @@
  {
   "type": "mqtt in",
   "name": "",
-  "topic": "gridzilla/sig/region:sk",
+  "topic": "gridzilla/sig/region:at",
   "qos": "1",
   "datatype": "json",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -197,19 +227,19 @@
   "y": 160,
   "wires": [
    [
-    "ff0ac5c7703046ee"
+    "f7b1a792c38a4da8"
    ]
   ],
-  "id": "2a141c53b66c462c",
+  "id": "04e0d61a122f4ec4",
   "z": "gz_tab"
  },
  {
   "type": "mqtt in",
   "name": "",
-  "topic": "gridzilla/sig/sub:martin",
+  "topic": "gridzilla/sig/sub:wien-sued",
   "qos": "1",
   "datatype": "json",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -218,19 +248,19 @@
   "y": 200,
   "wires": [
    [
-    "ff0ac5c7703046ee"
+    "f7b1a792c38a4da8"
    ]
   ],
-  "id": "cee8273afce6466b",
+  "id": "45a5ee0c9d4242f6",
   "z": "gz_tab"
  },
  {
   "type": "mqtt in",
   "name": "",
-  "topic": "gridzilla/sig/feeder:turiec-3",
+  "topic": "gridzilla/sig/feeder:liesing-3",
   "qos": "1",
   "datatype": "json",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -239,19 +269,19 @@
   "y": 240,
   "wires": [
    [
-    "ff0ac5c7703046ee"
+    "f7b1a792c38a4da8"
    ]
   ],
-  "id": "b953a9c76e224534",
+  "id": "fb08cdfa500f4be9",
   "z": "gz_tab"
  },
  {
   "type": "mqtt in",
   "name": "",
-  "topic": "gridzilla/sig/tf:blatnica-1",
+  "topic": "gridzilla/sig/tf:atzgersdorf-1",
   "qos": "1",
   "datatype": "json",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -260,10 +290,10 @@
   "y": 280,
   "wires": [
    [
-    "ff0ac5c7703046ee"
+    "f7b1a792c38a4da8"
    ]
   ],
-  "id": "29b38a6653b54fe4",
+  "id": "d5d0aeba52204671",
   "z": "gz_tab"
  },
  {
@@ -272,7 +302,7 @@
   "topic": "gridzilla/hb",
   "qos": "1",
   "datatype": "json",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -281,16 +311,16 @@
   "y": 320,
   "wires": [
    [
-    "ff0ac5c7703046ee"
+    "f7b1a792c38a4da8"
    ]
   ],
-  "id": "c37e3cf423294ec7",
+  "id": "4941e54d482d4e99",
   "z": "gz_tab"
  },
  {
   "type": "function",
   "name": "merge with owner limits",
-  "func": "// Node-RED function node: MERGE WITH OWNER LIMITS + APPLY PLAN\n// Wire: [verify.js out 1] -> this -> out 1: Victron writes, out 2: ack, out 3: schedule revert\n//\n// Owner limits come from the ESS settings on the GX (read once with victron nodes or set in flow context):\n//   flow.owner = { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }\n// Saved ESS values for revert (read before the first write):\n//   flow.saved = { AcPowerSetPoint, MaxChargePower, MaxDischargePower, MaxFeedInPower }\n//\n// Output 1 is a list of {setting, value} pairs for the Victron \"ESS control\" / settings nodes:\n//   /Settings/CGwacs/MaxFeedInPower, /Settings/CGwacs/MaxChargePower, /Settings/CGwacs/MaxDischargePower, /Settings/CGwacs/AcPowerSetPoint\n\nconst sig = msg.signal;\nconst o = flow.get(\"owner\");\nconst soc = flow.get(\"soc\") || 0;\nconst dev = flow.get(\"device_id\");\nconst ts = () => new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = (status, reason, applied) => ({ topic: `gridzilla/ack/${dev}`,\n  ackdoc: { v: 1, device: dev, path: flow.get(\"path\"), seq: sig.seq, status, reason, applied: applied || {},\n            soc, grid_kw: flow.get(\"grid_kw\") || 0, ts: ts() } });\n\nif (sig.mode === \"RELEASE\") {\n  flow.set(\"effective\", null);\n  return [{ payload: \"revert\" }, ack(\"applied\", null, {}), null];\n}\nif (o.opt_out) return [null, ack(\"refused\", \"opt_out\"), null];\n\nconst eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null,\n              charge_max_kw: null, discharge_max_kw: null, target_soc: null };\nlet status = \"applied\", reason = null;\n\nif (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;\nif (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, o.feedin_max_kw);  // never above the owner's feed-in limit\nif (sig.mode === \"STRETCH\") eff.export_max_kw = 0;                            // street is dark: lock export, no backfeed\nif (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);\nif (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);\nif (sig.target_soc != null) eff.target_soc = sig.target_soc;                 // only ever raises SoC\nif (sig.export_min_kw != null) {\n  const cap = Math.min(o.feedin_max_kw, o.max_discharge_kw);\n  if (soc <= o.min_soc)            { eff.export_min_kw = 0;   status = \"partial\"; reason = \"min_soc\"; }\n  else if (sig.export_min_kw > cap) { eff.export_min_kw = cap; status = \"partial\"; reason = \"owner_limit\"; }\n  else                              { eff.export_min_kw = sig.export_min_kw; }\n}\nflow.set(\"effective\", eff);\n\n// Translate the envelope into ESS writes. Everything is a limit; the grid setpoint is the one \"push\".\nconst W = 1000;\nconst writes = [];\nif (eff.export_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxFeedInPower\", value: eff.export_max_kw * W });\nif (eff.charge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxChargePower\", value: eff.charge_max_kw * W });\nif (eff.discharge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxDischargePower\", value: eff.discharge_max_kw * W });\nif (eff.export_min_kw != null && eff.export_min_kw > 0)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: -eff.export_min_kw * W });   // forced feed-in\nelse if (eff.import_max_kw != null)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: 0, cap_import_w: eff.import_max_kw * W }); // keep grid <= cap; a small loop node enforces the cap\nif (eff.target_soc != null)\n  writes.push({ setting: \"/Settings/CGwacs/BatteryLife/Schedule/Charge/0/Soc\", value: eff.target_soc, note: \"scheduled charging slot until valid_to\" });\n\nconst ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);\nconst live = [\"ABSORB\", \"SUPPORT\"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to\nconst plan = { writes, start_at: Math.max(Date.now(), Date.parse(sig.valid_from)) + ramp * 1000,\n               end_at: Date.parse(sig.valid_to), watchdog: live, hb_timeout_s: 120 };\n\nreturn [{ payload: plan }, ack(status, reason, eff), { payload: { end_at: plan.end_at, watchdog: live } }];",
+  "func": "// Node-RED function node: MERGE WITH OWNER LIMITS + APPLY PLAN\n// Wire: [verify.js out 1] -> this -> out 1: Victron writes, out 2: ack, out 3: schedule revert\n//\n// Owner limits come from the ESS settings on the GX (read once with victron nodes or set in flow context):\n//   flow.owner = { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }\n// Saved ESS values for revert (read before the first write):\n//   flow.saved = { AcPowerSetPoint, MaxChargePower, MaxDischargePower, MaxFeedInPower }\n//\n// Output 1 is a list of {setting, value} pairs for the Victron \"ESS control\" / settings nodes:\n//   /Settings/CGwacs/MaxFeedInPower, /Settings/CGwacs/MaxChargePower, /Settings/CGwacs/MaxDischargePower, /Settings/CGwacs/AcPowerSetPoint\n\nconst sig = msg.signal;\nconst o = flow.get(\"owner\");\nconst soc = flow.get(\"soc\") || 0;\nconst dev = flow.get(\"device_id\");\nconst ts = () => new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = (status, reason, applied) => ({ topic: `gridzilla/ack/${dev}`,\n  ackdoc: { v: 1, device: dev, path: flow.get(\"path\"), seq: sig.seq, status, reason, applied: applied || {},\n            soc, grid_kw: flow.get(\"grid_kw\") || 0, ts: ts() } });\n\nif (sig.mode === \"RELEASE\") {\n  flow.set(\"effective\", null);\n  return [{ payload: \"revert\" }, ack(\"applied\", null, {}), null];\n}\nif (o.opt_out) return [null, ack(\"refused\", \"opt_out\"), null];\n\nconst eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null,\n              charge_max_kw: null, discharge_max_kw: null, target_soc: null };\nlet status = \"applied\", reason = null;\n\nif (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;\nif (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, o.feedin_max_kw);  // never above the owner's feed-in limit\nif (sig.mode === \"STRETCH\") eff.export_max_kw = 0;                            // street is dark: lock export, no backfeed\nif (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);\nif (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);\nif (sig.target_soc != null) eff.target_soc = sig.target_soc;                 // only ever raises SoC\nif (sig.export_min_kw != null) {\n  const cap = Math.min(o.feedin_max_kw, o.max_discharge_kw);\n  if (soc <= o.min_soc)            { eff.export_min_kw = 0;   status = \"partial\"; reason = \"min_soc\"; }\n  else if (sig.export_min_kw > cap) { eff.export_min_kw = cap; status = \"partial\"; reason = \"owner_limit\"; }\n  else                              { eff.export_min_kw = sig.export_min_kw; }\n}\nflow.set(\"effective\", eff);\n\n// Translate the envelope into ESS writes. Everything is a limit; the grid setpoint is the one \"push\".\nconst W = 1000;\nconst writes = [];\nif (eff.export_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxFeedInPower\", value: eff.export_max_kw * W });\nif (eff.charge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxChargePower\", value: eff.charge_max_kw * W });\nif (eff.discharge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxDischargePower\", value: eff.discharge_max_kw * W });\nif (eff.export_min_kw != null && eff.export_min_kw > 0)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: -eff.export_min_kw * W });   // forced feed-in\nelse if (eff.import_max_kw != null)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: 0, cap_import_w: eff.import_max_kw * W }); // keep grid <= cap; a small loop node enforces the cap\nif (eff.target_soc != null)\n  writes.push({ setting: \"/Settings/CGwacs/BatteryLife/Schedule/Charge/0/Soc\", value: eff.target_soc, note: \"scheduled charging slot until valid_to\" });\n\nconst ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);\nconst live = [\"ABSORB\", \"SUPPORT\"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to\nconst maxEnd = Date.parse(sig.valid_from) + (sig.mode === \"STRETCH\" ? 4320 : 240) * 60 * 1000;   // protocol: 4 h max, STRETCH 3 days\nconst endAt = Math.min(Date.parse(sig.valid_to), maxEnd);                                        // device enforces it, not only the platform\nconst plan = { writes, start_at: Math.max(Date.now(), Date.parse(sig.valid_from)) + ramp * 1000,\n               end_at: endAt, watchdog: live, hb_timeout_s: 120 };\n\nreturn [{ payload: plan }, ack(status, reason, eff), { payload: { end_at: plan.end_at, watchdog: live } }];",
   "outputs": 3,
   "noerr": 0,
   "initialize": "",
@@ -298,17 +328,17 @@
   "libs": [],
   "x": 680,
   "y": 220,
-  "id": "1ef66006ab534d1a",
+  "id": "8d0de67d0f044e67",
   "z": "gz_tab",
   "wires": [
    [
-    "6e6be2ede7264b0b"
+    "43571ed728774ec6"
    ],
    [
-    "147f031dca5047a0"
+    "caf05fe170a64044"
    ],
    [
-    "e74035faf06e4c4c"
+    "f3aeafdb59e94e9e"
    ]
   ]
  },
@@ -324,15 +354,23 @@
    {
     "var": "crypto",
     "module": "crypto"
+   },
+   {
+    "var": "fs",
+    "module": "fs"
+   },
+   {
+    "var": "os",
+    "module": "os"
    }
   ],
   "x": 940,
   "y": 300,
-  "id": "147f031dca5047a0",
+  "id": "caf05fe170a64044",
   "z": "gz_tab",
   "wires": [
    [
-    "da83efef55b64b67"
+    "be0eb087875b4e08"
    ]
   ]
  },
@@ -342,10 +380,10 @@
   "topic": "",
   "qos": "1",
   "retain": "false",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "x": 1140,
   "y": 300,
-  "id": "da83efef55b64b67",
+  "id": "be0eb087875b4e08",
   "z": "gz_tab",
   "wires": []
  },
@@ -360,20 +398,20 @@
   "libs": [],
   "x": 940,
   "y": 200,
-  "id": "6e6be2ede7264b0b",
+  "id": "43571ed728774ec6",
   "z": "gz_tab",
   "wires": [
    [
-    "bd179ed6301e482a"
+    "3d3a93d05bac48ed"
    ],
    [
-    "6bd9e752a0d845eb"
+    "1f0355854a6841a4"
    ],
    [
-    "7a2408c4dfe84c56"
+    "722ebb6384f14d77"
    ],
    [
-    "dba754a148694902"
+    "ddce92238b074c02"
    ]
   ]
  },
@@ -395,10 +433,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 160,
-  "id": "bd179ed6301e482a",
+  "id": "3d3a93d05bac48ed",
   "z": "gz_tab",
   "wires": [],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-output-custom",
@@ -418,10 +456,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 200,
-  "id": "6bd9e752a0d845eb",
+  "id": "1f0355854a6841a4",
   "z": "gz_tab",
   "wires": [],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-output-custom",
@@ -441,10 +479,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 240,
-  "id": "7a2408c4dfe84c56",
+  "id": "722ebb6384f14d77",
   "z": "gz_tab",
   "wires": [],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-output-custom",
@@ -464,10 +502,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 280,
-  "id": "dba754a148694902",
+  "id": "ddce92238b074c02",
   "z": "gz_tab",
   "wires": [],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "function",
@@ -480,7 +518,7 @@
   "libs": [],
   "x": 940,
   "y": 380,
-  "id": "e74035faf06e4c4c",
+  "id": "f3aeafdb59e94e9e",
   "z": "gz_tab",
   "wires": []
  },
@@ -501,11 +539,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 480,
-  "id": "a42164d5441a4bc8",
+  "id": "947f9058b3ba47a7",
   "z": "gz_tab",
   "wires": [
    [
-    "4e47ae40490d43f8"
+    "0050a3ea9ffd4ae8"
    ]
   ]
  },
@@ -520,14 +558,14 @@
   "libs": [],
   "x": 420,
   "y": 480,
-  "id": "4e47ae40490d43f8",
+  "id": "0050a3ea9ffd4ae8",
   "z": "gz_tab",
   "wires": [
    [
-    "6e6be2ede7264b0b"
+    "43571ed728774ec6"
    ],
    [
-    "147f031dca5047a0"
+    "caf05fe170a64044"
    ]
   ]
  },
@@ -550,14 +588,14 @@
   "roundValues": "1",
   "x": 140,
   "y": 580,
-  "id": "db4700216b42490d",
+  "id": "7616e192dabc472d",
   "z": "gz_tab",
   "wires": [
    [
-    "f5fb38874e164c8c"
+    "40eaf8f4535e49cc"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "function",
@@ -570,7 +608,7 @@
   "libs": [],
   "x": 380,
   "y": 580,
-  "id": "f5fb38874e164c8c",
+  "id": "40eaf8f4535e49cc",
   "z": "gz_tab",
   "wires": []
  },
@@ -585,7 +623,7 @@
   "libs": [],
   "x": 380,
   "y": 640,
-  "id": "dce2b322cd4345a4",
+  "id": "20a0d9e5854c4f0d",
   "z": "gz_tab",
   "wires": []
  },
@@ -608,14 +646,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 640,
-  "id": "64a2847b61684035",
+  "id": "b982acab14304381",
   "z": "gz_tab",
   "wires": [
    [
-    "dce2b322cd4345a4"
+    "20a0d9e5854c4f0d"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -636,14 +674,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 680,
-  "id": "9e0c365221be4c57",
+  "id": "e8542db2530a42f8",
   "z": "gz_tab",
   "wires": [
    [
-    "dce2b322cd4345a4"
+    "20a0d9e5854c4f0d"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -664,14 +702,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 720,
-  "id": "d22741065e8a4661",
+  "id": "9f3967a3f9474126",
   "z": "gz_tab",
   "wires": [
    [
-    "dce2b322cd4345a4"
+    "20a0d9e5854c4f0d"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "function",
@@ -684,7 +722,7 @@
   "libs": [],
   "x": 420,
   "y": 800,
-  "id": "44f47dcdd98648f8",
+  "id": "a7d04e6497d2410c",
   "z": "gz_tab",
   "wires": []
  },
@@ -707,14 +745,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 780,
-  "id": "920f0efd2b604129",
+  "id": "e5ddac30b2644d22",
   "z": "gz_tab",
   "wires": [
    [
-    "44f47dcdd98648f8"
+    "a7d04e6497d2410c"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -735,14 +773,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 820,
-  "id": "ad1a4da5571c4fcb",
+  "id": "74b9094d41c8484c",
   "z": "gz_tab",
   "wires": [
    [
-    "44f47dcdd98648f8"
+    "a7d04e6497d2410c"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -763,14 +801,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 860,
-  "id": "609e81518ad14172",
+  "id": "ec89b350b3e14ade",
   "z": "gz_tab",
   "wires": [
    [
-    "44f47dcdd98648f8"
+    "a7d04e6497d2410c"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -791,14 +829,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 900,
-  "id": "06781618c7eb4704",
+  "id": "d53c021deed14197",
   "z": "gz_tab",
   "wires": [
    [
-    "44f47dcdd98648f8"
+    "a7d04e6497d2410c"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "victron-input-custom",
@@ -819,14 +857,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 960,
-  "id": "2cb28799f276460f",
+  "id": "57b76748435642ba",
   "z": "gz_tab",
   "wires": [
    [
-    "af1cd24de45a4269"
+    "a05b305dd9d8446f"
    ]
   ],
-  "client": "64ae84b7578f45ae"
+  "client": "d8ea5329ed1b4079"
  },
  {
   "type": "function",
@@ -839,7 +877,7 @@
   "libs": [],
   "x": 420,
   "y": 960,
-  "id": "af1cd24de45a4269",
+  "id": "a05b305dd9d8446f",
   "z": "gz_tab",
   "wires": []
  },
@@ -860,11 +898,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 1040,
-  "id": "4148aa42f1474fea",
+  "id": "51aa6b60483d4164",
   "z": "gz_tab",
   "wires": [
    [
-    "0301a5f040bf47ea"
+    "4b51a6d1d73e4916"
    ]
   ]
  },
@@ -879,11 +917,11 @@
   "libs": [],
   "x": 380,
   "y": 1040,
-  "id": "0301a5f040bf47ea",
+  "id": "4b51a6d1d73e4916",
   "z": "gz_tab",
   "wires": [
    [
-    "c7e15846fe4641bb"
+    "9f08c7cf3aa745d6"
    ]
   ]
  },
@@ -893,10 +931,10 @@
   "topic": "",
   "qos": "0",
   "retain": "false",
-  "broker": "9150654449c84eae",
+  "broker": "f9c0164c6810407e",
   "x": 600,
   "y": 1040,
-  "id": "c7e15846fe4641bb",
+  "id": "9f08c7cf3aa745d6",
   "z": "gz_tab",
   "wires": []
  }

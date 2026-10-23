@@ -8,10 +8,10 @@ The real device side. Same logic as `sim-agent.js`, split into function nodes yo
 [inject: startup] -> [http request GET /api/pubkey] -> [function: pin key to flow.platform_pub]
                   -> [http request POST /api/register {device, pubkey_pem}] -> [function: store path]
 
-[mqtt in gridzilla/sig/region:sk]   \
-[mqtt in gridzilla/sig/sub:martin]   \
-[mqtt in gridzilla/sig/feeder:turiec-3] -> [function verify.js] -> out1 -> [function merge.js] -> out1 -> [function: apply plan] -> [victron ESS settings nodes]
-[mqtt in gridzilla/sig/tf:blatnica-1] /                         -> out2 -> [function: sign ack] -> [mqtt out]
+[mqtt in gridzilla/sig/region:at]   \
+[mqtt in gridzilla/sig/sub:wien-sued]   \
+[mqtt in gridzilla/sig/feeder:liesing-3] -> [function verify.js] -> out1 -> [function merge.js] -> out1 -> [function: apply plan] -> [victron ESS settings nodes]
+[mqtt in gridzilla/sig/tf:atzgersdorf-1] /                         -> out2 -> [function: sign ack] -> [mqtt out]
 [mqtt in gridzilla/hb]              /                            -> out3 -> (heartbeat ok)
                                                                                       -> out2 -> [function: sign ack] -> [mqtt out]
                                                                                       -> out3 -> [function: arm revert timer + watchdog]

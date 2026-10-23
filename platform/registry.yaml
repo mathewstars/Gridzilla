@@ -4,43 +4,43 @@
 # represents: how many real houses one simulated device stands for on the board (penetration), default 1.
 
 tree:
-  region:sk:        { parent: null }
-  sub:martin:       { parent: region:sk,       rating_kw: 40000 }
-  feeder:turiec-3:  { parent: sub:martin,      rating_kw: 4000 }
-  tf:blatnica-1:    { parent: feeder:turiec-3, rating_kw: 250, reverse_kw: 250, other_houses: 45 }
-  tf:mosovce-2:     { parent: feeder:turiec-3, rating_kw: 400, reverse_kw: 400, other_houses: 70 }
+  region:at:        { parent: null }
+  sub:wien-sued:       { parent: region:at,       rating_kw: 40000 }
+  feeder:liesing-3:  { parent: sub:wien-sued,      rating_kw: 4000 }
+  tf:atzgersdorf-1:    { parent: feeder:liesing-3, rating_kw: 250, reverse_kw: 250, other_houses: 45 }
+  tf:mauer-2:     { parent: feeder:liesing-3, rating_kw: 400, reverse_kw: 400, other_houses: 70 }
 
 devices:
-  - id: vic-blatnica-07      # the real Victron plant on VRM
-    tf: tf:blatnica-1
+  - id: vic-atzgersdorf-07      # the real Victron plant on VRM
+    tf: tf:atzgersdorf-1
     vendor: victron
     kw: 10
     kwh: 15
     feedin_max_kw: 10
     represents: 10
-  - id: sim-blatnica-12
-    tf: tf:blatnica-1
+  - id: sim-atzgersdorf-12
+    tf: tf:atzgersdorf-1
     vendor: sim
     kw: 5
     kwh: 15
     feedin_max_kw: 5
     represents: 10
-  - id: sim-blatnica-19
-    tf: tf:blatnica-1
+  - id: sim-atzgersdorf-19
+    tf: tf:atzgersdorf-1
     vendor: sim
     kw: 8
     kwh: 20
     feedin_max_kw: 8
     represents: 10
-  - id: sim-mosovce-03
-    tf: tf:mosovce-2
+  - id: sim-mauer-03
+    tf: tf:mauer-2
     vendor: goodwe
     kw: 10
     kwh: 20
     feedin_max_kw: 10
     represents: 10
-  - id: sim-mosovce-08
-    tf: tf:mosovce-2
+  - id: sim-mauer-08
+    tf: tf:mauer-2
     vendor: sim
     kw: 5
     kwh: 10

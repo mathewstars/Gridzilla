@@ -457,15 +457,15 @@ li { margin-bottom: 6px; }
 </figure>
 
 <h3>Segments are a tree, not a transformer</h3>
-<p>Two villages on the same 22 kV feeder, say Blatnica and Mošovce in Turiec, each have their own street transformer. If Blatnica's batteries feed in, the power goes up through Blatnica's transformer in reverse, along the 22 kV line, and down into Mošovce. That relieves the feeder and the 110/22 kV substation, which in rural Slovakia are the usual bottleneck. It does not relieve Mošovce's own transformer, and Blatnica's transformer becomes the new limit in reverse.</p>
+<p>Two villages on the same 22 kV feeder, say Atzgersdorf and Mauer in Liesing, each have their own street transformer. If Atzgersdorf's batteries feed in, the power goes up through Atzgersdorf's transformer in reverse, along the 22 kV line, and down into Mauer. That relieves the feeder and the 110/22 kV substation, which on the edge of Vienna are the usual bottleneck. It does not relieve Mauer's own transformer, and Atzgersdorf's transformer becomes the new limit in reverse.</p>
 <div class="tablewrap">
 <table>
 <thead><tr><th>Constraint</th><th>Who can help</th><th>Signal target</th></tr></thead>
 <tbody>
-<tr><td>Street transformer in Mošovce</td><td>Only batteries behind that transformer</td><td><code>tf:mosovce-2</code></td></tr>
-<tr><td>22 kV feeder from the substation</td><td>Every battery on that feeder, in every village</td><td><code>feeder:turiec-3</code></td></tr>
-<tr><td>110/22 kV substation, or the region above it</td><td>Every battery under the substation</td><td><code>sub:martin</code></td></tr>
-<tr><td>National generation deficit</td><td>Everyone</td><td><code>region:sk</code></td></tr>
+<tr><td>Street transformer in Mauer</td><td>Only batteries behind that transformer</td><td><code>tf:mauer-2</code></td></tr>
+<tr><td>22 kV feeder from the substation</td><td>Every battery on that feeder, in every village</td><td><code>feeder:liesing-3</code></td></tr>
+<tr><td>110/22 kV substation, or the region above it</td><td>Every battery under the substation</td><td><code>sub:wien-sued</code></td></tr>
+<tr><td>National generation deficit</td><td>Everyone</td><td><code>region:at</code></td></tr>
 <tr><td>22 kV line between the villages is down</td><td>Nobody, each village is on its own</td><td>STRETCH per village</td></tr>
 </tbody>
 </table>
@@ -632,11 +632,11 @@ li { margin-bottom: 6px; }
 </div>
 
 <h2>7. As built: the Victron to DSO control plane</h2>
-<p>This is the stack that ran on the evening of 23 October, with a real Cerbo GX in Blatnica acknowledging a signed signal from the DSO platform. Nothing in it needs port forwarding, a vendor cloud, or a change to the inverter.</p>
+<p>This is the stack that ran on the evening of 23 October, with a real Cerbo GX at the test site acknowledging a signed signal from the DSO platform. Nothing in it needs port forwarding, a vendor cloud, or a change to the inverter.</p>
 
 <figure>
 <div class="frame">
-<svg viewBox="0 0 1120 560" role="img" aria-label="As-built control plane. Operator laptops reach the DSO platform on a Linux box over Tailscale. The platform on the Blatnica LAN runs Mosquitto, the Gridzilla service and simulated houses. The Cerbo GX on the same LAN runs the Node-RED agent, which subscribes to signals, verifies them, merges with owner limits and writes ESS settings on D-Bus; it sends signed acks and telemetry back. The advisor goes from the platform over Tailscale to an LLM gateway in front of DeepSeek. VRM is used only to watch the result.">
+<svg viewBox="0 0 1120 560" role="img" aria-label="As-built control plane. Operator laptops reach the DSO platform on a Linux box over Tailscale. The platform on the site LAN runs Mosquitto, the Gridzilla service and simulated houses. The Cerbo GX on the same LAN runs the Node-RED agent, which subscribes to signals, verifies them, merges with owner limits and writes ESS settings on D-Bus; it sends signed acks and telemetry back. The advisor goes from the platform over Tailscale to an LLM gateway in front of DeepSeek. VRM is used only to watch the result.">
   <defs>
     <marker id="arr7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
     <marker id="arr7A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
@@ -650,7 +650,7 @@ li { margin-bottom: 6px; }
   <rect x="296" y="16" width="800" height="528" rx="6" fill="var(--home)" opacity=".5"/>
   <g font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7" letter-spacing=".06em">
     <text x="28" y="36">OPERATORS · TAILSCALE</text>
-    <text x="308" y="36">BLATNICA SITE LAN 192.168.90.0/23</text>
+    <text x="308" y="36">SITE LAN 192.168.90.0/23</text>
   </g>
   <!-- operators -->
   <g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="36" y="60" width="200" height="70" rx="4" fill="var(--surface)"/></g>
@@ -730,13 +730,13 @@ li { margin-bottom: 6px; }
 <table class="seq">
 <thead><tr><th>Step</th><th>Where</th><th>What happens</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>Board</td><td>Operator composes SUPPORT for tf:blatnica-1, or loads the advisor's proposal. Guard checks mode, fields, window, rate, reverse rating.</td></tr>
-<tr><td>2</td><td>Platform</td><td>Sequence number incremented, document serialised, signed with the platform's Ed25519 key, published to gridzilla/sig/tf:blatnica-1, QoS 1.</td></tr>
+<tr><td>1</td><td>Board</td><td>Operator composes SUPPORT for tf:atzgersdorf-1, or loads the advisor's proposal. Guard checks mode, fields, window, rate, reverse rating.</td></tr>
+<tr><td>2</td><td>Platform</td><td>Sequence number incremented, document serialised, signed with the platform's Ed25519 key, published to gridzilla/sig/tf:atzgersdorf-1, QoS 1.</td></tr>
 <tr><td>3</td><td>GX, mqtt in</td><td>The flow is subscribed to every node on its path, so it receives signals for its transformer, its feeder, its substation and the region.</td></tr>
 <tr><td>4</td><td>GX, verify</td><td>Signature over the envelope bytes with the pinned platform key. Then seq greater than last, issued within 120 s, window not expired, segment on my path, cohort match.</td></tr>
 <tr><td>5</td><td>GX, merge</td><td>Owner limits win: minimum SoC from ESS, charge and discharge caps, feed-in limit. Partial or refused is a valid outcome with a reason.</td></tr>
 <tr><td>6</td><td>GX, apply</td><td>Current ESS values saved once. After a random ramp delay, the Victron output nodes write the limits to com.victronenergy.settings.</td></tr>
-<tr><td>7</td><td>GX, ack</td><td>Ack document with status, applied limits, SoC and grid kW, signed with the device key, published to gridzilla/ack/vic-blatnica-07.</td></tr>
+<tr><td>7</td><td>GX, ack</td><td>Ack document with status, applied limits, SoC and grid kW, signed with the device key, published to gridzilla/ack/vic-atzgersdorf-07.</td></tr>
 <tr><td>8</td><td>Platform</td><td>Ack signature verified against the registered device key, logged, shown on the board and counted in the node aggregates.</td></tr>
 <tr><td>9</td><td>GX, watchdog</td><td>Every 5 s: at window end, or after 120 s without a valid heartbeat for live modes, the saved ESS values are written back and a reverted ack is sent.</td></tr>
 </tbody>

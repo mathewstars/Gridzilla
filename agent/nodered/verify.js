@@ -5,8 +5,8 @@
 //
 // Context expected (set once at registration / in a startup inject):
 //   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)
-//   flow.device_id      : e.g. "vic-blatnica-07"
-//   flow.path           : ["region:sk","sub:martin","feeder:turiec-3","tf:blatnica-1"]
+//   flow.device_id      : e.g. "vic-atzgersdorf-07"
+//   flow.path           : ["region:at","sub:wien-sued","feeder:liesing-3","tf:atzgersdorf-1"]
 //   flow.last_seq       : last accepted signal seq (persisted context store recommended)
 //
 // Outputs: 1 = verified signal (msg.signal), 2 = ack to publish (msg.topic/msg.payload), 3 = heartbeat ok (msg.hb = true)
@@ -29,7 +29,12 @@ if (!ok) { node.warn("bad_sig"); return [null, ack(null, "refused", "bad_sig"), 
 
 const doc = JSON.parse(env.payload);
 
-if (msg.topic === "gridzilla/hb") { flow.set("last_hb", Date.now()); return [null, null, { hb: true }]; }
+if (msg.topic === "gridzilla/hb") {
+  const hbAge = (Date.now() - Date.parse(doc.ts)) / 1000;
+  if (!(doc.seq > (flow.get("last_hb_seq") || 0)) || hbAge > 90 || hbAge < -30) return null;   // replayed or stale heartbeat: ignore
+  flow.set("last_hb_seq", doc.seq); flow.set("last_hb", Date.now());
+  return [null, null, { hb: true }];
+}
 
 if (!(flow.get("path") || []).includes(doc.segment)) return null;        // not for me
 if (doc.cohort && (parseInt(crypto.createHash("sha256").update(flow.get("device_id")).digest("hex").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort

@@ -13,7 +13,7 @@ MQTT, any broker. The home side only ever **subscribes** and **publishes**; it n
 | `gridzilla/ack/<device>` | device → platform | signed envelope with an **ack** | 1 |
 | `gridzilla/state/<device>` | device → platform | plain **telemetry** (soc, grid_kw), every 10 s | 0 |
 
-`<segment>` is a node id from the grid tree, e.g. `feeder:turiec-3`. A device subscribes to `gridzilla/sig/<node>` for **every node on its path**, so a feeder-level signal reaches every house under that feeder.
+`<segment>` is a node id from the grid tree, e.g. `feeder:liesing-3`. A device subscribes to `gridzilla/sig/<node>` for **every node on its path**, so a feeder-level signal reaches every house under that feeder.
 
 Nothing is retained. Freshness is enforced by the receiver, not by the broker.
 
@@ -28,7 +28,8 @@ Every signed message on the wire is:
 The receiver verifies `sig` over the exact bytes of `payload` **before** parsing it. No canonicalisation, no ambiguity: the bytes that were signed are the bytes that are verified.
 
 - Platform key: Ed25519, public key in `platform/keys/platform.pub.pem`, pinned on every device.
-- Device key: Ed25519, generated on the device at first start, public key sent once at registration.
+- Device key: Ed25519, generated on the device at first start and **kept on disk**, public key sent once at registration.
+- The pinned platform key and the last accepted `seq` are also kept on disk, so a restart neither reopens trust-on-first-use nor the replay window.
 - `kid` names the key, so keys can rotate.
 
 ## Segment tree
@@ -36,7 +37,7 @@ The receiver verifies `sig` over the exact bytes of `payload` **before** parsing
 Nodes are `kind:name`. Kinds, top down: `region`, `sub` (110/22 kV substation), `feeder` (22 kV line), `tf` (street transformer). A device's `path` lists the nodes above it, root first:
 
 ```json
-["region:sk", "sub:martin", "feeder:turiec-3", "tf:blatnica-1"]
+["region:at", "sub:wien-sued", "feeder:liesing-3", "tf:atzgersdorf-1"]
 ```
 
 A device accepts a signal only if `signal.segment` is in its `path` and, when `cohort` is set, its id falls in that cohort.
@@ -51,7 +52,7 @@ See `signal.schema.json`. Fields:
 | `issued_at` | ISO 8601 UTC | A device rejects if older than 120 s or in the future by more than 30 s. |
 | `segment` | string | Target node. |
 | `mode` | enum | `PREPARE`, `ABSORB`, `SUPPORT`, `STRETCH`, `RECOVER`, `RELEASE` |
-| `valid_from`, `valid_to` | ISO 8601 UTC | Window. Max 4 h except `STRETCH`. Device reverts at `valid_to`. |
+| `valid_from`, `valid_to` | ISO 8601 UTC | Window. Max 4 h except `STRETCH` (max 3 days). **The device enforces the bound itself**: it reverts at `valid_to` or at `valid_from` + 4 h, whichever is earlier, whatever the platform sent. |
 | `import_max_kw` | number or null | Ceiling on import at the connection point. |
 | `export_max_kw` | number or null | Ceiling on export. |
 | `export_min_kw` | number or null | Floor on export, **forced feed-in**. The only field that spends the owner's energy for the street. |
@@ -80,7 +81,7 @@ Which fields each mode may carry (the policy guard refuses anything else):
 {"seq": 9001, "ts": "2026-10-24T17:00:30Z"}
 ```
 
-Every 30 s. A device in `ABSORB` or `SUPPORT` reverts to owner mode after 120 s without a valid heartbeat. `PREPARE`, `STRETCH` and `RECOVER` are schedules: they run to `valid_to` without heartbeats, because they are owner-favourable and the link is expected to die in exactly those situations.
+Every 30 s, with a monotonic `seq` and a timestamp. A device accepts a heartbeat only if `seq` is greater than the last one it saw and `ts` is within 90 s, so a captured heartbeat cannot be replayed to keep a device in a live mode. A device in `ABSORB` or `SUPPORT` reverts to owner mode after 120 s without a valid heartbeat. `PREPARE`, `STRETCH` and `RECOVER` are schedules: they run to `valid_to` without heartbeats, because they are owner-favourable and the link is expected to die in exactly those situations.
 
 ## Ack
 

@@ -86,7 +86,7 @@
 <body>
 <header>
   <h1>GRIDZILLA</h1>
-  <span class="sub">DSO control · Turiec feeder 3</span>
+  <span class="sub">DSO control · Liesing feeder 3</span>
   <span class="pill" id="seqpill">seq –</span>
   <span class="pill ok" id="hbpill">heartbeat on</span>
   <span class="pill" id="llmpill">advisor off</span>
@@ -125,14 +125,14 @@
       <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
     </div>
     <label>Note to owners</label>
-    <input id="note" placeholder="Transformer Blatnica-1 near limit 17:00–19:00">
+    <input id="note" placeholder="Transformer Atzgersdorf-1 near limit 17:00–19:00">
     <button class="primary" onclick="send()">Sign and publish</button>
     <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
     <button onclick="demo('heartbeat/resume')">Resume</button>
     <button onclick="replay()">Replay last</button>
     <div class="err" id="err"></div>
     <h2 style="margin-top:14px">Advisor <span class="hint">proposes · guard and operator decide</span></h2>
-    <textarea id="situation" placeholder="Feeder Turiec-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
+    <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
     <button onclick="advise()">Propose a signal</button>
     <div class="prop" id="prop"></div>
   </section>
@@ -178,7 +178,7 @@ const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max
 const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc","max_soc_by"];
 const SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181"];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-let mode = "SUPPORT", S = null, H = null, selNode = "tf:blatnica-1", lastSeq = null, devOrder = [];
+let mode = "SUPPORT", S = null, H = null, selNode = "tf:atzgersdorf-1", lastSeq = null, devOrder = [];
 
 // ---------- compose
 function setMode(m) {
@@ -311,7 +311,7 @@ function drawSchem() {
 
 // ---------- panels
 function drawKpis() {
-  const root = S.aggregates["region:sk"];
+  const root = S.aggregates["region:at"];
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
   const worst = Math.max(...tfs.map(n => S.aggregates[n].load_pct || 0));
   const over = tfs.filter(n => (S.aggregates[n].load_pct || 0) >= 100).length;

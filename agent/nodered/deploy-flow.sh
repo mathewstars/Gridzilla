@@ -1,6 +1,6 @@
 #!/bin/sh
 # Push gridzilla-flow.json to a Node-RED on Venus OS through the admin API, as a new flow tab (existing tabs untouched).
-#   NR_URL=https://192.168.90.147:1881 NR_USER=admin NR_PASS=... ./deploy-flow.sh gridzilla-flow.json
+#   NR_URL=https://192.168.90.147:1881 NR_USER=admin NR_PASS=... [NR_FLOW_ID=<existing tab id>] ./deploy-flow.sh gridzilla-flow.json
 set -e
 FLOW="${1:-gridzilla-flow.json}"
 NR_URL="${NR_URL:-https://192.168.90.147:1881}"
@@ -19,5 +19,10 @@ body = {"id": tab["id"], "label": tab["label"], "info": tab.get("info", ""),
         "nodes": [n for n in nodes if n["type"] != "tab" and n not in configs], "configs": configs}
 json.dump(body, sys.stdout)
 EOF
-code=$(curl -k -s -o /tmp/gz-flow-resp.json -w "%{http_code}" -X POST "$NR_URL/flow" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @/tmp/gz-flow-body.json)
+if [ -n "$NR_FLOW_ID" ]; then   # replace an existing tab in place
+  python3 -c "import json,sys; b=json.load(open('/tmp/gz-flow-body.json')); b['id']=sys.argv[1]; json.dump(b, open('/tmp/gz-flow-body.json','w'))" "$NR_FLOW_ID"
+  code=$(curl -k -s -o /tmp/gz-flow-resp.json -w "%{http_code}" -X PUT "$NR_URL/flow/$NR_FLOW_ID" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @/tmp/gz-flow-body.json)
+else
+  code=$(curl -k -s -o /tmp/gz-flow-resp.json -w "%{http_code}" -X POST "$NR_URL/flow" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @/tmp/gz-flow-body.json)
+fi
 echo "deploy: HTTP $code"; cat /tmp/gz-flow-resp.json; echo

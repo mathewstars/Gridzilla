@@ -1,6 +1,6 @@
 [
   {
-    "id": "sim-blatnica-12",
+    "id": "sim-atzgersdorf-12",
     "kw": 5,
     "kwh": 15,
     "feedin_max_kw": 5,
@@ -24,7 +24,7 @@
     }
   },
   {
-    "id": "sim-blatnica-19",
+    "id": "sim-atzgersdorf-19",
     "kw": 8,
     "kwh": 20,
     "feedin_max_kw": 8,
@@ -41,7 +41,7 @@
     }
   },
   {
-    "id": "sim-mosovce-03",
+    "id": "sim-mauer-03",
     "kw": 10,
     "kwh": 20,
     "feedin_max_kw": 10,
@@ -65,7 +65,7 @@
     }
   },
   {
-    "id": "sim-mosovce-08",
+    "id": "sim-mauer-08",
     "kw": 5,
     "kwh": 10,
     "feedin_max_kw": 5,
