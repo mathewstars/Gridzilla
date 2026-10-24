@@ -833,13 +833,21 @@ def pubkey():
 def get_state():
     prune_expired()
     with _lock:
+        ap = autopilot_public()
+        hist = ap.get("history") or []
+        ap["history"] = [h if i < 4 else {k: v for k, v in h.items() if k != "envelope"} for i, h in enumerate(hist[:25])]   # curves only for the latest few
         return {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
-                "devices": {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k),
-                                "registered": k in state["pubkeys"]} for k, v in DEVICES.items()},
                 "households": households(),
-                "active": state["active"], "log": list(LOG), "hb_paused": HB_PAUSED.is_set(),
-                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": autopilot_public(), "scenario": SCENARIO,
-                "forecast": {n: forecast(n) for n in TREE if not n.startswith("region")}}
+                "active": state["active"], "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
+                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
+                "forecast": {n: forecast(n) for n in TREE if n.startswith("tf:")}}
+
+
+@app.get("/api/devices")
+def get_devices():
+    """raw per-device view, for debugging; the board uses households"""
+    with _lock:
+        return {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k), "registered": k in state["pubkeys"]} for k, v in DEVICES.items()}
 
 
 def households():
@@ -848,7 +856,7 @@ def households():
     out = {}
     for d in DEVICES.values():
         hid = d.get("household") or d["id"]
-        h = out.setdefault(hid, {"id": hid, "tf": d["tf"], "path": d["path"], "devices": [], "real": not d["id"].startswith("sim-"),
+        h = out.setdefault(hid, {"id": hid, "tf": d["tf"], "devices": [], "real": not d["id"].startswith("sim-"),
                                  "kw": 0, "kwh": 0, "represents": d.get("represents", 1), "telemetry": None, "ack": None, "registered": True})
         h["devices"].append(d["id"]); h["kw"] += d.get("kw", 0); h["kwh"] += d.get("kwh", 0)
         h["registered"] = h["registered"] and d["id"] in state["pubkeys"]
@@ -878,10 +886,16 @@ def households():
 
 
 @app.get("/api/history")
-def history():
+def history(nodes: str = "", devices: str = "", limit: int = 120):
+    """?nodes=a,b&devices=x,y -> only those series, downsampled to at most `limit` points each"""
+    def thin(seq):
+        seq = list(seq); step = max(1, len(seq) // max(1, limit)); out = seq[::step]
+        if seq and out[-1] is not seq[-1]: out.append(seq[-1])
+        return out
+    want_n = [n for n in nodes.split(",") if n]; want_d = [d for d in devices.split(",") if d]
     with _lock:
-        return {"nodes": {n: list(v) for n, v in NODE_HIST.items()}, "devices": {d: list(v) for d, v in DEV_HIST.items()}}
-
+        return {"nodes": {n: thin(NODE_HIST[n]) for n in want_n if n in NODE_HIST},
+                "devices": {d: thin(DEV_HIST[d]) for d in want_d if d in DEV_HIST}}
 
 @app.post("/api/register")
 def register(r: Register):

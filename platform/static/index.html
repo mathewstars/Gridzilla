@@ -711,16 +711,28 @@ function drawStory() {
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
 function drawAll() { if (!S) return; drawHints(); drawStory(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 
+let tick = 0;
+function wanted() {
+  const nodes = new Set([selNode, ...pathOf(selNode)]); try { nodes.add(storyNode()); } catch (e) {}
+  const devs = new Set(["real-powerplant-blatnica"]);
+  devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12).forEach(d => (HH[d].devices || [d]).forEach(x => devs.add(x)));
+  return { nodes: [...nodes].join(","), devices: [...devs].join(",") };
+}
 async function refresh() {
-  try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }
-  devOrder = Object.keys(S.households || S.devices); HH = S.households || S.devices;
-  const sel = document.getElementById("segment"); if (sel && !sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; }
+  try { S = await fetch("/api/state").then(r => r.json()); } catch { return; }
+  devOrder = Object.keys(S.households); HH = S.households;
+  for (const h of Object.values(HH)) h.path = pathOf(h.tf);                       // derived here instead of shipped 272 times
+  S.devices = {}; for (const h of Object.values(HH)) for (const id of (h.devices || [h.id])) S.devices[id] = h;   // older code paths index by device id
+  if (!H || tick % 2 === 0) {                                                       // history every second tick, only what is on screen
+    const q = wanted();
+    try { H = await fetch(`/api/history?nodes=${encodeURIComponent(q.nodes)}&devices=${encodeURIComponent(q.devices)}&limit=120`).then(r => r.json()); } catch { H = H || { nodes: {}, devices: {} }; }
+  }
+  tick++;
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
-  const lp = document.getElementById("llmpill"), ap = S.autopilot || {};
-  lp.textContent = !S.llm ? "DeepSeek off" : ap.mode === "auto" ? "DeepSeek · autonomous" : ap.mode === "propose" ? "DeepSeek · operator approves" : "DeepSeek · paused";
-  lp.className = "pill " + (S.llm && ap.mode === "auto" ? "ok" : "");
+  document.getElementById("llmpill").textContent = S.autopilot ? `DeepSeek · ${S.autopilot.mode === "auto" ? "autonomous" : S.autopilot.mode === "propose" ? "operator approves" : "off"}` : (S.llm ? "advisor: DeepSeek" : "advisor off");
+  const sel = document.getElementById("segment"); if (sel && !sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; }
   drawAll();
 }
 refresh(); setInterval(refresh, 3000);
