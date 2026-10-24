@@ -197,6 +197,19 @@ export interface ForecastPoint {
   total_kw: number;
 }
 
+/** fm/gz-planner (optional): the day-ahead plan per transformer, e.g. pre-charge before a cold evening. */
+export interface PlanEntry {
+  window_from_h: number;
+  window_to_h: number;
+  peak_pct: number;
+  need_kwh: number;
+  available_kwh: number;
+  action: "PREPARE" | "ABSORB" | "none";
+  target_soc: number | null;
+  by_h: number | null;
+  summary?: string;
+}
+
 export interface State {
   now: string;
   sim_hour: number;
@@ -213,6 +226,7 @@ export interface State {
   autopilot: Autopilot;
   scenario: { name: string; load_x: number; pv_x: number };
   forecast: Record<string, ForecastPoint[]>;
+  plan?: Record<string, PlanEntry>;
 }
 
 export interface NodePoint {
