@@ -452,7 +452,7 @@ Rules: signals are limits at the grid connection point, never setpoints. Pick th
 a street transformer only helps itself; a feeder or substation constraint can be served by every battery under it.
 Use the forecast: act BEFORE the transformer reaches its rating, size duration_min to cover the forecast congestion.
 All times (duration_min, start_in_min) are in grid minutes; the grid clock is sim_hour.
-Policy: window max 240 grid minutes (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per grid day.
+Policy: a signal may run up to 24 grid hours (1440 min) and be renewed without limit, so continuous control is normal; STRETCH up to 4320, export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per grid day.
 Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}
 When the grid state lists allowed_segments, the segment MUST be one of them: the target covers every hot transformer at once,
 a listed transformer alone only helps that street. Prefer the target unless you have a reason.

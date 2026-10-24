@@ -95,7 +95,7 @@ real = [
 registry = {
     "tree": tree,
     "devices": real + devices,
-    "policy": {"max_window_min": 240, "max_stretch_window_min": 4320, "max_support_per_node_per_day": 2, "max_export_min_kw_per_device": 5,
+    "policy": {"max_window_min": 1440, "max_stretch_window_min": 4320, "max_support_per_node_per_day": 96, "max_export_min_kw_per_device": 5,
                "max_import_cap_floor_kw": 2, "heartbeat_s": 30, "ramp_s": [20, 90],
                "autopilot_interval_s": 15, "autopilot_trigger_pct": 85, "autopilot_release_pct": 60, "autopilot_cooldown_min": 10, "autopilot_max_per_hour": 6},
 }

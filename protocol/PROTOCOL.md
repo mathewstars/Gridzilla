@@ -54,7 +54,7 @@ See `signal.schema.json`. Fields:
 | `issued_at` | ISO 8601 UTC | A device rejects if older than 120 s or in the future by more than 30 s. |
 | `segment` | string | Target node. |
 | `mode` | enum | `PREPARE`, `ABSORB`, `SUPPORT`, `STRETCH`, `RECOVER`, `RELEASE` |
-| `valid_from`, `valid_to` | ISO 8601 UTC | Window. Max 4 h except `STRETCH` (max 3 days). **The device enforces the bound itself**: it reverts at `valid_to` or at `valid_from` + 4 h, whichever is earlier, whatever the platform sent. |
+| `valid_from`, `valid_to` | ISO 8601 UTC | Window, up to 24 h per signal and renewable without limit, so a DSO can hold a household under a dynamic envelope continuously; `STRETCH` up to 3 days. **The device enforces the bound itself**: it reverts at `valid_to` or at `valid_from` + 24 h, whichever is earlier, whatever the platform sent. The real time safety is the heartbeat: live modes revert 120 s after the platform goes silent. |
 | `import_max_kw` | number or null | Ceiling on import at the connection point. |
 | `export_max_kw` | number or null | Ceiling on export. |
 | `export_min_kw` | number or null | Floor on export, **forced feed-in**. The only field that spends the owner's energy for the street. |

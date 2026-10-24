@@ -57,7 +57,7 @@ if (eff.target_soc != null)                                               // PRE
 
 const ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);
 const live = ["ABSORB", "SUPPORT"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to
-const maxEnd = Date.parse(sig.valid_from) + (sig.mode === "STRETCH" ? 4320 : 240) * 60 * 1000;   // protocol: 4 h max, STRETCH 3 days
+const maxEnd = Date.parse(sig.valid_from) + (sig.mode === "STRETCH" ? 4320 : 1440) * 60 * 1000;   // protocol: 24 h max per signal, renewable; STRETCH 3 days
 const endAt = Math.min(Date.parse(sig.valid_to), maxEnd);                                        // device enforces it, not only the platform
 const plan = { seq: sig.seq, writes, start_at: Math.min(Math.max(Date.now(), Date.parse(sig.valid_from)) + ramp * 1000, endAt - 1000),
                end_at: endAt, watchdog: live, hb_timeout_s: 120 };   // the ramp never pushes the writes past the window

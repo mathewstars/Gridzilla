@@ -173,7 +173,7 @@ def on_signal(env):
         with lock:
             if saved is None: saved = telem.get("dhw_set_c") or 50
             effective = {"mode": mode}; sig_active = sig["seq"]
-            end_at = min(vt, vf + (4320 if mode == "STRETCH" else 240) * 60); watchdog = mode in ("ABSORB", "SUPPORT"); last_hb = time.time()
+            end_at = min(vt, vf + (4320 if mode == "STRETCH" else 1440) * 60); watchdog = mode in ("ABSORB", "SUPPORT"); last_hb = time.time()
             apply_dhw(target, one_time)
         ack(sig["seq"], "applied", None, read())
     threading.Thread(target=go, daemon=True).start()

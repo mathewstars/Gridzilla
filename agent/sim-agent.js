@@ -271,7 +271,7 @@ function onSignal(h, env, platformPub) {
     h.signal = sig; h.effective = eff; h.lastHb = Date.now();
     ack(h, sig.seq, status, reason);
     const live = ["ABSORB", "SUPPORT"].includes(sig.mode);                     // these need heartbeats; schedules do not
-    const maxEnd = Date.parse(sig.valid_from) + (sig.mode === "STRETCH" ? 4320 : 240) * 60 * 1000;   // protocol window bound, enforced on the device
+    const maxEnd = Date.parse(sig.valid_from) + (sig.mode === "STRETCH" ? 4320 : 1440) * 60 * 1000;   // protocol window bound (24 h, renewable), enforced on the device
     const endIn = Math.min(Date.parse(sig.valid_to), maxEnd) - Date.now();
     setTimeout(() => { if (h.signal === sig) revert(h, "window_end"); }, endIn);
     if (live) {
