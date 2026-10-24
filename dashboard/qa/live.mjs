@@ -40,6 +40,9 @@ const browser = await launch();
 
   // G5a: frame rate while the scene is on screen
   const fps = await page.evaluate(() => new Promise((r) => { let n = 0; const t0 = performance.now(); const f = () => { n++; performance.now() - t0 < 5000 ? requestAnimationFrame(f) : r(n / 5); }; requestAnimationFrame(f); }));
+  // bring the scene into view first (on the ops console it sits below the fold of its column and is paused there)
+  await page.evaluate(() => document.querySelector("canvas")?.scrollIntoView({ block: "center" }));
+  await page.waitForTimeout(1200);
   const scene = await page.evaluate(() => { const a = window.__gz3d?.frames ?? null; return new Promise((r) => setTimeout(() => r(a == null ? null : ((window.__gz3d.frames - a) / 3)), 3000)); });
   if (fps < 50) F.fps.push(`page ${fps.toFixed(1)} fps at 1440x900`);
   if (scene == null) F.fps.push("window.__gz3d.frames missing: the 3D scene does not report frames");
