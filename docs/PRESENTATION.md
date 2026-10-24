@@ -6,60 +6,65 @@ Board: Presentation tab, chip VIENNA, "follow autopilot" on. Check the clock top
 
 Speaker roles are a suggestion: M = Mathew (story, demo), P = Peter (autopilot, guard, diet plan), MT = Matthew (weather, production).
 
-## Five minutes
+## Four and a half minutes
 
-Seven slides presented, the other eight sit in the appendix for questions. The jingle costs 30 seconds and earns them back: it is the only thing the jury will remember from the first minute.
+Seven slides presented, eight in the appendix for questions. The jingle costs 30 seconds and earns them back. Ten seconds of slack at the end.
 
 | time | slide | speaker | beat |
 |---|---|---|---|
-| 0:00 | 1 Title | M | Jingle, 30 s, say nothing. |
+| 0:00 | 1 Title | M | Jingle, 30 s, say nothing, then one line. |
 | 0:30 | 2 Problem | M | The storage exists, the signal does not. |
-| 1:00 | 3 The idea | M | One signed, bounded limit. Owner wins. Meter enforces. |
-| 1:45 | 4 The diet | P | Monster on a diet, water-filling in one breath. |
-| 2:30 | 5 Live demo | M + P | Board: Vienna curve, one DeepSeek decision, Flattening tab, Blatnica, heartbeat. 90 s. |
-| 4:00 | 6 Real vs modelled | MT | Measured numbers, honest counterfactual. |
-| 4:30 | 7 Close | M | The ask. "It eats peaks for breakfast." Stop. |
-| appendix | signals, household, autopilot, built, vendors, production, old curve, security | | For questions. |
+| 0:55 | 3 The idea | M | One signed message. Owner wins. Meter pays. |
+| 1:35 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
+| 2:15 | 5 Live demo | M + P | Board: Vienna curve, the AI's decision, Flattening tab, Blatnica, heartbeat. 75 s. |
+| 3:30 | 6 Real vs simulated | MT | Measured numbers, honest counterfactual. |
+| 3:55 | 7 Close | M | The ask. "It eats peaks for breakfast." Stop at 4:20. |
+| appendix | signals, household, autopilot, built, makers, production, old curve, security | | For questions. |
 
-### Script, five minutes
+### Script
 
-**1. Title (0:00 to 0:30).** The jingle has its own slide: this one. Click the speaker. Say nothing until the hard cut. Then one line, deadpan, and move on:
+**1. Title (0:00 to 0:30).** Click the speaker. Say nothing until the hard cut. Then, deadpan:
 
 > Now you probably wonder what the monster really is.
 
-**2. Problem (0:30 to 1:00).**
+**2. Problem (0:30 to 0:55).**
 
-> It is a grid signal that home batteries, cars and heat pumps follow. Here is why it is needed. Europe's largest battery is in people's basements: home batteries, cars with a plug, heat pumps. Gigawatt hours of storage, gigawatts of flexible load. The grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
+> It is a grid signal that home batteries, cars and heat pumps follow. Europe's largest battery is in people's basements, and the grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
 
-**3. The idea (1:00 to 1:45).**
+**3. The idea (0:55 to 1:35).**
 
-> One signed, bounded signal. The operator says: this street, next three hours, import at most three kilowatts per house. Never "discharge now", never a setpoint. The house decides how: battery first, car second, hot water third. The owner's limits always win; the signal can tighten, never loosen. If the platform goes silent, every house reverts in two minutes. The meter enforces it, because a limit is something a meter can check. Payment follows the meter. Who sends it? DeepSeek proposes every fifteen minutes, a thirty-line deterministic guard disposes, the platform signs.
+> One signed message. The operator says: this street, next three hours, take at most three kilowatts per house. Never "discharge now", never a setting. The house decides how: battery first, car second, hot water third. The owner's limits always win. If the operator goes silent, every house is back to normal in two minutes. The meter checks it, the meter pays it. An AI proposes every fifteen minutes, thirty lines of rules decide, the platform signs.
 
-**4. The diet (1:45 to 2:30).**
+**4. The monster eats peaks (1:35 to 2:15).**
 
-> Gridzilla eats peaks. Every street, every evening. At six the cars come home and the transformer would go to a hundred and ten percent. With Gridzilla it stays at seventy. The cars still charge, just not all at dinner: a car plugged in at six trickles through the evening and fills up at two in the morning, full by seven. The batteries eat the dinner spike. The sun at noon goes into the batteries instead of the feeder. Nobody at home notices. And the operator never buys that bigger transformer. Planned every two hours from the real weather forecast, for the whole city, by thirty lines of code, not by the AI.
+> Gridzilla eats peaks. Every street, every evening. At six the cars come home and the transformer would go to a hundred and ten percent. With Gridzilla it stays at seventy. The cars still charge, just not at dinner: plugged in at six, trickle through the evening, full by seven in the morning. The batteries eat the dinner spike, the noon sun charges them. Nobody at home notices. The operator never buys the bigger transformer. Planned every two hours from the real weather, by thirty lines of code, not by the AI.
 
-If a juror asks how: "valley filling, the textbook method: pour the car charging into the night until it is flat, let the batteries cut the dinner hill to the same level."
+If asked how: "we pour the car charging into the night until it is flat, and let the batteries cut the dinner hill to the same level."
 
-**5. Live demo (2:30 to 4:00).** Alt-tab to the board. Talk while clicking.
+**5. Live demo (2:15 to 3:30).** Alt-tab to the board. Talk while clicking, never wait for a page.
 
-1. Presentation, VIENNA chip: *"Seventy-two transformers, two hundred seventy-two households live, one of them real. Blue is the city, grey is the same houses without Gridzilla, orange is the peak eaten."*
-2. The four tiles: *"Sense, the forecast. Decide, DeepSeek's signal and its reasoning. Guard, within policy. Signed, on the wire."*
-3. Flattening tab, VIENNA, then click one street: *"Tonight's plan: without, with, the level, cars full by seven."*
-4. Presentation, "pin Blatnica": *"The real plant: grid, battery, the charger, the heat pump's tank, live from the Cerbo and ViCare, last ack signature verified."*
-5. Autopilot tab, "pause heartbeat", watch the pill go red: *"The operator goes dark. Every house reverts to owner mode. Nobody can hold your battery hostage."* Resume.
+1. Presentation tab, VIENNA chip:
+   > Seventy-two transformers, two hundred seventy-two households, one of them real. Blue is with Gridzilla, grey is without, orange is the peak eaten.
+2. The four tiles:
+   > What the AI saw, what it chose, the rule check, the signed message.
+3. Flattening tab, VIENNA, then one street:
+   > Tonight's plan, for the city and for one street. Cars full by seven.
+4. Presentation, pin Blatnica:
+   > The real plant, live: grid, battery, charger, heat pump. Last reply verified.
+5. Autopilot tab, pause heartbeat, wait for the red pill:
+   > The operator goes dark. Every house goes back to normal. Nobody can hold your battery hostage.
 
-Back to the deck.
+   Resume. Back to the deck. If behind, skip Blatnica and keep the heartbeat.
 
-**6. Real vs modelled (4:00 to 4:30).**
+**6. Real vs simulated (3:30 to 3:55).**
 
-> What is real: the signal path, a Victron plant and a Viessmann heat pump moving on a signed message, the algorithm on the fleet. What is modelled: the fleet, two thousand houses, honest counterfactual, same cars, realistic charging. Measured tonight: one street thirty-one percent off its peak, Vienna with two thousand enrolled houses five megawatts off, a street where no car charged, zero. The gap is the cars and the batteries, nothing else.
+> Real: the whole path, a Victron plant and a Viessmann heat pump reacting to a signed message, the planning on the fleet. Simulated: the fleet, two thousand houses, same cars with and without, realistic charging. Measured tonight: one street thirty-one percent off its peak, Vienna with two thousand houses five megawatts off, a street where no car charged, zero.
 
-**7. Close (4:30 to 5:00).**
+**7. Close (3:55 to 4:20).**
 
-> What we need is a street transformer to pilot on, this winter. Enrolment is two weeks, a second vendor one week, we own the plant. After that: streets that island on grid-forming inverters, rationed by the same signal. Gridzilla. It eats peaks for breakfast. Thank you.
+> We need one street transformer to pilot on, this winter. Sign-up is two weeks, a second maker one week, we own the plant. After that: streets that keep their lights on from their own batteries when the line is gone. Gridzilla. It eats peaks for breakfast. Thank you.
 
-Stop. Questions. The appendix slides answer most of them: production (effort, cost, saving), security, vendors and incentives, the six signals.
+Stop. Questions. The appendix covers production, security, makers, the six signals.
 
 ---
 
