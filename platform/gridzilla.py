@@ -681,7 +681,9 @@ def needs_operator(p):
     return None
 
 
-def autopilot_allowed(segment):
+def autopilot_allowed(segment, mode=None):
+    if mode == "RELEASE":
+        return None               # releasing is always safe: cooldowns and rate limits brake new restrictions, never the end of one
     if has_real(segment):     # real devices run in real time: brakes on the wall clock too
         real = [s for s in AP["sent"] if s.get("real")]
         if len([s for s in real if (now() - s["at"]).total_seconds() < 3600]) >= REAL_MAX_PER_HOUR:
@@ -768,7 +770,7 @@ def autopilot_step():
         return
     hand = needs_operator(p) if AP["mode"] == "auto" else None
     if AP["mode"] == "auto" and not hand:
-        why = autopilot_allowed(p["segment"])
+        why = autopilot_allowed(p["segment"], p.get("mode"))
         if why:
             p["guard"] = why
             log("autopilot", f"held back {p['mode']} -> {p['segment']}: {why}")
