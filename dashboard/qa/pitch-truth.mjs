@@ -10,8 +10,8 @@ const sizes = String(arg("sizes", "1920x1080")).split(",");
 const out = String(arg("out", "/tmp/gzpitch/truth"));
 fs.mkdirSync(out, { recursive: true });
 const SLIDES = [
-  { n: 1, steps: 1 }, { n: 2, steps: 2 }, { n: 3, steps: 4 }, { n: 4, steps: 2 },
-  { n: 5, steps: 1, wait: 12000 }, { n: 6, steps: 1 }, { n: 7, steps: 2 },
+  { n: 1, steps: 1 }, { n: 2, steps: 3 }, { n: 3, steps: 4 }, { n: 4, steps: 2 },
+  { n: 5, steps: 1, wait: 12000 }, { n: 6, steps: 1 }, { n: 7, steps: 3 },
 ];
 
 // ---- audit() copied verbatim from qa/truth.mjs ----

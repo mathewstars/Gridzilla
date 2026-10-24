@@ -8,6 +8,7 @@ Dad's deck numbers (checked): `docs/Gridzilla-pitch.pdf`, `docs/PRESENTATION.md`
 
 1. Branch fm/gz-pitch, rebased on fm/gz-ui 64b87ce; dev server `npm run pitch:dev` (5175), preview `npm run pitch:preview` (4175).
 2. Deck = slide 0 trailer + slides 1-7 (`src/pitch/slides/index.ts`); every beat is a Right press; nothing auto-dims.
+   Story arc: slide 2 opens on the six o'clock street (story step), slide 6 "Our family home in Blatnica", slide 7 the six o'clock line, then the punchline.
 3. Slide 5 embeds `DemoView` (src/ops/demo, stage worker's) + `Tour5.tsx` walkthrough (steps 1-7, Esc skips).
 4. Background: Paper Shaders Mesh Gradient (21st.dev @paper-design, `bg/mesh-gradient.tsx`) via `shell/Backdrop.tsx`.
 5. Fonts: Clash Display + General Sans in `public/pitch/fonts`; slide 5 keeps the console's own type (`slide5.css`).
@@ -34,10 +35,10 @@ Swap the trailer: replace docs/Gridzilla-trailer.mp4 (it carries the jingle; the
 
 ## Every beat is a key press
 
-Nothing dims, moves on or changes content by itself: each spoken beat is one Right. Slide 2: Right brings the closing
-line under the three facts. Slide 3: Right for noon, Right for "The operator asks...", Right for the AI loop.
+Nothing dims, moves on or changes content by itself: each spoken beat is one Right. Slide 2: Right brings the three facts,
+Right brings the closing line under them. Slide 3: Right for noon, Right for "The operator asks...", Right for the AI loop.
 Slide 4: Right draws the Gridzilla line and drops the big number from red to green. Slide 5: Right walks the demo
-(seven areas). Slide 7: Right for the last line. The only automatic move is the trailer's hard cut into the title at
+(seven areas). Slide 7: Right for "So at six tomorrow...", Right for the last line. The only automatic move is the trailer's hard cut into the title at
 its last frame, which the captain asked for. Entry builds (a typed message, numbers counting, a ring lighting once)
 finish within a few seconds and then hold.
 
@@ -116,7 +117,7 @@ One memorable thing per slide; everything around it quiet.
 | 4 | 1:35, 40 s | Peter | One big curve from the live diet plan (`/api/flatten?node=region:at`), the next 24 hours in one continuous line. On entry: the evening without Gridzilla heads past the limit, the big number in red. Right: the Gridzilla line bends under the limit, the orange slice is the peak eaten, green is the charging moved, the number drops to the green plan peak. Clean ground, no background. Labelled illustration only if the API is down. | 2 (Right = with Gridzilla) |
 | 5 | 2:15, 75 s | Matthew | The console's demo mode (`DemoView`, `src/ops/demo`), full-bleed, imported, warm from the first frame; then the seven-step walkthrough. | 8 (Right = next area) |
 | 6 | 3:30, 25 s | Dad | Split screen, both live. Real: the Blatnica plant (or "waiting for the plant", honestly). Simulated: the city heat grid of all 72 street transformers. Measured numbers under each, labelled "measured on 24 Oct 2026". | 1 |
-| 7 | 3:55, 25 s | Matthew | "One street transformer to pilot on. This winter." alone. Step 2: "It eats peaks for breakfast." alone on the hero background. | 2 (Right = last line) |
+| 7 | 3:55, 25 s | Matthew | "One street transformer to pilot on. This winter." alone. Step 2: "It eats peaks for breakfast." alone on the hero background. | 3 (Right = six o'clock line, Right = last line) |
 
 ## Files
 
