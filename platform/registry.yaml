@@ -18,6 +18,13 @@ devices:
     kwh: 15
     feedin_max_kw: 10
     represents: 10
+  - id: vicare-blatnica        # Viessmann heating unit at the Blatnica plant, via ViCare: a controllable load (hot water)
+    tf: tf:atzgersdorf-1
+    vendor: viessmann
+    kw: 3
+    kwh: 0
+    feedin_max_kw: 0
+    represents: 10
   - id: sim-atzgersdorf-12
     tf: tf:atzgersdorf-1
     vendor: sim
