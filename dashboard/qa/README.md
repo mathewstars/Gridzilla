@@ -10,7 +10,7 @@ Needs the local stack running (`dev/stack.sh start`) and Google Chrome installed
 | G2 | `truth.mjs` | every visible number traces to the API payload the page fetched and matches it |
 | G3 | `layout.mjs` | 11 sizes x scenarios 1-4 + 20 s live: 0 overlapping text, 0 clipped, 0 cut, 0 outside its card, 0 wider than the viewport, one screen at >= 1440x900 |
 | G4 | visual judges (Workflow, outside this folder) | over the G3 screenshots |
-| G5 | `live.mjs` | >= 50 fps at 1440x900, 3D paused off-screen, 10 s recording per size shows real change |
+| G5 | `live.mjs` | live data on screen within 3 s of opening (3 cold loads); >= 50 fps at 1440x900, 3D paused off-screen, 10 s recording per size shows real change |
 
 ## Data-truth convention (G2)
 

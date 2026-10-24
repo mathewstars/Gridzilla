@@ -11,8 +11,24 @@ const g1s = Number(arg("g1-seconds", 60));
 const sizes = arg("sizes", "all") === "all" ? SIZES : String(arg("sizes")).split(",");
 const out = String(arg("out", "/tmp/gzqa/live"));
 fs.mkdirSync(out, { recursive: true });
-const F = { console: [], fps: [], offscreen: [], motion: [] };
+const F = { console: [], fps: [], offscreen: [], motion: [], landing: [] };
 const browser = await launch();
+
+// Landing: the demo is shown 75 s into a 5-minute pitch, so the stage must show live data within 3 s of opening (PRESENTATION.md).
+{
+  const times = [];
+  for (let i = 0; i < 3; i++) {
+    const { ctx, page } = await newPage(browser, "1440x900");
+    const t0 = Date.now();
+    await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
+    await ready(page, 0, 20000);
+    times.push(Date.now() - t0);
+    await ctx.close();
+  }
+  const worst = Math.max(...times);
+  if (worst > 3000) F.landing.push(`live data on screen after ${worst} ms (runs ${times.join(", ")} ms), must be under 3000`);
+  fs.writeFileSync(`${out}/landing.json`, JSON.stringify({ times }));
+}
 
 // G1: 60 s live at 1440x900, every console error or warning counts
 {
