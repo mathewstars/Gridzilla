@@ -247,7 +247,7 @@
   <!-- presentation tab -->
   <section class="span3" data-tab="story" style="padding:10px 12px">
     <div class="steps" id="steps"></div>
-    <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px"></div>
+    <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px; max-height:64px; overflow:auto"></div>
   </section>
   <section data-tab="story">
     <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
@@ -664,7 +664,7 @@ function drawStory() {
     ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
   document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
     `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
-  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger.slice(0, 160))}</span>` : ""}` : "";
+  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger)}</span>` : ""}` : "";
   // curve with vs without
   const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw || Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(node)).reduce((a, n) => a + S.tree[n].rating_kw, 0);
   if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [
