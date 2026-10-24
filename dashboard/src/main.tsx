@@ -1,11 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import Stage from "./stage/Stage";
+import OpsApp from "./ops/OpsApp";
 
-// index.html shows the ONE stage (design/STAGE.md); StageA stays in the tree for reference and b.html keeps serving B.
+// index.html is the operations console (ops.md); the presentation stage lives at #/present.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Stage />
+    <OpsApp />
   </StrictMode>,
 );
