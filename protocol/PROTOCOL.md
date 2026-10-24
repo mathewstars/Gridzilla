@@ -53,7 +53,7 @@ See `signal.schema.json`. Fields:
 | `seq` | int | Monotonic per platform. A device rejects `seq <= last seen`. |
 | `issued_at` | ISO 8601 UTC | A device rejects if older than 120 s or in the future by more than 30 s. |
 | `segment` | string | Target node. |
-| `mode` | enum | `PREPARE`, `ABSORB`, `SUPPORT`, `STRETCH`, `RECOVER`, `RELEASE` |
+| `mode` | enum | `PREPARE`, `ABSORB`, `SUPPORT`, `STRETCH`, `RECOVER`, `RELEASE`, `SHAPE` |
 | `valid_from`, `valid_to` | ISO 8601 UTC | Window, up to 24 h per signal and renewable without limit, so a DSO can hold a household under a dynamic envelope continuously; `STRETCH` up to 3 days. **The device enforces the bound itself**: it reverts at `valid_to` or at `valid_from` + 24 h, whichever is earlier, whatever the platform sent. The real time safety is the heartbeat: live modes revert 120 s after the platform goes silent. |
 | `import_max_kw` | number or null | Ceiling on import at the connection point. |
 | `export_max_kw` | number or null | Ceiling on export. |
@@ -77,6 +77,7 @@ Which fields each mode may carry (the policy guard refuses anything else):
 | `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). **Implies `export_max_kw = 0`**: the agent locks export so nothing can backfeed into a line under repair. Anti-islanding already prevents it; the signal says it anyway. |
 | `RECOVER` | `charge_max_kw` | After restoration: staggered recharge. |
 | `RELEASE` | none | End of event. |
+| `SHAPE` | envelope only (`import_max_kw` and `export_max_kw` curves) | The daily diet plan: per-slot ceilings for a normal day, published on its own channel, kept under every event signal. |
 
 ## Envelope curves
 
@@ -93,6 +94,23 @@ An `ABSORB` or `SUPPORT` may carry an `envelope`: a **dynamic operating envelope
 - The merge rule applies per slot: an export slot is never above the owner's `feedin_max_kw`.
 - The guard refuses an envelope on any other mode, more than 96 slots, or an import slot below the policy floor.
 - In the simulation the grid clock runs 60 times faster (`GZ_SIM_X`), so a 15-minute slot is 15 real seconds and `slot_s` is 15. On a real grid `slot_s` is 900, which matches the smart meter's settlement interval.
+
+## SHAPE: the flattening plan
+
+`SHAPE` is not an event. It is the platform's standing plan for a normal day, recomputed every two grid hours from the
+forecast and the fleet's state and published on `gridzilla/shape/<segment>` (same envelope, same signature, same
+sequence numbers as `gridzilla/sig/`). A device keeps at most one SHAPE beside at most one event signal and applies the
+tighter of the two ceilings slot by slot: `import_max = min(shape, event)`, `export_max = min(shape, event, feedin_max)`.
+SHAPE needs no heartbeat: it is benign, it expires at `valid_to`, and a `RELEASE` does not end it. A device that cannot
+follow a curve ignores the channel entirely and only sees event signals.
+
+The plan is water-filling per transformer: forecast the load nobody controls, count the flexible energy behind the
+transformer (car charging that must be done by morning, usable battery energy for the peak, free battery capacity for
+the midday surplus), find the lowest level `L` such that the cars fit in the valley below it and the peak above it fits
+in the batteries, and the lowest export level `Le` such that the PV surplus above it fits in the batteries. Each house
+then gets, per 15-minute slot, `import_max = (L - uncontrolled) / houses` and `export_max = (Le + uncontrolled) / houses`.
+The envelope carries one curve per transformer under the segment (`by_tf`, `by_tf_export`); the segment-wide curve is
+the tightest of them, for devices that do not know their transformer.
 
 ## Heartbeat
 

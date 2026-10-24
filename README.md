@@ -175,6 +175,16 @@ Modes on the dashboard: **Autonomous** (default when `GZ_LLM_URL` is set, or `GZ
 
 The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`); all autopilot and envelope times are grid minutes.
 
+## Flattening: the monster's diet (SHAPE)
+
+Under the DeepSeek autopilot a deterministic planner (`platform/flatten.py`) flattens every street every day: a
+water-filling plan per transformer, two per-slot ceilings per house for the next 24 grid hours, sent as one `SHAPE`
+signal per feeder on `gridzilla/shape/<segment>` and renewed every two grid hours. Cars plugged in at dinner trickle
+through the peak and charge at night, batteries eat the slice above the level, the noon PV surplus goes into the
+batteries instead of the feeder. Owner limits still win; event signals ride on top. The board's **Flattening** tab shows
+the plan for the city, a substation, a feeder or a street: without Gridzilla, with the plan, the level, and what was
+eaten. `GET /api/flatten?node=` returns it, `POST /api/shape/off|on` pauses or resumes the plan.
+
 ## Live weather and warnings
 
 `platform/weather.py` fetches the real forecast every 15 minutes (`GZ_WEATHER_REFRESH_S=900`) and serves it at `GET /api/weather` (current values, 48 hours, official warnings, a one-sentence summary, and `grid_view`: the next 24 grid hours mapped onto the simulation clock). DeepSeek gets the summary, the next 6 grid hours and the active warnings in its context.
