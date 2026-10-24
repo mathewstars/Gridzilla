@@ -236,8 +236,9 @@
   .tb-sep, .tb-spacer { display: none; }
   .tb-grp { flex-wrap: wrap; }
   .seg-btn { height: 30px; padding: 0 9px; }
-  /* the theme switch rides at the end of the autopilot line instead of taking a line of its own; the status chips follow */
-  .tb > .ibtn { order: 1; margin-left: auto; width: 34px; height: 34px; border-radius: 17px; }
+  /* help and theme ride at the right end of the autopilot line instead of after the chips; the status chips follow */
+  .tb:not(.is-compact) > .tb-icons { margin-left: auto; }
+  .tb-icons .ibtn { width: 34px; height: 34px; border-radius: 17px; }
   .tb > .chip, .tb > .tb-err { order: 2; }
   .chip { height: 32px; border-radius: 16px; }
   .tbtn { height: 26px; padding: 0 11px; border-radius: 13px; }

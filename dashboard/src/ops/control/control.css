@@ -165,6 +165,11 @@ input.cp-input[type="number"]::-webkit-inner-spin-button, input.cp-input[type="n
   .cp-inline { flex-wrap: wrap; }
   .cp-inline .cp-input { flex-basis: 100%; min-height: 34px; }
   .cp-btn-sm { min-height: 32px; padding-inline: 0.85rem; }
+  /* a running signal's top line wraps as whole words (mode, code, where) instead of squeezing each into a column; the
+     time left stays at the right */
+  .cp-sig-top { flex-wrap: wrap; row-gap: 2px; }
+  .cp-sig-top .cp-strong { white-space: nowrap; }
+  .cp-sig-top .cp-count { margin-left: auto; }
 }
 
 .cp-sig-top .cp-wrap { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
