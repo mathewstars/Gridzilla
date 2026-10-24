@@ -360,7 +360,8 @@ function drawAutopilot() {
 function activeEnvelope() {
   const path = pathOf(selNode);
   for (const n of [...path].reverse()) { const s = S.active[n]; if (s && s.envelope) return {sig: s, node: n, live: true}; }
-  const d = S.autopilot.history.find(d => d.envelope && path.includes(d.segment));
+  const d = S.autopilot.history.find(d => d.envelope && path.includes(d.segment)) || S.autopilot.history.find(d => d.envelope && d.verdict === "sent");   // fall back to the latest sent envelope anywhere
+  if (d) { const live = S.active[d.segment]; if (live && live.envelope) return {sig: live, node: d.segment, live: true}; }
   return d ? {sig: {mode: d.mode, seq: d.seq, envelope: d.envelope, valid_from: d.at}, node: d.segment, live: false} : null;
 }
 function drawEnvelope() {
