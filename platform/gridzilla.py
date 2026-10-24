@@ -759,9 +759,40 @@ def get_state():
         return {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
                 "devices": {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k),
                                 "registered": k in state["pubkeys"]} for k, v in DEVICES.items()},
+                "households": households(),
                 "active": state["active"], "log": list(LOG), "hb_paused": HB_PAUSED.is_set(),
                 "llm": bool(LLM_URL), "policy": POLICY, "autopilot": autopilot_public(), "scenario": SCENARIO,
                 "forecast": {n: forecast(n) for n in TREE if not n.startswith("region")}}
+
+
+def households():
+    """One house = everything behind one meter. Devices with the same `household` are merged: the battery/inverter device
+    owns SoC and the grid reading, the heating device owns the tank; EV and heat kW add up; the status is the weakest member."""
+    out = {}
+    for d in DEVICES.values():
+        hid = d.get("household") or d["id"]
+        h = out.setdefault(hid, {"id": hid, "tf": d["tf"], "path": d["path"], "devices": [], "real": not d["id"].startswith("sim-"),
+                                 "kw": 0, "kwh": 0, "represents": d.get("represents", 1), "telemetry": None, "ack": None, "registered": True})
+        h["devices"].append(d["id"]); h["kw"] += d.get("kw", 0); h["kwh"] += d.get("kwh", 0)
+        h["registered"] = h["registered"] and d["id"] in state["pubkeys"]
+        t = state["telemetry"].get(d["id"]); a = state["acks"].get(d["id"])
+        if t:
+            m = h["telemetry"] or {"soc": None, "grid_kw": 0.0, "ev_kw": 0.0, "hp_kw": 0.0, "dhw_c": None, "dhw_set_c": None, "mode": "owner", "rx": t.get("rx")}
+            if d.get("kwh"):                                   # the battery device is the meter owner
+                m["soc"] = t.get("soc"); m["grid_kw"] = t.get("grid_kw") or 0.0
+            elif m["soc"] is None and t.get("soc") not in (None, 0):
+                m["soc"] = t.get("soc")
+            m["ev_kw"] += t.get("ev_kw") or 0.0
+            m["hp_kw"] += t.get("hp_kw") or (t.get("grid_kw") if not d.get("kwh") else 0) or 0.0   # a heating-only device reports its draw as grid_kw
+            if t.get("dhw_c") is not None: m["dhw_c"], m["dhw_set_c"] = t.get("dhw_c"), t.get("dhw_set_c")
+            if t.get("mode") and t["mode"] != "owner": m["mode"] = t["mode"]
+            m["rx"] = max(m["rx"] or "", t.get("rx") or "")
+            h["telemetry"] = m
+        if a:
+            rank = {"refused": 3, "partial": 2, "reverted": 1, "applied": 0}
+            if h["ack"] is None or rank.get(a.get("status"), 0) > rank.get(h["ack"].get("status"), 0) or a.get("seq", 0) > (h["ack"].get("seq") or 0):
+                h["ack"] = {k: a.get(k) for k in ("status", "reason", "seq", "verified", "applied")}
+    return out
 
 
 @app.get("/api/history")

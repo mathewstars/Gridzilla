@@ -144,7 +144,7 @@
   </section>
 
   <section>
-    <h2>Program houses <span class="hint">each simulated house stands for 10</span></h2>
+    <h2>Program households <span class="hint">each simulated household stands for 30 real ones</span></h2>
     <div class="charts">
       <div class="chartbox" style="height:150px"><canvas id="socChart"></canvas></div>
       <div class="chartbox"><canvas id="gridChart"></canvas></div>
@@ -158,7 +158,7 @@
   </section>
 
   <section>
-    <h2>Devices</h2>
+    <h2>Households <span class="hint">battery · EV · heat pump or boiler behind one meter</span></h2>
     <table>
       <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
@@ -334,15 +334,16 @@ function drawCharts() {
   loadChart.update();
   drawEnvelope();
 
-  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode)).slice(0, 12);
-  socChart.data.labels = devs.map(d => S.devices[d].telemetry ? d : d + " (offline)");
-  socChart.data.datasets[0].data = devs.map(d => S.devices[d].telemetry ? S.devices[d].telemetry.soc : null);   // offline = gap, not 0
+  const devs = devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12);
+  socChart.data.labels = devs.map(d => HH[d].telemetry ? d : d + " (offline)");
+  socChart.data.datasets[0].data = devs.map(d => HH[d].telemetry ? HH[d].telemetry.soc : null);   // offline = gap, not 0
   socChart.data.datasets[0].backgroundColor = devs.map(d => SERIES[devOrder.indexOf(d) % 5]);
   socChart.update();
 
-  const longest = devs.reduce((a, d) => (H.devices[d] || []).length > a.length ? H.devices[d] : a, []);
+  const hist = d => H.devices[d] || H.devices[((HH[d] || {}).devices || [])[0]] || [];   // a household's curve comes from its meter-owning device
+  const longest = devs.reduce((a, d) => hist(d).length > a.length ? hist(d) : a, []);
   gridChart.data.labels = longest.map(p => hhmm(p.h));
-  gridChart.data.datasets = devs.map(d => ({label: d, data: (H.devices[d] || []).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
+  gridChart.data.datasets = devs.map(d => ({label: d, data: hist(d).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
   gridChart.update();
   document.getElementById("devlegend").innerHTML = devs.map(d => `<span><i style="background:${SERIES[devOrder.indexOf(d) % 5]}"></i>${d}</span>`).join("") + `<span style="margin-left:auto">grid kW · + import · − export</span>`;
 }
@@ -367,7 +368,7 @@ function drawSchem() {
     <text x="${W / 2}" y="63" text-anchor="middle" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer;fill:${selNode === feeder ? css("--acc") : ""}">${feeder} · 22 kV · ${fa.total_kw != null ? fa.total_kw.toFixed(0) + " kW" : "–"} ${selNode === feeder ? "◀" : ""}</text>`;
   tfs.forEach((tf, i) => {
     const x = colW * i + 20, w = colW - 40, a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct);
-    const devs = devOrder.filter(d => S.devices[d].tf === tf);
+    const devs = devOrder.filter(d => HH[d].tf === tf);
     const step = Math.min(48, (w - 20) / Math.max(devs.length, 1));
     g += `<line class="wire" x1="${x + w / 2}" y1="70" x2="${x + w / 2}" y2="96"/>
       <g onclick="selectNode('${tf}')" style="cursor:pointer">
@@ -381,14 +382,14 @@ function drawSchem() {
       ${a.active ? `<text x="${x + w - 10}" y="176" text-anchor="end" style="fill:${css("--acc")}">${a.active}</text>` : ""}
       </g>`;
     devs.forEach((d, j) => {
-      const dx = x + 10 + j * step + 14, D = S.devices[d], t = D.telemetry, ak = D.ack, real = !d.startsWith("sim-");
+      const dx = x + 10 + j * step + 14, D = HH[d], t = D.telemetry, ak = D.ack, real = D.real || !d.startsWith("sim-");
       g += `<line class="wire" x1="${x + w / 2}" y1="188" x2="${x + w / 2}" y2="206"/><line class="wire" x1="${x + 24}" y1="206" x2="${x + 10 + (devs.length - 1) * step + 14}" y2="206"/>
         <line class="wire" x1="${dx}" y1="206" x2="${dx}" y2="222"/>
         <circle class="house" cx="${dx}" cy="236" r="13" fill="${modeColor(t, ak)}" ${real ? `stroke="${css("--fg")}" stroke-width="2"` : ""}><title>${d}${t ? `: SoC ${t.soc}% · grid ${t.grid_kw} kW · EV ${t.ev_kw ?? 0} kW · heat ${t.hp_kw ?? 0} kW · ${t.mode}` : ": offline"}</title></circle>
         <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? (D.kwh ? Math.round(t.soc) : (t.dhw_c != null ? Math.round(t.dhw_c) + "°" : "")) : "–"}</text>
         ${t && t.ev_kw > 0 ? `<text x="${dx + 14}" y="228" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
         ${t && t.hp_kw > 0 ? `<text x="${dx + 14}" y="250" style="font-size:9px;fill:${css("--s5")}">HP</text>` : ""}
-        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? (d.startsWith("vicare") ? "heat pump" : "REAL") : d.replace(/^sim-[a-z]+-/, "#")}</text>`;
+        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? "REAL" : d.replace(/^sim-[a-z]+-/, "#")}</text>`;
     });
     g += `<text x="${x + w - 10}" y="262" text-anchor="end" class="muted" style="font-size:9px">+${S.tree[tf].other_houses || 0} houses not in program</text>`;
   });
@@ -404,10 +405,10 @@ function drawKpis() {
   const worst = Math.abs(S.aggregates[worstTf].load_pct || 0);
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   const active = Object.keys(S.active).length;
-  const online = Object.values(S.devices).filter(d => d.telemetry).length, total = Object.keys(S.devices).length;
-  const rep = Object.values(S.devices).reduce((a, d) => a + (d.represents || 1), 0);
-  const ev = Object.values(S.devices).reduce((a, d) => a + ((d.telemetry || {}).ev_kw || 0) * (d.represents || 1), 0);
-  const hp = Object.values(S.devices).reduce((a, d) => a + ((d.telemetry || {}).hp_kw || 0) * (d.represents || 1), 0);
+  const online = Object.values(HH).filter(d => d.telemetry).length, total = Object.keys(HH).length;
+  const rep = Object.values(HH).reduce((a, d) => a + (d.represents || 1), 0);
+  const ev = Object.values(HH).reduce((a, d) => a + ((d.telemetry || {}).ev_kw || 0) * (d.represents || 1), 0);
+  const hp = Object.values(HH).reduce((a, d) => a + ((d.telemetry || {}).hp_kw || 0) * (d.represents || 1), 0);
   const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   document.getElementById("kpis").innerHTML =
     k(`${(root.kwh_available * 10).toFixed(0)} kWh`, "stored in program batteries (×10)") +
@@ -417,7 +418,7 @@ function drawKpis() {
     k(`${worst}%`, `worst transformer · ${worstTf.replace("tf:", "")}`, worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
     k(over, "transformers over rating", over ? "crit" : "ok") +
     k(active, "active signals", active ? "warn" : "") +
-    k(`${online}/${total}`, `devices online · ${rep} houses represented`);
+    k(`${online}/${total}`, `households online · ${rep} houses represented`);
 }
 function drawSignals() {
   const now = Date.now();
@@ -429,10 +430,10 @@ function drawSignals() {
   document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted)">none · owners run their batteries as they like</div>`;
 }
 function drawDevices() {
-  const rows = [...devOrder].sort((a, b) => (S.devices[a].path.join("/") + a).localeCompare(S.devices[b].path.join("/") + b));
+  const rows = [...devOrder].sort((a, b) => (HH[a].path.join("/") + a).localeCompare(HH[b].path.join("/") + b));
   document.getElementById("devices").innerHTML = rows.map(d => {
-    const D = S.devices[d], t = D.telemetry || {}, a = D.ack || {}, real = !d.startsWith("sim-");
-    return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.household ? ` <span class="muted">· ${D.household}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
+    const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
+    return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.devices && D.devices.length > 1 ? ` <span class="muted">· ${D.devices.join(" + ")}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
       <td>${D.kwh ? (t.soc != null ? t.soc.toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + t.grid_kw.toFixed(1) : "–"}</td>
       <td>${t.ev_kw != null ? t.ev_kw.toFixed(1) : ""}</td>
       <td>${t.hp_kw != null ? t.hp_kw.toFixed(1) : (t.dhw_c != null ? "" : "")}${t.dhw_c != null ? ` <span class="muted">${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°</span>` : ""}</td>
@@ -455,7 +456,7 @@ function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSi
 
 async function refresh() {
   try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }
-  devOrder = Object.keys(S.devices);
+  devOrder = Object.keys(S.households || S.devices); HH = S.households || S.devices;
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
