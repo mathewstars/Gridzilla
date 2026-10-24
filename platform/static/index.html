@@ -135,6 +135,15 @@
     <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
     <button onclick="advise()">Propose a signal</button>
     <div class="prop" id="prop"></div>
+    <h2 style="margin-top:14px">Autopilot <span class="hint" id="aphint">watches the transformers · asks DeepSeek when one runs hot</span></h2>
+    <div class="modes" id="apmodes">
+      <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
+      <button data-ap="propose" onclick="setAp({mode:'propose'})">Propose · operator approves</button>
+      <button data-ap="auto" onclick="setAp({mode:'auto'})">Auto · guard decides</button>
+    </div>
+    <label>Standing warning (asked once when it changes, then added to every trigger)</label>
+    <div class="row"><input id="apctx" placeholder="Drone strike warning tonight, expect outages 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
+    <div class="prop" id="apstatus" style="display:block"></div>
   </section>
 
   <section>
@@ -211,10 +220,33 @@ async function advise() {
   const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
   try {
     const p = await api("advise", {situation: document.getElementById("situation").value});
+    if (p.mode === "NONE") { box.innerHTML = `<b>No signal needed</b><br>${esc(p.rationale || "")}`; return; }
     box.innerHTML = `<b>${p.mode} → ${p.segment}</b> ${JSON.stringify(p.fields)} · ${p.duration_min} min<br>${p.rationale || ""}<br>` +
       (p.guard ? `<span style="color:var(--crit)">guard: ${p.guard}</span>` : `<span style="color:var(--ok)">guard ok</span>`) +
       `<br><button onclick='fill(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Load into form</button>`;
   } catch (e) { box.textContent = "advisor error: " + e.message; }
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
+async function setAp(body) {
+  try { await api("autopilot", body); } catch (e) { document.getElementById("apstatus").textContent = "autopilot: " + e.message; }
+  refresh();
+}
+async function decideAp(d) { try { await api("autopilot/" + d); } catch (e) { document.getElementById("apstatus").textContent = e.message; } refresh(); }
+function drawAutopilot() {
+  const ap = S.autopilot; if (!ap) return;
+  document.querySelectorAll("#apmodes button").forEach(b => b.classList.toggle("on", b.dataset.ap === ap.mode));
+  const ctx = document.getElementById("apctx"); if (document.activeElement !== ctx) ctx.value = ap.context || "";
+  document.getElementById("aphint").textContent = `checks every ${ap.interval_s} s · triggers at ±${ap.trigger_pct} % · releases below ${ap.release_pct} % · ${ap.max_per_hour}/h, ${ap.cooldown_min} min cooldown`;
+  const r = ap.last_result, p = ap.pending;
+  let h = ap.mode === "off" ? "Off. Nothing is asked or sent." : (ap.busy ? "Asking DeepSeek…" : `Watching. Last check ${ap.last_run ? ap.last_run.slice(11, 19) : "–"} UTC.`);
+  if (ap.last_trigger) h += `<br><span class="muted">trigger: ${esc(ap.last_trigger)}</span>`;
+  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> ${esc(JSON.stringify(p.fields || {}))} · ${esc(p.duration_min)} min<br>${esc(p.rationale || "")}` +
+    `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
+  else if (r && r.error) h += `<br><span style="color:var(--crit)">advisor error: ${esc(r.error)}</span>`;
+  else if (r && r.mode === "NONE") h += `<br>DeepSeek: no signal needed. ${esc(r.rationale || "")}`;
+  else if (r) h += `<br>Last: <b>${esc(r.mode)} → ${esc(r.segment)}</b> ${esc(r.rationale || "")}<br>` +
+    (r.guard ? `<span style="color:var(--crit)">not sent: ${esc(r.guard)}</span>` : `<span style="color:var(--ok)">guard ok</span>`);
+  document.getElementById("apstatus").innerHTML = h;
 }
 function fill(p) {
   selectNode(p.segment); setMode(p.mode);
@@ -353,7 +385,7 @@ function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `
 function drawTabs() {
   document.getElementById("nodetabs").innerHTML = Object.keys(S.tree).filter(n => !n.startsWith("region")).map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("");
 }
-function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); }
+function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 
 async function refresh() {
   try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }

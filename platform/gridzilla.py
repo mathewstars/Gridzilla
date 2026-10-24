@@ -358,7 +358,8 @@ Signal modes and allowed fields:
 Rules: signals are limits at the grid connection point, never setpoints. Pick the segment at the level where the constraint is:
 a street transformer only helps itself; a feeder or substation constraint can be served by every battery under it.
 Policy: window max 240 min (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per day.
-Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}"""
+Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}
+If no signal is needed right now, answer {"mode": "NONE", "rationale": "..."}."""
 
 
 class Advise(BaseModel):
@@ -368,15 +369,16 @@ class Advise(BaseModel):
 def ask_llm(situation: str):
     if not LLM_URL:
         raise HTTPException(503, "GZ_LLM_URL not set")
-    ctx = {"time_utc": iso(now()), "tree": {n: {**TREE[n], **aggregates()[n]} for n in TREE},
+    ctx = {"time_utc": iso(now()), "sim_hour": round(sim_hour(), 2), "tree": {n: {**TREE[n], **aggregates()[n]} for n in TREE},
+           "trend_total_kw": {n: [p["total_kw"] for p in list(NODE_HIST[n])[-12::3]] for n in TREE if n.startswith("tf:")},
            "devices": [{"id": d["id"], "tf": d["tf"], "kw": d["kw"], "kwh": d["kwh"],
                         "soc": (state["telemetry"].get(d["id"]) or {}).get("soc")} for d in DEVICES.values()],
            "active_signals": state["active"]}
-    body = {"model": LLM_MODEL, "temperature": 0.2,
+    body = {"model": LLM_MODEL, "temperature": 0.2, "max_tokens": 1500,
             "messages": [{"role": "system", "content": ADVISOR_SYSTEM},
                          {"role": "user", "content": f"Grid state:\n{json.dumps(ctx)}\n\nSituation: {situation}"}]}
     req = urllib.request.Request(f"{LLM_URL.rstrip('/')}/chat/completions", data=json.dumps(body).encode(),
-                                 headers={"Content-Type": "application/json",
+                                 headers={"Content-Type": "application/json", "X-Session-Id": "gridzilla-advisor",
                                           "Authorization": f"Bearer {os.environ.get('GZ_LLM_KEY', 'none')}"})
     with urllib.request.urlopen(req, timeout=120) as r:
         text = json.loads(r.read())["choices"][0]["message"]["content"]
@@ -385,11 +387,131 @@ def ask_llm(situation: str):
         text = text[4:]
     start, end = text.find("{"), text.rfind("}")
     proposal = json.loads(text[start:end + 1])
-    proposal["guard"] = guard(proposal.get("segment"), proposal.get("mode"), proposal.get("fields", {}),
-                              int(proposal.get("duration_min", 0)))
+    if proposal.get("mode") == "NONE":
+        proposal["guard"] = None
+        log("advisor", f"no signal needed: {proposal.get('rationale', '')}")
+        return proposal
+    if proposal.get("mode") == "RELEASE":
+        proposal["duration_min"] = max(1, int(proposal.get("duration_min") or 1))
+    proposal["guard"] = guard(proposal.get("segment"), proposal.get("mode"), proposal.get("fields") or {},
+                              int(proposal.get("duration_min") or 0))
     log("advisor", f"proposed {proposal.get('mode')} -> {proposal.get('segment')}: {proposal.get('rationale', '')}"
         + (f" | GUARD: {proposal['guard']}" if proposal["guard"] else " | guard ok"))
     return proposal
+
+
+# ---------------------------------------------------------------- autopilot
+# Deterministic triggers decide WHEN to ask DeepSeek; DeepSeek decides WHAT to propose; the guard decides whether it is allowed.
+# mode "propose": the proposal waits for one click from the operator. mode "auto": a guard-approved proposal is sent at once,
+# within its own limits (cooldown per segment, max signals per hour). "off": nothing runs.
+AP = {"mode": "off", "context": "", "context_seen": "", "last_run": None, "last_trigger": None,
+      "last_result": None, "pending": None, "sent": collections.deque(maxlen=50), "busy": False}
+AP_INTERVAL_S = POLICY.get("autopilot_interval_s", 20)
+AP_TRIGGER_PCT = POLICY.get("autopilot_trigger_pct", 85)     # |transformer load| at or above this asks for a signal
+AP_RELEASE_PCT = POLICY.get("autopilot_release_pct", 60)     # every transformer under an active signal below this asks for a release
+AP_COOLDOWN_MIN = POLICY.get("autopilot_cooldown_min", 10)
+AP_MAX_PER_HOUR = POLICY.get("autopilot_max_per_hour", 6)
+
+
+def covered(tf):
+    return any(n in path_of(tf) for n in state["active"])
+
+
+def autopilot_trigger():
+    """Return a situation sentence if something deserves the advisor's attention, else None."""
+    ag = aggregates()
+    tfs = [n for n in TREE if n.startswith("tf:")]
+    hot = [f"{tf} at {ag[tf]['load_pct']} % ({'reverse flow, PV surplus' if ag[tf]['load_pct'] < 0 else 'import, load peak'})"
+           for tf in tfs if ag[tf]["load_pct"] is not None and abs(ag[tf]["load_pct"]) >= AP_TRIGGER_PCT and not covered(tf)]
+    if hot:
+        return "Congestion now, no signal active there: " + "; ".join(hot) + "."
+    for node, sig in state["active"].items():
+        mine = next((s for s in AP["sent"] if s["seq"] == sig["seq"]), None)   # never second-guess an operator's own signal
+        if not mine or (now() - mine["at"]).total_seconds() < AP_COOLDOWN_MIN * 60:
+            continue
+        under = [tf for tf in tfs if node in path_of(tf)]
+        if sig["mode"] in ("ABSORB", "SUPPORT") and under and all(
+                ag[tf]["load_pct"] is not None and abs(ag[tf]["load_pct"]) < AP_RELEASE_PCT for tf in under):
+            return f"{sig['mode']} seq {sig['seq']} on {node} is active but every transformer under it is below {AP_RELEASE_PCT} %. Release it if the event is over."
+    if AP["context"] and AP["context"] != AP["context_seen"]:
+        return "Operator warning: " + AP["context"]
+    return None
+
+
+def autopilot_allowed(segment):
+    t = now()
+    recent = [s for s in AP["sent"] if (t - s["at"]).total_seconds() < 3600]
+    if len(recent) >= AP_MAX_PER_HOUR:
+        return f"autopilot limit {AP_MAX_PER_HOUR} signals per hour reached"
+    last = next((s for s in reversed(AP["sent"]) if s["segment"] == segment), None)
+    if last and (t - last["at"]).total_seconds() < AP_COOLDOWN_MIN * 60:
+        return f"cooldown: autopilot signalled {segment} less than {AP_COOLDOWN_MIN} min ago"
+    return None
+
+
+def send_proposal(p, by):
+    fields = {k: (p.get("fields") or {}).get(k) for k in ALL_FIELDS}
+    note = p.get("note") or ""
+    doc = send_signal(p["segment"], p["mode"], fields, int(p.get("duration_min") or 1), note, int(p.get("start_in_min") or 0))
+    AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"]})
+    log("autopilot", f"{by}: sent seq {doc['seq']} {p['mode']} -> {p['segment']}")
+    return doc
+
+
+def autopilot_step():
+    AP["last_run"] = iso(now())
+    p = AP["pending"]
+    if p and (now() - datetime.fromisoformat(p["at"].replace("Z", "+00:00"))).total_seconds() > 600:
+        log("autopilot", f"proposal {p['mode']} -> {p['segment']} expired unapproved")
+        AP["pending"] = None
+    situation = autopilot_trigger()
+    if not situation or AP["pending"]:
+        return
+    AP["last_trigger"] = situation
+    if situation.startswith("Operator warning"):
+        AP["context_seen"] = AP["context"]
+    elif AP["context"]:
+        situation += " Standing operator warning: " + AP["context"]
+    log("autopilot", f"trigger: {situation}")
+    p = ask_llm(situation)
+    p["situation"], p["at"] = situation, iso(now())
+    AP["last_result"] = p
+    if p.get("mode") == "NONE" or p["guard"]:
+        return
+    if AP["mode"] == "auto":
+        why = autopilot_allowed(p["segment"])
+        if why:
+            p["guard"] = why
+            log("autopilot", f"held back {p['mode']} -> {p['segment']}: {why}")
+            return
+        try:
+            send_proposal(p, "auto")
+        except HTTPException as e:
+            p["guard"] = e.detail
+    else:
+        AP["pending"] = p
+        log("autopilot", f"waiting for operator: {p['mode']} -> {p['segment']}")
+
+
+def autopilot_loop():
+    while True:
+        time.sleep(AP_INTERVAL_S)
+        if AP["mode"] == "off" or not LLM_URL or AP["busy"]:
+            continue
+        AP["busy"] = True
+        try:
+            autopilot_step()
+        except Exception as e:
+            AP["last_result"] = {"error": str(e), "at": iso(now())}
+            log("autopilot", f"advisor call failed: {e}")
+        finally:
+            AP["busy"] = False
+
+
+def autopilot_public():
+    return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy")} | {
+        "trigger_pct": AP_TRIGGER_PCT, "release_pct": AP_RELEASE_PCT, "cooldown_min": AP_COOLDOWN_MIN,
+        "max_per_hour": AP_MAX_PER_HOUR, "interval_s": AP_INTERVAL_S}
 
 
 # ---------------------------------------------------------------- api
@@ -435,7 +557,7 @@ def get_state():
                 "devices": {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k),
                                 "registered": k in state["pubkeys"]} for k, v in DEVICES.items()},
                 "active": state["active"], "log": list(LOG), "hb_paused": HB_PAUSED.is_set(),
-                "llm": bool(LLM_URL), "policy": POLICY}
+                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": autopilot_public()}
 
 
 @app.get("/api/history")
@@ -466,6 +588,41 @@ def advise(a: Advise):
     return ask_llm(a.situation)
 
 
+class Autopilot(BaseModel):
+    mode: Optional[str] = None       # off | propose | auto
+    context: Optional[str] = None    # standing operator warning, e.g. "drone strike warning tonight"
+
+
+@app.post("/api/autopilot")
+def set_autopilot(a: Autopilot):
+    if a.mode is not None:
+        if a.mode not in ("off", "propose", "auto"):
+            raise HTTPException(400, "mode must be off, propose or auto")
+        if a.mode != "off" and not LLM_URL:
+            raise HTTPException(503, "GZ_LLM_URL not set")
+        AP["mode"] = a.mode
+        log("autopilot", f"mode {a.mode}")
+    if a.context is not None and a.context != AP["context"]:
+        AP["context"] = a.context.strip()
+        log("autopilot", f"operator warning: {AP['context'] or '(cleared)'}")
+    return autopilot_public()
+
+
+@app.post("/api/autopilot/{decision}")
+def decide_autopilot(decision: str):
+    """approve|reject the proposal waiting in propose mode"""
+    if decision not in ("approve", "reject"):
+        raise HTTPException(400, "decision must be approve or reject")
+    p = AP["pending"]
+    if not p:
+        raise HTTPException(404, "nothing pending")
+    AP["pending"] = None
+    if decision == "reject":
+        log("autopilot", f"operator rejected {p['mode']} -> {p['segment']}")
+        return {"ok": True}
+    return send_proposal(p, "operator approved")
+
+
 @app.post("/api/heartbeat/{action}")
 def hb(action: str):
     """pause|resume: simulate a platform outage for the fail-safe demo"""
@@ -491,6 +648,7 @@ def main():
     mq.loop_start()
     threading.Thread(target=heartbeat_loop, daemon=True).start()
     threading.Thread(target=sampler_loop, daemon=True).start()
+    threading.Thread(target=autopilot_loop, daemon=True).start()
     import uvicorn
     log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  llm={LLM_URL or 'off'}")
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
