@@ -18,10 +18,9 @@ import {
 } from "@phosphor-icons/react";
 import { post, type Autopilot, type Decision, type Proposal, type State, type WeatherFeed } from "../api";
 import { COLORS, headline, hhmm, loadColor, nice, outcome, plainTrigger } from "../model";
-import { Segmented, Ticker } from "./ui";
+import { Ticker } from "./ui";
 import { VERDICT_WORD, boxLine, cleanText, dur, modePlain, modeTitle, plainReason, worstOf } from "./brain/plain";
 
-type ApMode = Autopilot["mode"];
 type StepState = "active" | "waiting" | "done";
 
 const STAGE_IDX: Record<Autopilot["stage"], number> = { idle: -1, sense: 0, deepseek: 1, guard: 2, send: 3 };
@@ -527,43 +526,6 @@ function statusOf(s: State, lit: number, playing: boolean): { text: string; live
   return { text: ap.mode === "propose" ? "Watching, asks before acting" : "Watching the grid", live: true };
 }
 
-function ModeControl({ s, compact }: { s: State; compact: boolean }) {
-  const [want, setWant] = useState<ApMode | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const cur = s.autopilot.mode;
-  useEffect(() => {
-    if (want && want === cur) setWant(null);
-  }, [cur, want]);
-  const change = async (m: ApMode) => {
-    if (m === cur) return;
-    setWant(m);
-    setErr(null);
-    try {
-      await post("autopilot", { mode: m });
-    } catch (e) {
-      setWant(null);
-      const msg = (e as Error).message;
-      setErr(/GZ_LLM_URL/.test(msg) ? "No AI model is connected" : msg);
-    }
-  };
-  return (
-    <div className="flex flex-col items-start gap-1 @2xl:items-end">
-      <Segmented<ApMode>
-        id="autopilot-mode"
-        size={compact ? "sm" : "md"}
-        value={want ?? cur}
-        onChange={change}
-        options={[
-          { value: "off", label: "Off", title: "Nothing runs on its own" },
-          { value: "propose", label: "Ask me first", title: "The AI proposes, a person approves", disabled: !s.llm },
-          { value: "auto", label: "Autopilot", title: "Everyday signals go out on their own, inside the safety rules", disabled: !s.llm },
-        ]}
-      />
-      {err && <div className="px-2 text-[0.76rem] text-fg/90">Could not switch: {err}</div>}
-    </div>
-  );
-}
-
 function Recent({ list, narrow }: { list: Decision[]; narrow: boolean }) {
   if (!list.length) return null;
   return (
@@ -690,7 +652,6 @@ export default function BrainStrip({ s, weather }: { s: State; weather: WeatherF
             </div>
           </div>
         </div>
-        <ModeControl s={s} compact={narrow} />
       </div>
 
       {/* the flow */}

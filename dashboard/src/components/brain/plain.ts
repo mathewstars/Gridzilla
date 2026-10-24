@@ -15,6 +15,9 @@ export function cleanText(t: string | null | undefined) {
 /** The worst forecast in a congestion trigger, so the card can show one big number. */
 export function worstOf(trigger: string | null | undefined) {
   if (!trigger) return null;
+  // Planner trigger: "<node>: 2 of 3 transformers forecast past 85 % ...; worst tf:x 99 % at 20.60h, 50 kW over."
+  const pl = trigger.match(/(\d+) of (\d+) transformers forecast past .*?worst (tf:[\w-]+) (-?\d+) % at ([\d.]+)h/);
+  if (pl) return { tf: pl[3], pct: +pl[4], at: hhmm(+pl[5]), others: +pl[1] - 1 };
   const hot = [...trigger.matchAll(/(tf:[\w-]+) now (-?\d+|None) %, forecast (-?\d+) % at ([\d.]+)h/g)];
   if (!hot.length) return null;
   const w = hot.reduce((a, b) => (Math.abs(+b[3]) > Math.abs(+a[3]) ? b : a));

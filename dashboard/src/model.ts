@@ -238,6 +238,14 @@ export function plainTrigger(t: string | null | undefined) {
       ? `${nice(tf)} will hit ${Math.abs(p)} % of its limit around ${hhmm(+at)} as solar pours back in`
       : `${nice(tf)} will hit ${p} % of its limit around ${hhmm(+at)} as the evening peak builds`;
   }
+  const pl = t.match(/^(\S+): (\d+) of (\d+) transformers forecast past .*?worst (tf:[\w-]+) (-?\d+) % at ([\d.]+)h, (\d+) kW over/);
+  if (pl) {
+    const p = +pl[5];
+    const many = +pl[2] > 1 ? ` (${pl[2]} of ${pl[3]} on ${nice(pl[1])})` : "";
+    return p < 0
+      ? `${nice(pl[4])} will hit ${Math.abs(p)} % of its limit around ${hhmm(+pl[6])} as solar pours back in${many}`
+      : `${nice(pl[4])} will hit ${p} % of its limit around ${hhmm(+pl[6])} as the evening peak builds${many}`;
+  }
   const rel = t.match(/(ABSORB|SUPPORT) seq (\d+) on (\S+) is active/);
   if (rel) return `${nice(rel[3])} is calm again, the signal can end`;
   if (t.startsWith("Operator warning")) return `Operator warning: ${t.replace("Operator warning: ", "")}`;

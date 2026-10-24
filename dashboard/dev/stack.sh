@@ -6,7 +6,11 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LOGS="${LOGS:-/tmp/gz-dev}"; mkdir -p "$LOGS"
 MOSQ="$(command -v mosquitto || echo /opt/homebrew/opt/mosquitto/sbin/mosquitto)"
-stop() { for p in 1884 8081 8091; do lsof -ti tcp:$p | xargs kill 2>/dev/null; done; pkill -f "node sim-agent.js" 2>/dev/null; true; }
+# Stops only what this script started: listeners on its own ports, and the simulator by its saved PID (never pattern kills).
+stop() {
+  for p in 1884 8081 8091; do lsof -ti tcp:$p -sTCP:LISTEN | xargs kill 2>/dev/null; done
+  [ -f "$LOGS/sim.pid" ] && kill "$(cat "$LOGS/sim.pid")" 2>/dev/null; rm -f "$LOGS/sim.pid"; true
+}
 if [ "${1:-start}" = stop ]; then stop; exit 0; fi
 stop; sleep 1
 nohup "$MOSQ" -p 1884 >"$LOGS/mosquitto.log" 2>&1 &
@@ -15,5 +19,5 @@ nohup python3 "$ROOT/dashboard/dev/fake-llm.py" 8091 >"$LOGS/llm.log" 2>&1 &
   nohup "$ROOT/.venv/bin/python" gridzilla.py >"$LOGS/platform.log" 2>&1 &)
 sleep 3
 (cd "$ROOT/agent" && GZ_PLATFORM=http://localhost:8081 GZ_BROKER=mqtt://localhost:1884 GZ_SPEED="${GZ_SPEED:-1}" \
-  nohup node sim-agent.js >"$LOGS/sim.log" 2>&1 &)
+  nohup node sim-agent.js >"$LOGS/sim.log" 2>&1 & echo $! >"$LOGS/sim.pid")
 echo "stack up: http://localhost:8081/static/new/  (logs in $LOGS)"

@@ -25,6 +25,12 @@ function useNarrow() {
   return narrow;
 }
 
+function storyFeeder(s: NonNullable<ReturnType<typeof useGridState>["data"]>) {
+  const sig = Object.entries(s.active).sort((a, b) => (b[1].seq ?? 0) - (a[1].seq ?? 0))[0]?.[0];
+  if (sig?.startsWith("sub:")) return feeders(s).find((f) => s.tree[f]?.parent === sig) ?? feederOf(s, headline(s).worst ?? feeders(s)[0]);
+  return feederOf(s, sig ?? headline(s).worst ?? feeders(s)[0]);
+}
+
 function Splash({ error }: { error: string | null }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
@@ -46,8 +52,9 @@ export default function App() {
   const [drawer, setDrawer] = useState(false);
 
   const s = state.data;
-  // Default feeder = the one holding the worst transformer, so the story is on screen when the page opens.
-  const feeder = s ? (feederSel && s.tree[feederSel] ? feederSel : feederOf(s, headline(s).worst ?? feeders(s)[0])) : "";
+  // Default feeder follows the story: the newest active signal, else the worst transformer. `?feeder=` pins one.
+  const pinned = useMemo(() => new URLSearchParams(location.search).get("feeder"), []);
+  const feeder = s ? (feederSel && s.tree[feederSel] ? feederSel : pinned && s.tree[`feeder:${pinned}`] ? `feeder:${pinned}` : storyFeeder(s)) : "";
   const tfs = s ? tfsOf(s, feeder) : [];
   const tf = tfSel && tfs.includes(tfSel) ? tfSel : (s && tfs.length ? [...tfs].sort((a, b) => Math.abs(s.aggregates[b]?.load_pct ?? 0) - Math.abs(s.aggregates[a]?.load_pct ?? 0))[0] : "");
 
