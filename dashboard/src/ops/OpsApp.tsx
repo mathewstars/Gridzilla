@@ -1,7 +1,7 @@
 // Gridzilla operations console: the room where a grid operator runs the city (ops.md). Sidebar + top bar shell, hash
-// routes; Operations is the default view, #/present is the presentation stage, unchanged.
+// routes; Operations is the default view, #/demo is demo mode for the pitch. The old presentation stage is retired:
+// a #/present link from an old deck opens demo mode instead.
 import { useEffect, useState } from "react";
-import Stage from "../stage/Stage";
 import { useOps } from "./useOps";
 import Sidebar, { type Route } from "./shell/Sidebar";
 import TopBar from "./shell/TopBar";
@@ -18,10 +18,14 @@ import { applyTheme, initialTheme } from "./theme";
 // Theme before the first paint, so the console never flashes light.
 applyTheme(initialTheme());
 
-const ROUTES: Route[] = ["ops", "demo", "city", "autopilot", "manual", "households", "plant", "weather", "log", "present"];
+const ROUTES: Route[] = ["ops", "demo", "city", "autopilot", "manual", "households", "plant", "weather", "log"];
 const routeOf = (): Route => {
-  const r = location.hash.replace(/^#\/?/, "") as Route;
-  return ROUTES.includes(r) ? r : "ops";
+  const r = location.hash.replace(/^#\/?/, "");
+  if (r === "present") {
+    history.replaceState(null, "", "#/demo"); // the old stage is retired; say where we are
+    return "demo";
+  }
+  return ROUTES.includes(r as Route) ? (r as Route) : "ops";
 };
 
 function useRoute() {
@@ -36,7 +40,6 @@ function useRoute() {
 
 export default function OpsApp() {
   const route = useRoute();
-  if (route === "present") return <Stage />;
   return <Console route={route} />;
 }
 
