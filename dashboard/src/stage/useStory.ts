@@ -5,6 +5,7 @@ import {
   BLATNICA_DEVICE,
   meterDevice,
   post,
+  useFlatten,
   useGridState,
   useHistory,
   useWeather,
@@ -12,8 +13,9 @@ import {
   type RecentSignal,
   type Signal,
   type State,
+  type Weather,
 } from "../api";
-import { allTfs, feederOf, headline, housesOf, loadPct, pathOf, type House } from "../model";
+import { allTfs, feederOf, headline, housesOf, loadPct, nice, pathOf, type House } from "../model";
 
 export type Phase = "calm" | "building" | "acting" | "flattened";
 
@@ -154,6 +156,81 @@ export function storyOf(s: State, tf: string): Story {
   return { phase, gapKw, peakPct, limitKw, actedAt, nowPct, basePct, signal, shaped, street, helping, last: lastOn(s, tf) };
 }
 
+// ------------------------------------------------------------------ the moment's wording
+
+export type DayPart = "night" | "morning" | "midday" | "afternoon" | "evening";
+
+/** ONE place that words the moment: the grid hour, which way the power flows and the sky. The top bar's scenario label
+ *  and weather, the headline and the chart title all read it, so they can never contradict each other. */
+export interface Moment {
+  /** Grid hour, 0..24. */
+  hour: number;
+  part: DayPart;
+  /** Solar is flowing back on the street on screen (with or without Gridzilla). */
+  backflow: boolean;
+  /** The weather at this grid hour (platform weather.py grid_view). `word` is null when the scenario overrides the sky
+   *  (sunny noon in daylight), so the top bar never says "Cloudy" over a forced-sunny grid. */
+  sky: { i: number; temp: number; word: string | null } | null;
+  /** The headline may say "sun": solar is flowing back and the sky we show is not overcast. */
+  sun: boolean;
+  /** The scenario in plain words, named as a scenario so it never reads as the time of day ("Cold evening scenario"
+   *  next to 11:18 is a setting, not a claim about the clock). */
+  scenario: string | null;
+  /** The hero chart's title. */
+  title: string;
+}
+
+const SCENARIO_LABEL: Record<string, string> = {
+  normal: "Normal day scenario",
+  "cold-evening": "Cold evening scenario",
+  "sunny-noon": "Sunny noon scenario",
+  "live-weather": "Live weather",
+};
+
+const partOf = (h: number): DayPart => (h < 5 ? "night" : h < 11 ? "morning" : h < 14 ? "midday" : h < 17 ? "afternoon" : h < 22 ? "evening" : "night");
+
+/** The moment on `tf` (or the grid when none is on screen) at the grid hour of this poll. */
+export function momentOf(s: State, tf: string | null, w: Weather | null): Moment {
+  const hour = (((s.sim_hour ?? 0) % 24) + 24) % 24;
+  const part = partOf(hour);
+  const a = tf ? s.aggregates?.[tf] : undefined;
+  const backflow = (a?.total_kw ?? 0) < 0 || (a?.baseline_kw ?? 0) < 0;
+  const name = s.scenario?.name || null;
+  // The simulated sun is up between 06 and 18 (platform other_profile_kw); sunny-noon multiplies it by 5.
+  const sunUp = hour > 6 && hour < 18;
+  const forcedSun = name === "sunny-noon" && sunUp;
+  const gv = w?.grid_view ?? [];
+  const hh = Math.floor(hour);
+  const i = gv.findIndex((g) => g && Math.round(g.h) % 24 === hh && Number.isFinite(g.temp_c));
+  let sky: Moment["sky"] = null;
+  let overcast = false;
+  if (i >= 0) {
+    const g = gv[i];
+    const word = g.cloud_pct >= 70 ? "Cloudy" : g.cloud_pct >= 30 ? "Partly cloudy" : g.sun_wm2 > 50 ? "Sunny" : "Clear";
+    overcast = g.cloud_pct >= 70 && !forcedSun;
+    sky = { i, temp: g.temp_c, word: forcedSun && g.cloud_pct >= 30 ? null : word };
+  }
+  const n = (tf && nice(tf)) || "this street";
+  const title = !tf
+    ? "The street with and without Gridzilla"
+    : backflow
+      ? `Keeping ${n}'s solar inside the backflow limit`
+      : hour >= 15
+        ? `Eating the evening peak on ${n}`
+        : hour < 6
+          ? `Tonight's plan for ${n}`
+          : `Getting ${n} ready for the evening peak`;
+  return {
+    hour,
+    part,
+    backflow,
+    sky,
+    sun: backflow && !overcast && part !== "night",
+    scenario: name ? SCENARIO_LABEL[name] ?? `${name.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase())} scenario` : null,
+    title,
+  };
+}
+
 /** Every transformer by how much of a story it tells right now. The worst peak wins: the higher of tonight's forecast
  *  peak, the load without Gridzilla and the load now (either direction). A "would have gone over, did not" case and the
  *  autopilot's own worst transformer get a bonus, a small solar backflow never beats an evening peak. Exported so a
@@ -183,14 +260,42 @@ interface Pick {
 
 const EMPTY: Pick = { tf: "", feeder: "", at: 0, manualUntil: 0, settledSince: null, repickAt: 0 };
 const SCENARIO_SETTLE_MS = 4_000;
+/** A newly picked street goes on screen once its last hours and its diet plan have landed, so no card ever shows an
+ *  empty chart frame; it waits at most this long, then shows with what is there. */
+const HOLD_MS = 2_500;
+
+/** The lowest node above both (a feeder, a substation or the region), so one state payload carries both streets. */
+function commonNode(tree: Record<string, { parent: string | null }>, a: string, b: string) {
+  const up = new Set<string>();
+  for (let c: string | null = a; c && tree[c]; c = tree[c].parent) up.add(c);
+  for (let c: string | null = b; c && tree[c]; c = tree[c].parent) if (up.has(c)) return c;
+  return "all";
+}
 
 /** Runs the whole stage. No visible controls: presenter keys are 1-4 scenarios, arrows previous/next transformer,
  *  F full screen. */
 export function useStory() {
   const [pick, setPick] = useState<Pick>(EMPTY);
+  /** The street on screen. `pick` is where the stage is going; it shows once its data is in (see HOLD_MS). */
+  const [shown, setShown] = useState<{ tf: string; feeder: string }>({ tf: "", feeder: "" });
+  const [, setHoldTick] = useState(0);
   const recentTfs = useRef<string[]>([]);
-  const grid = useGridState(pick.feeder, pick.tf);
+  const treeRef = useRef<State["tree"] | null>(null);
+  // While moving between streets on different feeders, ask for the households of both (their common node).
+  const moving = !!shown.tf && !!pick.tf && shown.tf !== pick.tf && shown.feeder !== pick.feeder;
+  const hh = moving && treeRef.current ? commonNode(treeRef.current, pick.feeder, shown.feeder) : pick.feeder;
+  const grid = useGridState(hh, pick.tf);
   const s = grid.data;
+  if (s) treeRef.current = s.tree;
+
+  // The first pick comes straight from the first state, in this very render: no extra poll, no extra frame.
+  if (s && !pick.tf) {
+    const best = rankTfs(s)[0];
+    if (best) {
+      recentTfs.current = [best.tf];
+      setPick({ ...EMPTY, tf: best.tf, feeder: feederOf(s, best.tf), at: Date.now() });
+    }
+  }
 
   const move = useCallback((tf: string, s: State, manual: boolean) => {
     const now = Date.now();
@@ -255,19 +360,42 @@ export function useStory() {
     return () => window.removeEventListener("keydown", onKey);
   }, [move]);
 
-  // The households on the transformer ship once the feeder is on screen.
-  const tf = pick.tf && s?.tree[pick.tf] ? pick.tf : "";
+  // State, history and the diet plan of the picked street are fetched together, the moment it is picked; the street on
+  // screen keeps its own history in the same request until the new one goes on.
+  const target = pick.tf && s?.tree[pick.tf] ? pick.tf : "";
+  const targetFeeder = target && s ? feederOf(s, target) : "";
+  const tf = shown.tf && s?.tree[shown.tf] ? shown.tf : "";
   const feeder = tf && s ? feederOf(s, tf) : "";
   const meters = useMemo(
     () =>
-      Object.values(s?.households ?? {})
-        .filter((h) => h.tf === tf)
-        .map(meterDevice)
-        .slice(0, 12),
-    [s, tf],
+      [tf, target]
+        .filter((t, i, a) => t && a.indexOf(t) === i)
+        .flatMap((t) =>
+          Object.values(s?.households ?? {})
+            .filter((h) => h.tf === t)
+            .map(meterDevice)
+            .slice(0, 12),
+        ),
+    [s, tf, target],
   );
-  const history = useHistory(tf ? [tf, feeder] : [], [...meters, BLATNICA_DEVICE]);
+  const histNodes = [target, targetFeeder, ...(tf && tf !== target ? [tf, feeder] : [])].filter((n, i, a) => n && a.indexOf(n) === i);
+  const history = useHistory(target ? histNodes : [], [...meters, BLATNICA_DEVICE]);
+  const plan = useFlatten(target || null);
   const weather = useWeather();
+
+  // Put the picked street on screen once its history, its plan and its households are in, or after HOLD_MS anyway.
+  if (target && target !== shown.tf && s) {
+    const histIn = history.asked.includes(target);
+    const planIn = plan.data != null || plan.failed;
+    const hhIn = grid.hhOf === "all" || (grid.hhOf != null && grid.hhOf !== "" && pathOf(s, target).includes(grid.hhOf));
+    if ((histIn && planIn && hhIn) || Date.now() - pick.at >= HOLD_MS) setShown({ tf: target, feeder: targetFeeder });
+  }
+  const waiting = !!target && target !== shown.tf;
+  useEffect(() => {
+    if (!waiting) return;
+    const id = window.setTimeout(() => setHoldTick((n) => n + 1), Math.max(0, pick.at + HOLD_MS - Date.now()) + 20);
+    return () => window.clearTimeout(id);
+  }, [waiting, pick.at]);
 
   // One house to follow: keep the same one while it stays under a signal.
   const houseKey = useRef<string | null>(null);
@@ -282,6 +410,8 @@ export function useStory() {
 
   const story = useMemo(() => (s && tf ? storyOf(s, tf) : null), [s, tf]);
   const head = useMemo(() => (s ? headline(s) : null), [s]);
+  const wx = weather.available ? weather.data : null;
+  const moment = useMemo(() => (s ? momentOf(s, tf || null, wx) : null), [s, tf, wx]);
 
   return {
     s,
@@ -294,6 +424,8 @@ export function useStory() {
     house,
     headline: head,
     story,
+    /** The moment's wording (momentOf): headline, chart title and top bar all read it. */
+    moment,
     /** True while an arrow-key pick holds the stage. */
     manual: pick.manualUntil > Date.now(),
   };

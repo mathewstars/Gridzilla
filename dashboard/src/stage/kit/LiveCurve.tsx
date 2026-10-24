@@ -4,9 +4,11 @@
 // over the limit.
 //
 // Stage mode (design/STAGE.md 7.1) adds dad's diet plan as the hero idea: from Now on the plan's "without" hill
-// (naive_kw, grey dashed) and its target shape (planned_kw, a green line that sits flat on the ceiling L) with the moved
-// energy shaded between them, plus the active signal's time-limited window as a band in the plot and a bar under the
-// hours. The line is ink (blue is for things you click), the legend sits above the plot as wrapping HTML with live values.
+// (naive_kw, grey dashed) and its target shape (planned_kw, "the plan", a green line that sits flat on the ceiling L),
+// plus the active signal's time-limited window as a band in the plot and a bar under the hours. The colours follow the
+// pitch sentence "blue is with Gridzilla, grey is without, orange is the peak eaten": the measured line is Apple blue,
+// the eaten peak (where "without" sits further from zero than "with", same direction) is a flat low-opacity orange, red
+// is only ever the limit line. The legend sits above the plot as wrapping HTML, names only (values live on the lines).
 //
 // Labels never collide: the chart measures its own box, every label gets a real text box, and they are placed in
 // priority order (axis ticks, then Limit, Now, the signal window, Plan, Without, Gridzilla acted); a label with no free
@@ -230,8 +232,10 @@ export default function LiveCurve({
   const agg = node ? s.aggregates[node] : undefined;
   const rating = tn?.rating_kw ?? agg?.rating_kw ?? null;
   const reverse = rating != null ? tn?.reverse_kw ?? rating : null;
-  const lineC = stage ? P.ink : P.blue;
-  const washO = stage ? 0.16 : 0.38;
+  const lineC = P.blue;
+  const washO = stage ? 0.22 : 0.38;
+  /** Stage: the eaten peak is orange (the pitch's word for it); classic: the kept-off gap stays green. */
+  const washC = stage ? P.orange : P.green;
   const legendAt = legend ?? (stage ? "above" : "below");
 
   const hist = useMemo(
@@ -378,7 +382,11 @@ export default function LiveCurve({
   if (anchorT != null && drawn.length && anchorT < t0f - 0.01) drawn.unshift({ t: anchorT, naive: headBase ?? (headTot as number), planned: headTot as number });
   const naivePts = drawn.map((p) => [x(p.t), y(p.naive)] as XYPt);
   const planLine = drawn.map((p) => [x(p.t), y(p.planned)] as XYPt);
-  const planBand = fut.length > 1 ? smoothBand(naivePts, planLine) : "";
+  // Only the peak eaten is shaded: where the plan holds the street below the "without" hill (or the solar backflow
+  // under the "without" dip). Where the plan sits above it (car charging moved into the night) the band closes to 0.
+  const eatsPlan = (p: { naive: number; planned: number }) =>
+    Math.abs(p.planned) < Math.abs(p.naive) && (Math.sign(p.naive) === Math.sign(p.planned) || Math.abs(p.planned) <= 1);
+  const planBand = fut.length > 1 ? smoothBand(drawn.map((p) => [x(p.t), y(eatsPlan(p) ? p.naive : p.planned)] as XYPt), planLine) : "";
   const level = plan?.level_kw ?? null;
   const plateau = usePlan && level != null ? plateauStart(fut, level) : null;
   const top = usePlan ? apex(fut) : null;
@@ -506,7 +514,7 @@ export default function LiveCurve({
       if (plateau && level != null) {
         const px = x(plateau.t);
         const py = y(level);
-        const w = wPair("Plan ", planTxt, fs);
+        const w = wPair("The plan ", planTxt, fs);
         const gapY = swTotal / 2 + 3;
         // the flat run: from its first slot while the plan stays on L
         let endT = plateau.t;
@@ -636,46 +644,29 @@ export default function LiveCurve({
 
   const limitWord = limV == null ? null : showRev && !showImp ? `Limit ${kwFmt(reverse as number)} kW flowing back` : `Limit ${kwFmt(rating as number)} kW`;
   const src = (p: string) => `state/aggregates/${node}/${p}`;
-  const revSrc = tn?.reverse_kw != null ? `state/tree/${node}/reverse_kw` : agg?.rating_kw != null ? src("rating_kw") : "axis";
-  const base = agg?.baseline_kw ?? null;
+  // The state poll sends the tree only on its first answer (api.ts useGridState), so state/tree/... is gone from the
+  // payload on screen after 3 s: a backflow limit equal to the rating traces to the aggregate, which every poll carries.
+  const revSrc =
+    agg?.rating_kw != null && (tn?.reverse_kw == null || tn.reverse_kw === agg.rating_kw)
+      ? src("rating_kw")
+      : tn?.reverse_kw != null
+        ? `state/tree/${node}/reverse_kw`
+        : "axis";
   const winLabelShown = placed.has("win") || placed.has("winS");
 
-  // Stage legend: every series named once, with its live value; wraps, never on the plot.
+  // Stage legend: names only. The values sit where they belong: the limits and the plan on their lines in the plot,
+  // the loads with and without in the hero card, so the legend never repeats a number. One "Limit" names the red line(s).
+  const keyLim = (rating != null && showImp) || (reverse != null && showRev);
   const stageLegend = (
     <div
       className="flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
       style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
     >
-      {totalPts.length > 1 && (
-        <Key swatch={<Swatch color={P.ink} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla" : "Load now"}>
-          <Counter value={kw} src={src("total_kw")} /> kW
-        </Key>
-      )}
-      {(basePts.length > 1 || naivePts.length > 1) && (
-        <Key swatch={<Swatch color={P.tertiary} width={3} dashed />} label="Without Gridzilla">
-          {base != null ? (
-            <>
-              <Counter value={base} src={src("baseline_kw")} /> kW
-            </>
-          ) : null}
-        </Key>
-      )}
-      {usePlan && level != null && planLine.length > 1 && (
-        <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan">
-          <Counter value={level} src={`${planSrc}/plan/level_kw`} /> kW
-        </Key>
-      )}
-      {(!!band || !!planBand) && <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.3} />} label="Energy moved" />}
-      {rating != null && showImp && (
-        <Key swatch={<Swatch color={P.red} width={2.5} />} label="Limit">
-          <Counter value={rating} src={agg?.rating_kw != null ? src("rating_kw") : undefined} /> kW
-        </Key>
-      )}
-      {showRev && reverse != null && (
-        <Key swatch={<Swatch color={P.red} width={2.5} />} label="Backflow limit">
-          <Counter value={reverse} src={revSrc === "axis" ? undefined : revSrc} /> kW
-        </Key>
-      )}
+      {totalPts.length > 1 && <Key swatch={<Swatch color={lineC} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla" : "Load now"} />}
+      {(basePts.length > 1 || naivePts.length > 1) && <Key swatch={<Swatch color={P.tertiary} width={3} dashed />} label="Without" />}
+      {(!!band || !!planBand) && <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" />}
+      {usePlan && level != null && planLine.length > 1 && <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" />}
+      {keyLim && <Key swatch={<Swatch color={P.red} width={2.5} />} label="Limit" />}
       {win && winOn && !winLabelShown && (
         <Key swatch={<Swatch color={P.ink} kind="bar" />} label="Signal until">
           <span data-src="axis">{hhmm(win.t1)}</span>
@@ -765,21 +756,15 @@ export default function LiveCurve({
             ))}
 
             <g clipPath={`url(#${clipId}-plot)`}>
-              {/* the energy Gridzilla moves: kept off in the past, planned away from Now on */}
-              {band && <path d={band} fill={P.green} fillOpacity={washO} />}
-              {planBand && <path d={planBand} fill={P.green} fillOpacity={washO} />}
-              {/* without Gridzilla: measured counterfactual, then the plan's hill; red where it is over the limit */}
+              {/* the peak eaten: kept off in the past, planned away from Now on (flat fill, no gradient) */}
+              {band && <path d={band} fill={washC} fillOpacity={washO} />}
+              {planBand && <path d={planBand} fill={washC} fillOpacity={washO} />}
+              {/* without Gridzilla: measured counterfactual, then the plan's hill, grey dashed (red is only the limit) */}
               {basePts.length > 1 && (
                 <path d={smoothPath(basePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
               )}
               {naivePts.length > 1 && (
                 <path d={smoothPath(naivePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
-              )}
-              {stage && rating != null && (
-                <g clipPath={`url(#${clipId})`}>
-                  {basePts.length > 1 && <path d={smoothPath(basePts)} fill="none" stroke={P.red} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" />}
-                  {naivePts.length > 1 && <path d={smoothPath(naivePts)} fill="none" stroke={P.red} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" />}
-                </g>
               )}
               {/* forecast ahead (only without a plan) */}
               {fcPts.length > 1 && (
@@ -787,11 +772,11 @@ export default function LiveCurve({
               )}
               {/* the diet plan: the target shape the street is pulled onto */}
               {planLine.length > 1 && <path d={smoothPath(planLine)} fill="none" stroke={P.green} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />}
-              {/* with Gridzilla, red only where it really is over the limit */}
+              {/* with Gridzilla; classic mode turns it red where it is over the limit, the stage keeps red for the limit */}
               {totalPts.length > 1 && (
                 <>
                   <path d={smoothPath(totalPts)} fill="none" stroke={lineC} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
-                  {rating != null && (
+                  {rating != null && !stage && (
                     <path d={smoothPath(totalPts)} fill="none" stroke={P.red} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#${clipId})`} />
                   )}
                 </>
@@ -822,7 +807,7 @@ export default function LiveCurve({
 
             {/* the gap at the head */}
             {yB != null && headBase != null && headTot != null && Math.abs(yB - y(headTot)) > swTotal * 2 && shaving({ t: head, total: headTot, base: headBase, program: 0, other: 0 }) && (
-              <line x1={endX} x2={endX} y1={yB} y2={y(headTot)} stroke={P.green} strokeWidth={swTotal * 0.9} strokeLinecap="round" />
+              <line x1={endX} x2={endX} y1={yB} y2={y(headTot)} stroke={stage ? P.orange : P.green} strokeWidth={swTotal * 0.9} strokeLinecap="round" />
             )}
 
             {/* the head of the line: a ring pulses each time a new reading lands */}
@@ -867,7 +852,7 @@ export default function LiveCurve({
             {stage && showRev && reverse != null &&
               (label("rev", fs, P.ink, pair("Backflow limit ", revTxt), { src: revSrc, val: reverse }) ?? label("revS", fs, P.ink, revTxt, { src: revSrc, val: reverse }))}
             {win && label("win", fsAxis, P.secondary, `Signal #${win.seq} until ${hhmm(win.t1)}`, { weight: 400, halo: false, src: `state/active/${win.key}/seq`, val: win.seq })}
-            {level != null && label("plan", fs, P.ink, pair("Plan ", planTxt), { src: `${planSrc}/plan/level_kw`, val: level })}
+            {level != null && label("plan", fs, P.ink, pair("The plan ", planTxt), { src: `${planSrc}/plan/level_kw`, val: level })}
             {plan && (label("top", fs, P.ink, pair("Peak without Gridzilla ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }) ??
               label("topS", fs, P.ink, pair("Peak without ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }))}
             {label("wait", fs, P.secondary, tn ? `Waiting for the first readings from ${nice(node)}` : "Waiting for the grid to report a street transformer", { weight: 400 }) ??

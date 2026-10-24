@@ -3,7 +3,7 @@
 // Nothing here is clickable: presenter keys live in useStory.
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { State, Weather } from "../api";
+import type { State } from "../api";
 import { allTfs } from "../model";
 import { P } from "./palette";
 import { useStory, type StoryState } from "./useStory";
@@ -99,53 +99,33 @@ function Rolling({ text, roll }: { text: string; roll: boolean }) {
 
 // ------------------------------------------------------------------ top bar words
 
-/** The scenario in plain words, always shown, worded to fit the grid clock: the scenarios scale load or sun all day
- *  (platform SCENARIOS), so "Cold evening" never sits next to an 11:18 clock nor "Sunny noon" next to 23:58. */
-function scenarioWord(name: string | undefined, h: number) {
-  const hr = ((h % 24) + 24) % 24;
-  if (name === "cold-evening") return hr >= 16 || hr < 1 ? "Cold evening" : hr < 6 ? "Cold night" : "Cold day";
-  if (name === "sunny-noon") return hr >= 10 && hr < 15 ? "Sunny noon" : hr >= 6 && hr < 20 ? "Sunny day" : "Sunny scenario";
-  if (name === "normal") return "Normal day";
-  if (name === "live-weather") return "Live weather";
-  return name ? name.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) : null;
-}
-
-/** The weather the grid runs on right now: the grid_view hour that matches the grid clock (platform weather.py). */
-function gridWeather(w: Weather | null, simHour: number) {
-  const gv = w?.grid_view ?? [];
-  const h = Math.floor(((simHour % 24) + 24) % 24);
-  const i = gv.findIndex((g) => g && Math.round(g.h) % 24 === h && Number.isFinite(g.temp_c));
-  if (i < 0) return null;
-  const g = gv[i];
-  const word = g.cloud_pct >= 70 ? "Cloudy" : g.cloud_pct >= 30 ? "Partly cloudy" : g.sun_wm2 > 50 ? "Sunny" : "Clear";
-  return { i, temp: g.temp_c, word };
-}
-
-/** One live status sentence about who is steering. Orange only while a decision waits for a person. */
+/** One live status sentence about who is steering, in the deck's plain words (grid operator, message, rules). Orange
+ *  only while a decision waits for a person. */
 function statusLine(st: StoryState): { text: string; tone: string } {
   const ap = st.s?.autopilot;
-  if (st.error) return { text: "Reconnecting, last data shown", tone: P.tertiary };
+  if (st.error) return { text: "Reconnecting, last readings shown", tone: P.tertiary };
   if (!ap) return { text: "Waiting for the autopilot", tone: P.tertiary };
-  if (ap.pending) return { text: "Waiting for operator", tone: P.orange };
-  if (ap.mode === "off") return { text: "Autopilot off, a person is in charge", tone: P.secondary };
+  if (ap.pending) return { text: "Waiting for the grid operator's yes", tone: P.orange };
+  if (ap.mode === "off") return { text: "Autopilot off, the grid operator steers", tone: P.secondary };
   if (ap.busy) {
     const doing: Record<string, string> = {
       sense: "Autopilot is reading the grid",
-      deepseek: "Autopilot is thinking",
-      guard: "Autopilot is checking the guard",
-      send: "Autopilot is signing a signal",
+      deepseek: "AI is writing the message",
+      guard: "Rules are checking the message",
+      send: "Sending the signed message",
     };
     if (doing[ap.stage]) return { text: doing[ap.stage], tone: P.ink };
   }
-  if (ap.mode === "propose") return { text: "Autopilot on, a person approves", tone: P.secondary };
+  if (ap.mode === "propose") return { text: "Autopilot on, the grid operator approves", tone: P.secondary };
   return { text: "Autopilot on", tone: P.secondary };
 }
 
 function TopBar({ st }: { st: StoryState }) {
   const s = st.s as State;
   const min = useGridClock(s);
-  const scen = scenarioWord(s.scenario?.name, s.sim_hour);
-  const wx = gridWeather(st.weather.available ? st.weather.data : null, s.sim_hour);
+  // Scenario label and weather come from the same moment as the headline and the chart title (useStory momentOf).
+  const scen = st.moment?.scenario ?? null;
+  const wx = st.moment?.sky ?? null;
   const status = statusLine(st);
   return (
     <header className="gzS-bar">
@@ -163,8 +143,8 @@ function TopBar({ st }: { st: StoryState }) {
           <span className="gzS-wx">
             <span data-src={`weather/grid_view/${wx.i}/temp_c`} data-val={String(wx.temp)}>
               {Math.round(wx.temp)}°
-            </span>{" "}
-            {wx.word}
+            </span>
+            {wx.word ? ` ${wx.word}` : ""}
           </span>
         )}
         <span style={{ color: status.tone }}>{status.text}</span>
@@ -209,7 +189,8 @@ export default function Stage() {
     );
   }
   if (!tf || !story) {
-    // The first transformer is picked on the poll after the first state; an empty grid says so plainly.
+    // The first street is picked from the first state and goes on screen with its last hours and plan (useStory
+    // HOLD_MS), so the splash never gives way to an empty chart. An empty grid says so plainly.
     return allTfs(s).length ? <Splash line="Connecting to the grid." /> : <Splash line="No transformers on this grid yet." />;
   }
 

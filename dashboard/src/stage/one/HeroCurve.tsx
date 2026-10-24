@@ -1,24 +1,25 @@
-// The hero chart (design/STAGE.md 7.1): one card, one curve. The street with and without Gridzilla over the last hours
-// with the green gap, and from Now on dad's diet plan (/api/flatten) as the target: the grey "without" hill, the green
-// line the street is held to, the moved energy shaded between them. The active signal's limited-time window sits on the
-// time axis. The card title says in plain words what the plan does here. The shell's Card owns surface and padding.
+// The hero chart (design/STAGE.md 7.1): one card, one curve, read with the pitch sentence "blue is with Gridzilla, grey
+// is without, orange is the peak eaten". The last hours measured (blue with, grey dashed without, the orange gap), and
+// from Now on dad's diet plan (/api/flatten): the grey "without" hill, the green line the street is held to ("the plan"),
+// the peak it eats in orange. Red is only the limit. The active signal's limited-time window sits on the
+// time axis. The card title (useStory momentOf) says in plain words what the plan does here. The shell's Card owns surface and padding.
 import { motion, useReducedMotion } from "motion/react";
 import { useFlatten } from "../../api";
 import { P } from "../palette";
 import LiveCurve from "../kit/LiveCurve";
-import { curveTitle } from "../kit/plan";
 import { signalOn, type StoryState } from "../useStory";
 
 /** Props: `st` from useStory(). Fills its card (flex column): title, legend, then the plot takes the rest, never less
  *  than 200 px (phone) to 300 px (wide) tall. The plot's minimum also follows the window height: at 1920x1080 a 300 px
  *  floor (plus the two-line legend) made this card, and with it the top row, taller than its share of one screen. */
 export default function HeroCurve({ st }: { st: StoryState }) {
-  const { s, tf, history, story } = st;
+  const { s, tf, history, moment } = st;
   const flat = useFlatten(tf || null);
   const still = useReducedMotion();
   const plan = flat.plan;
   const sig = s && tf ? signalOn(s, tf) : null;
-  const title = tf && s ? curveTitle(tf, s.sim_hour, story) : "The street with and without Gridzilla";
+  // The title is worded by the same moment as the headline and the top bar (useStory momentOf).
+  const title = moment?.title ?? "The street with and without Gridzilla";
   // Draw only once the history poll has answered for this transformer, so the first picture already holds the last
   // 6 hours (the poll keeps the previous street's payload until then).
   const histReady = !!(tf && history?.nodes && tf in history.nodes);

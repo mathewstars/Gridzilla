@@ -765,8 +765,14 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
 // ------------------------------------------------------------------ camera: frame the street from further back, sway slowly
 const PHI = 0.98; // from straight above: ~34 degrees above the horizon
 const THETA = 0.4; // from the front right
-/** "across": from the side, so the street runs left to right across the card, turned about 25 degrees toward the kiosk. */
+/** "across": from the side, so the street runs left to right across the card. The angle is not fixed: for the card's
+ *  actual shape the rig picks the most three-dimensional view (highest, most turned toward the kiosk) at which the
+ *  street still spans FILL of the card's width. A wide, short card gets a lower, straighter side view; a squarer card
+ *  gets more height and turn. Houses keep their real scale: the whole street is always in frame. */
 const ACROSS = { phi: 1.1, theta: Math.PI / 2 - 0.4 };
+const ACROSS_ELEV = [34, 31, 28, 25, 22, 19, 16].map((d) => Math.PI / 2 - (d * Math.PI) / 180); // as phi, high to low
+const ACROSS_TURN = [0.4, 0.3, 0.2, 0.12, 0.05, 0]; // radians toward the kiosk end
+const FILL = 0.88; // share of the card's width the street spans
 const SWAY = 0.2; // radians either way
 const SWAY_S = 56; // seconds for one slow sway
 
@@ -780,8 +786,6 @@ export interface Pad {
 const NO_PAD: Pad = { l: 0, r: 0, t: 0, b: 0 };
 
 function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean; sway: boolean; pad: Pad; across: boolean }) {
-  const PHI_ = across ? ACROSS.phi : PHI;
-  const THETA_ = across ? ACROSS.theta : THETA;
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, clock } = useThree();
   const lastTouch = useRef(-100);
@@ -789,8 +793,8 @@ function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.
   const off = useMemo(() => new THREE.Vector3(), []);
   const target = useMemo(() => new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()), [pts]);
 
-  // the smallest distance at which the street fits with air around it, then a lens shift that centres it in the part
-  // of the canvas no text covers (in clip space, -1..1 each way)
+  // For each candidate view angle: the smallest distance at which the street fits the part of the canvas no text
+  // covers (clip space, -1..1 each way), then a lens shift that centres it there. Recomputed whenever the canvas resizes.
   const frame = useMemo(() => {
     const w = Math.max(1, size.width),
       h = Math.max(1, size.height);
@@ -800,9 +804,12 @@ function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.
       fy1 = 1 - (2 * Math.min(pad.t, h * 0.7)) / h;
     const cam = new THREE.PerspectiveCamera((camera as THREE.PerspectiveCamera).fov, w / h, 0.5, 2000);
     const v = new THREE.Vector3();
-    const edge = sway ? 0.86 : 0.92; // room for the sway and some air: houses are context, not giants
-    const extent = (r: number) => {
-      cam.position.copy(target).add(v.setFromSphericalCoords(r, PHI_, THETA_));
+    // room for the sway and some air: houses are context, not giants. Across: the width is the goal, the height
+    // only has to clear the words (the points already include the gardens and tree tops).
+    const ex = across ? FILL : sway ? 0.86 : 0.92,
+      ey = across ? 0.97 : ex;
+    const extent = (r: number, phi: number, theta: number) => {
+      cam.position.copy(target).add(v.setFromSphericalCoords(r, phi, theta));
       cam.lookAt(target);
       cam.updateMatrixWorld();
       let x0 = Infinity,
@@ -820,17 +827,48 @@ function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.
       }
       return { x0, x1, y0, y1, behind };
     };
-    let lo = 4,
-      hi = 1200;
-    for (let i = 0; i < 30; i++) {
-      const mid = (lo + hi) / 2;
-      const e = extent(mid);
-      if (!e.behind && e.x1 - e.x0 <= (fx1 - fx0) * edge && e.y1 - e.y0 <= (fy1 - fy0) * edge) hi = mid;
-      else lo = mid;
+    const fit = (phi: number, theta: number) => {
+      let lo = 4,
+        hi = 1200;
+      for (let i = 0; i < 30; i++) {
+        const mid = (lo + hi) / 2;
+        const e = extent(mid, phi, theta);
+        if (!e.behind && e.x1 - e.x0 <= (fx1 - fx0) * ex && e.y1 - e.y0 <= (fy1 - fy0) * ey) hi = mid;
+        else lo = mid;
+      }
+      const e = extent(hi, phi, theta);
+      return { phi, theta, radius: hi, e, fill: (e.x1 - e.x0) / (fx1 - fx0) };
+    };
+    let best = fit(across ? ACROSS.phi : PHI, across ? ACROSS.theta : THETA);
+    if (across) {
+      // the most 3D view that reaches the fill; failing that, the one that comes closest
+      let pick: typeof best | null = null;
+      for (const phi of ACROSS_ELEV) {
+        for (const turn of ACROSS_TURN) {
+          const f = fit(phi, Math.PI / 2 - turn);
+          if (f.fill >= FILL - 0.01) {
+            pick = f;
+            break;
+          }
+          if (f.fill > best.fill + 0.005) best = f;
+        }
+        if (pick) break;
+      }
+      if (pick) best = pick;
     }
-    const e = extent(hi);
-    return { radius: hi, offX: ((e.x0 + e.x1) / 2 - (fx0 + fx1) / 2) * (w / 2), offY: ((fy0 + fy1) / 2 - (e.y0 + e.y1) / 2) * (h / 2), w, h };
-  }, [camera, size.width, size.height, pts, target, sway, pad.l, pad.r, pad.t, pad.b, PHI_, THETA_]);
+    const e = best.e;
+    return {
+      radius: best.radius,
+      phi: best.phi,
+      theta: best.theta,
+      offX: ((e.x0 + e.x1) / 2 - (fx0 + fx1) / 2) * (w / 2),
+      offY: ((fy0 + fy1) / 2 - (e.y0 + e.y1) / 2) * (h / 2),
+      w,
+      h,
+    };
+  }, [camera, size.width, size.height, pts, target, sway, pad.l, pad.r, pad.t, pad.b, across]);
+  const PHI_ = frame.phi,
+    THETA_ = frame.theta;
 
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
@@ -841,7 +879,7 @@ function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.
     controls.current?.update();
     cam.far = frame.radius * 4;
     cam.updateProjectionMatrix();
-  }, [camera, frame, target, off]);
+  }, [camera, frame, target, off, PHI_, THETA_]);
 
   // a slow sway around the front; after someone drags, wait 6 s and ease back into it
   useFrame(({ clock }, dt) => {

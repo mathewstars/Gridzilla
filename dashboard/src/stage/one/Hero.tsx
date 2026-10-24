@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import type { History, State } from "../../api";
 import { hhmm, nice } from "../../model";
 import { P, loadTone } from "../palette";
-import type { Story, StoryState } from "../useStory";
+import type { Moment, Story, StoryState } from "../useStory";
 import Counter, { fmtNum } from "../kit/Counter";
 import LoadRing from "../kit/LoadRing";
 import "./hero.css";
@@ -62,12 +62,11 @@ function gapPast(s: State, history: History | null, tf: string, min: number): Ta
   return best;
 }
 
-/** The big sentence (STORY.md wording), from the same story state as the hero figure, P1, P2 and the AI card. */
-function sentence(st: Story, name: string, nowTaken: Taken | null, hour: number) {
+/** The big sentence (STORY.md wording), from the same story state as the hero figure, P1, P2 and the AI card, and the
+ *  same moment (useStory momentOf) as the top bar and the chart title: "sun" only while the sky shown is not overcast. */
+function sentence(st: Story, name: string, nowTaken: Taken | null, m: Moment | null) {
   const over = Math.abs(st.nowPct ?? 0) >= 100;
-  const h = ((hour % 24) + 24) % 24;
-  const sun = h < 11 ? "morning sun" : h < 13 ? "noon sun" : h < 16 ? "midday sun" : "evening sun";
-  if (nowTaken?.back) return `Gridzilla is soaking up ${name}'s ${sun}.`;
+  if (nowTaken?.back) return m?.sun ? `Gridzilla is soaking up ${name}'s ${m.part} sun.` : `Gridzilla is soaking up ${name}'s solar backflow.`;
   if (nowTaken) return st.signal ? `Gridzilla is flattening the peak on ${name}.` : `Gridzilla is putting ${name} on a diet.`;
   if (st.phase === "acting") return `Gridzilla is stepping in on ${name}.`;
   if (over) return `${name} is over its limit.`;
@@ -133,7 +132,7 @@ export default function Hero({ st }: { st: StoryState }) {
   // ONE story truth: the hero claims kW "right now" only while someone on this street follows and the gap is real.
   const nowTaken = story.helping ? gapNow(s, tf, min) : null;
   const past = nowTaken ? null : gapPast(s, history, tf, min);
-  const line = sentence(story, name, nowTaken, s.sim_hour);
+  const line = sentence(story, name, nowTaken, st.moment);
   const loadAbs = Math.abs(pct ?? 0);
   const word = loadAbs >= 100 ? "Over its limit" : loadAbs >= (s.autopilot?.trigger_pct ?? 85) ? "Near its limit" : "Inside its limit";
   const fp = s.forecast_peak?.[tf] ?? null;
