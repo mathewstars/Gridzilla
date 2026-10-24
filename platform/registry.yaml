@@ -2723,7 +2723,7 @@ policy:
   ramp_s:
   - 20
   - 90
-  autopilot_interval_s: 20
+  autopilot_interval_s: 15
   autopilot_trigger_pct: 85
   autopilot_release_pct: 60
   autopilot_cooldown_min: 10

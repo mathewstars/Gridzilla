@@ -81,6 +81,16 @@
   .tabs { display:flex; gap:6px; }
   .tabs button { margin:0; padding:3px 9px; font-size:11px; }
   .tabs button.on { border-color:var(--acc); color:var(--acc); }
+  .views { display:flex; gap:4px; margin-left:18px; }
+  .views button { margin:0; padding:5px 14px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; border-radius:4px 4px 0 0; border-bottom:none; }
+  .views button.on { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
+  main[data-view="auto"] section:not([data-tab="auto"]), main[data-view="manual"] section:not([data-tab="manual"]), main[data-view="homes"] section:not([data-tab="homes"]) { display:none; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .modes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .tablewrap { max-height:620px; overflow:auto; }
+  select.feeder { width:auto; padding:3px 8px; font-size:12px; }
+  .schem text { font-size:11px; }
+  h2 .tabs { flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -90,20 +100,21 @@
   <span class="pill" id="seqpill">seq –</span>
   <span class="pill ok" id="hbpill">heartbeat on</span>
   <span class="pill" id="llmpill">advisor off</span>
+  <span class="views"><button id="v-auto" onclick="setView('auto')">Autopilot</button><button id="v-manual" onclick="setView('manual')">Manual</button><button id="v-homes" onclick="setView('homes')">Households</button></span>
   <span class="clock" id="clock">--:--</span>
 </header>
 
-<main>
-  <section class="span2">
+<main data-view="auto">
+  <section class="span2" data-tab="auto">
     <div class="kpis" id="kpis"></div>
   </section>
 
-  <section>
+  <section data-tab="auto">
     <h2>Grid schematic <span class="hint">click a transformer to select it</span></h2>
     <svg id="schem" class="schem" viewBox="0 0 760 300" role="img" aria-label="Feeder schematic with transformer load bars and program houses"></svg>
   </section>
 
-  <section>
+  <section data-tab="auto">
     <h2>DeepSeek control <span class="hint" id="aphint"></span></h2>
     <div class="modes" id="apmodes">
       <button data-ap="auto" onclick="setAp({mode:'auto'})">Autonomous</button>
@@ -122,29 +133,23 @@
     </div>
     <label>Standing warning for DeepSeek</label>
     <div class="row"><input id="apctx" placeholder="Drone strike warning tonight, expect outages 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
-    <label>Fail-safe demo</label>
-    <div class="modes">
-      <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
-      <button onclick="demo('heartbeat/resume')">Resume</button>
-      <button onclick="replay()">Replay last signal</button>
-    </div>
-    <div class="err" id="err"></div>
+    <div class="err"></div>
   </section>
 
-  <section>
+  <section data-tab="auto">
     <h2>Envelope curve <span class="hint" id="envhint">per house, per 15-min slot</span></h2>
     <div class="chartbox tall"><canvas id="envChart"></canvas></div>
     <div class="legend"><span><i style="background:var(--acc)"></i>envelope ceiling per house</span><span><i style="background:var(--s1)"></i>measured, average program house</span><span style="margin-left:auto">kW · + import · − export</span></div>
   </section>
 
-  <section>
+  <section data-tab="auto">
     <h2>Transformer load <span class="tabs" id="nodetabs"></span></h2>
     <div class="chartbox tall"><canvas id="loadChart"></canvas></div>
     <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s1);opacity:.5"></i>forecast (dashed)</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating · reverse rating</span></div>
   </section>
 
-  <section>
-    <h2>Program households <span class="hint">each simulated household stands for 30 real ones</span></h2>
+  <section data-tab="auto">
+    <h2>Program households <span class="hint" id="rephint"></span></h2>
     <div class="charts">
       <div class="chartbox" style="height:150px"><canvas id="socChart"></canvas></div>
       <div class="chartbox"><canvas id="gridChart"></canvas></div>
@@ -152,20 +157,65 @@
     <div class="legend" id="devlegend"></div>
   </section>
 
-  <section>
+  <section data-tab="auto">
     <h2>Active signals</h2>
     <div id="signals"></div>
   </section>
 
-  <section>
-    <h2>Households <span class="hint">battery · EV · heat pump or boiler behind one meter</span></h2>
+  <section class="span2" data-tab="homes">
+    <h2>Households <span class="hint" id="homeshint">battery · EV · heat pump or boiler behind one meter</span></h2>
+    <div class="modes" style="margin-bottom:8px"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
+    <div class="tablewrap">
     <table>
       <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
     </table>
+    </div>
   </section>
 
-  <section class="span2">
+  <section data-tab="manual">
+    <h2>Compose signal <span class="hint">reference only · the autopilot does this on its own</span></h2>
+    <label>Segment</label>
+    <select id="segment"></select>
+    <div class="modes" id="modes"></div>
+    <div class="row">
+      <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-export_max_kw"><label>export_max_kw · cap export</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-discharge_max_kw"><label>discharge_max_kw · ration</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
+      <div id="f-target_soc"><label>target_soc % · fill by deadline</label><input id="target_soc" type="number" step="5" value="90"></div>
+      <div id="f-max_soc_by"><label>max_soc_by % · make room</label><input id="max_soc_by" type="number" step="5" value="40"></div>
+    </div>
+    <div class="row">
+      <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
+      <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
+    </div>
+    <div class="row">
+      <div><label>Cohort k (blank = everyone)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
+      <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
+    </div>
+    <label>Note to owners</label>
+    <input id="note" placeholder="Transformer Atzgersdorf-1 near limit 17:00–19:00">
+    <button class="primary" onclick="send()">Sign and publish</button>
+    <div class="err"></div>
+  </section>
+
+  <section data-tab="manual">
+    <h2>Advisor <span class="hint">ask DeepSeek for one proposal · guard and operator decide</span></h2>
+    <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
+    <button onclick="advise()">Propose a signal</button>
+    <div class="prop" id="prop"></div>
+    <h2 style="margin-top:16px">Fail-safe demo <span class="hint">what the houses do when the DSO disappears or repeats itself</span></h2>
+    <div class="modes">
+      <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
+      <button onclick="demo('heartbeat/resume')">Resume</button>
+      <button onclick="replay()">Replay last signal</button>
+    </div>
+    <div class="err"></div>
+  </section>
+
+  <section class="span2" data-tab="auto">
     <h2>Log</h2>
     <div class="log" id="log"></div>
   </section>
@@ -181,7 +231,41 @@ async function api(path, body) {
   const r = await fetch("/api/" + path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {method:"POST"});
   const j = await r.json(); if (!r.ok) throw new Error(j.detail || r.statusText); return j;
 }
-const err = m => document.getElementById("err").textContent = m || "";
+const err = m => document.querySelectorAll(".err").forEach(e => e.textContent = m || "");
+function setView(v) { document.querySelector("main").dataset.view = v; document.querySelectorAll(".views button").forEach(b => b.classList.toggle("on", b.id === "v-" + v)); try { localStorage.setItem("gz.view", v); } catch (e) {} if (S) drawAll(); }
+try { setView(localStorage.getItem("gz.view") || "auto"); } catch (e) { setView("auto"); }
+let homesMode = "node"; function homesFilter(m) { homesMode = m; document.getElementById("hf-node").classList.toggle("on", m === "node"); document.getElementById("hf-all").classList.toggle("on", m === "all"); drawDevices(); }
+
+// ---------- manual compose (reference)
+const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
+const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw","max_soc_by"], SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
+let mode = "SUPPORT";
+function setMode(m) {
+  mode = m; document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.textContent === m));
+  ALL.forEach(f => document.getElementById("f-" + f).style.display = MODE_FIELDS[m].includes(f) ? "" : "none");
+  document.getElementById("duration_min").value = m === "STRETCH" ? 720 : (m === "PREPARE" ? 240 : 120);
+}
+document.getElementById("modes").innerHTML = MODES.map(m => `<button onclick="setMode('${m}')">${m}</button>`).join(""); setMode(mode);
+async function send() {
+  const body = {segment: document.getElementById("segment").value, mode, duration_min: +document.getElementById("duration_min").value,
+    start_in_min: +document.getElementById("start_in_min").value, note: document.getElementById("note").value};
+  const ck = document.getElementById("cohort_k").value, cn = document.getElementById("cohort_n").value; if (ck !== "" && cn !== "") body.cohort = [+ck, +cn];
+  MODE_FIELDS[mode].forEach(f => body[f] = +document.getElementById(f).value);
+  err(); try { await api("signal", body); } catch (e) { err("Guard refused: " + e.message); } refresh();
+}
+async function advise() {
+  const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
+  try {
+    const p = await api("advise", {situation: document.getElementById("situation").value});
+    box.innerHTML = `<b>${esc(p.mode)} → ${esc(p.segment)}</b> ${esc(JSON.stringify(p.fields))} · ${esc(p.duration_min)} min<br>${esc(p.rationale || "")}<br>` +
+      (p.guard ? `<span style="color:var(--crit)">guard: ${esc(p.guard)}</span>` : `<span style="color:var(--ok)">guard ok</span>`) + `<br><button onclick='fill(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Load into form</button>`;
+  } catch (e) { box.textContent = "advisor error: " + e.message; }
+}
+function fill(p) {
+  selectNode(p.segment); setMode(p.mode);
+  Object.entries(p.fields || {}).forEach(([k, v]) => { const el = document.getElementById(k); if (el && v != null) el.value = v; });
+  document.getElementById("duration_min").value = p.duration_min || 120; document.getElementById("start_in_min").value = p.start_in_min || 0; document.getElementById("note").value = p.note || "";
+}
 async function demo(p) { err(); try { await api(p); } catch (e) { err(e.message); } refresh(); }
 async function replay() {
   const seqs = Object.values(S.active || {}).map(s => s.seq);
@@ -191,7 +275,7 @@ async function replay() {
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
 async function setAp(body) { err(); try { await api("autopilot", body); } catch (e) { err("autopilot: " + e.message); } refresh(); }
 async function decideAp(d) { err(); try { await api("autopilot/" + d); } catch (e) { err(e.message); } refresh(); }
-function selectNode(n) { selNode = n; drawAll(); }
+function selectNode(n) { selNode = n; const sel = document.getElementById("segment"); if (sel && sel.options.length) sel.value = n; drawAll(); }
 function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
 
 // ---------- DeepSeek control loop
@@ -342,7 +426,7 @@ function drawCharts() {
 
   const hist = d => H.devices[d] || H.devices[((HH[d] || {}).devices || [])[0]] || [];   // a household's curve comes from its meter-owning device
   const longest = devs.reduce((a, d) => hist(d).length > a.length ? hist(d) : a, []);
-  gridChart.data.labels = longest.map(p => hhmm(p.h));
+  gridChart.data.labels = longest.map(p => p.ts.slice(11, 16));
   gridChart.data.datasets = devs.map(d => ({label: d, data: hist(d).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
   gridChart.update();
   document.getElementById("devlegend").innerHTML = devs.map(d => `<span><i style="background:${SERIES[devOrder.indexOf(d) % 5]}"></i>${d}</span>`).join("") + `<span style="margin-left:auto">grid kW · + import · − export</span>`;
@@ -374,12 +458,12 @@ function drawSchem() {
       <g onclick="selectNode('${tf}')" style="cursor:pointer">
       <rect class="box ${selNode === tf ? "sel" : ""}" x="${x}" y="96" width="${w}" height="92" rx="4"/>
       <text x="${x + 10}" y="114">${tf}</text><text x="${x + w - 10}" y="114" text-anchor="end" class="muted">${S.tree[tf].rating_kw} kVA</text>
-      <text x="${x + 10}" y="134" class="muted">load</text><text x="${x + w - 10}" y="134" text-anchor="end" style="fill:${c}">${a.total_kw != null ? a.total_kw.toFixed(0) + " kW · " + pct + "%" : "–"}</text>
+      <text x="${x + 10}" y="134" class="muted">load <tspan style="fill:${c}">${a.total_kw != null ? a.total_kw.toFixed(0) + " kW · " + pct + "%" : "–"}</tspan></text>
       <rect class="bar-bg" x="${x + 10}" y="142" width="${w - 20}" height="10" rx="3"/>
       <rect x="${x + 10}" y="142" width="${Math.min(1, Math.abs(pct || 0) / 120) * (w - 20)}" height="10" rx="3" fill="${c}"/>
       <line x1="${x + 10 + (100 / 120) * (w - 20)}" y1="138" x2="${x + 10 + (100 / 120) * (w - 20)}" y2="156" stroke="${css("--fg")}" stroke-width="1"/>
-      <text x="${x + 10}" y="176" class="muted">program ${a.program_kw != null ? (a.program_kw >= 0 ? "+" : "") + a.program_kw.toFixed(0) + " kW" : "–"} · ${a.kwh_available} kWh stored</text>
-      ${a.active ? `<text x="${x + w - 10}" y="176" text-anchor="end" style="fill:${css("--acc")}">${a.active}</text>` : ""}
+      <text x="${x + 10}" y="176" class="muted" style="font-size:10px">program ${a.program_kw != null ? (a.program_kw >= 0 ? "+" : "") + a.program_kw.toFixed(0) + " kW" : "–"} · ${Math.round(a.kwh_available)} kWh · ${S.tree[tf].other_houses || 0} others</text>
+      ${a.active ? `<text x="${x + w - 10}" y="134" text-anchor="end" style="fill:${css("--acc")};font-weight:600">${a.active}</text>` : ""}
       </g>`;
     devs.forEach((d, j) => {
       const dx = x + 10 + j * step + 14, D = HH[d], t = D.telemetry, ak = D.ack, real = D.real || !d.startsWith("sim-");
@@ -389,9 +473,9 @@ function drawSchem() {
         <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? (D.kwh ? Math.round(t.soc) : (t.dhw_c != null ? Math.round(t.dhw_c) + "°" : "")) : "–"}</text>
         ${t && t.ev_kw > 0 ? `<text x="${dx + 14}" y="228" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
         ${t && t.hp_kw > 0 ? `<text x="${dx + 14}" y="250" style="font-size:9px;fill:${css("--s5")}">HP</text>` : ""}
-        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? "REAL" : d.replace(/^sim-[a-z]+-/, "#")}</text>`;
+        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? "REAL" : d.replace(/^sim-[a-z-]+-/, "#")}</text>`;
     });
-    g += `<text x="${x + w - 10}" y="262" text-anchor="end" class="muted" style="font-size:9px">+${S.tree[tf].other_houses || 0} houses not in program</text>`;
+
   });
   g += `<text x="20" y="292" class="muted" style="font-size:10px">● SoC % (° = tank temp) · orange = under signal · yellow = partial · red = refused · grey = owner · white ring = real device · EV car charging · HP heat pump/boiler on</text>`;
   document.getElementById("schem").innerHTML = g;
@@ -430,13 +514,17 @@ function drawSignals() {
   document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted)">none · owners run their batteries as they like</div>`;
 }
 function drawDevices() {
-  const rows = [...devOrder].sort((a, b) => (HH[a].path.join("/") + a).localeCompare(HH[b].path.join("/") + b));
-  document.getElementById("devices").innerHTML = rows.map(d => {
+  const q = (document.getElementById("hsearch").value || "").toLowerCase();
+  let rows = [...devOrder].filter(d => homesMode === "all" || HH[d].path.includes(selNode)).filter(d => !q || d.includes(q) || HH[d].tf.includes(q));
+  rows.sort((a, b) => (HH[b].real ? 1 : 0) - (HH[a].real ? 1 : 0) || (HH[a].path.join("/") + a).localeCompare(HH[b].path.join("/") + b));
+  document.getElementById("homeshint").textContent = `${rows.length} of ${devOrder.length} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
+  document.getElementById("devices").innerHTML = rows.slice(0, 400).map(d => {
     const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
+    const heat = t.heat ? t.heat.replace("heatpump", "HP").replace("boiler", "boiler") : "";
     return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.devices && D.devices.length > 1 ? ` <span class="muted">· ${D.devices.join(" + ")}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
-      <td>${D.kwh ? (t.soc != null ? t.soc.toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + t.grid_kw.toFixed(1) : "–"}</td>
-      <td>${t.ev_kw != null ? t.ev_kw.toFixed(1) : ""}</td>
-      <td>${t.hp_kw != null ? t.hp_kw.toFixed(1) : (t.dhw_c != null ? "" : "")}${t.dhw_c != null ? ` <span class="muted">${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°</span>` : ""}</td>
+      <td>${D.kwh ? (t.soc != null ? Number(t.soc).toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(1) : "–"}</td>
+      <td>${t.ev ? (t.ev_kw > 0 ? Number(t.ev_kw).toFixed(1) : "0") + ` <span class="muted">/ ${t.ev}</span>` : ""}</td>
+      <td>${heat ? `${Number(t.hp_kw || 0).toFixed(1)} <span class="muted">${heat}${t.dhw_c != null ? ` ${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°` : ""}</span>` : ""}</td>
       <td style="color:${t.mode && t.mode !== "owner" ? "var(--acc)" : "var(--muted)"}">${t.mode || (t.soc != null ? "owner" : "offline")}</td>
       <td class="st-${a.status || ""}">${a.status || ""}${a.reason ? " (" + a.reason + ")" : ""}</td>
       <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
@@ -447,16 +535,18 @@ function drawTabs() {
   const feeder = feederOf(selNode);
   const feeders = Object.keys(S.tree).filter(n => n.startsWith("feeder:"));
   const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
+  const pct = n => { const a = S.aggregates[n]; return a && a.load_pct != null ? ` ${a.load_pct}%` : ""; };
   document.getElementById("nodetabs").innerHTML =
-    feeders.map(n => `<button class="${n === feeder ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("") +
-    `<span style="color:var(--muted);padding:0 4px">·</span>` +
-    tfs.map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("");
+    `<select class="feeder" onchange="selectNode(this.value)">${feeders.map(n => `<option value="${n}" ${n === feeder ? "selected" : ""}>${n.split(":")[1]} · ${S.tree[n].parent.split(":")[1]}${pct(n)}</option>`).join("")}</select>` +
+    tfs.map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}${pct(n)}</button>`).join("");
 }
-function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
+function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
+function drawAll() { if (!S) return; drawHints(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 
 async function refresh() {
   try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }
   devOrder = Object.keys(S.households || S.devices); HH = S.households || S.devices;
+  const sel = document.getElementById("segment"); if (sel && !sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; }
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
