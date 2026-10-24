@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import weather
+import flatten
 
 HERE = Path(__file__).parent
 KEYS = HERE / "keys"
@@ -46,6 +47,7 @@ MODE_FIELDS = {
     "STRETCH": {"discharge_max_kw"},
     "RECOVER": {"charge_max_kw"},
     "RELEASE": set(),
+    "SHAPE": {"import_max_kw", "export_max_kw"},   # the daily diet: two per-slot ceilings, on its own channel, under every event signal
 }
 ALL_FIELDS = ["import_max_kw", "export_max_kw", "export_min_kw", "charge_max_kw", "discharge_max_kw", "target_soc", "max_soc_by"]
 
@@ -310,15 +312,15 @@ def guard(segment, mode, fields, duration_min, envelope=None):
     if not (floor_s <= duration_min * 60 and duration_min <= limit):
         return f"window must be {floor_s} s .. {limit} min (real time) for {mode}"
     if envelope is not None:
-        if mode not in ("ABSORB", "SUPPORT"):
+        if mode not in ("ABSORB", "SUPPORT", "SHAPE"):
             return "only ABSORB and SUPPORT may carry an envelope"
         imp, exp = envelope.get("import_max_kw") or [], envelope.get("export_max_kw") or []
         if not (0 < envelope.get("slot_s", 0)) or len(imp) > 96 or len(exp) > 96:
             return "envelope needs slot_s > 0 and at most 96 slots"
-        if (imp and mode != "SUPPORT") or (exp and mode != "ABSORB"):
+        if mode != "SHAPE" and ((imp and mode != "SUPPORT") or (exp and mode != "ABSORB")):
             return "import curve belongs to SUPPORT, export curve to ABSORB"
         for c in (envelope.get("by_tf") or {}).values():
-            if len(c) > 96 or (mode == "SUPPORT" and any(v < POLICY["max_import_cap_floor_kw"] for v in c)) or any(v < 0 for v in c):
+            if len(c) > 96 or (mode in ("SUPPORT", "SHAPE") and any(v < POLICY["max_import_cap_floor_kw"] for v in c)) or any(v < 0 for v in c):
                 return "per-transformer envelope out of policy"
         if any(v < POLICY["max_import_cap_floor_kw"] for v in imp):
             return f"envelope import cap below policy floor {POLICY['max_import_cap_floor_kw']} kW"
@@ -485,6 +487,91 @@ def compute_envelope(node, mode, duration_sim_min, start_in_sim_min=0.0):
     return env
 
 
+# ---------------------------------------------------------------- flattening: the monster's diet (flatten.py)
+SHAPE_EVERY_S = int(os.environ.get("GZ_SHAPE_EVERY_S", "120"))      # re-plan every 2 grid hours
+SHAPE = {"plans": {}, "at": None, "seq": {}, "rounds": 0, "enabled": os.environ.get("GZ_SHAPE", "1") != "0"}
+
+
+def fleet_under(tf):
+    """(houses, ev houses, usable battery kWh for the peak, free battery kWh for the noon surplus) behind a transformer."""
+    houses = ev = usable = free = 0.0
+    for d in devices_under(tf):
+        t = state["telemetry"].get(d["id"])
+        if not t or d.get("kwh", 0) <= 0:
+            continue
+        r = d.get("represents", 1); houses += r
+        if d.get("ev_kw") or t.get("ev"): ev += r
+        soc = t.get("soc") if t.get("soc") is not None else 50
+        usable += r * d["kwh"] * max(0.0, (soc - 20) / 100) * 0.9
+        free += r * d["kwh"] * max(0.0, (100 - soc) / 100)
+    return int(houses), int(ev), usable, free
+
+
+def flatten_plan(node=None):
+    """Plans per transformer (fresh), aggregated for a feeder, substation or the city when node is given."""
+    h0 = sim_hour()
+    pv_x = SCENARIO["pv_x"] if SCENARIO["name"] != "live-weather" else 1.0
+    plans = {}
+    for tf in [t for t in TREE if t.startswith("tf:")]:
+        houses, ev, usable, free = fleet_under(tf)
+        if not houses:
+            continue
+        other = (lambda t: (lambda h: TREE[t].get("other_houses", 0) * other_profile_kw(h)))(tf)
+        plans[tf] = flatten.plan_tf(tf, TREE[tf], h0, other, houses, ev, pv_x, usable, free)
+    if node is None:
+        return plans
+    if node.startswith("tf:"):
+        return plans.get(node)
+    under = [plans[t] for t in tfs_under(node) if t in plans]
+    rating = TREE[node].get("rating_kw") or sum(TREE[t]["rating_kw"] for t in tfs_under(node))
+    return flatten.aggregate(under, node, rating)
+
+
+def shape_round():
+    """One SHAPE per feeder, carrying every transformer's curves (by_tf); the segment-wide curve is the tightest one."""
+    plans = flatten_plan()
+    if not plans:
+        return
+    sent = 0
+    for feeder in [n for n in TREE if n.startswith("feeder:")]:
+        tfs = [t for t in tfs_under(feeder) if t in plans]
+        if not tfs:
+            continue
+        n = flatten.SLOTS
+        imp = [round(min(plans[t]["import_max_kw"][k] for t in tfs), 1) for k in range(n)]
+        exp = [round(min(plans[t]["export_max_kw"][k] for t in tfs), 1) for k in range(n)]
+        curve = {"slot_s": round(flatten.DT * 3600 / SIM_X, 3), "slot_sim_min": 15, "start_sim_h": round(sim_hour() % 24, 2),
+                 "import_max_kw": imp, "export_max_kw": exp,
+                 "by_tf": {t: plans[t]["import_max_kw"] for t in tfs}, "by_tf_export": {t: plans[t]["export_max_kw"] for t in tfs}}
+        duration_min = 24 * 60 / SIM_X                                   # 24 grid hours, real minutes
+        with _lock:
+            state["seq"] += 1; seq = state["seq"]
+            t0 = now()
+            doc = {"v": 1, "seq": seq, "issued_at": iso(t0), "segment": feeder, "mode": "SHAPE",
+                   "valid_from": iso(t0), "valid_to": iso(t0 + timedelta(minutes=duration_min)),
+                   **{k: None for k in ALL_FIELDS}, "ramp_s": POLICY["ramp_s"],
+                   "note": "Gridzilla diet plan: your car is full by morning, the street stays flat", "cohort": None, "envelope": curve}
+            SHAPE["seq"][feeder] = seq
+            persist()
+        mq.publish(f"gridzilla/shape/{feeder}", envelope(doc), qos=1)
+        sent += 1
+    SHAPE["plans"] = plans; SHAPE["at"] = iso(now()); SHAPE["rounds"] += 1
+    city = flatten.aggregate(list(plans.values()), "region:at", sum(TREE[t]["rating_kw"] for t in plans))
+    log("shape", f"diet plan renewed on {sent} feeders: Vienna peak {city['peak_naive_kw'] / 1000:.2f} MW without -> {city['peak_plan_kw'] / 1000:.2f} MW planned, "
+                 f"{city['shifted_kwh']:.0f} kWh of car charging moved into the valley, {city['shaved_kwh']:.0f} kWh of peak eaten by batteries")
+
+
+def shape_loop():
+    time.sleep(40)                                                        # let the houses register first
+    while True:
+        if SHAPE["enabled"]:
+            try:
+                shape_round()
+            except Exception as e:
+                print("[shape]", e, flush=True)
+        time.sleep(SHAPE_EVERY_S)
+
+
 # ---------------------------------------------------------------- LLM advisor (DeepSeek, OpenAI-compatible)
 ADVISOR_SYSTEM = """You are the control brain of Gridzilla, a DSO platform that sends bounded signals to home batteries.
 You choose one signal or none. A deterministic policy guard checks it; if it passes, the platform signs and sends it without a human.
@@ -495,6 +582,10 @@ Signal modes and allowed fields:
 - STRETCH: discharge_max_kw. Street is dead; ration batteries until expected restoration (duration = expected restoration).
 - RECOVER: charge_max_kw. After restoration, recharge. (PREPARE, RECOVER and make-room ABSORB are automatically staggered over cohorts by the platform, so the fleet fills in waves.)
 - RELEASE: end the event on that segment.
+Underneath you, the platform's flattening plan (SHAPE) already runs on every feeder all day: per-slot import and export
+ceilings that spread car charging into the night valley and let batteries eat the evening peak. Do not send SUPPORT or
+ABSORB merely to flatten a normal day; send them for what the plan cannot see: a forecast above rating despite the plan,
+a cold snap, an outage, PV backflow beyond the plan's export level.
 For ABSORB and SUPPORT the platform attaches a dynamic operating envelope: a per-house ceiling for every 15-minute slot,
 computed from the forecast headroom of each transformer. Your flat import_max_kw / export_max_kw is the fallback for devices
 that cannot follow a curve, so choose it as the tightest value you expect to need.
@@ -550,7 +641,8 @@ def focus_context(focus):
         tfs[t] = {"rating_kw": TREE[t]["rating_kw"], "load_pct_now": ag[t]["load_pct"], "forecast_peak_pct": h.get("pct"),
                   "peak_at_h": h.get("at_h"), "program_houses": program_houses(t), "avg_battery_soc": round(sum(socs) / len(socs)) if socs else None,
                   "forecast_kw_next_3h": [p["total_kw"] for p in forecast(t)][::2]}
-    return {"sim_hour": round(sim_hour(), 2), "target": node, "path": path_of(node), "allowed_segments": focus["choices"],
+    shp = {t: {"level_kw": p["level_kw"], "planned_peak_pct": p["peak_plan_pct"], "naive_peak_pct": p["peak_naive_pct"]} for t, p in SHAPE["plans"].items() if t in tfs}
+    return {"sim_hour": round(sim_hour(), 2), "target": node, "path": path_of(node), "allowed_segments": focus["choices"], "flattening_plan": shp,
             "transformers": tfs, "active_signals_overlapping": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to") if s.get(k) is not None}
                                                                 for n, s in state["active"].items() if overlaps(n, node)}}
 
@@ -932,7 +1024,7 @@ def get_state(hh: str = "", fc: str = "", tree: int = 1):
                 if best is None or abs(pct) > abs(best["pct"]): best = {"pct": pct, "h": p["h"]}
             if best: peaks[n] = best
         out = {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "aggregates": aggregates(), "summary": tot,
-               "households": sel, "active": state["active"], "recent": state.get("recent", {}), "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
+               "households": sel, "active": state["active"], "recent": state.get("recent", {}), "shape": {"at": SHAPE["at"], "rounds": SHAPE["rounds"], "enabled": SHAPE["enabled"], "feeders": len(SHAPE["seq"])}, "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
                "forecast_peak": peaks, "forecast": {fc: forecast(fc)} if fc in TREE and not fc.startswith("region") else {}}
         if tree: out["tree"] = TREE
@@ -1013,6 +1105,24 @@ def register(r: Register):
 def post_signal(s: Signal):
     fields = {k: getattr(s, k) for k in ALL_FIELDS}
     return send_signal(s.segment, s.mode, fields, s.duration_min, s.note, s.start_in_min, s.cohort)
+
+
+@app.get("/api/flatten")
+def get_flatten(node: str = "region:at"):
+    if node not in TREE:
+        raise HTTPException(404, "unknown node")
+    p = flatten_plan(node)
+    return {"node": node, "sim_hour": round(sim_hour(), 2), "renewed_at": SHAPE["at"], "rounds": SHAPE["rounds"], "enabled": SHAPE["enabled"],
+            "shape_seq": SHAPE["seq"], "plan": p}
+
+
+@app.post("/api/shape/{onoff}")
+def set_shape(onoff: str):
+    SHAPE["enabled"] = onoff == "on"
+    if SHAPE["enabled"]:
+        threading.Thread(target=shape_round, daemon=True).start()
+    log("shape", "diet plan " + ("on" if SHAPE["enabled"] else "off (houses keep the last plan until it expires)"))
+    return {"enabled": SHAPE["enabled"]}
 
 
 @app.post("/api/advise")
@@ -1098,6 +1208,7 @@ def main():
     threading.Thread(target=heartbeat_loop, daemon=True).start()
     threading.Thread(target=sampler_loop, daemon=True).start()
     threading.Thread(target=autopilot_loop, daemon=True).start()
+    threading.Thread(target=shape_loop, daemon=True).start()
     threading.Thread(target=weather.loop, args=(TREE,), daemon=True).start()
     import uvicorn
     log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  llm={LLM_URL or 'off'}")

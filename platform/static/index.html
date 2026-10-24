@@ -110,6 +110,14 @@
   select.feeder { width:auto; padding:2px 6px; font-size:11px; }
   main[data-view="story"]  { grid-template-columns: 1.7fr 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
   main[data-view="story"] section:not([data-tab="story"]) { display:none; }
+  main[data-view="flat"]   { grid-template-columns: 1.7fr 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  main[data-view="flat"] section:not([data-tab="flat"]) { display:none; }
+  .monster { font-size:13px; line-height:1.45; color:var(--fg); }
+  .monster b { color:var(--acc); }
+  .flatsteps { display:grid; grid-template-columns: 1fr; gap:8px; }
+  .flatsteps .step .v { font-size:15px; white-space:normal; }
+  .tflist { font-family:var(--mono); font-size:11px; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:3px 10px; color:var(--muted); }
+  .tflist span b { color:var(--fg); font-weight:500; }
   .steps { display:grid; grid-template-columns: repeat(4, 1fr) auto; gap:10px; align-items:stretch; }
   .step { background:var(--panel2); border-radius:6px; padding:10px 14px; min-width:0; border-left:4px solid var(--line); }
   .step.on { border-left-color:var(--acc); }
@@ -141,7 +149,7 @@
   <span class="pill" id="seqpill">seq –</span>
   <span class="pill ok" id="hbpill">heartbeat on</span>
   <span class="pill" id="llmpill">advisor off</span>
-  <span class="views"><button id="v-story" onclick="setView('story')">Presentation</button><button id="v-auto" onclick="setView('auto')">Autopilot</button><button id="v-manual" onclick="setView('manual')">Manual</button><button id="v-homes" onclick="setView('homes')">Households</button></span>
+  <span class="views"><button id="v-story" onclick="setView('story')">Presentation</button><button id="v-flat" onclick="setView('flat')">Flattening</button><button id="v-auto" onclick="setView('auto')">Autopilot</button><button id="v-manual" onclick="setView('manual')">Manual</button><button id="v-homes" onclick="setView('homes')">Households</button></span>
   <span class="clock" id="clock">--:--</span>
 </header>
 
@@ -268,6 +276,24 @@
     <div style="flex:1 1 45%; min-width:0"><h2>What happened <span class="hint">latest decisions</span></h2><div class="ticker" id="ticker" style="margin-top:6px"></div></div>
   </section>
 
+  <!-- flattening tab: the monster's diet -->
+  <section class="span3" data-tab="flat" style="gap:6px">
+    <h2>Flattening · the diet plan <span class="hint" id="flathint"></span><span class="tabs" id="flatchips"></span></h2>
+    <div class="steps" id="flattiles"></div>
+  </section>
+  <section data-tab="flat">
+    <h2><span id="flattitle">Vienna · next 24 grid hours</span> <span class="hint" id="flatdelta"></span></h2>
+    <div class="chartbox"><canvas id="flatChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--muted)"></i>without Gridzilla: every car charges the moment it is plugged in</span><span><i style="background:var(--s1)"></i>with the diet plan</span><span><i style="background:#5a6270"></i>load nobody controls (other houses + base − PV)</span><span><i style="background:var(--acc)"></i>level L: the flattest the street can be</span><span><i style="background:var(--crit)"></i>rating</span></div>
+  </section>
+  <section data-tab="flat" style="gap:8px; overflow:auto">
+    <h2>How the monster eats a peak</h2>
+    <div class="flatsteps" id="flatsteps"></div>
+    <div class="monster" id="flatmonster"></div>
+    <h2 style="margin-top:4px">Transformers in this plan <span class="hint" id="flattfhint"></span></h2>
+    <div class="tflist" id="flattfs"></div>
+  </section>
+
   <!-- households tab -->
   <section data-tab="homes">
     <h2>Households <span class="hint" id="homeshint">battery · EV · heat pump or boiler behind one meter</span></h2>
@@ -335,7 +361,7 @@ async function replay() {
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
 async function setAp(body) { err(); try { await api("autopilot", body); } catch (e) { err("autopilot: " + e.message); } refresh(); }
 async function decideAp(d) { err(); try { await api("autopilot/" + d); } catch (e) { err(e.message); } refresh(); }
-function selectNode(n) { selNode = n; const sel = document.getElementById("segment"); if (sel && sel.options.length) sel.value = n; drawAll(); }
+function selectNode(n) { selNode = n; const sel = document.getElementById("segment"); if (sel && sel.options.length) sel.value = n; drawAll(); if (document.querySelector("main").dataset.view === "flat") loadFlat(true); }
 function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
 function feederOf0(n) { if (!TREE) return n; while (n && !n.startsWith("feeder:") && TREE[n] && TREE[n].parent) { if (n.startsWith("tf:")) return TREE[n].parent; n = TREE[n].parent; } return n; }
 
@@ -730,8 +756,72 @@ function drawStory() {
   document.querySelector("#ticker").previousElementSibling.querySelector(".hint").textContent = "all of Vienna, latest first";
   document.getElementById("ticker").innerHTML = ap.history.slice(0, 6).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
 }
+// ---------- flattening view
+let flatChart = null, FP = null, fpNode = null, fpAt = 0;
+async function loadFlat(force) {
+  const node = selNode;
+  if (!force && FP && fpNode === node && Date.now() - fpAt < 15000) return;
+  try { const r = await fetch(`/api/flatten?node=${encodeURIComponent(node)}`).then(r => r.json()); FP = r; fpNode = node; fpAt = Date.now(); } catch { return; }
+  drawFlat();
+}
+function drawFlat() {
+  if (document.querySelector("main").dataset.view !== "flat") return;
+  const node = selNode;
+  document.getElementById("flatchips").innerHTML = `<button class="${node === "region:at" ? "on" : ""}" style="font-weight:700;color:var(--acc)" onclick="selectNode('region:at'); loadFlat(true)">VIENNA</button><span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(n => n.startsWith("sub:")).map(sub =>
+    `<button class="${node === sub ? "on" : ""}" style="font-weight:600" onclick="selectNode('${sub}'); loadFlat(true)">${sub.split(":")[1]}</button>` +
+    Object.keys(S.tree).filter(f => S.tree[f].parent === sub).map(f => `<button class="${node === f || S.tree[node].parent === f ? "on" : ""}" onclick="selectNode('${f}'); loadFlat(true)">${f.split(":")[1]}</button>`).join("")).join(`<span style="color:var(--muted)">·</span>`) +
+    (node.startsWith("feeder:") || node.startsWith("tf:") ? `<span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(t => S.tree[t].parent === (node.startsWith("tf:") ? S.tree[node].parent : node)).map(t => `<button class="${node === t ? "on" : ""}" style="color:var(--s1)" onclick="selectNode('${t}'); loadFlat(true)">${t.split(":")[1]}</button>`).join("") : "");
+  if (!FP || fpNode !== node) { loadFlat(true); return; }
+  const p = FP.plan; if (!p) { document.getElementById("flathint").textContent = "no houses in the program here"; return; }
+  const name = node === "region:at" ? "Vienna · all transformers" : node.replace(":", " ");
+  const rating = p.rating_kw, big = rating >= 10000;
+  const fmt = kw => big ? (kw / 1000).toFixed(2) + " MW" : kw.toFixed(0) + " kW";
+  document.getElementById("flattitle").textContent = `${name} · next 24 grid hours from ${hhmm(p.start_h)} · ${big ? (rating / 1000).toFixed(0) + " MVA" : rating + " kVA"}`;
+  document.getElementById("flathint").textContent = `${FP.enabled ? "SHAPE renewed " + (FP.renewed_at ? FP.renewed_at.slice(11, 19) + " UTC" : "soon") + " · round " + FP.rounds + " · every 2 grid hours" : "diet plan OFF"} · ${p.houses} program houses, ${p.ev_houses} with a car`;
+  const eaten = p.peak_naive_kw - p.peak_plan_kw;
+  document.getElementById("flattiles").innerHTML = [
+    ["peak without Gridzilla", fmt(p.peak_naive_kw), `${p.peak_naive_pct} % of rating · cars at 11 kW at ${hhmm(17)}`, p.peak_naive_pct >= 100 ? "crit" : p.peak_naive_pct >= 85 ? "warn" : ""],
+    ["peak with the diet plan", fmt(p.peak_plan_kw), `${p.peak_plan_pct} % of rating · level L = ${fmt(p.level_kw)}`, "ok"],
+    ["peak eaten", fmt(eaten), `${p.peak_naive_kw ? Math.round(100 * eaten / p.peak_naive_kw) : 0} % off the top · ${p.shaved_kwh.toFixed(0)} kWh from batteries`, "acc"],
+    ["car charging moved", `${p.shifted_kwh >= 1000 ? (p.shifted_kwh / 1000).toFixed(1) + " MWh" : p.shifted_kwh.toFixed(0) + " kWh"}`, `into the night valley · ${p.cars_full ? "every car full by 07:00" : "not all cars full: level raised"}`, ""],
+    ["noon export level", fmt(p.export_level_kw), `${p.batt_kwh_free.toFixed(0)} kWh of battery room absorbs the PV surplus`, ""],
+  ].map(([t, v, d, c]) => `<div class="step on"><div class="t">${t}</div><div class="v" style="${c === "ok" ? "color:var(--ok)" : c === "crit" ? "color:var(--crit)" : c === "warn" ? "color:var(--warn)" : c === "acc" ? "color:var(--acc)" : ""}">${v}</div><div class="d">${d}</div></div>`).join("");
+  const labels = p.hours.map(h => hhmm(h));
+  const unc = p.other_kw.map((o, i) => o + p.base_kw[i] - p.pv_kw[i]);
+  if (!flatChart) flatChart = new Chart(document.getElementById("flatChart"), {type: "line", data: {labels, datasets: [
+      {label: "without Gridzilla", data: [], borderColor: "#9aa3ad", borderWidth: 2, borderDash: [5, 4], pointRadius: 0, tension: 0.3, fill: false},
+      {label: "with the diet plan", data: [], borderColor: css("--s1"), backgroundColor: "rgba(120,170,230,0.18)", borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: "origin"},
+      {label: "load nobody controls", data: [], borderColor: "#5a6270", backgroundColor: "rgba(90,98,112,0.25)", borderWidth: 1, pointRadius: 0, tension: 0.3, fill: "origin"},
+      {label: "level L", data: [], borderColor: css("--acc"), borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false},
+      {label: "rating", data: [], borderColor: css("--crit"), borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false},
+      {label: "eaten", data: [], borderColor: "transparent", backgroundColor: "rgba(232,137,58,0.35)", pointRadius: 0, tension: 0.3, fill: "-5"},
+    ]},
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false, callbacks: {label: c => c.dataset.label === "eaten" ? null : ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : (big ? (c.parsed.y / 1000).toFixed(2) + " MW" : c.parsed.y.toFixed(0) + " kW")}`}}}}});
+  flatChart.data.labels = labels;
+  flatChart.data.datasets[0].data = p.naive_kw; flatChart.data.datasets[1].data = p.planned_kw; flatChart.data.datasets[2].data = unc;
+  flatChart.data.datasets[3].data = p.hours.map(() => p.level_kw);
+  const dataMax = Math.max(...p.naive_kw, ...p.planned_kw), ratingNear = rating < dataMax * 2.2;
+  flatChart.data.datasets[4].data = p.hours.map(() => ratingNear ? rating : null);
+  flatChart.data.datasets[5].data = p.naive_kw.map((v, i) => Math.max(v, p.planned_kw[i]));   // orange = between naive (above) and planned
+  flatChart.data.datasets[5].fill = {target: 1, above: "rgba(232,137,58,0.35)", below: "transparent"};
+  flatChart.options.scales.y.ticks = {callback: v => big ? (v / 1000).toFixed(1) + " MW" : v + " kW", maxTicksLimit: 7};
+  flatChart.options.scales.y.suggestedMax = (ratingNear ? rating : dataMax) * 1.12;
+  flatChart.update();
+  document.getElementById("flatdelta").innerHTML = `<span class="delta">${fmt(eaten)} off the peak · ${p.peak_naive_pct} % → ${p.peak_plan_pct} % of rating${ratingNear ? "" : " · rating off scale"}</span>`;
+  const steps = [
+    ["1 · sense", `forecast what nobody controls: ${p.houses} program houses' base load, their PV, and the ${node === "region:at" ? "thousands of" : ""} houses outside the program, weather-aware`],
+    ["2 · count the flexibility", `${p.ev_kwh.toFixed(0)} kWh of car charging that must be done by 07:00 · ${p.batt_kwh_usable.toFixed(0)} kWh of battery for the peak · ${p.batt_kwh_free.toFixed(0)} kWh of battery room for the noon PV`],
+    ["3 · water-fill", `find the lowest level L = ${fmt(p.level_kw)} where the cars fit in the valley below it AND the peak above it fits in the batteries. L is the flattest shape physics allows`],
+    ["4 · send the ceilings", `every 15-minute slot gets a per-house import ceiling (L − uncontrolled) ÷ houses and an export ceiling (Le + uncontrolled) ÷ houses, signed, renewed every 2 grid hours as one SHAPE signal per feeder. Owner limits still win`],
+  ];
+  document.getElementById("flatsteps").innerHTML = steps.map(([t, d]) => `<div class="step on"><div class="t">${t}</div><div class="v">${d}</div></div>`).join("");
+  document.getElementById("flatmonster").innerHTML = `<b>Gridzilla is on a diet.</b> It eats exactly ${fmt(eaten)} of peak, never more: a car plugged in at 18:00 trickles through dinner and gulps at 02:00, a battery swallows the slice above L and burps it back into the house, and at noon it drinks the PV surplus above ${fmt(p.export_level_kw)} so the feeder never sees it. Every car is full by morning${p.cars_full ? "" : " (almost: L was raised so the cars fit)"}, nobody notices, and the transformer sleeps at ${p.peak_plan_pct} % instead of ${p.peak_naive_pct} %.`;
+  const tfs = p.tfs || [{tf: p.tf, rating_kw: p.rating_kw, level_kw: p.level_kw, peak_naive_pct: p.peak_naive_pct, peak_plan_pct: p.peak_plan_pct, houses: p.houses, ev_houses: p.ev_houses}];
+  document.getElementById("flattfhint").textContent = `${tfs.length} · worst without: ${Math.max(...tfs.map(t => t.peak_naive_pct))} % · worst with: ${Math.max(...tfs.map(t => t.peak_plan_pct))} %`;
+  document.getElementById("flattfs").innerHTML = tfs.sort((a, b) => b.peak_naive_pct - a.peak_naive_pct).slice(0, 36).map(t => `<span title="${t.tf}: ${t.houses} houses, ${t.ev_houses} cars, L = ${t.level_kw} kW"><b>${t.tf.split(":")[1]}</b> ${t.peak_naive_pct} → <span style="color:${t.peak_plan_pct >= 85 ? "var(--warn)" : "var(--ok)"}">${t.peak_plan_pct} %</span></span>`).join("");
+}
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
-function drawAll() { if (!S) return; drawHints(); drawStory(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
+function drawAll() { if (!S) return; drawHints(); drawStory(); drawFlat(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 
 let tick = 0;
 function wanted() {
@@ -766,6 +856,7 @@ async function refresh() {
     try { H = await fetch(`/api/history?nodes=${encodeURIComponent(q.nodes)}&devices=${encodeURIComponent(q.devices)}&limit=120`).then(r => r.json()); } catch { H = H || { nodes: {}, devices: {} }; }
   }
   tick++;
+  if (document.querySelector("main").dataset.view === "flat" && tick % 10 === 0) loadFlat(true);
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   const focus = document.querySelector("main").dataset.view === "story" ? storyNode() : selNode;
   const chain = pathOf(focus).filter(n => !n.startsWith("region")).map(n => n.split(":")[1]).join(" › ");

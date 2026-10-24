@@ -89,7 +89,8 @@ function profiles(h) {
   const sun = Math.max(0, Math.sin(((hour - 6) / 12) * Math.PI));
   const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
   const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
-  const plugged = ev.kw && hour >= (ev.plugged?.[0] ?? 17) && hour < (ev.plugged?.[1] ?? 23);
+  const [pa, pb] = ev.plugged || [17, 7];
+  const plugged = ev.kw && (pa < pb ? (hour >= pa && hour < pb) : (hour >= pa || hour < pb));   // overnight windows wrap midnight
   if (plugged && h.evDay !== Math.floor(h.simMinutes / 1440)) { h.evDay = Math.floor(h.simMinutes / 1440); h.evNeedKwh = 6 + Math.random() * 20; }   // a commute: 6-26 kWh per day
   const wants = plugged && (h.evNeedKwh || 0) > 0;
   return { load, pv, evMax: wants ? ev.kw : 0 };
@@ -97,18 +98,31 @@ function profiles(h) {
 
 // Envelope curve: per-slot ceilings that replace the flat import/export caps while the signal runs.
 // Slot i covers [valid_from + i*slot_s, +slot_s); after the last slot the last value holds. Export never above the owner's feed-in limit.
-function currentLimits(h) {
-  const e = h.effective;
-  if (!e) return {};
-  const env = h.signal && h.signal.envelope;
-  if (!env) return { ...e };
-  const i = clamp(Math.floor((Date.now() - Date.parse(h.signal.valid_from)) / 1000 / env.slot_s), 0, Infinity);
+function slotCaps(sig, h) {
+  const env = sig && sig.envelope;
+  if (!env) return {};
+  const i = clamp(Math.floor((Date.now() - Date.parse(sig.valid_from)) / 1000 / env.slot_s), 0, Infinity);
   const pick = a => (Array.isArray(a) && a.length ? a[Math.min(i, a.length - 1)] : null);
-  const out = { ...e, slot: i };
-  const mine = env.by_tf && env.by_tf[h.cfg.path[h.cfg.path.length - 1]];   // per-transformer curve beats the segment-wide one
-  const imp = pick(mine && env.import_max_kw ? mine : env.import_max_kw), exp = pick(mine && env.export_max_kw ? mine : env.export_max_kw);
+  const tf = h.cfg.path[h.cfg.path.length - 1];
+  const mine = env.by_tf && env.by_tf[tf], mineX = env.by_tf_export && env.by_tf_export[tf];   // per-transformer curve beats the segment-wide one
+  const imp = pick(mine || env.import_max_kw), exp = pick(mineX || (mine && !env.by_tf_export && env.export_max_kw ? mine : env.export_max_kw));
+  const out = { slot: i };
   if (imp != null) out.import_max_kw = imp;
   if (exp != null) out.export_max_kw = Math.min(exp, h.cfg.feedin_max_kw);
+  return out;
+}
+
+// Effective limits = the diet plan (SHAPE, per-slot ceilings) under the event signal (if any); the tighter ceiling wins.
+function currentLimits(h) {
+  if (h.shape && Date.parse(h.shape.valid_to) < Date.now()) { h.shape = null; log(h.cfg.id, "SHAPE expired"); }
+  const base = h.shape ? { mode: "SHAPE", ...slotCaps(h.shape, h) } : null;
+  const e = h.effective;
+  if (!e) return base ? { ...base } : {};
+  const out = { ...e, ...slotCaps(h.signal, h) };
+  if (base) {
+    if (base.import_max_kw != null) out.import_max_kw = out.import_max_kw != null ? Math.min(out.import_max_kw, base.import_max_kw) : base.import_max_kw;
+    if (base.export_max_kw != null) out.export_max_kw = out.export_max_kw != null ? Math.min(out.export_max_kw, base.export_max_kw) : base.export_max_kw;
+  }
   return out;
 }
 
@@ -262,6 +276,11 @@ function onSignal(h, env, platformPub) {
   if (Date.parse(sig.valid_to) < Date.now()) return ack(h, sig.seq, "refused", "expired");
   h.lastSeq = sig.seq; saveSeq(h.cfg.id, sig.seq);
   if (sig.mode === "RELEASE") { h.effective = null; h.signal = null; log(h.cfg.id, "RELEASE -> owner mode"); return ack(h, sig.seq, "applied", null); }
+  if (sig.mode === "SHAPE") {                                                   // the diet plan: kept beside the event signal, no heartbeat needed
+    if (!sig.envelope) return ack(h, sig.seq, "refused", "shape_without_curve");
+    h.shape = sig; if (!h.shapeLogged) { h.shapeLogged = true; log(h.cfg.id, `SHAPE accepted: ${sig.envelope.import_max_kw.length} slots, tonight's ceiling ${sig.envelope.import_max_kw.slice(0, 8).join("/")} kW`); }
+    return ack(h, sig.seq, "applied", null);
+  }
   const { eff, status, reason } = merge(h, sig);
   if (status === "refused") return ack(h, sig.seq, status, reason);
   const ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);
@@ -297,7 +316,7 @@ function onSignal(h, env, platformPub) {
     h.mq = mqtt.connect(BROKER, { clientId: `gz-${cfg.id}`, username: process.env.GZ_MQTT_USER, password: process.env.GZ_MQTT_PASS,
       rejectUnauthorized: true });   // BROKER may be mqtts://host:8883 (HiveMQ Cloud); the public cert is verified
     h.mq.on("connect", () => {
-      cfg.path.forEach(n => h.mq.subscribe(`gridzilla/sig/${n}`, { qos: 1 }));
+      cfg.path.forEach(n => { h.mq.subscribe(`gridzilla/sig/${n}`, { qos: 1 }); h.mq.subscribe(`gridzilla/shape/${n}`, { qos: 1 }); });
       h.mq.subscribe("gridzilla/hb");
       log(cfg.id, `online, path ${cfg.path.join(" > ")}, soc ${h.soc}%`);
     });
@@ -316,7 +335,7 @@ function onSignal(h, env, platformPub) {
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2), grid_owner_kw: +(h.grid_owner_kw ?? h.grid_kw).toFixed(2),
       dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null,
-      heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner",
+      heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner", shape: !!h.shape, shape_seq: h.shape ? h.shape.seq : null,
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
 })();

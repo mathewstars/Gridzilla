@@ -73,7 +73,7 @@ for sub, sd in SUBS.items():
                      "peak_load_kw": round(random.uniform(2.0, 5.0), 1),
                      "owner": {"min_soc": random.choice([15, 20, 20, 25, 30]), "max_charge_kw": kw, "max_discharge_kw": kw, "opt_out": False}}
                 if has_ev:
-                    h["ev"] = {"kw": random.choice([7.4, 11, 11, 22]), "plugged": random.choice([[17, 23], [18, 23], [10, 16], [19, 24]])}
+                    h["ev"] = {"kw": random.choice([7.4, 11, 11, 22]), "plugged": random.choice([[17, 7], [18, 6], [10, 16], [19, 7]])}   # home overnight, or a home-office day
                 h["heat"] = []
                 if "heatpump" in heats:
                     h["heat"].append({"type": "heatpump", "kw": random.choice([2.5, 3, 4]), "tank_l": random.choice([200, 300]), "dhw_set_c": random.choice([48, 50, 52]),
