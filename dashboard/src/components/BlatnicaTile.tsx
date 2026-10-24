@@ -34,7 +34,7 @@ function Stat({ value, unit, label }: { value: string; unit: string; label: stri
         {value}
         <span className="ml-1 text-[0.9375rem] font-normal tracking-normal text-secondary">{unit}</span>
       </div>
-      <div className="t-small mt-1">{label}</div>
+      <div className="t-small mt-1 whitespace-nowrap">{label}</div>
     </div>
   );
 }
@@ -61,10 +61,10 @@ export default function BlatnicaTile({ s, history }: { s: State; history: Histor
       {t ? (
         <>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 @sm:grid-cols-4">
-            <Stat value={f(t.grid_kw, 1)} unit="kW" label={t.grid_kw > 0.05 ? "Taking from the street" : t.grid_kw < -0.05 ? "Sending to the street" : "Balanced with the street"} />
-            <Stat value={f(t.soc, 0)} unit="%" label="Home battery full" />
-            <Stat value={f(t.ev_kw, 1)} unit="kW" label={t.ev_kw > 0.05 ? "Car charging" : "Car charger idle"} />
-            <Stat value={f(t.hp_kw, 1)} unit="kW" label={t.dhw_c != null ? `Heat pump, tank ${f(t.dhw_c, 0)} °C` : "Heat pump"} />
+            <Stat value={f(t.grid_kw, 1)} unit="kW" label={t.grid_kw > 0.05 ? "From the street" : t.grid_kw < -0.05 ? "To the street" : "Balanced"} />
+            <Stat value={f(t.soc, 0)} unit="%" label="Battery" />
+            <Stat value={f(t.ev_kw, 1)} unit="kW" label={t.ev_kw > 0.05 ? "Car charging" : "Car idle"} />
+            <Stat value={f(t.hp_kw, 1)} unit="kW" label={t.dhw_c != null ? `Heat pump ${f(t.dhw_c, 0)} °C` : "Heat pump"} />
           </div>
           {live && <div className="hidden @lg:block"><Spark pts={pts} /></div>}
           <div className="t-small mt-auto">

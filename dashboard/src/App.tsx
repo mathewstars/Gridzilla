@@ -103,7 +103,7 @@ export default function App() {
         <div className="min-w-0 lg:col-span-8">{views.headline}</div>
         <div className="min-w-0 lg:col-span-4">{views.plant}</div>
       </div>
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12 lg:grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-[1.1rem]">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12 lg:grid-rows-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-[1.1rem]">
         <div className="h-[24rem] min-h-0 lg:col-span-7 lg:h-auto">{views.street}</div>
         <div className="h-[22rem] min-h-0 lg:col-span-5 lg:h-auto">{views.curve}</div>
         <div className="min-h-0 lg:col-span-5">{views.brain}</div>
