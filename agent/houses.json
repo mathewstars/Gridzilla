@@ -1,91 +1,1186 @@
 [
-  {
-    "id": "sim-atzgersdorf-12",
-    "kw": 5,
-    "kwh": 15,
-    "feedin_max_kw": 5,
-    "pv_kwp": 6,
-    "soc": 70,
-    "start_hour": 16,
-    "base_load_kw": 0.5,
-    "peak_load_kw": 3.0,
-    "owner": {
-      "min_soc": 20,
-      "max_charge_kw": 5,
-      "max_discharge_kw": 5,
-      "opt_out": false
-    },
-    "ev": {
-      "kw": 11,
-      "plugged": [
-        17,
-        23
-      ]
-    }
+ {
+  "id": "sim-atzgersdorf-74",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 12,
+  "soc": 95,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 4.3,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
   },
-  {
-    "id": "sim-atzgersdorf-19",
-    "kw": 8,
-    "kwh": 20,
-    "feedin_max_kw": 8,
-    "pv_kwp": 10,
-    "soc": 22,
-    "start_hour": 16,
-    "base_load_kw": 0.8,
-    "peak_load_kw": 4.0,
-    "owner": {
-      "min_soc": 20,
-      "max_charge_kw": 8,
-      "max_discharge_kw": 8,
-      "opt_out": false
-    }
-  },
-  {
-    "id": "sim-mauer-03",
-    "kw": 10,
-    "kwh": 20,
-    "feedin_max_kw": 10,
-    "pv_kwp": 12,
-    "soc": 85,
-    "start_hour": 16,
-    "base_load_kw": 0.7,
-    "peak_load_kw": 5.0,
-    "owner": {
-      "min_soc": 30,
-      "max_charge_kw": 10,
-      "max_discharge_kw": 6,
-      "opt_out": false
-    },
-    "ev": {
-      "kw": 7.4,
-      "plugged": [
-        10,
-        16
-      ]
-    }
-  },
-  {
-    "id": "sim-mauer-08",
-    "kw": 5,
-    "kwh": 10,
-    "feedin_max_kw": 5,
-    "pv_kwp": 4,
-    "soc": 55,
-    "start_hour": 16,
-    "base_load_kw": 0.4,
-    "peak_load_kw": 2.5,
-    "owner": {
-      "min_soc": 25,
-      "max_charge_kw": 5,
-      "max_discharge_kw": 5,
-      "opt_out": false
-    },
-    "ev": {
-      "kw": 11,
-      "plugged": [
-        18,
-        23
-      ]
-    }
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 300,
+   "dhw_set_c": 48,
+   "floor_c": 40,
+   "boost_c": 55
   }
+ },
+ {
+  "id": "sim-atzgersdorf-10",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 65,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 2.8,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    17,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-atzgersdorf-53",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 8,
+  "soc": 28,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 3.1,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    17,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-mauer-80",
+  "kw": 10,
+  "kwh": 20,
+  "feedin_max_kw": 10,
+  "pv_kwp": 10,
+  "soc": 75,
+  "start_hour": 16,
+  "base_load_kw": 0.9,
+  "peak_load_kw": 2.8,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    17,
+    23
+   ]
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 2,
+   "tank_l": 120,
+   "dhw_set_c": 55,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-mauer-76",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 83,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 4.1,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 300,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-mauer-92",
+  "kw": 10,
+  "kwh": 25,
+  "feedin_max_kw": 10,
+  "pv_kwp": 4,
+  "soc": 29,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 4.6,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    10,
+    16
+   ]
+  }
+ },
+ {
+  "id": "sim-mauer-35",
+  "kw": 8,
+  "kwh": 20,
+  "feedin_max_kw": 8,
+  "pv_kwp": 10,
+  "soc": 29,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 2.9,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    10,
+    16
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 200,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-oberlaa-93",
+  "kw": 8,
+  "kwh": 20,
+  "feedin_max_kw": 8,
+  "pv_kwp": 6,
+  "soc": 82,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 2.3,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 7.4,
+   "plugged": [
+    18,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-oberlaa-41",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 6,
+  "soc": 25,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.7,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 2,
+   "tank_l": 120,
+   "dhw_set_c": 60,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-oberlaa-85",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 12,
+  "soc": 64,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 3.2,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 2.5,
+   "tank_l": 200,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-oberlaa-19",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 90,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 4.0,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 3,
+   "tank_l": 120,
+   "dhw_set_c": 60,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-rothneusiedl-89",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 8,
+  "soc": 83,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 4.0,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  }
+ },
+ {
+  "id": "sim-rothneusiedl-80",
+  "kw": 10,
+  "kwh": 20,
+  "feedin_max_kw": 10,
+  "pv_kwp": 12,
+  "soc": 31,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 4.3,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    17,
+    23
+   ]
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 2,
+   "tank_l": 120,
+   "dhw_set_c": 55,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-rothneusiedl-30",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 64,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 2.5,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 300,
+   "dhw_set_c": 48,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-rothneusiedl-51",
+  "kw": 10,
+  "kwh": 25,
+  "feedin_max_kw": 10,
+  "pv_kwp": 4,
+  "soc": 52,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 4.9,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 200,
+   "dhw_set_c": 48,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-stammersdorf-30",
+  "kw": 8,
+  "kwh": 15,
+  "feedin_max_kw": 8,
+  "pv_kwp": 12,
+  "soc": 52,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 3.7,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    17,
+    23
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 200,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-stammersdorf-31",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 89,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.8,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 300,
+   "dhw_set_c": 48,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-stammersdorf-43",
+  "kw": 8,
+  "kwh": 15,
+  "feedin_max_kw": 8,
+  "pv_kwp": 10,
+  "soc": 26,
+  "start_hour": 16,
+  "base_load_kw": 0.3,
+  "peak_load_kw": 2.7,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 7.4,
+   "plugged": [
+    17,
+    23
+   ]
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 3,
+   "tank_l": 200,
+   "dhw_set_c": 60,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-stammersdorf-87",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 40,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 4.6,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    10,
+    16
+   ]
+  }
+ },
+ {
+  "id": "sim-strebersdorf-65",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 8,
+  "soc": 78,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 4.7,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  }
+ },
+ {
+  "id": "sim-strebersdorf-53",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 40,
+  "start_hour": 16,
+  "base_load_kw": 0.3,
+  "peak_load_kw": 3.6,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  }
+ },
+ {
+  "id": "sim-strebersdorf-92",
+  "kw": 8,
+  "kwh": 15,
+  "feedin_max_kw": 8,
+  "pv_kwp": 10,
+  "soc": 73,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 3.3,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-strebersdorf-79",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 27,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.4,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 200,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-essling-32",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 26,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 2.7,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 300,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-essling-56",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 83,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 3.4,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-essling-30",
+  "kw": 10,
+  "kwh": 20,
+  "feedin_max_kw": 10,
+  "pv_kwp": 12,
+  "soc": 77,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 3.9,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    10,
+    16
+   ]
+  }
+ },
+ {
+  "id": "sim-breitenlee-22",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 12,
+  "soc": 30,
+  "start_hour": 16,
+  "base_load_kw": 0.9,
+  "peak_load_kw": 3.1,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 200,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-breitenlee-23",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 8,
+  "soc": 30,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 4.0,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  }
+ },
+ {
+  "id": "sim-breitenlee-30",
+  "kw": 8,
+  "kwh": 20,
+  "feedin_max_kw": 8,
+  "pv_kwp": 6,
+  "soc": 26,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 3.9,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 200,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-breitenlee-76",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 90,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 4.1,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    17,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-huetteldorf-37",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 34,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.9,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 3,
+   "tank_l": 120,
+   "dhw_set_c": 55,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-huetteldorf-55",
+  "kw": 10,
+  "kwh": 25,
+  "feedin_max_kw": 10,
+  "pv_kwp": 10,
+  "soc": 64,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 4.0,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 300,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-huetteldorf-94",
+  "kw": 10,
+  "kwh": 25,
+  "feedin_max_kw": 10,
+  "pv_kwp": 6,
+  "soc": 69,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 3.1,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 22,
+   "plugged": [
+    18,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-huetteldorf-29",
+  "kw": 10,
+  "kwh": 20,
+  "feedin_max_kw": 10,
+  "pv_kwp": 8,
+  "soc": 59,
+  "start_hour": 16,
+  "base_load_kw": 0.8,
+  "peak_load_kw": 3.3,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-hadersdorf-81",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 27,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 3.0,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    17,
+    23
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 300,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-hadersdorf-91",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 6,
+  "soc": 26,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 4.1,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    19,
+    24
+   ]
+  }
+ },
+ {
+  "id": "sim-hadersdorf-70",
+  "kw": 10,
+  "kwh": 25,
+  "feedin_max_kw": 10,
+  "pv_kwp": 8,
+  "soc": 66,
+  "start_hour": 16,
+  "base_load_kw": 0.3,
+  "peak_load_kw": 2.6,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    10,
+    16
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 2.5,
+   "tank_l": 200,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-hadersdorf-11",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 6,
+  "soc": 46,
+  "start_hour": 16,
+  "base_load_kw": 0.7,
+  "peak_load_kw": 2.3,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    17,
+    23
+   ]
+  }
+ },
+ {
+  "id": "sim-speising-63",
+  "kw": 5,
+  "kwh": 10,
+  "feedin_max_kw": 5,
+  "pv_kwp": 10,
+  "soc": 68,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.0,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 3,
+   "tank_l": 300,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-speising-42",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 8,
+  "soc": 84,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 2.8,
+  "owner": {
+   "min_soc": 25,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 200,
+   "dhw_set_c": 50,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-speising-18",
+  "kw": 8,
+  "kwh": 20,
+  "feedin_max_kw": 8,
+  "pv_kwp": 12,
+  "soc": 66,
+  "start_hour": 16,
+  "base_load_kw": 0.6,
+  "peak_load_kw": 4.0,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 2,
+   "tank_l": 120,
+   "dhw_set_c": 55,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-lainz-77",
+  "kw": 10,
+  "kwh": 20,
+  "feedin_max_kw": 10,
+  "pv_kwp": 10,
+  "soc": 55,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 3.5,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "boiler",
+   "kw": 2,
+   "tank_l": 120,
+   "dhw_set_c": 60,
+   "floor_c": 45,
+   "boost_c": 65
+  }
+ },
+ {
+  "id": "sim-lainz-72",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 12,
+  "soc": 94,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 3.8,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    23
+   ]
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 4,
+   "tank_l": 200,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ },
+ {
+  "id": "sim-lainz-14",
+  "kw": 8,
+  "kwh": 20,
+  "feedin_max_kw": 8,
+  "pv_kwp": 12,
+  "soc": 70,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 2.5,
+  "owner": {
+   "min_soc": 15,
+   "max_charge_kw": 8,
+   "max_discharge_kw": 8,
+   "opt_out": false
+  }
+ },
+ {
+  "id": "sim-lainz-33",
+  "kw": 5,
+  "kwh": 15,
+  "feedin_max_kw": 5,
+  "pv_kwp": 4,
+  "soc": 63,
+  "start_hour": 16,
+  "base_load_kw": 0.4,
+  "peak_load_kw": 3.1,
+  "owner": {
+   "min_soc": 30,
+   "max_charge_kw": 5,
+   "max_discharge_kw": 5,
+   "opt_out": false
+  },
+  "heat": {
+   "type": "heatpump",
+   "kw": 2.5,
+   "tank_l": 300,
+   "dhw_set_c": 52,
+   "floor_c": 40,
+   "boost_c": 55
+  }
+ }
 ]

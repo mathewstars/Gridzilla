@@ -169,7 +169,7 @@
   <section>
     <h2>Devices</h2>
     <table>
-      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
+      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
     </table>
   </section>
@@ -288,7 +288,7 @@ function drawCharts() {
   loadChart.options.scales.y.suggestedMax = rating ? rating * 1.15 : undefined;
   loadChart.update();
 
-  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode));
+  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode)).slice(0, 12);
   socChart.data.labels = devs.map(d => S.devices[d].telemetry ? d : d + " (offline)");
   socChart.data.datasets[0].data = devs.map(d => S.devices[d].telemetry ? S.devices[d].telemetry.soc : null);   // offline = gap, not 0
   socChart.data.datasets[0].backgroundColor = devs.map(d => SERIES[devOrder.indexOf(d) % 5]);
@@ -304,17 +304,25 @@ function drawCharts() {
 // ---------- schematic
 function statusColor(pct) { const p = Math.abs(pct); return pct == null ? css("--muted") : p >= 100 ? css("--crit") : p >= 85 ? css("--warn") : css("--ok"); } // negative = reverse flow (PV), loads the transformer just the same
 function modeColor(t, a) { if (!t) return "#3a414a"; const st = a && a.status; if (st === "refused") return css("--crit"); if (st === "partial") return css("--warn"); return t.mode && t.mode !== "owner" ? css("--acc") : css("--muted"); }
+function feederOf(n) {
+  if (n.startsWith("feeder:")) return n;
+  if (n.startsWith("tf:")) return S.tree[n].parent;
+  return Object.keys(S.tree).find(f => f.startsWith("feeder:") && pathOf(f).includes(n)) || Object.keys(S.tree).find(f => f.startsWith("feeder:"));
+}
+function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
 function drawSchem() {
-  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
-  const feeder = Object.keys(S.tree).find(n => n.startsWith("feeder:")), sub = Object.keys(S.tree).find(n => n.startsWith("sub:"));
+  const feeder = feederOf(selNode), sub = S.tree[feeder].parent;
+  const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
   const W = 760, colW = W / tfs.length;
-  let g = `<rect class="box ${selNode === sub ? "sel" : ""}" x="300" y="12" width="160" height="34" rx="4" onclick="selectNode('${sub}')" style="cursor:pointer"/>
-    <text x="380" y="27" text-anchor="middle">${sub}</text><text x="380" y="40" text-anchor="middle" class="muted">110 / 22 kV</text>
+  const fa = S.aggregates[feeder], sa = S.aggregates[sub];
+  let g = `<rect class="box ${selNode === sub ? "sel" : ""}" x="280" y="10" width="200" height="36" rx="4" onclick="selectNode('${sub}')" style="cursor:pointer"/>
+    <text x="380" y="25" text-anchor="middle">${sub}</text><text x="380" y="39" text-anchor="middle" class="muted">110 / 22 kV · ${sa.total_kw != null ? sa.total_kw.toFixed(0) + " kW" : "–"}</text>
     <line class="wire" x1="380" y1="46" x2="380" y2="70"/><line class="wire" x1="${colW / 2}" y1="70" x2="${W - colW / 2}" y2="70"/>
-    <text x="386" y="64" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer">${feeder} · 22 kV ${selNode === feeder ? "◀" : ""}</text>`;
+    <text x="${W / 2}" y="63" text-anchor="middle" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer;fill:${selNode === feeder ? css("--acc") : ""}">${feeder} · 22 kV · ${fa.total_kw != null ? fa.total_kw.toFixed(0) + " kW" : "–"} ${selNode === feeder ? "◀" : ""}</text>`;
   tfs.forEach((tf, i) => {
     const x = colW * i + 20, w = colW - 40, a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct);
     const devs = devOrder.filter(d => S.devices[d].tf === tf);
+    const step = Math.min(48, (w - 20) / Math.max(devs.length, 1));
     g += `<line class="wire" x1="${x + w / 2}" y1="70" x2="${x + w / 2}" y2="96"/>
       <g onclick="selectNode('${tf}')" style="cursor:pointer">
       <rect class="box ${selNode === tf ? "sel" : ""}" x="${x}" y="96" width="${w}" height="92" rx="4"/>
@@ -327,17 +335,18 @@ function drawSchem() {
       ${a.active ? `<text x="${x + w - 10}" y="176" text-anchor="end" style="fill:${css("--acc")}">${a.active}</text>` : ""}
       </g>`;
     devs.forEach((d, j) => {
-      const dx = x + 10 + j * 48 + 14, t = S.devices[d].telemetry, ak = S.devices[d].ack;
-      g += `<line class="wire" x1="${x + w / 2}" y1="188" x2="${x + w / 2}" y2="206"/><line class="wire" x1="${x + 24}" y1="206" x2="${x + 10 + (devs.length - 1) * 48 + 14}" y2="206"/>
+      const dx = x + 10 + j * step + 14, D = S.devices[d], t = D.telemetry, ak = D.ack, real = !d.startsWith("sim-");
+      g += `<line class="wire" x1="${x + w / 2}" y1="188" x2="${x + w / 2}" y2="206"/><line class="wire" x1="${x + 24}" y1="206" x2="${x + 10 + (devs.length - 1) * step + 14}" y2="206"/>
         <line class="wire" x1="${dx}" y1="206" x2="${dx}" y2="222"/>
-        <circle class="house" cx="${dx}" cy="236" r="13" fill="${modeColor(t, ak)}"><title>${d}${t ? `: SoC ${t.soc}% · grid ${t.grid_kw} kW · EV ${t.ev_kw ?? 0} kW · ${t.mode}` : ": offline"}</title></circle>
-        <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? Math.round(t.soc) : "–"}</text>
-        ${t && t.ev_kw > 0 ? `<text x="${dx + 15}" y="230" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
-        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${d.replace(/^(sim|vic)-[a-z]+-/, "#")}</text>`;
+        <circle class="house" cx="${dx}" cy="236" r="13" fill="${modeColor(t, ak)}" ${real ? `stroke="${css("--fg")}" stroke-width="2"` : ""}><title>${d}${t ? `: SoC ${t.soc}% · grid ${t.grid_kw} kW · EV ${t.ev_kw ?? 0} kW · heat ${t.hp_kw ?? 0} kW · ${t.mode}` : ": offline"}</title></circle>
+        <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? (D.kwh ? Math.round(t.soc) : (t.dhw_c != null ? Math.round(t.dhw_c) + "°" : "")) : "–"}</text>
+        ${t && t.ev_kw > 0 ? `<text x="${dx + 14}" y="228" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
+        ${t && t.hp_kw > 0 ? `<text x="${dx + 14}" y="250" style="font-size:9px;fill:${css("--s5")}">HP</text>` : ""}
+        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? (d.startsWith("vicare") ? "heat pump" : "REAL") : d.replace(/^sim-[a-z]+-/, "#")}</text>`;
     });
     g += `<text x="${x + w - 10}" y="262" text-anchor="end" class="muted" style="font-size:9px">+${S.tree[tf].other_houses || 0} houses not in program</text>`;
   });
-  g += `<text x="20" y="292" class="muted" style="font-size:10px">● SoC % · orange = under signal · yellow = partial · red = refused · grey = owner mode · EV = car charging</text>`;
+  g += `<text x="20" y="292" class="muted" style="font-size:10px">● SoC % (° = tank temp) · orange = under signal · yellow = partial · red = refused · grey = owner · white ring = real device · EV car charging · HP heat pump/boiler on</text>`;
   document.getElementById("schem").innerHTML = g;
 }
 
@@ -345,18 +354,21 @@ function drawSchem() {
 function drawKpis() {
   const root = S.aggregates["region:at"];
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
-  const worst = Math.max(...tfs.map(n => Math.abs(S.aggregates[n].load_pct || 0)));
+  const worstTf = tfs.reduce((a, n) => Math.abs(S.aggregates[n].load_pct || 0) > Math.abs(S.aggregates[a].load_pct || 0) ? n : a, tfs[0]);
+  const worst = Math.abs(S.aggregates[worstTf].load_pct || 0);
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   const active = Object.keys(S.active).length;
   const online = Object.values(S.devices).filter(d => d.telemetry).length, total = Object.keys(S.devices).length;
   const rep = Object.values(S.devices).reduce((a, d) => a + (d.represents || 1), 0);
   const ev = Object.values(S.devices).reduce((a, d) => a + ((d.telemetry || {}).ev_kw || 0) * (d.represents || 1), 0);
+  const hp = Object.values(S.devices).reduce((a, d) => a + ((d.telemetry || {}).hp_kw || 0) * (d.represents || 1), 0);
   const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   document.getElementById("kpis").innerHTML =
     k(`${(root.kwh_available * 10).toFixed(0)} kWh`, "stored in program batteries (×10)") +
     k(`${root.kw * 10} kW`, "inverter capacity in program (×10)") +
     k(`${ev.toFixed(0)} kW`, "EV charging now, sheddable first (×10)", ev ? "warn" : "") +
-    k(`${worst}%`, "worst transformer load", worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
+    k(`${hp.toFixed(0)} kW`, "heat pumps and boilers heating now (×10)", hp ? "warn" : "") +
+    k(`${worst}%`, `worst transformer · ${worstTf.replace("tf:", "")}`, worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
     k(over, "transformers over rating", over ? "crit" : "ok") +
     k(active, "active signals", active ? "warn" : "") +
     k(`${online}/${total}`, `devices online · ${rep} houses represented`);
@@ -371,11 +383,13 @@ function drawSignals() {
   document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted)">none · owners run their batteries as they like</div>`;
 }
 function drawDevices() {
-  document.getElementById("devices").innerHTML = devOrder.map(d => {
-    const D = S.devices[d], t = D.telemetry || {}, a = D.ack || {};
-    return `<tr><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}</td><td>${D.tf.replace("tf:", "")}</td>
-      <td>${t.soc != null ? t.soc.toFixed(0) + "%" : "–"}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + t.grid_kw.toFixed(1) : "–"}</td>
-      <td>${t.ev_kw != null ? t.ev_kw.toFixed(1) : "–"}</td>
+  const rows = [...devOrder].sort((a, b) => (S.devices[a].path.join("/") + a).localeCompare(S.devices[b].path.join("/") + b));
+  document.getElementById("devices").innerHTML = rows.map(d => {
+    const D = S.devices[d], t = D.telemetry || {}, a = D.ack || {}, real = !d.startsWith("sim-");
+    return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.household ? ` <span class="muted">· ${D.household}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
+      <td>${D.kwh ? (t.soc != null ? t.soc.toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + t.grid_kw.toFixed(1) : "–"}</td>
+      <td>${t.ev_kw != null ? t.ev_kw.toFixed(1) : ""}</td>
+      <td>${t.hp_kw != null ? t.hp_kw.toFixed(1) : (t.dhw_c != null ? "" : "")}${t.dhw_c != null ? ` <span class="muted">${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°</span>` : ""}</td>
       <td style="color:${t.mode && t.mode !== "owner" ? "var(--acc)" : "var(--muted)"}">${t.mode || (t.soc != null ? "owner" : "offline")}</td>
       <td class="st-${a.status || ""}">${a.status || ""}${a.reason ? " (" + a.reason + ")" : ""}</td>
       <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
@@ -383,7 +397,13 @@ function drawDevices() {
 }
 function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `<div><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${l.msg}</div>`).join(""); }
 function drawTabs() {
-  document.getElementById("nodetabs").innerHTML = Object.keys(S.tree).filter(n => !n.startsWith("region")).map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("");
+  const feeder = feederOf(selNode);
+  const feeders = Object.keys(S.tree).filter(n => n.startsWith("feeder:"));
+  const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
+  document.getElementById("nodetabs").innerHTML =
+    feeders.map(n => `<button class="${n === feeder ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("") +
+    `<span style="color:var(--muted);padding:0 4px">·</span>` +
+    tfs.map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}</button>`).join("");
 }
 function drawAll() { if (!S) return; drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 

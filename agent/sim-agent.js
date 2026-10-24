@@ -110,7 +110,24 @@ function step(h) {
   if (h.effective && h.effective.export_max_kw != null && evMax > 0 && pv - houseLoad > h.effective.export_max_kw)
     ev = Math.min(evMax, pv - houseLoad - h.effective.export_max_kw);        // ABSORB: put the surplus into the car
   if (h.effective && h.effective.mode === "STRETCH") ev = 0;                  // street dark: no car charging
-  const load = houseLoad + ev;
+  // Heat pump / boiler: a hot-water tank that cools and gets reheated; the agent moves its setpoint like the ViCare agent does.
+  let hp = 0;
+  const ht = cfg.heat;
+  if (ht) {
+    if (h.dhw_c == null) { h.dhw_c = ht.dhw_set_c; h.dhw_set_c = ht.dhw_set_c; h.heating = false; }
+    const e = h.effective || {};
+    const target = e.mode === "ABSORB" || e.mode === "PREPARE" ? ht.boost_c : (e.mode === "SUPPORT" || e.mode === "STRETCH" ? ht.floor_c : ht.dhw_set_c);
+    h.dhw_set_c = target;
+    const hour = (h.simMinutes / 60) % 24;
+    const draw = (hour >= 6 && hour <= 8) || (hour >= 18 && hour <= 22) ? 0.25 : 0.04;          // °C per sim minute: showers morning/evening
+    h.dhw_c -= draw * dtH * 60 + 0.01 * dtH * 60;                                                 // standing loss
+    if (h.dhw_c < target - 5) h.heating = true;
+    if (h.dhw_c >= target) h.heating = false;
+    if (h.heating) { hp = ht.kw; h.dhw_c += (ht.type === "heatpump" ? 0.35 : 0.2) * dtH * 60; }   // heat pump ~3x the thermal output of a resistive boiler
+    if (e.mode === "STRETCH") hp = 0;                                                             // dark street: no thermal load at all
+  }
+  h.hp_kw = hp;
+  const load = houseLoad + ev + hp;
   h.ev_kw = ev;
   const islanded = e.mode === "STRETCH";
   let chargeMax = Math.min(cfg.kw, o.max_charge_kw, e.charge_max_kw ?? Infinity);
@@ -239,7 +256,8 @@ function onSignal(h, env, platformPub) {
 // ------------------------------------------------------------ main
 (async () => {
   const platformPub = await platformKey();
-  for (const cfg of houses) {
+  for (const [idx, cfg] of houses.entries()) {
+    await new Promise(r => setTimeout(r, 150));                                              // gentle on the broker and the platform
     const keys = deviceKey(cfg.id);
     const reg = await fetch(`${PLATFORM}/api/register`, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device: cfg.id, pubkey_pem: keys.pub }) });
@@ -266,6 +284,7 @@ function onSignal(h, env, platformPub) {
     setInterval(() => step(h), 1000);
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
-      batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), mode: h.effective ? h.effective.mode : "owner", sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
+      batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2),
+      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, heat: cfg.heat ? cfg.heat.type : null, mode: h.effective ? h.effective.mode : "owner", sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
 })();
