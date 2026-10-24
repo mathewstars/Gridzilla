@@ -247,11 +247,12 @@
   <!-- presentation tab -->
   <section class="span3" data-tab="story" style="padding:10px 12px">
     <div class="steps" id="steps"></div>
+    <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px"></div>
   </section>
   <section data-tab="story">
     <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
     <div class="chartbox"><canvas id="storyChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i style="background:var(--crit)"></i>transformer rating</span><span><i style="background:var(--acc)"></i>signal window</span></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i style="background:var(--acc)"></i>orange = load taken off the transformer</span><span><i style="background:var(--crit)"></i>rating</span></div>
   </section>
   <section data-tab="story">
     <h2>Blatnica · real plant · live <span class="hint" id="realage"></span></h2>
@@ -660,22 +661,23 @@ function drawStory() {
   const okN = sentHouses.filter(d => d.ack.status === "applied").length, partN = sentHouses.filter(d => d.ack.status === "partial").length;
   const steps = [
     ["SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? `${hh(w.tf)} forecast ${ap.horizon_min} grid min ahead` : "nothing above the trigger", `trigger at ±${ap.trigger_pct || 85} % · every ${ap.interval_s || 15} grid min`, stage === "sense" || stage === "deepseek"],
-    ["DEEPSEEK DECIDES", last && last.mode ? `${last.mode} → ${hh(last.segment)}` : (ap.last_run ? "nothing to do" : "–"), last ? esc((last.rationale || last.trigger || "").slice(0, 150)) : (ap.last_run ? `last review ${ap.last_run.slice(11, 16)} UTC · no transformer forecast past ±${ap.trigger_pct || 85} %` : ""), last && last.latency_ms ? `answered in ${(last.latency_ms / 1000).toFixed(1)} s · ${last.duration_min || ""} min · ${last.fields ? Object.entries(last.fields).filter(([k, v]) => v != null).map(([k, v]) => k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ") + v + " kW").join(", ") : ""}` : "DeepSeek-V4.1-Flash on the DGX Spark", stage === "deepseek"],
+    ["DEEPSEEK DECIDES", last && last.mode ? `${last.mode} → ${hh(last.segment)}` : (ap.last_run ? "nothing to do" : "–"), last ? esc((last.rationale || last.trigger || "").slice(0, 110)) + "…" : (ap.last_run ? `last review ${ap.last_run.slice(11, 16)} UTC · no transformer forecast past ±${ap.trigger_pct || 85} %` : ""), last && last.latency_ms ? `answered in ${(last.latency_ms / 1000).toFixed(1)} s · ${last.duration_min || ""} min · ${last.fields ? Object.entries(last.fields).filter(([k, v]) => v != null).map(([k, v]) => k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ") + v + " kW").join(", ") : ""}` : "DeepSeek-V4.1-Flash on the DGX Spark", stage === "deepseek"],
     ["GUARD", last ? last.verdict.toUpperCase() : "–", last && last.detail ? esc(last.detail.slice(0, 120)) : (last ? "within policy: window, depth, rate, reverse rating" : ""), "deterministic policy, not AI", stage === "guard"],
     ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
   document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
     `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
+  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger.slice(0, 160))}</span>` : ""}` : "";
   // curve with vs without
   const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw;
   if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [
-      {label: "without Gridzilla", data: [], borderColor: css("--muted"), borderDash: [5, 4], borderWidth: 2},
-      {label: "with Gridzilla", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "22", fill: "origin", borderWidth: 2.5},
-      {label: "rating", data: [], borderColor: css("--crit"), borderDash: [6, 4], borderWidth: 1.5},
-      {label: "signal window", data: [], borderColor: "transparent", backgroundColor: css("--acc") + "26", fill: "origin", pointRadius: 0}]},
-    options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false}}}});
+      {label: "with Gridzilla (measured)", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "26", fill: "origin", borderWidth: 3, order: 3},
+      {label: "without Gridzilla (what the houses would draw)", data: [], borderColor: css("--muted"), backgroundColor: css("--acc") + "55", fill: "-1", borderDash: [6, 4], borderWidth: 2.5, order: 2},
+      {label: "rating", data: [], borderColor: css("--crit"), borderDash: [6, 4], borderWidth: 1.5, order: 1},
+      {label: "signal window", data: [], borderColor: "transparent", backgroundColor: css("--acc") + "18", fill: "origin", pointRadius: 0, order: 4}]},
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false, callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(0)} kW`}}}}});
   storyChart.data.labels = nh.map(p => hhmm(p.h));
-  storyChart.data.datasets[0].data = nh.map(p => p.baseline_kw ?? p.total_kw);
-  storyChart.data.datasets[1].data = nh.map(p => p.total_kw);
+  storyChart.data.datasets[0].data = nh.map(p => p.total_kw);
+  storyChart.data.datasets[1].data = nh.map(p => p.baseline_kw ?? p.total_kw);
   storyChart.data.datasets[2].data = nh.map(() => rating);
   const act = Object.entries(S.active).find(([n]) => pathOf(node).includes(n));
   const win = act ? [Date.parse(act[1].valid_from), Date.parse(act[1].valid_to)] : null;
