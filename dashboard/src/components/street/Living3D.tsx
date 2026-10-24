@@ -1,14 +1,15 @@
-// One transformer's street as a living product render (round 2 stage). The transformer is the hero, front and centre:
-// its body turns green / orange / red with its load and eases back when load falls. Behind it the houses: soft white
-// clay with solar panels that catch the sun, a battery whose green fill is its charge, a heat pump whose fan spins
-// with its kW, a car parked beside the house while it charges, and a small blue light on the roof while the house
-// follows Gridzilla. Dots run along the wires into houses taking power and out of houses giving it back, faster for
-// more kW. Sun, light and shadows follow grid time and the real cloud cover. Everything that moves is a real reading.
-// Perf: every repeated part is one instanced mesh moved in useFrame (no React state per frame), wires are one merged
-// geometry, so the whole street is ~30 draw calls.
-import { ContactShadows, OrbitControls } from "@react-three/drei";
+// One transformer's street as a calm product render (round 2 stage). A believable suburban street at real scale:
+// 10 to 16 houses from Kenney's CC0 "City Kit (Suburban)" (public/models, License.txt) with slate roofs, trees in the
+// back gardens and a driveway in each front yard. The transformer is a green substation kiosk at the head of the
+// street (louvres, a double door) whose body turns green / orange from 85 % / red at 100 % of its limit and eases back
+// when load falls. Solar panels on the PV roofs catch the sun, a battery's green fill is its charge, a heat pump's fan
+// spins with its kW, a car stands in the driveway while it charges. Dots run along the wires into houses taking power
+// and out of houses giving it back, faster for more kW. Sun, light and shadows follow grid time and real cloud cover.
+// Perf: every repeated part (each house model too) is one instanced mesh moved in useFrame (no React state per frame),
+// wires are one merged geometry, so the whole street stays around 35 draw calls.
+import { ContactShadows, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject, type RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -21,28 +22,51 @@ import type { HoverInfo } from "./Street3D";
 type HoverFn = (h: HoverInfo | null) => void;
 const noRay = () => {};
 
+// ------------------------------------------------------------------ the model kit (served under the Vite base)
+const KIT = `${import.meta.env.BASE_URL}models/`;
+const KINDS = ["a", "c", "e", "g", "i", "m"] as const;
+type Kind = (typeof KINDS)[number];
+const MODELS = [...KINDS.map((k) => `${KIT}building-type-${k}.glb`), `${KIT}tree-large.glb`, `${KIT}tree-small.glb`];
+const SLATE = `${KIT}Textures/colormap-slate.png`; // the kit's colour map with the green roofs turned slate grey
+useGLTF.preload(MODELS, false, false);
+
+const HS = 3.6; // model units to world units (world ~ metres / 2): a house is ~9 m wide and ~6 m to the ridge
+/** Model size in model units: w = along the ridge, d = front to back, h = to the ridge, eave = wire height. */
+const DIM: Record<Kind, { w: number; d: number; h: number; eave: number }> = {
+  a: { w: 1.3, d: 1.03, h: 0.83, eave: 0.6 },
+  c: { w: 1.29, d: 1.03, h: 1.03, eave: 0.75 },
+  e: { w: 1.3, d: 1.03, h: 1.14, eave: 0.75 },
+  g: { w: 1.45, d: 1.18, h: 0.77, eave: 0.5 },
+  i: { w: 1.29, d: 1.03, h: 0.74, eave: 0.5 },
+  m: { w: 1.43, d: 1.43, h: 0.74, eave: 0.45 },
+};
+const PV_KINDS: Kind[] = ["a", "i"]; // plain pitched roofs that take a panel field cleanly
+const MIX: Kind[] = ["c", "e", "g", "m", "a", "i"];
+
 // ------------------------------------------------------------------ the street plan (world units ~ metres / 2)
-const TF_Z = 4.4; // the transformer, front and centre on the road
-const TF_TOP = 4.15; // where its wires leave the roof
-const SUB_X = -10.5; // substation on the left, feeding the transformer
-const ROW0 = -1.2; // first row of houses
-const LOT = 6.2; // between rows
-const OFFSET = 5.4; // house centre from the road centre
-const ROAD_W = 2.8;
-const POLE_X = 1.75; // poles along the right road edge
-const POLE_H = 3.9;
+const ROW0 = 0; // first row of houses
+const LOT = 6.4; // between rows
+const OFFSET = 6.2; // house centre from the road centre
+const ROAD_W = 3.0;
+const TF_Z = ROW0 + 6.2; // the transformer kiosk, at the head of the street
+const TF_TOP = 2.62; // where its wires leave the roof
+const SUB_X = -9; // substation on the left, feeding the kiosk
+const POLE_X = ROAD_W / 2 + 0.3; // poles along the right road edge
+const POLE_H = 3.7;
 
 interface Lot {
   i: number;
   house: House | null; // null = neighbour outside the program
+  kind: Kind;
   x: number;
   z: number;
   side: 1 | -1;
   face: 1 | -1; // the road-facing wall points this way along x
   row: number;
-  w: number;
+  w: number; // along the road (z)
   h: number;
-  d: number;
+  d: number; // across (x)
+  eave: number;
 }
 
 function lotsOf(st: StreetModel, slots: number): Lot[] {
@@ -51,18 +75,21 @@ function lotsOf(st: StreetModel, slots: number): Lot[] {
     const side = (i % 2 === 0 ? -1 : 1) as 1 | -1;
     const row = Math.floor(i / 2);
     const house = st.houses[i]?.house ?? null;
-    const big = !!house;
+    const kind = house?.hasPv ? PV_KINDS[row % 2] : MIX[(i * 5 + 1) % MIX.length];
+    const dm = DIM[kind];
     return {
       i,
       house,
+      kind,
       x: side * OFFSET,
       z: ROW0 - row * LOT,
       side,
       face: (-side) as 1 | -1,
       row,
-      w: big ? 3.0 : 2.6,
-      h: big ? 2.0 : 1.7,
-      d: big ? 3.2 : 2.8,
+      w: dm.w * HS,
+      h: dm.h * HS,
+      d: dm.d * HS,
+      eave: dm.eave * HS,
     };
   });
 }
@@ -72,36 +99,30 @@ const box = new THREE.BoxGeometry(1, 1, 1);
 const cyl = new THREE.CylinderGeometry(0.5, 0.5, 1, 20);
 const ball = new THREE.SphereGeometry(1, 16, 12);
 const plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-/** Triangular prism, base 1 wide on y = 0, apex at y = 1, ridge along z, 1 long. */
-const roofGeo = (() => {
-  const g = new THREE.CylinderGeometry(1, 1, 1, 3, 1).rotateX(-Math.PI / 2);
-  g.scale(1 / Math.sqrt(3), 1 / 1.5, 1);
-  g.translate(0, 0.5 / 1.5, 0);
-  return g;
-})();
 
 const clay = (color: string, o: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0, ...o });
 
 const mat = {
-  wall: clay("#ffffff"),
-  roof: clay("#fbfbfd", { flatShading: true }),
-  window: clay("#d4d9e2", { roughness: 0.35, emissive: new THREE.Color("#ffc977"), emissiveIntensity: 0 }),
   panel: clay("#ffffff", { roughness: 0.32, metalness: 0.25 }), // tinted per panel by the sun
   battShell: clay("#d2d2d7"),
   battFill: clay(P.green, { roughness: 0.6 }),
   hpBody: clay("#e8e8ed"),
   grille: clay("#c7c7cc"),
   blade: clay("#3a3a3c"),
-  carBody: clay("#ffffff", { roughness: 0.5 }),
-  carGlass: clay("#6e7480", { roughness: 0.25 }),
-  marker: new THREE.MeshBasicMaterial({ color: P.blue }),
-  pole: clay("#d2d2d7"),
+  carBody: clay("#fbfbfd", { roughness: 0.45 }),
+  carGlass: clay("#4a4f58", { roughness: 0.25 }),
+  wheel: clay("#2c2c2e"),
+  pole: clay("#c7c7cc"),
   wire: new THREE.MeshBasicMaterial({ color: "#a1a1a6" }),
   dot: new THREE.MeshBasicMaterial({ color: "#ffffff" }), // coloured per dot
-  road: new THREE.MeshBasicMaterial({ color: "#e9e9ee" }),
-  tfBase: clay("#e8e8ed"),
-  tfBody: clay(P.green, { roughness: 0.62 }),
-  tfRoof: clay("#ffffff"),
+  road: new THREE.MeshBasicMaterial({ color: "#e4e4e9" }),
+  drive: new THREE.MeshBasicMaterial({ color: "#ebebef" }),
+  tfBase: clay("#d8d8dd"),
+  tfBody: clay(P.green, { roughness: 0.7 }),
+  tfDoor: clay(P.green, { roughness: 0.75 }),
+  tfLouvre: clay(P.green, { roughness: 0.8 }),
+  tfRoof: clay("#f2f2f5"),
+  tfTrim: clay("#8e8e93"),
   bushing: clay("#c7c7cc"),
   sub: clay("#ffffff"),
 };
@@ -143,7 +164,7 @@ function Instanced({ geo, material, parts, onHover, shadow = true }: { geo: THRE
   };
   return (
     <instancedMesh
-      key={parts.length}
+      key={`${geo.uuid}:${parts.length}`}
       ref={ref}
       args={[geo, material, parts.length]}
       castShadow={shadow}
@@ -157,48 +178,55 @@ function Instanced({ geo, material, parts, onHover, shadow = true }: { geo: THRE
   );
 }
 
-/** Everything about the houses that only depends on where they stand. */
+/** Everything about the street that only depends on where the houses stand. */
 function useStaticParts(lots: Lot[]) {
   return useMemo(() => {
-    const walls: Part[] = [],
-      roofs: Part[] = [],
-      windows: Part[] = [],
+    const houses = Object.fromEntries(KINDS.map((k) => [k, [] as Part[]])) as Record<Kind, Part[]>;
+    const trees: [Part[], Part[]] = [[], []];
+    const drives: Part[] = [],
       panels: (Part & { n: THREE.Vector3 })[] = [],
       shells: Part[] = [],
       hpBodies: Part[] = [],
       grilles: Part[] = [],
       poles: Part[] = [];
     for (const l of lots) {
-      const { x, z, w, h, d, face } = l;
-      const rh = l.house ? 1.25 : 1.05;
-      walls.push({ m: mtx(x, h / 2, z, w, h, d), owner: l.i });
-      roofs.push({ m: mtx(x, h, z, w + 0.4, rh, d + 0.3), owner: l.i });
-      // one wide window on the road side, two on each end wall: glass by day, warm light by night
-      windows.push({ m: mtx(x + face * (w / 2 + 0.02), h * 0.62, z, 0.04, h * 0.3, 0.9), owner: l.i });
-      for (const end of [-1, 1]) for (const dx of [-0.6, 0.6]) windows.push({ m: mtx(x + dx * (w / 3), h * 0.6, z + end * (d / 2 + 0.02), 0.6, h * 0.3, 0.04), owner: l.i });
+      const { x, z, w, h, d, face, side } = l;
+      // the model's front (+z) turns to face the road
+      houses[l.kind].push({ m: mtx(x, 0, z, HS, HS, HS, 0, side < 0 ? Math.PI / 2 : -Math.PI / 2, 0), owner: l.i });
+      // a tree in the back garden, alternating large and small, never on the wire side
+      const big = (l.i * 7) % 3 !== 0;
+      const ts = HS * (big ? 1.35 : 1.25) * (0.9 + ((l.i * 13) % 5) * 0.05);
+      trees[big ? 0 : 1].push({ m: mtx(x - face * (d / 2 + 1.5), 0, z + (l.row % 2 ? 1.2 : -1.2), ts, ts, ts, 0, l.i * 1.7, 0), owner: -1 });
+      // a driveway across the front yard
+      const yard = OFFSET - d / 2 - ROAD_W / 2;
+      const dz = z + w * 0.3;
+      drives.push({ m: mtx(side * (ROAD_W / 2 + yard / 2), 0.008, dz, yard, 1, 1.25), owner: -1 });
       const hs = l.house;
       if (hs?.hasPv) {
-        const half = (w + 0.4) / 2;
-        const slope = Math.atan2(rh, half);
-        const along = Math.hypot(half, rh);
+        // a panel field on the road-facing roof slope (ridge along z after the turn)
+        const half = d / 2;
+        const rise = h - l.eave;
+        const slope = Math.atan2(rise, half);
+        const along = Math.hypot(half, rise);
         const n = new THREE.Vector3(face * Math.sin(slope), Math.cos(slope), 0);
         panels.push({
-          m: mtx(x + face * (half / 2) + n.x * 0.05, h + rh / 2 + n.y * 0.05, z, along * 0.78, 0.06, d * 0.82, 0, 0, -face * slope),
+          m: mtx(x + face * (half * 0.5) + n.x * 0.08, l.eave + rise * 0.5 + n.y * 0.08, z - w * 0.08, along * 0.62, 0.05, w * 0.42, 0, 0, -face * slope),
           owner: l.i,
           n,
         });
       }
-      if (hs && hs.kwh > 0) shells.push({ m: mtx(x + face * (w / 2 + 0.09), 0.7, z + 0.85, 0.16, 1.36, 0.62), owner: l.i });
+      if (hs && hs.kwh > 0) shells.push({ m: mtx(x + face * (d / 2 + 0.09), 0.62, z - w * 0.32, 0.16, 1.2, 0.56), owner: l.i });
       if (hs?.hasHeat) {
-        const bx = x + face * (w / 2 + 0.28);
-        hpBodies.push({ m: mtx(bx, 0.44, z - 0.85, 0.5, 0.82, 0.95), owner: l.i });
-        grilles.push({ m: mtx(bx + face * 0.255, 0.46, z - 0.85, 0.66, 0.03, 0.66, 0, 0, Math.PI / 2), owner: l.i });
+        const bx = x + face * (d * 0.22);
+        const bz = z - w / 2 - 0.42;
+        hpBodies.push({ m: mtx(bx, 0.41, bz, 0.5, 0.78, 0.9), owner: l.i });
+        grilles.push({ m: mtx(bx + face * 0.255, 0.43, bz, 0.6, 0.03, 0.6, 0, 0, Math.PI / 2), owner: l.i });
       }
     }
     const rows = Math.max(1, ...lots.map((l) => l.row + 1));
-    for (let r = 0; r < rows; r++) poles.push({ m: mtx(POLE_X, POLE_H / 2, ROW0 - r * LOT, 0.14, POLE_H, 0.14), owner: -1 });
-    poles.push({ m: mtx((SUB_X + 1.6) / 2 - 0.4, (POLE_H - 0.2) / 2, TF_Z, 0.14, POLE_H - 0.2, 0.14), owner: -1 });
-    return { walls, roofs, windows, panels, shells, hpBodies, grilles, poles };
+    for (let r = 0; r < rows; r++) poles.push({ m: mtx(POLE_X, POLE_H / 2, ROW0 - r * LOT, 0.12, POLE_H, 0.12), owner: -1 });
+    poles.push({ m: mtx(SUB_X + 1.3, 1.35, TF_Z, 0.12, 2.7, 0.12), owner: -1 });
+    return { houses, trees, drives, panels, shells, hpBodies, grilles, poles };
   }, [lots]);
 }
 
@@ -220,25 +248,25 @@ function useWires(lots: Lot[]) {
   return useMemo(() => {
     const wires: Wire[] = [];
     const add = (id: string, c: THREE.QuadraticBezierCurve3, r: number) => wires.push({ id, curve: c, len: c.getLength(), r });
-    const tfTap = new THREE.Vector3(0.6, TF_TOP, TF_Z);
-    add("feed", sag(new THREE.Vector3(SUB_X + 1.6, 3.3, TF_Z), new THREE.Vector3(-0.6, TF_TOP, TF_Z), 0.45), 0.15);
+    const tfTap = new THREE.Vector3(0.55, TF_TOP, TF_Z);
+    add("feed", sag(new THREE.Vector3(SUB_X + 1.3, 2.7, TF_Z), new THREE.Vector3(-0.55, TF_TOP, TF_Z), 0.35), 0.11);
     const rows = Math.max(1, ...lots.map((l) => l.row + 1));
     let prev = tfTap;
     for (let r = 0; r < rows; r++) {
       const top = new THREE.Vector3(POLE_X, POLE_H, ROW0 - r * LOT);
-      add(`spine:${r}`, sag(prev, top, 0.3), 0.13);
+      add(`spine:${r}`, sag(prev, top, 0.3), 0.095);
       prev = top;
     }
     for (const l of lots) {
-      const eave = new THREE.Vector3(l.x + l.face * (l.w / 2 + 0.05), l.h + 0.05, l.z + 0.2);
-      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.11);
+      const eave = new THREE.Vector3(l.x + l.face * (l.d / 2 + 0.05), l.eave, l.z + 0.4);
+      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.08);
     }
-    const geo = mergeGeometries(wires.map((w) => new THREE.TubeGeometry(w.curve, 20, w.id === "feed" ? 0.04 : 0.028, 5, false)));
+    const geo = mergeGeometries(wires.map((w) => new THREE.TubeGeometry(w.curve, 20, w.id === "feed" ? 0.04 : 0.03, 5, false)));
     return { wires, geo };
   }, [lots]);
 }
 
-const MAX_DOTS = 600;
+const MAX_DOTS = 700;
 
 interface Flow {
   kw: Record<string, number>;
@@ -283,7 +311,7 @@ function PowerDots({ wires, flow, still }: { wires: Wire[]; flow: MutableRefObje
     for (const w of wires) {
       const f = flow.current.kw[w.id] ?? 0;
       if (Math.abs(f) < FLOW_EPS) continue;
-      const n = Math.max(2, Math.round(w.len / 1.3));
+      const n = Math.max(2, Math.round(w.len / 1.7));
       let ph = (phase.current[w.id] ?? Math.random()) + (step * flowSpeed(f) * Math.sign(f)) / w.len;
       ph -= Math.floor(ph);
       phase.current[w.id] = ph;
@@ -308,24 +336,24 @@ interface Env {
   sunDir: THREE.Vector3;
 }
 
-/** Battery fills, heat-pump fans, charging cars and Gridzilla roof lights, eased toward each new reading. */
+/** Battery fills, heat-pump fans and charging cars, eased toward each new reading. */
 function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<Map<string, House & { shape: boolean }>>; still: boolean }) {
   const fill = useRef<THREE.InstancedMesh>(null);
   const blade = useRef<THREE.InstancedMesh>(null);
   const car = useRef<THREE.InstancedMesh>(null);
   const glass = useRef<THREE.InstancedMesh>(null);
-  const marker = useRef<THREE.InstancedMesh>(null);
+  const wheel = useRef<THREE.InstancedMesh>(null);
   const prog = useMemo(() => lots.filter((l) => l.house), [lots]);
   const batt = useMemo(() => prog.filter((l) => l.house!.kwh > 0), [prog]);
   const hp = useMemo(() => prog.filter((l) => l.house!.hasHeat), [prog]);
-  // eased state per lot: shown battery level, fan angle and speed, car and marker size
-  const st = useRef(new Map<number, { soc: number; ang: number; spin: number; car: number; mark: number }>());
+  // eased state per lot: shown battery level, fan angle and speed, car size
+  const st = useRef(new Map<number, { soc: number; ang: number; spin: number; car: number }>());
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const ease = (k: number) => (still ? 1 : 1 - Math.exp(-dt * k));
     const get = (i: number) => {
       let v = st.current.get(i);
-      if (!v) st.current.set(i, (v = { soc: -1, ang: 0, spin: 0, car: 0, mark: 0 }));
+      if (!v) st.current.set(i, (v = { soc: -1, ang: 0, spin: 0, car: 0 }));
       return v;
     };
     batt.forEach((l, k) => {
@@ -333,8 +361,8 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
       const v = get(l.i);
       const target = h.online ? Math.max(0, Math.min(100, h.soc ?? 0)) / 100 : 0;
       v.soc = v.soc < 0 ? target : v.soc + (target - v.soc) * ease(2.5);
-      const hgt = Math.max(HIDE, 1.2 * v.soc);
-      fill.current?.setMatrixAt(k, mtx(l.x + l.face * (l.w / 2 + 0.1), 0.08 + hgt / 2, l.z + 0.85, 0.18, hgt, 0.48, 0, 0, 0, _m));
+      const hgt = Math.max(HIDE, 1.06 * v.soc);
+      fill.current?.setMatrixAt(k, mtx(l.x + l.face * (l.d / 2 + 0.1), 0.08 + hgt / 2, l.z - l.w * 0.32, 0.18, hgt, 0.42, 0, 0, 0, _m));
     });
     hp.forEach((l, k) => {
       const h = live.current.get(l.house!.key) ?? l.house!;
@@ -343,22 +371,27 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
       const target = kw > 0.05 ? 3 + Math.min(kw, 12) * 1.6 : 0; // radians per second
       v.spin += (target - v.spin) * ease(1.5);
       if (!still) v.ang += v.spin * dt;
-      const bx = l.x + l.face * (l.w / 2 + 0.28 + 0.285);
-      for (let j = 0; j < 2; j++) blade.current?.setMatrixAt(2 * k + j, mtx(bx, 0.46, l.z - 0.85, 0.02, 0.58, 0.09, v.ang + (j * Math.PI) / 2, 0, 0, _m));
+      const bx = l.x + l.face * (l.d * 0.22 + 0.285);
+      for (let j = 0; j < 2; j++) blade.current?.setMatrixAt(2 * k + j, mtx(bx, 0.43, l.z - l.w / 2 - 0.42, 0.02, 0.52, 0.08, v.ang + (j * Math.PI) / 2, 0, 0, _m));
     });
     prog.forEach((l, k) => {
       const h = live.current.get(l.house!.key) ?? l.house!;
       const v = get(l.i);
       v.car += ((h.online && h.ev_kw > 0.05 ? 1 : 0) - v.car) * ease(4);
-      v.mark += ((h.underSignal || (h as { shape?: boolean }).shape ? 1 : 0) - v.mark) * ease(4);
       const c = Math.max(HIDE, v.car);
-      const cz = l.z + l.d / 2 + 1.05; // beside the house, nose to the road
-      car.current?.setMatrixAt(k, mtx(l.x + l.face * 0.2, 0.36 * c, cz, 1.9 * c, 0.5 * c, 0.95 * c, 0, 0, 0, _m));
-      glass.current?.setMatrixAt(k, mtx(l.x + l.face * 0.05, 0.76 * c, cz, 0.95 * c, 0.3 * c, 0.78 * c, 0, 0, 0, _m));
-      const s = Math.max(HIDE, 0.17 * v.mark);
-      marker.current?.setMatrixAt(k, mtx(l.x, l.h + 1.25 + 0.12, l.z + 0.9, s, s, s, 0, 0, 0, _m));
+      // in the driveway, nose to the road
+      const yard = OFFSET - l.d / 2 - ROAD_W / 2;
+      const cx = l.side * (ROAD_W / 2 + yard / 2);
+      const cz = l.z + l.w * 0.3;
+      car.current?.setMatrixAt(k, mtx(cx, 0.36 * c, cz, 1.9 * c, 0.4 * c, 0.86 * c, 0, 0, 0, _m));
+      glass.current?.setMatrixAt(k, mtx(cx + l.side * 0.18 * c, 0.7 * c, cz, 1.0 * c, 0.3 * c, 0.76 * c, 0, 0, 0, _m));
+      for (let j = 0; j < 4; j++) {
+        const wx = cx + (j < 2 ? -0.62 : 0.62) * c;
+        const wz = cz + (j % 2 ? -0.42 : 0.42) * c;
+        wheel.current?.setMatrixAt(4 * k + j, mtx(wx, 0.19 * c, wz, 0.38 * c, 0.12 * c, 0.38 * c, Math.PI / 2, 0, 0, _m));
+      }
     });
-    for (const r of [fill, blade, car, glass, marker]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
+    for (const r of [fill, blade, car, glass, wheel]) if (r.current) r.current.instanceMatrix.needsUpdate = true;
   });
   const im = (ref: RefObject<THREE.InstancedMesh>, geo: THREE.BufferGeometry, material: THREE.Material, n: number, shadow = true) =>
     n > 0 && <instancedMesh key={`${material.uuid}:${n}`} ref={ref} args={[geo, material, n]} castShadow={shadow} receiveShadow raycast={noRay} frustumCulled={false} />;
@@ -368,6 +401,7 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
       {im(blade, box, mat.blade, hp.length * 2)}
       {im(car, box, mat.carBody, prog.length)}
       {im(glass, box, mat.carGlass, prog.length)}
+      {im(wheel, cyl, mat.wheel, prog.length * 4)}
     </>
   );
 }
@@ -398,12 +432,59 @@ function Panels({ parts, env }: { parts: (Part & { n: THREE.Vector3 })[]; env: M
   return <instancedMesh key={parts.length} ref={ref} args={[box, mat.panel, parts.length]} castShadow receiveShadow raycast={noRay} frustumCulled={false} />;
 }
 
-// ------------------------------------------------------------------ the hero transformer
-const FINS = [-1.05, -0.35, 0.35, 1.05];
-
-function B(p: { material: THREE.Material; s: [number, number, number]; at: [number, number, number] }) {
-  return <mesh geometry={box} material={p.material} scale={p.s} position={p.at} castShadow receiveShadow />;
+// ------------------------------------------------------------------ the kit: houses and trees, one instanced mesh per model
+function firstMesh(o: THREE.Object3D): THREE.Mesh | null {
+  let found: THREE.Mesh | null = null;
+  o.traverse((c) => {
+    if (!found && (c as THREE.Mesh).isMesh) found = c as THREE.Mesh;
+  });
+  return found;
 }
+
+function Kit({ parts, onHover }: { parts: ReturnType<typeof useStaticParts>; onHover?: (owner: number, e: ThreeEvent<PointerEvent | MouseEvent>) => void }) {
+  const gltfs = useGLTF(MODELS, false, false);
+  const slate = useTexture(SLATE);
+  const kit = useMemo(() => {
+    const meshes = gltfs.map((g) => firstMesh(g.scene));
+    const src = (meshes[0]?.material as THREE.MeshStandardMaterial | undefined)?.map ?? null;
+    slate.flipY = false;
+    slate.colorSpace = THREE.SRGBColorSpace;
+    slate.magFilter = THREE.NearestFilter;
+    slate.minFilter = src?.minFilter ?? THREE.NearestMipmapNearestFilter;
+    slate.needsUpdate = true;
+    const houseMat = new THREE.MeshStandardMaterial({ map: slate, roughness: 0.88, metalness: 0 });
+    const treeMat = new THREE.MeshStandardMaterial({ map: src, roughness: 0.95, metalness: 0 });
+    const geo = (i: number) => meshes[i]?.geometry ?? box;
+    return { house: Object.fromEntries(KINDS.map((k, i) => [k, geo(i)])) as Record<Kind, THREE.BufferGeometry>, tree: [geo(KINDS.length), geo(KINDS.length + 1)], houseMat, treeMat };
+  }, [gltfs, slate]);
+  useEffect(
+    () => () => {
+      kit.houseMat.dispose();
+      kit.treeMat.dispose();
+    },
+    [kit],
+  );
+  return (
+    <>
+      {KINDS.map((k) => (
+        <Instanced key={k} geo={kit.house[k]} material={kit.houseMat} parts={parts.houses[k]} onHover={onHover} />
+      ))}
+      <Instanced geo={kit.tree[0]} material={kit.treeMat} parts={parts.trees[0]} />
+      <Instanced geo={kit.tree[1]} material={kit.treeMat} parts={parts.trees[1]} />
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ the transformer: a green substation kiosk
+function B(p: { material: THREE.Material; s: [number, number, number]; at: [number, number, number]; shadow?: boolean }) {
+  return <mesh geometry={box} material={p.material} scale={p.s} position={p.at} castShadow={p.shadow !== false} receiveShadow />;
+}
+
+const KW = 2.5; // kiosk body: width (x), height, depth (z)
+const KH = 2.05;
+const KD = 1.9;
+const K0 = 0.16; // plinth height
+const SLATS = [0.62, 0.86, 1.1, 1.34, 1.58];
 
 function Transformer({ st, onHover, onSelect, interactive }: { st: StreetModel; onHover: HoverFn; onSelect?: (tf: string) => void; interactive: boolean }) {
   const tone = loadTone(st.pct);
@@ -420,6 +501,8 @@ function Transformer({ st, onHover, onSelect, interactive }: { st: StreetModel; 
     const t = Math.min(1, (clock.elapsedTime - t0.current) / 0.6);
     const e = 1 - Math.pow(1 - t, 3);
     mat.tfBody.color.copy(from.current).lerp(to.current, e);
+    mat.tfDoor.color.copy(mat.tfBody.color).multiplyScalar(0.9);
+    mat.tfLouvre.color.copy(mat.tfBody.color).multiplyScalar(0.7);
   });
   const at = (e: ThreeEvent<PointerEvent | MouseEvent>) => onHover({ kind: "tf", street: st, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY });
   const ev = interactive
@@ -444,15 +527,25 @@ function Transformer({ st, onHover, onSelect, interactive }: { st: StreetModel; 
         },
       }
     : {};
+  const front = KD / 2 + 0.02;
   return (
     <group position={[0, 0, TF_Z]} {...ev}>
-      <B material={mat.tfBase} s={[4.8, 0.26, 3.8]} at={[0, 0.13, 0]} />
-      <B material={mat.tfBody} s={[3.6, 3.1, 2.7]} at={[0, 0.26 + 1.55, 0]} />
-      {/* cooling fins on the long sides, same colour as the body */}
-      {FINS.map((dx) => [-1, 1].map((sd) => <B key={`${dx}:${sd}`} material={mat.tfBody} s={[0.16, 2.5, 0.26]} at={[dx, 0.26 + 1.45, sd * 1.45]} />))}
-      <B material={mat.tfRoof} s={[4.0, 0.3, 3.1]} at={[0, 0.26 + 3.1 + 0.15, 0]} />
-      {[-0.6, 0, 0.6].map((dx) => (
-        <mesh key={dx} geometry={cyl} material={mat.bushing} scale={[0.22, 0.5, 0.22]} position={[dx, 3.66 + 0.25, 0]} castShadow />
+      <B material={mat.tfBase} s={[KW + 0.4, K0, KD + 0.4]} at={[0, K0 / 2, 0]} />
+      <B material={mat.tfBody} s={[KW, KH, KD]} at={[0, K0 + KH / 2, 0]} />
+      <B material={mat.tfRoof} s={[KW + 0.24, 0.14, KD + 0.24]} at={[0, K0 + KH + 0.07, 0]} />
+      {/* a double door on the left of the front face, a small handle, louvres on the right */}
+      {[-0.86, -0.32].map((dx) => (
+        <B key={dx} material={mat.tfDoor} s={[0.5, 1.62, 0.04]} at={[dx, K0 + 0.06 + 0.81, front]} shadow={false} />
+      ))}
+      <B material={mat.tfTrim} s={[0.05, 0.2, 0.05]} at={[-0.6, K0 + 0.95, front + 0.03]} shadow={false} />
+      {SLATS.map((y) => (
+        <B key={y} material={mat.tfLouvre} s={[0.86, 0.08, 0.05]} at={[0.6, K0 + y, front + 0.01]} shadow={false} />
+      ))}
+      {[-1, 1].map((sd) =>
+        SLATS.slice(0, 4).map((y) => <B key={`${sd}:${y}`} material={mat.tfLouvre} s={[0.05, 0.08, 1.1]} at={[sd * (KW / 2 + 0.02), K0 + y + 0.12, 0]} shadow={false} />),
+      )}
+      {[-0.55, 0, 0.55].map((dx) => (
+        <mesh key={dx} geometry={cyl} material={mat.bushing} scale={[0.14, 0.32, 0.14]} position={[dx, K0 + KH + 0.14 + 0.16, 0]} castShadow />
       ))}
     </group>
   );
@@ -465,11 +558,10 @@ function Substation({ onHover, interactive }: { onHover: HoverFn; interactive: b
   };
   return (
     <group position={[SUB_X, 0, TF_Z]} {...(interactive ? { onPointerOver: at, onPointerMove: at, onPointerOut: () => onHover(null), onClick: at } : {})}>
-      <mesh geometry={box} material={mat.tfBase} scale={[4.4, 0.2, 3.6]} position-y={0.1} receiveShadow />
+      <mesh geometry={box} material={mat.tfBase} scale={[3.2, 0.16, 2.6]} position-y={0.08} receiveShadow />
       {[-1, 1].map((dx) => (
-        <mesh key={dx} geometry={box} material={mat.sub} scale={[1.6, 2.8, 2.3]} position={[dx * 1.05, 1.6, 0]} castShadow receiveShadow />
+        <mesh key={dx} geometry={box} material={mat.sub} scale={[1.1, 2.0, 1.7]} position={[dx * 0.72 - 0.2, 1.16, 0]} castShadow receiveShadow />
       ))}
-      <mesh geometry={cyl} material={mat.pole} scale={[0.14, 3.3, 0.14]} position={[1.6, 1.65, 0]} castShadow />
     </group>
   );
 }
@@ -500,18 +592,17 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef }: { hour: number; cloud:
     target.position.set(0, 0, centerZ);
     target.updateMatrixWorld();
     if (sun.current) {
-      sun.current.position.copy(light.dir).multiplyScalar(45).add(target.position);
-      sun.current.intensity = light.intensity;
+      sun.current.position.copy(light.dir).multiplyScalar(60).add(target.position);
+      sun.current.intensity = light.intensity * 0.85;
       sun.current.color.copy(light.color);
       sun.current.target = target;
     }
     if (hemi.current) {
-      hemi.current.intensity = light.hemi;
+      hemi.current.intensity = light.hemi * 0.9;
       hemi.current.color.copy(light.hemiSky);
     }
     if (scene.background instanceof THREE.Color) scene.background.copy(light.bg);
     if (shadowRef.current) shadowRef.current.opacity = light.shadow;
-    mat.window.emissiveIntensity = light.windows * 1.3;
     env.current.sun = light.sun;
     env.current.sunDir.copy(light.sunDir);
   });
@@ -524,22 +615,22 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef }: { hour: number; cloud:
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
-        shadow-camera-left={-26}
-        shadow-camera-right={26}
-        shadow-camera-top={26}
-        shadow-camera-bottom={-26}
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={30}
+        shadow-camera-bottom={-30}
         shadow-camera-near={1}
-        shadow-camera-far={110}
+        shadow-camera-far={140}
       />
     </>
   );
 }
 
-// ------------------------------------------------------------------ camera: frame the street, sway slowly
-const PHI = 1.0; // from straight above: ~33 degrees above the horizon
-const THETA = 0.42; // from the front right
-const SWAY = 0.26; // radians either way
-const SWAY_S = 48; // seconds for one slow sway
+// ------------------------------------------------------------------ camera: frame the street from further back, sway slowly
+const PHI = 0.98; // from straight above: ~34 degrees above the horizon
+const THETA = 0.5; // from the front right
+const SWAY = 0.2; // radians either way
+const SWAY_S = 56; // seconds for one slow sway
 
 function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean }) {
   const controls = useRef<OrbitControlsImpl>(null);
@@ -549,13 +640,13 @@ function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: b
   const off = useMemo(() => new THREE.Vector3(), []);
   const target = useMemo(() => new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()), [pts]);
 
-  // the smallest distance at which the street fits, then a lens shift that centres it (raycasting stays correct)
+  // the smallest distance at which the street fits with air around it, then a lens shift that centres it
   const frame = useMemo(() => {
     const w = Math.max(1, size.width),
       h = Math.max(1, size.height);
     const cam = new THREE.PerspectiveCamera((camera as THREE.PerspectiveCamera).fov, w / h, 0.5, 2000);
     const v = new THREE.Vector3();
-    const edge = 0.86; // room for the sway
+    const edge = 0.86; // room for the sway and some air: houses are context, not giants
     const extent = (r: number) => {
       cam.position.copy(target).add(v.setFromSphericalCoords(r, PHI, THETA));
       cam.lookAt(target);
@@ -576,7 +667,7 @@ function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: b
       return { x0, x1, y0, y1, behind };
     };
     let lo = 4,
-      hi = 800;
+      hi = 1200;
     for (let i = 0; i < 30; i++) {
       const mid = (lo + hi) / 2;
       const e = extent(mid);
@@ -644,7 +735,7 @@ export interface LivingProps {
   slots?: number;
 }
 
-export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 6 }: LivingProps) {
+export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 12 }: LivingProps) {
   const layoutKey = `${st.tf}|${st.houses.map((h) => `${h.house.key}:${h.house.hasPv ? 1 : 0}${h.house.kwh > 0 ? 1 : 0}${h.house.hasHeat ? 1 : 0}`).join(",")}|${slots}`;
   const lots = useMemo(() => lotsOf(st, slots), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const parts = useStaticParts(lots);
@@ -672,20 +763,21 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
   const hov = interactive ? hoverLot : undefined;
 
   const rows = Math.max(1, ...lots.map((l) => l.row + 1));
-  const back = ROW0 - (rows - 1) * LOT - 2.2;
+  const back = ROW0 - (rows - 1) * LOT - 3.2;
   const centerZ = (TF_Z + back) / 2;
   const pts = useMemo(() => {
     const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
-    return [v(SUB_X - 2.3, 0, TF_Z + 1.9), v(SUB_X - 2.3, 3.2, TF_Z), v(0, 0, TF_Z + 2.0), v(0, TF_TOP + 0.4, TF_Z), v(-OFFSET - 1.8, 0, back), v(OFFSET + 1.8, 0, back), v(-OFFSET - 1.8, 3.3, back), v(OFFSET + 1.8, 3.3, back), v(OFFSET + 1.8, 0, TF_Z)];
+    const far = OFFSET + 4.2; // back gardens and their trees
+    return [v(SUB_X - 1.8, 0, TF_Z + 1.6), v(SUB_X - 1.8, 2.4, TF_Z), v(0, 0, TF_Z + 1.4), v(0, TF_TOP + 0.3, TF_Z), v(-far, 0, back), v(far, 0, back), v(-far, 4.2, back), v(far, 4.2, back), v(far, 0, TF_Z), v(-far, 0, TF_Z - 3)];
   }, [back]);
-  const roadLen = TF_Z + 1 - back;
+  const roadLen = TF_Z - 1.4 - back;
 
   return (
     <Canvas
       flat
       shadows
       dpr={[1, 1.75]}
-      camera={{ fov: 26, near: 0.5, far: 400, position: [10, 30, 40] }}
+      camera={{ fov: 24, near: 0.5, far: 600, position: [10, 30, 40] }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       style={{ pointerEvents: interactive ? "auto" : "none" }}
       onPointerMissed={() => onHover(null)}
@@ -693,16 +785,17 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
     >
       <SkyRig hour={hour} cloud={cloud} env={env} centerZ={centerZ} shadowRef={shadowMat} />
       {/* the ground is the background itself: only the shadows show on it, so it stays light at every hour */}
-      <mesh geometry={plane} scale={[400, 1, 400]} receiveShadow raycast={noRay}>
+      <mesh geometry={plane} scale={[500, 1, 500]} receiveShadow raycast={noRay}>
         <shadowMaterial ref={shadowMat} opacity={0.12} color="#1d1d1f" />
       </mesh>
-      <ContactShadows key={layoutKey} frames={1} position={[-2, 0.012, centerZ]} scale={[34, roadLen + 8]} resolution={1024} blur={2.4} far={2.5} opacity={0.42} color="#1d1d1f" />
-      <mesh geometry={plane} material={mat.road} scale={[ROAD_W, 1, roadLen]} position={[0, 0.006, (TF_Z + 1 + back) / 2]} raycast={noRay} />
+      <mesh geometry={plane} material={mat.road} scale={[ROAD_W, 1, roadLen]} position={[0, 0.006, (TF_Z - 1.4 + back) / 2]} raycast={noRay} />
+      <Instanced geo={plane} material={mat.drive} parts={parts.drives} shadow={false} />
       <Substation onHover={onHover} interactive={interactive} />
       <Transformer st={st} onHover={onHover} onSelect={onSelect} interactive={interactive} />
-      <Instanced geo={box} material={mat.wall} parts={parts.walls} onHover={hov} />
-      <Instanced geo={roofGeo} material={mat.roof} parts={parts.roofs} onHover={hov} />
-      <Instanced geo={box} material={mat.window} parts={parts.windows} shadow={false} />
+      <Suspense fallback={null}>
+        <Kit parts={parts} onHover={hov} />
+        <ContactShadows key={layoutKey} frames={1} position={[-2, 0.012, centerZ]} scale={[2 * (OFFSET + 6) + 8, roadLen + 12]} resolution={1024} blur={2.6} far={4} opacity={0.38} color="#1d1d1f" />
+      </Suspense>
       <Panels parts={parts.panels} env={env} />
       <Instanced geo={box} material={mat.battShell} parts={parts.shells} />
       <Instanced geo={box} material={mat.hpBody} parts={parts.hpBodies} />

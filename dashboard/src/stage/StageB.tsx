@@ -8,7 +8,7 @@ import { P, loadTone } from "./palette";
 import { signalOn, useStory } from "./useStory";
 import AiSteps from "./kit/AiSteps";
 import LoadRing from "./kit/LoadRing";
-import LiveCurve from "./kit/LiveCurve";
+import BCurve from "./b/Curve";
 import { fmtNum } from "./kit/Counter";
 import { Num, PlanCard, Tile, WeatherCard, WeatherLine, useBox } from "./b/Cards";
 import { useFlatten, useWeatherFeed } from "./b/feeds";
@@ -26,7 +26,7 @@ const scenarioWords = (name: string | undefined, h: number) => (name && SCENARIO
 function Bar({ clock, scenario, status }: { clock: string; scenario: string; status: ReactNode }) {
   return (
     <header
-      className="sticky top-0 z-20 grid h-11 shrink-0 grid-cols-[1fr_auto] items-center gap-4 px-4 lg:h-[3.25rem] lg:grid-cols-[1fr_auto_1fr] lg:px-6"
+      className="sticky top-0 z-20 grid min-h-11 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-4 py-1.5 lg:min-h-[3.25rem] lg:grid-cols-[auto_auto_minmax(0,1fr)] lg:px-6 xl:grid-cols-[1fr_auto_1fr]"
       style={{
         background: "rgba(250,250,252,.8)",
         backdropFilter: "saturate(180%) blur(20px)",
@@ -35,37 +35,39 @@ function Bar({ clock, scenario, status }: { clock: string; scenario: string; sta
       }}
     >
       <div className="t-title">Gridzilla</div>
-      <div className="flex items-baseline gap-2 justify-self-end lg:justify-self-center">
+      <div className="flex min-w-0 flex-wrap items-baseline justify-end gap-x-2 justify-self-end xl:justify-self-center">
         <span className="t-title tabular-nums">{clock}</span>
         <span className="t-body text-secondary">{scenario}</span>
       </div>
-      <div className="t-body hidden justify-self-end text-right text-secondary lg:block">{status}</div>
+      <div className="t-body hidden min-w-0 justify-self-end text-right text-secondary lg:block">{status}</div>
     </header>
   );
 }
 
 /** Watch-style stacked rings: outer = without Gridzilla, inner = with it, red lap past 100 %. Tonight's forecast peak
- *  beside it so the problem coming is on screen before it arrives. */
+ *  beside it so the problem coming is on screen before it arrives. The ring is sized from the card's width only, and
+ *  the numbers wrap under it when the card is narrow, so nothing is ever cut. */
 function RingCard({ pct, basePct, peak, simHour }: { pct: number | null; basePct: number | null; peak: { pct: number; h: number } | null; simHour: number }) {
   const peakNow = peak != null && Math.abs(peak.h - simHour) < 0.25;
   const [ref, box] = useBox<HTMLDivElement>();
-  const size = Math.max(150, Math.min(box.h, box.w * 0.5, 340));
+  const size = Math.round(Math.max(176, Math.min(box.w * 0.44, 260)));
   const back = (v: number | null) => (v != null && v < 0 ? " flowing back" : "");
+  const big = "text-[clamp(2rem,9cqi,2.5rem)] leading-[1.2] tracking-[-0.015em]";
   return (
     <Tile className="h-full">
-      <div ref={ref} className="flex h-full items-center gap-5 px-6 py-5">
+      <div ref={ref} className="flex h-full flex-wrap items-center gap-x-6 gap-y-4 px-5 py-5 @md:px-6">
         <div className="shrink-0">
-          {box.h > 0 && <LoadRing pct={pct} withoutPct={basePct} size={size} stroke={Math.max(16, Math.round(size * 0.09))} sublabel={pct != null && pct < 0 ? "Flowing back" : "With Gridzilla"} />}
+          {box.w > 0 && <LoadRing pct={pct} withoutPct={basePct} size={size} stroke={Math.max(14, Math.round(size * 0.08))} sublabel={pct != null && pct < 0 ? "Flowing back" : "With Gridzilla"} />}
         </div>
-        <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-[9rem] flex-1 flex-col gap-3">
           <div>
             <div className="t-body text-secondary">Without Gridzilla{back(basePct)}</div>
-            <Num value={basePct != null ? Math.abs(basePct) : null} unit="%" className="text-[2.5rem] leading-none tracking-[-0.015em]" color={loadTone(Math.abs(basePct ?? 0))} />
+            <Num value={basePct != null ? Math.abs(basePct) : null} unit="%" className={big} color={loadTone(Math.abs(basePct ?? 0))} />
           </div>
           {peak && (
             <div>
               <div className="t-body text-secondary">{peakNow ? "Tonight's peak, right now" : `Next peak at ${hhmm(peak.h % 24)}`}</div>
-              <Num value={Math.abs(peak.pct)} unit="%" className="text-[2.5rem] leading-none tracking-[-0.015em]" color={loadTone(Math.abs(peak.pct))} />
+              <Num value={Math.abs(peak.pct)} unit="%" className={big} color={loadTone(Math.abs(peak.pct))} />
             </div>
           )}
         </div>
@@ -100,16 +102,16 @@ function FactsCard({ s, tf }: { s: State; tf: string }) {
   const sum = s.summary;
   const bl = s.households?.blatnica?.telemetry ?? null;
   return (
-    <Tile className="flex h-full flex-col gap-3 px-6 py-4">
-      <div className="grid grid-cols-2 gap-4">
+    <Tile className="flex h-full flex-col gap-4 px-5 py-5 @md:px-6">
+      <div className="grid grid-cols-1 gap-4 @xs:grid-cols-2">
         <div>
-          <Num value={over || close} className="text-[2.5rem] leading-none tracking-[-0.015em]" color={over ? P.red : close ? P.orange : P.green} />
+          <Num value={over || close} className="text-[clamp(2rem,9cqi,2.5rem)] leading-[1.2] tracking-[-0.015em]" color={over ? P.red : close ? P.orange : P.green} />
           <div className="t-body text-secondary">{over ? `${over === 1 ? "street" : "streets"} heading past the limit` : close ? `${close === 1 ? "street" : "streets"} near the limit tonight` : "streets all inside the limit"}</div>
         </div>
         <div>
           {sig ? (
             <>
-              <div className="text-[2.5rem] font-semibold leading-none tracking-[-0.015em] tabular-nums">#{sig.seq}</div>
+              <div className="text-[clamp(2rem,9cqi,2.5rem)] font-semibold leading-[1.2] tracking-[-0.015em] tabular-nums">#{sig.seq}</div>
               <div className="t-body text-secondary">
                 {MODE_WORDS[sig.mode]?.title ?? sig.mode}
                 {cap != null && <>, at most <span className="font-semibold text-ink tabular-nums">{fmtNum(cap)} kW</span> {capWord}</>}
@@ -118,7 +120,7 @@ function FactsCard({ s, tf }: { s: State; tf: string }) {
             </>
           ) : (
             <>
-              <div className="text-[2.5rem] font-semibold leading-none tracking-[-0.015em] text-tertiary">No signal</div>
+              <div className="text-[clamp(2rem,9cqi,2.5rem)] font-semibold leading-[1.2] tracking-[-0.015em] text-tertiary">No signal</div>
               <div className="t-body text-secondary">on this street right now</div>
             </>
           )}
@@ -126,7 +128,7 @@ function FactsCard({ s, tf }: { s: State; tf: string }) {
       </div>
       {sum && (
         <div className="flex items-center gap-4">
-          <Num value={sum.shaped ?? 0} className="text-[2rem] leading-none tracking-[-0.015em]" color={P.green} />
+          <Num value={sum.shaped ?? 0} className="text-[2rem] leading-[1.2] tracking-[-0.015em]" color={P.green} />
           <div className="min-w-0 flex-1">
             <div className="t-body text-secondary">of {fmtNum(sum.households)} homes follow the plan</div>
             <HomeDots shaped={sum.shaped ?? 0} total={sum.households} />
@@ -169,83 +171,97 @@ export default function StageB() {
   const nowKw = agg?.total_kw ?? null;
   const tfCount = Object.keys(s.tree).filter((n) => n.startsWith("tf:")).length;
 
+  // The street as context, not a giant: words in the page flow (never painted over the canvas), the 3D in a fixed
+  // aspect tile beside them on a wide card and under them on a narrow one.
+  const big = "block text-[clamp(2.75rem,11cqi,4.5rem)] leading-[1.2] tracking-[-0.015em]";
   const scene = (
-    <Tile className="h-[30rem] !rounded-none lg:h-full lg:!rounded-[28px]">
-      <div className="absolute inset-x-0 bottom-0 top-[8.5rem] lg:inset-0">
-        <StreetScene s={s} weather={weather} feeder={feeder} tf={tf} interactive={false} />
-      </div>
-      <div className="pointer-events-none absolute left-5 top-4 lg:left-8 lg:top-7">
-        <div className="t-title">{name}</div>
-        {gap >= 1 ? (
-          <>
-            <Num value={gap} unit="kW" color={P.green} className="block text-[3.5rem] leading-[1.05] tracking-[-0.015em] lg:text-[5rem]" />
-            <div className="t-title font-normal text-secondary">taken off this street right now</div>
-          </>
-        ) : (
-          <>
-            <Num value={nowKw != null ? Math.abs(nowKw) : null} unit="kW" color={loadTone(Math.abs(story.nowPct ?? 0))} className="block text-[3.5rem] leading-[1.05] tracking-[-0.015em] lg:text-[5rem]" />
-            <div className="t-title font-normal text-secondary">{nowKw != null && nowKw < 0 ? "flowing back from this street now" : "drawn by this street now"}</div>
-          </>
-        )}
-      </div>
-      {sum && (
-        <div className="t-title pointer-events-none absolute bottom-4 left-5 font-normal text-secondary lg:bottom-6 lg:left-8">
-          <span className="font-semibold text-ink tabular-nums">{fmtNum(sum.houses)}</span> homes on{" "}
-          <span className="font-semibold text-ink tabular-nums">{tfCount}</span> transformers
+    <Tile clip className="h-full">
+      <div className="grid h-full grid-cols-1 items-center gap-4 p-5 @2xl:grid-cols-[minmax(13rem,0.7fr)_minmax(0,1.3fr)] @2xl:p-7">
+        <div className="min-w-0">
+          <div className="t-title">{name}</div>
+          {gap >= 1 ? (
+            <>
+              <Num value={gap} unit="kW" color={P.green} className={big} />
+              <div className="t-title font-normal text-secondary">taken off this street right now</div>
+            </>
+          ) : (
+            <>
+              <Num value={nowKw != null ? Math.abs(nowKw) : null} unit="kW" color={loadTone(Math.abs(story.nowPct ?? 0))} className={big} />
+              <div className="t-title font-normal text-secondary">{nowKw != null && nowKw < 0 ? "flowing back from this street now" : "drawn by this street now"}</div>
+            </>
+          )}
+          {sum && (
+            <div className="t-body mt-3 text-secondary @2xl:mt-6">
+              <span className="font-semibold text-ink tabular-nums">{fmtNum(sum.houses)}</span> homes on{" "}
+              <span className="font-semibold text-ink tabular-nums">{tfCount}</span> transformers
+            </div>
+          )}
         </div>
-      )}
+        <div className="relative aspect-[16/10] max-h-[min(26rem,60vh)] w-full min-w-0 overflow-hidden rounded-[14px] bg-ground">
+          <div className="absolute inset-0">
+            <StreetScene s={s} weather={weather} feeder={feeder} tf={tf} interactive={false} />
+          </div>
+        </div>
+      </div>
     </Tile>
   );
 
   const ring = <RingCard pct={story.nowPct} basePct={story.basePct} peak={peak} simHour={s.sim_hour} />;
 
   const ai = (
-    <Tile className="px-6 py-5 lg:h-full lg:px-8 lg:py-6">
+    <Tile className="h-full px-5 py-5 @md:px-6 lg:px-8 lg:py-6">
       <AiSteps s={s} weather={weather} variant="row" />
     </Tile>
   );
 
   const curve = (
-    <Tile className="flex h-[22rem] flex-col px-6 pb-3 pt-5 lg:h-full lg:pt-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+    <Tile className="flex h-full min-h-[20rem] flex-col gap-2 px-5 pb-4 pt-5 @md:px-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="t-title">With and without Gridzilla</h2>
         <div className="t-body flex flex-wrap gap-x-4 text-secondary">
           {agg?.baseline_kw != null && (
-            <span>Without <span className="font-semibold tabular-nums">{Math.round(agg.baseline_kw)} kW</span></span>
+            <span className="whitespace-nowrap">Without <span className="font-semibold tabular-nums">{Math.round(agg.baseline_kw)} kW</span></span>
           )}
           {nowKw != null && (
-            <span>With <span className="font-semibold tabular-nums text-ink">{Math.round(nowKw)} kW</span></span>
+            <span className="whitespace-nowrap">With <span className="font-semibold tabular-nums text-ink">{Math.round(nowKw)} kW</span></span>
           )}
         </div>
       </div>
-      <div className="mt-1 min-h-0 flex-1">
-        <LiveCurve s={s} history={history} node={tf} variant="hero" header={false} height="100%" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <BCurve s={s} history={history} node={tf} />
       </div>
     </Tile>
   );
 
-  // Desktop placement (one screen): scene left over three rows; ring, curve and Blatnica stacked right; the AI steps
-  // run under the scene and the plan sits beside them. On the phone the same children stack in reading order.
-  const at = (col: string, row: string) => ({ gridColumn: col, gridRow: row });
+  // One grid, placed by named areas: a single column on the phone, two on a tablet or small laptop, the stage layout from 1280 up.
+  // Every row is sized by its content (auto), so a short window scrolls the page and never clips a card.
   return (
-    <div className="min-h-[100dvh] bg-ground lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden">
+    <div className="min-h-[100dvh] bg-ground">
       <Bar clock={hhmm(s.sim_hour)} scenario={scenarioWords(s.scenario?.name, s.sim_hour)} status={<><WeatherLine feed={weather} simHour={s.sim_hour} /><span className="ml-4">{status}</span></>} />
-      <style>{`@media (min-width:1024px){.b-at{grid-column:var(--c);grid-row:var(--r)}}`}</style>
-      <main
-        className="flex flex-col gap-4 pb-8 lg:grid lg:min-h-0 lg:flex-1 lg:p-6"
-        style={{ gridTemplateColumns: "repeat(12, minmax(0,1fr))", gridTemplateRows: "minmax(0,0.75fr) minmax(0,1.25fr) auto minmax(0,0.9fr)" }}
-      >
-        <div className="b-at min-h-0" style={vars(at("1 / 9", "1 / 4"))}>{scene}</div>
-        <div className="b-at min-h-0 px-4 lg:px-0" style={vars(at("9 / 13", "1"))}><div className="h-[15rem] lg:h-full">{ring}</div></div>
-        <div className="b-at min-h-0 px-4 lg:px-0" style={vars(at("9 / 13", "2"))}>{curve}</div>
-        <div className="b-at min-h-0 px-4 lg:px-0" style={vars(at("9 / 13", "3"))}><FactsCard s={s} tf={tf} /></div>
-        <div className="b-at min-h-0 px-4 lg:px-0" style={vars(at("1 / 9", "4"))}>{ai}</div>
-        <div className="b-at min-h-0 px-4 lg:px-0" style={vars(at("9 / 13", "4"))}><PlanCard street={street} city={city} /></div>
-        <div className="px-4 lg:hidden"><WeatherCard feed={weather} simHour={s.sim_hour} /></div>
+      <style>{CSS}</style>
+      <main className="b-grid mx-auto w-full max-w-[150rem]">
+        <div style={{ gridArea: "scene" }}>{scene}</div>
+        <div style={{ gridArea: "ring" }}>{ring}</div>
+        <div style={{ gridArea: "curve" }}>{curve}</div>
+        <div style={{ gridArea: "facts" }}><FactsCard s={s} tf={tf} /></div>
+        <div style={{ gridArea: "ai" }}>{ai}</div>
+        <div style={{ gridArea: "plan" }}><PlanCard street={street} city={city} /></div>
+        <div className="b-weather" style={{ gridArea: "weather" }}><WeatherCard feed={weather} simHour={s.sim_hour} /></div>
       </main>
     </div>
   );
 }
 
-/** Grid placement as CSS variables, applied only from lg up (the .b-at rule), so the phone keeps its plain stack. */
-const vars = (p: { gridColumn: string; gridRow: string }) => ({ "--c": p.gridColumn, "--r": p.gridRow }) as React.CSSProperties;
+const CSS = `
+.b-grid{display:grid;gap:12px;padding:12px 12px 32px;grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"scene" "ring" "curve" "facts" "ai" "plan" "weather";}
+.b-grid>*{min-width:0}
+@media (min-width:640px){.b-grid{gap:16px;padding:16px 20px 32px;grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-areas:"scene scene" "ring facts" "curve curve" "ai ai" "plan weather";}}
+@media (min-width:1280px){.b-grid{gap:clamp(16px,1.2vw,28px);padding:clamp(16px,1.4vw,32px);
+  grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);
+  grid-template-areas:"scene ring" "scene facts" "curve plan" "ai ai";}
+  .b-weather{display:none}}
+@media (min-width:1900px){.b-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,0.85fr);
+  grid-template-areas:"scene curve ring" "scene curve facts" "ai ai plan";}}
+`;

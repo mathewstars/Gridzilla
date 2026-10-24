@@ -17,5 +17,5 @@ export default defineConfig({
       output: { manualChunks: { three: ["three", "@react-three/fiber", "@react-three/drei"], charts: ["recharts"] } },
     },
   },
-  server: { port: 5174, proxy: { "/api": process.env.GZ_API || "http://localhost:8081" } },
+  server: { port: 5174, proxy: { "/api": process.env.GZ_API || "http://localhost:8081", "/openapi.json": process.env.GZ_API || "http://localhost:8081" } },
 });

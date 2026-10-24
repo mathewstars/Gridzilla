@@ -1,6 +1,9 @@
 // Sees -> Thinks -> Checks -> Acts: the autopilot's real decision, lit step by step in sync with its live stage.
 // While it works the active step is Apple blue; done steps are ink, waiting steps tertiary. A new decision replays
 // the four steps once (it is a real change); a new signed message gets a small seal.
+//
+// Sized by its own container, not the window: four across from 48rem, two by two from 24rem, one stack below that.
+// Type scales with the container (cqi) and every line wraps; nothing is cut or kept on one line.
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { Decision, Proposal, State, WeatherFeed } from "../../api";
@@ -152,8 +155,8 @@ function Seal({ seq, play }: { seq: number; play: boolean }) {
   return (
     <motion.svg
       key={seq}
-      width="28"
-      height="28"
+      width="1.05em"
+      height="1.05em"
       viewBox="0 0 28 28"
       initial={play ? { scale: 0.6, opacity: 0 } : false}
       animate={{ scale: 1, opacity: 1 }}
@@ -178,6 +181,17 @@ function Seal({ seq, play }: { seq: number; play: boolean }) {
 }
 
 const TONE: Record<Tone, string> = { ink: P.ink, green: P.green, red: P.red };
+
+const CSS = `
+.gz-steps{container-type:inline-size;min-width:0}
+.gz-steps>ol{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem 1.5rem;
+  --gz-n:clamp(1rem,4.6cqi,1.25rem);--gz-l:clamp(1.125rem,6cqi,1.5rem);--gz-s:clamp(0.9375rem,4.4cqi,1.125rem)}
+@container (min-width:24rem){.gz-steps:not([data-stack])>ol{grid-template-columns:repeat(2,minmax(0,1fr));
+  --gz-n:clamp(1rem,2.7cqi,1.5rem);--gz-l:clamp(1.125rem,3.7cqi,2rem);--gz-s:clamp(0.9375rem,2.5cqi,1.25rem)}}
+@container (min-width:48rem){.gz-steps:not([data-stack])>ol{grid-template-columns:repeat(4,minmax(0,1fr));gap:1.5rem clamp(1rem,2.6cqi,2.5rem);
+  --gz-n:clamp(1rem,1.4cqi,1.875rem);--gz-l:clamp(1.125rem,1.95cqi,2.75rem);--gz-s:clamp(0.9375rem,1.3cqi,1.75rem)}}
+.gz-steps[data-stack]>ol{gap:1.5rem;--gz-n:clamp(1rem,4cqi,1.5rem);--gz-l:clamp(1.125rem,5.5cqi,2.25rem);--gz-s:clamp(0.9375rem,3.6cqi,1.5rem)}
+`;
 
 export default function AiSteps({ s, weather, variant = "row" }: { s: State | null; weather: WeatherFeed; variant?: "row" | "stack" }) {
   const view = s ? stepsFor(s, weather) : null;
@@ -213,7 +227,9 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
   const row = variant === "row";
 
   return (
-    <ol className={row ? "grid grid-cols-1 gap-8 md:grid-cols-4 md:gap-10" : "flex flex-col gap-7"} aria-label="What the AI does">
+    <div className="gz-steps" data-stack={row ? undefined : ""}>
+    <style>{CSS}</style>
+    <ol aria-label="What the AI does">
       {view.steps.map((st, i) => {
         // While a replay runs, steps not yet reached wait; the one being revealed is active.
         const state: StepState = i < shown ? st.state : i === shown && st.state !== "waiting" ? "active" : "waiting";
@@ -222,11 +238,11 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
         const lineColor = state === "waiting" ? P.tertiary : st.tone && state === "done" ? TONE[st.tone] : state === "active" ? P.blue : P.ink;
         return (
           <li key={NAMES[i]} className="min-w-0">
-            <div className="flex items-center gap-2 font-semibold" style={{ color: nameColor, fontSize: "clamp(1.125rem, 1.3vw, 1.875rem)", transition: "color 0.3s cubic-bezier(0,0,0.5,1)" }}>
+            <div className="flex items-center gap-2 font-semibold" style={{ color: nameColor, fontSize: "var(--gz-n)", lineHeight: 1.2, transition: "color 0.3s cubic-bezier(0,0,0.5,1)" }}>
               <span className="inline-block shrink-0 rounded-full" style={{ width: "0.55em", height: "0.55em", background: dot, transition: "background 0.3s cubic-bezier(0,0,0.5,1)" }} />
-              {st.name}
+              <span className="min-w-0 break-words">{st.name}</span>
             </div>
-            <div className="mt-1 flex items-center gap-3">
+            <div className="mt-1 flex min-w-0 items-center gap-[0.4em]" style={{ fontSize: "var(--gz-l)" }}>
               {i === 3 && st.seal != null && state === "done" && <Seal seq={st.seal} play={st.seal === freshSeq} />}
               <motion.p
                 key={st.line}
@@ -236,7 +252,7 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
                 className="min-w-0 break-words font-semibold [text-wrap:balance]"
                 style={{
                   color: lineColor,
-                  fontSize: row ? "clamp(1.5rem, 1.9vw, 2.75rem)" : "clamp(1.5rem, 2vw, 2.5rem)",
+                  fontSize: "var(--gz-l)",
                   lineHeight: 1.1,
                   letterSpacing: "-0.02em",
                   fontVariantNumeric: "tabular-nums",
@@ -247,7 +263,7 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
               </motion.p>
             </div>
             {st.sub && state !== "waiting" && (
-              <p className="mt-1 break-words font-semibold" style={{ color: "#3a3a3c", fontSize: "clamp(1.125rem, 1.25vw, 1.75rem)", lineHeight: 1.25 }}>
+              <p className="mt-1 min-w-0 break-words font-semibold" style={{ color: "#3a3a3c", fontSize: "var(--gz-s)", lineHeight: 1.25 }}>
                 {st.sub}
               </p>
             )}
@@ -255,5 +271,6 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
         );
       })}
     </ol>
+    </div>
   );
 }

@@ -4,7 +4,7 @@
 // usage: node qa/live.mjs [--dev] [--g1-seconds 60] [--sizes all|1440x900,...] [--no-rec] [--out DIR]
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
-import { SIZES, arg, launch, newPage, pool, stageUrl } from "./lib.mjs";
+import { SIZES, arg, launch, newPage, ready, pool, stageUrl } from "./lib.mjs";
 
 const dev = !!arg("dev", false);
 const g1s = Number(arg("g1-seconds", 60));
@@ -18,6 +18,7 @@ const browser = await launch();
 {
   const { ctx, page, errors } = await newPage(browser, "1440x900");
   await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
+  await ready(page, 0);
   await page.waitForTimeout(g1s * 1000);
   F.console.push(...[...new Set(errors)]);
 
@@ -35,7 +36,7 @@ const browser = await launch();
 {
   const { ctx, page } = await newPage(browser, "390x844");
   await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(9000);
+  await ready(page, 3000);
   const r = await page.evaluate(async () => {
     const c = document.querySelector("canvas");
     if (!c || window.__gz3d?.frames == null) return { skip: true };
@@ -57,7 +58,7 @@ if (!arg("no-rec", false)) {
   await pool(sizes.map((size) => async () => {
     const { ctx, page } = await newPage(browser, size);
     await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(8000);
+    await ready(page, 3000);
     const dir = `${out}/rec-${size}`;
     fs.mkdirSync(dir, { recursive: true });
     const seq0 = await page.evaluate(() => window.__gz?.state?.seq ?? null);

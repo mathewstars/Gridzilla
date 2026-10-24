@@ -3,7 +3,7 @@
 //   --states quick : current live state only (no scenario change; what builders use)
 //   --states full  : scenarios normal, cold-evening, sunny-noon, live-weather (10 s settle each) + "live" (20 s on the page)
 //   --dev          : test the Vite dev server (127.0.0.1:5174) instead of the built page on :8081
-import { SIZES, launch, stageUrl } from "./lib.mjs";
+import { SIZES, launch, ready, stageUrl } from "./lib.mjs";
 import fs from "node:fs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : true); };
@@ -119,7 +119,7 @@ async function cell(state, p, size) {
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
   try {
     await page.goto(url(p), { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(state === "live" ? 20000 : 9000);
+    await ready(page, state === "live" ? 20000 : 4000);
     const f = await page.evaluate(detect, W >= 1440 && H >= 900);
     f.console = errors;
     const shot = `${out}/${state}-${p}-${size}.png`;

@@ -23,10 +23,11 @@ export function useBox<T extends HTMLElement>() {
 }
 
 /** A white tile on the Apple ground: 28px corners on desktop, 18px on the phone, depth by a soft shadow only. */
-export function Tile({ children, className = "", style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
+export function Tile({ children, className = "", style, clip }: { children: ReactNode; className?: string; style?: React.CSSProperties; clip?: boolean }) {
+  // Only a tile that holds a canvas clips (for its round corners); text tiles grow with their content instead.
   return (
     <section
-      className={`relative min-h-0 min-w-0 overflow-hidden rounded-[18px] bg-white lg:rounded-[28px] ${className}`}
+      className={`@container relative min-w-0 rounded-[18px] bg-white lg:rounded-[28px] ${clip ? "overflow-hidden" : ""} ${className}`}
       style={{ boxShadow: "0 4px 24px rgba(0,0,0,.06)", ...style }}
     >
       {children}
@@ -77,13 +78,13 @@ export function PlanCard({ street, city, compact }: { street: Flatten | null; ci
   const p = street?.plan ?? null;
   const c = city?.plan ?? null;
   return (
-    <Tile className="flex h-full flex-col px-6 py-5 lg:py-4">
+    <Tile className="flex h-full flex-col px-5 py-5 @md:px-6">
       <h2 className="t-title">The plan for tonight</h2>
       {p ? (
         <>
-          <div className="mt-2 flex items-baseline gap-3 text-[2.5rem] leading-none tracking-[-0.015em]">
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[clamp(2rem,10cqi,2.5rem)] leading-[1.2] tracking-[-0.015em]">
             <Num value={p.peak_naive_pct} unit="%" color={loadTone(p.peak_naive_pct)} />
-            <span className="text-[1.75rem] font-semibold text-tertiary">to</span>
+            <span className="text-[0.7em] font-semibold text-tertiary">to</span>
             <Num value={p.peak_plan_pct} unit="%" color={loadTone(p.peak_plan_pct)} />
           </div>
           <div className="t-body mt-1.5 text-secondary">
@@ -91,7 +92,7 @@ export function PlanCard({ street, city, compact }: { street: Flatten | null; ci
             {p.cars_full ? ", every car full by morning." : "."}
           </div>
           {!compact && (
-            <div className="mt-2 h-16 lg:h-auto lg:min-h-0 lg:flex-1">
+            <div className="mt-3 h-20 min-h-20 flex-1">
               <PlanChart f={p} />
             </div>
           )}
@@ -183,7 +184,7 @@ export function WeatherGlance({ feed, simHour, hours = 4 }: { feed: WeatherFeed;
     <div className="flex h-full flex-col">
       <div className="t-title">{w?.location?.name ?? "Weather"}</div>
       <div className="mt-1 flex items-baseline gap-2">
-        <Num value={now.temp_c} unit="°" className="text-[2.5rem] leading-none tracking-[-0.015em]" />
+        <Num value={now.temp_c} unit="°" className="text-[2.5rem] leading-[1.2] tracking-[-0.015em]" />
         <span className="t-body text-secondary">{sky(now.cloud_pct, now.sun_wm2)}</span>
       </div>
       {next.length > 0 && (
@@ -202,7 +203,7 @@ export function WeatherGlance({ feed, simHour, hours = 4 }: { feed: WeatherFeed;
 
 export function WeatherCard(props: { feed: WeatherFeed; simHour: number; hours?: number }) {
   return (
-    <Tile className="h-full px-6 py-5">
+    <Tile className="h-full px-5 py-5 @md:px-6">
       <WeatherGlance {...props} />
     </Tile>
   );

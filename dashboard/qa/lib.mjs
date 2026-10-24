@@ -50,3 +50,9 @@ export async function pool(jobs, n) {
   const q = [...jobs];
   await Promise.all(Array.from({ length: n }, async () => { while (q.length) await q.shift()(); }));
 }
+
+/** Wait until the stage shows live data (the page has fetched /api/state and left the splash), then let it settle. */
+export async function ready(page, settleMs = 4000, maxMs = 90000) {
+  await page.waitForFunction(() => !!window.__gz?.state && !/Connecting to the grid|Waiting for the platform/.test(document.body.innerText), null, { timeout: maxMs, polling: 500 }).catch(() => {});
+  await page.waitForTimeout(settleMs);
+}

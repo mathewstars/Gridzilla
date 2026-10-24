@@ -7,7 +7,7 @@
 //   data-val="<raw number>" the value it shows before formatting, data-scale="0.001" when shown in other units (kW -> MW)
 // usage: node qa/truth.mjs [--dev] [--sizes 1440x900,390x844] [--out DIR]
 import fs from "node:fs";
-import { arg, launch, newPage, stageUrl } from "./lib.mjs";
+import { arg, launch, newPage, ready, stageUrl } from "./lib.mjs";
 
 const dev = !!arg("dev", false);
 const sizes = String(arg("sizes", "1440x900,390x844")).split(",");
@@ -76,7 +76,7 @@ const results = [];
 for (const size of sizes) {
   const { ctx, page } = await newPage(browser, size);
   await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(12000);
+  await ready(page, 6000);
   // freshness: what the page holds must be the live platform's current state (seq within a few ticks)
   const pageSeq = await page.evaluate(() => window.__gz?.state?.seq ?? null);
   const apiSeq = await fetch("http://localhost:8081/api/state?tree=0").then((r) => r.json()).then((s) => s.seq).catch(() => null);
