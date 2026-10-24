@@ -67,7 +67,8 @@ const browser = await launch();
     return { delta: window.__gz3d.frames - a };
   });
   if (r.why) F.offscreen.push(r.why);
-  else if (!r.skip && r.delta > 5) F.offscreen.push(`3D kept rendering off-screen: ${r.delta} frames in 2 s`);
+  // paused scenes still draw two frames per data poll (Living3D Kick) so they are never blank when scrolled back in
+  else if (!r.skip && r.delta > 10) F.offscreen.push(`3D kept rendering off-screen: ${r.delta} frames in 2 s`);
   await ctx.close();
 }
 

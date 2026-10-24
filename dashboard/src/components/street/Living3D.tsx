@@ -725,13 +725,26 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
   const light = useMemo(newLight, []);
   const shown = useRef({ h: hour, c: cloud });
   const target = useMemo(() => new THREE.Object3D(), []);
+  const { invalidate } = useThree();
+  const dark = useRef(false);
+  const darkGround = useRef(new THREE.Color("#0b0b0f"));
   useEffect(() => {
-    scene.background = new THREE.Color(PX.ground);
+    // the ground follows the page theme (dark or light), also when it is switched while the scene runs
+    const paint = () => {
+      scene.background = new THREE.Color(PX.ground);
+      dark.current = document.documentElement.dataset.theme === "dark";
+      darkGround.current.set(PX.ground);
+      invalidate();
+    };
+    paint();
+    const mo = new MutationObserver(paint);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     scene.add(target);
     return () => {
+      mo.disconnect();
       scene.remove(target);
     };
-  }, [scene, target]);
+  }, [scene, target, invalidate]);
   useFrame((_, dtRaw) => {
     const k = 1 - Math.exp(-Math.min(dtRaw, 0.1) * 1.8);
     // grid time moves in poll-sized steps: ease the shown hour toward it the short way round midnight
@@ -753,7 +766,10 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
       hemi.current.color.copy(light.hemiSky);
     }
     // on a white card the sky is the card itself; elsewhere it keeps its tint (cooler at night, warmer at dusk)
-    if (scene.background instanceof THREE.Color) scene.background.copy(light.bg).lerp(PAPER, paper ? 1 : 0);
+    // dark theme: exactly the page's dark ground (any light tint mixed in linear space turns it mid grey)
+    if (scene.background instanceof THREE.Color)
+      if (dark.current) scene.background.copy(darkGround.current);
+      else scene.background.copy(light.bg).lerp(PAPER, paper ? 1 : 0);
     if (shadowRef.current) shadowRef.current.opacity = light.shadow;
     env.current.sun = light.sun;
     env.current.sunDir.copy(light.sunDir);
@@ -1046,7 +1062,9 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
       <FollowLots lots={lots} follow={follow} still={still} />
       <FrameCount />
       <Kick on={st} />
-      <CameraRig pts={pts} still={still} interactive={interactive} sway={sway} pad={pad} across={across} />
+      {/* drag controls only while on screen: their damping asks for a frame on every camera change, which would keep
+          a paused (frameloop "demand") canvas rendering forever */}
+      <CameraRig pts={pts} still={still} interactive={interactive && run} sway={sway} pad={pad} across={across} />
     </Canvas>
   );
 }
