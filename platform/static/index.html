@@ -351,7 +351,7 @@
     <div class="modes"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
     <div class="scroll fill">
     <table>
-      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · tank now→set · room now→set</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
+      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · kind · tank now→set · room now→set</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
     </table>
     </div>
@@ -679,7 +679,7 @@ function drawDevices() {
   document.getElementById("homeshint").textContent = `${rows.length} of ${S.summary.households} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
   document.getElementById("devices").innerHTML = rows.slice(0, 400).map(d => {
     const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
-    const heat = t.heat ? t.heat.replace("heatpump", "HP").replace("boiler", "boiler") : "";
+    const heat = t.heat ? t.heat.replace("heatpump", "heat pump") : "";
     return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.devices && D.devices.length > 1 ? ` <span class="muted">· ${D.devices.join(" + ")}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
       <td>${D.kwh ? (t.soc != null ? Number(t.soc).toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(1) : "–"}</td>
       <td>${t.ev ? (t.ev_kw > 0 ? Number(t.ev_kw).toFixed(1) : "0") + ` <span class="muted">/ ${t.ev}</span>` : ""}</td>
