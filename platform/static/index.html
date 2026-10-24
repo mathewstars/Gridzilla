@@ -673,7 +673,7 @@ function drawStory() {
       {label: "with Gridzilla (measured)", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "26", fill: "origin", borderWidth: 3, order: 3},
       {label: "without Gridzilla (what the houses would draw)", data: [], borderColor: css("--muted"), backgroundColor: css("--acc") + "55", fill: "-1", borderDash: [6, 4], borderWidth: 2.5, order: 2},
       {label: "rating", data: [], borderColor: css("--crit"), borderDash: [6, 4], borderWidth: 1.5, order: 1},
-      {label: "signal window", data: [], borderColor: "transparent", backgroundColor: css("--acc") + "18", fill: "origin", pointRadius: 0, order: 4}]},
+      {label: "signal window", data: [], borderColor: "transparent", backgroundColor: css("--acc") + "0e", fill: "origin", pointRadius: 0, order: 4}]},
     options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false, callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(0)} kW`}}}}});
   storyChart.data.labels = nh.map(p => hhmm(p.h));
   storyChart.data.datasets[0].data = nh.map(p => p.total_kw);
@@ -685,7 +685,7 @@ function drawStory() {
   storyChart.options.scales.y.suggestedMax = rating * 1.2; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
   storyChart.update();
   const lastp = nh[nh.length - 1];
-  document.getElementById("storytitle").textContent = `${node} · ${(S.tree[node].parent || "").split(":")[1]} · ${rating} kVA · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW now" : ""}`;
+  document.getElementById("storytitle").textContent = `${node.split(":")[1]} · ${(S.tree[node].parent || "").split(":")[1]} · ${rating} kVA`;
   document.getElementById("storydelta").innerHTML = lastp && lastp.baseline_kw != null ? `<span class="delta">${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ${a.load_pct}% of rating${act ? " · " + act[1].mode + " active" : ""}</span>` : "";
   // real plant
   const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
