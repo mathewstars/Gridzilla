@@ -127,6 +127,17 @@ def apply_dhw(setpoint, one_time=False):
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
+SAVED_FILE = KEYS / f"{DEVICE}.saved.json"
+OWNER_DHW_C = float(os.environ.get("VICARE_DHW_OWNER", "50"))     # the owner's normal setpoint, the value every revert must end at
+try:
+    _pending = json.loads(SAVED_FILE.read_text()).get("dhw_set_c")
+    if _pending is not None:                                         # a previous run died while a signal was active: put the owner's value back
+        log(f"restoring owner setpoint {_pending} °C left behind by a previous run")
+        apply_dhw(_pending); SAVED_FILE.unlink(missing_ok=True)
+except FileNotFoundError:
+    pass
+except Exception as e:
+    log(f"restore check failed: {e}")
 mq = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"gz-{DEVICE}")
 if BROKER.scheme == "mqtts": mq.tls_set()
 if os.environ.get("GZ_MQTT_USER"): mq.username_pw_set(os.environ["GZ_MQTT_USER"], os.environ.get("GZ_MQTT_PASS"))
@@ -143,6 +154,7 @@ def revert(reason):
         if effective is None: return
         if saved is not None: apply_dhw(saved)
         effective = None; sig_active = None; saved = None
+        SAVED_FILE.unlink(missing_ok=True)
     log(f"REVERT to owner mode ({reason})"); ack(None, "reverted", reason, read())
 
 def on_signal(env):
@@ -171,7 +183,10 @@ def on_signal(env):
         global saved, effective, sig_active, end_at, watchdog, last_hb
         time.sleep(start)
         with lock:
-            if saved is None: saved = telem.get("dhw_set_c") or 50
+            if saved is None:
+                saved = telem.get("dhw_set_c") or OWNER_DHW_C
+                if saved in (FLOOR, BOOST): saved = OWNER_DHW_C          # never "save" a value we set ourselves
+                SAVED_FILE.write_text(json.dumps({"dhw_set_c": saved}))
             effective = {"mode": mode}; sig_active = sig["seq"]
             end_at = min(vt, vf + (4320 if mode == "STRETCH" else 1440) * 60); watchdog = mode in ("ABSORB", "SUPPORT"); last_hb = time.time()
             apply_dhw(target, one_time)
