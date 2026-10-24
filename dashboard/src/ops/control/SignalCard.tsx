@@ -62,7 +62,7 @@ function ActiveList({ ops }: { ops: Ops }) {
           <div className="cp-sig" key={n}>
             <div className="cp-sig-top">
               <span className="cp-code cp-code-solid">{sig.mode}</span>
-              <span className="cp-strong cp-ellipsis" title={n}>{segName(n)}</span>
+              <span className="cp-strong cp-wrap" title={n}>{segName(n)}</span>
               {sig.cohort && <span className="cp-sub">wave {sig.cohort[0] + 1}/{sig.cohort[1]}</span>}
               <span className="cp-grow" />
               <span className="cp-mono cp-count" title={`${sig.valid_from.slice(11, 16)}–${sig.valid_to.slice(11, 16)} UTC`}>
@@ -71,9 +71,9 @@ function ActiveList({ ops }: { ops: Ops }) {
             </div>
             <div className="cp-bar" aria-hidden><i style={{ width: `${frac * 100}%` }} /></div>
             <div className="cp-sig-bot">
-              <span className="cp-sub cp-ellipsis">
+              <span className="cp-sub cp-wrap">
                 #{sig.seq} · {fieldLine(signalFields(sig)) || MODE_LABEL[sig.mode]}
-                {env ? ` · ${env.length}-slot envelope` : ""}
+                {env ? ` · ${env.length} time slots` : ""}
               </span>
               {env && <Spark curve={env} w={64} h={18} />}
               <Btn small busy={act.busy === n} disabled={!!act.busy} onClick={() => release(n, sig)} title={`Sign RELEASE for ${n}`}>Release</Btn>

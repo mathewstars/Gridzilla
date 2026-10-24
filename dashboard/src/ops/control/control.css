@@ -144,7 +144,9 @@
 .cp-active { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cp-sig { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border-radius: 10px; background: var(--color-fill-2); min-width: 0; animation: cp-in 220ms var(--ease-apple); }
 .cp-sig-top, .cp-sig-bot { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.cp-sig-bot .cp-ellipsis { flex: 1 1 auto; }
+.cp-sig-bot { flex-wrap: wrap; }
+/* the signal's summary wraps instead of being cut; the sparkline and Release keep their own room */
+.cp-sig-bot .cp-wrap { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
 .cp-count { font-weight: 600; color: var(--color-ink); white-space: nowrap; }
 .cp-bar { height: 3px; border-radius: 2px; background: var(--cp-line); overflow: hidden; }
 .cp-bar i { display: block; height: 100%; background: var(--color-ink); transition: width 1s linear; }
@@ -157,3 +159,5 @@ input.cp-input[type="number"]::-webkit-inner-spin-button, input.cp-input[type="n
 @media (max-width: 420px) {
   .cp-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.cp-sig-top .cp-wrap { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }

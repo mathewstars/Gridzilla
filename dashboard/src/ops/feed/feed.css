@@ -32,7 +32,7 @@
   font-size: 0.6875rem; font-weight: 600; line-height: 1; padding: 4px 7px; border-radius: 980px; white-space: nowrap;
   color: var(--feed-orange); background: color-mix(in srgb, var(--feed-orange) 14%, transparent);
 }
-.feed-stats { display: flex; gap: 14px; margin: 0; }
+.feed-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; min-width: 0; }
 .feed-stats > div { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 .feed-stats dd { margin: 0; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
 .feed-stats dt { color: var(--color-tertiary); font-size: 0.75rem; }
