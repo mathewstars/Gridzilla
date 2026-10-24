@@ -173,6 +173,28 @@
   font-size: max(0.7em, 12px);
 }
 
+/* One-screen windows (stage.css, >= 1180 x 860): the hero row has to fit its share of the window height, and the
+   card-width terms above grow faster than the height at 16:9 (1920x1080 is 16 px past the screen with them). Tighter
+   height caps for the gaps, the sentence, the figure, the state words and the ring; everything still wraps, nothing is
+   cut. When the card has room, space-between spreads the parts out again. */
+@media (min-width: 1180px) and (min-height: 860px) {
+  .gzH-in {
+    gap: clamp(0.75rem, min(3cqi, 1.4vh), 1.75rem);
+  }
+  .gzH-line {
+    font-size: clamp(1.625rem, min(1rem + 2vw, 7.4cqi, 4.4vh), 3.5rem);
+  }
+  .gzH-big {
+    font-size: clamp(3.25rem, min(2.2rem + 4.6vw, 21cqi, 9vh), 8rem);
+  }
+  .gzH-state {
+    font-size: clamp(2.25rem, min(1.4rem + 2.2vw, 11cqi, 5.6vh), 4.5rem);
+  }
+  .gzH-ring {
+    width: clamp(5.5rem, min(28cqi, 13.5vh), 11rem);
+  }
+}
+
 /* Wide card (class b band at 600-1179, big screens): sentence and numbers left, figure and ring right. */
 @container gzhero (min-width: 52rem) {
   .gzH-in {

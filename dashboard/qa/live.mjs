@@ -40,7 +40,9 @@ const browser = await launch();
   const r = await page.evaluate(async () => {
     const c = document.querySelector("canvas");
     if (!c || window.__gz3d?.frames == null) return { skip: true };
-    window.scrollTo(0, document.documentElement.scrollHeight);
+    // scroll whichever way takes the scene out of view (it may sit at the top or at the bottom of the phone stack)
+    const y = c.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(0, y > document.documentElement.scrollHeight / 2 ? 0 : document.documentElement.scrollHeight);
     await new Promise((res) => setTimeout(res, 800));
     const box = c.getBoundingClientRect();
     if (box.bottom > 0 && box.top < innerHeight) return { skip: true, why: "scene still on screen after scrolling" };

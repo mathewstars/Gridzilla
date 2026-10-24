@@ -10,7 +10,8 @@ import { curveTitle } from "../kit/plan";
 import { signalOn, type StoryState } from "../useStory";
 
 /** Props: `st` from useStory(). Fills its card (flex column): title, legend, then the plot takes the rest, never less
- *  than 200 px (phone) to 300 px (wide) tall. */
+ *  than 200 px (phone) to 300 px (wide) tall. The plot's minimum also follows the window height: at 1920x1080 a 300 px
+ *  floor (plus the two-line legend) made this card, and with it the top row, taller than its share of one screen. */
 export default function HeroCurve({ st }: { st: StoryState }) {
   const { s, tf, history, story } = st;
   const flat = useFlatten(tf || null);
@@ -49,7 +50,7 @@ export default function HeroCurve({ st }: { st: StoryState }) {
             signal={sig}
             span={{ past: 6, future: 18, narrow: { past: 3, future: 9 } }}
             legend="above"
-            minPlot="clamp(248px, 30cqi, 300px)"
+            minPlot="clamp(248px, min(30cqi, 22vh), 300px)" // vh cap keeps 1920x1080 one screen
             planSrc={`flatten:${tf}`}
           />
         </motion.div>

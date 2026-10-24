@@ -7,6 +7,7 @@
   --gut: clamp(16px, 2.2vw, 56px);
   --gap: clamp(12px, 1.1vw, 24px);
   --pad: clamp(16px, 1.6vw, 36px);
+  --pad-y: var(--pad); /* a card's top and bottom padding; one-screen windows cap it by the height */
   --r: 18px;
   --r-big: 28px;
   min-height: 100vh;
@@ -87,14 +88,14 @@
    below its text. --py is the card's vertical padding the row minimum leaves room for. */
 .gzS-card {
   --min: 0px;
-  --py: var(--pad);
+  --py: var(--pad-y);
   container-type: inline-size;
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(max(0px, calc(var(--min) - 2 * var(--py))), 1fr);
   min-width: 0;
-  padding: var(--pad);
+  padding: var(--py) var(--pad);
   background: #fff;
   border-radius: var(--r);
   box-shadow: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
@@ -192,6 +193,11 @@
     height: 100vh;
     height: 100dvh;
     grid-template-rows: auto minmax(0, 1fr);
+    /* Vertical spacing follows the height too. The gaps and card paddings grow with the width, and a 16:9 window
+       (1920x1080) is wide for its height: with width-only spacing its three rows of content minimums ran 16 px past
+       the screen and ate the bottom gap. The side padding stays width-based. */
+    --gap: clamp(12px, min(1.1vw, 1.8vh), 24px);
+    --pad-y: clamp(16px, min(1.6vw, 2.2vh), 36px);
   }
 }
 

@@ -61,8 +61,10 @@ export function leftText(leftMin: number) {
   return { digits: String(m), unit: "min left" };
 }
 
-/** Text whose changed characters slide in (Animate Digits idea, 21st.dev id 20071). One span per character keyed by
- *  position and value: only a changed digit re-mounts. No exit copy, so two digits never overlap. */
+/** Text whose changed characters roll in (Animate Digits idea, 21st.dev id 20071). One span per character keyed by
+ *  position and value: only a changed digit re-mounts. No exit copy, so two digits never overlap. The new digit is
+ *  wiped in from its baseline up inside its own box (clip-path, no move): a slide drew it 0.3em below its line, over the
+ *  label under the countdown ("5" over ", then owner mode" at 1024x600). */
 export function RollDigits({ text }: { text: string }) {
   const still = useReducedMotion();
   const mounted = useRef(false);
@@ -76,8 +78,8 @@ export function RollDigits({ text }: { text: string }) {
           key={`${i}:${ch}`}
           aria-hidden
           style={{ display: "inline-block" }}
-          initial={mounted.current && !still ? { opacity: 0, y: "0.3em" } : false}
-          animate={{ opacity: 1, y: 0 }}
+          initial={mounted.current && !still ? { opacity: 0, clipPath: "inset(100% 0% 0% 0%)" } : false}
+          animate={{ opacity: 1, clipPath: "inset(0% 0% 0% 0%)" }}
           transition={{ duration: 0.35, ease: [0.25, 0.1, 0.3, 1] }}
         >
           {ch}
