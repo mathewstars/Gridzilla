@@ -367,6 +367,8 @@ function onSignal(h, env, platformPub) {
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2), grid_owner_kw: +(h.grid_owner_kw ?? h.grid_kw).toFixed(2),
       dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null, room_k: h.slab != null ? +h.slab.toFixed(2) : null,
+      heat_set_c: h.slab != null ? 21 + (h.effective && (h.effective.mode === "SUPPORT" || h.effective.mode === "STRETCH") ? -SPACE_OFFSET_K : (h.effective && (h.effective.mode === "ABSORB" || h.effective.mode === "PREPARE") ? SPACE_OFFSET_K : 0)) : null,
+      room_c: h.slab != null ? +(21 + h.slab).toFixed(1) : null,
       heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner", shape: !!h.shape, shape_seq: h.shape ? h.shape.seq : null,
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
