@@ -303,9 +303,10 @@ def summary(view, warnings, sources=()):
 
 # ---------------------------------------------------------------- fetch and serve
 def fetch_warnings():
-    """MeteoAlarm for the country (primary), plus GeoSphere for the coordinates in Austria.
+    """MeteoAlarm for the country (primary), plus GeoSphere for the coordinates in Austria. A warning both report once
+    is kept as MeteoAlarm's copy for the region, but as GeoSphere's local copy when MeteoAlarm only gave the country list.
     Returns (warnings, sources that answered); an empty source list means every source failed."""
-    out, ok = [], []
+    out, ok, scope = [], [], None
     feed = MA_FEEDS.get(COUNTRY)
     if feed:
         try:
@@ -319,8 +320,13 @@ def fetch_warnings():
     if COUNTRY == "AT":
         try:
             ws = parse_geosphere(get_json(GEOSPHERE.format(lat=LOC["lat"], lon=LOC["lon"])))
-            seen = {(w["type"], w["from"], w["to"]) for w in out}       # the same warning reaches MeteoAlarm from GeoSphere
-            out += [w for w in ws if (w["type"], w["from"], w["to"]) not in seen]
+            same = lambda w: (w["type"], w["from"], w["to"])      # the same warning reaches MeteoAlarm from GeoSphere
+            if scope == "country":
+                local = {same(w) for w in ws}
+                out = [w for w in out if same(w) not in local] + ws
+            else:
+                seen = {same(w) for w in out}
+                out += [w for w in ws if same(w) not in seen]
             ok.append("geosphere")
         except Exception as e:
             print(f"[weather] GeoSphere warnings failed: {e}", flush=True)

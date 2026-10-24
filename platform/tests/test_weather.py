@@ -201,6 +201,30 @@ class RefreshTest(unittest.TestCase):
             self.assertEqual(weather.CACHE["warning_sources"], ["meteoalarm:region", "geosphere"])
             self.assertNotEqual(weather.CACHE["warnings"], old)
 
+    def test_local_geosphere_copy_wins_over_country_list(self):
+        ma, gs = fixture("meteoalarm-austria.json"), fixture("geosphere-spec-example.json")
+        gs["properties"]["warnings"] = gs["properties"]["warnings"][:1]
+        raw = gs["properties"]["warnings"][0]["properties"]["rawinfo"]
+        raw.update(wtype=1, wlevel=1, start=str(int(datetime(2026, 10, 22, 0, tzinfo=timezone.utc).timestamp())),
+                   end=str(int(datetime(2026, 10, 22, 10, tzinfo=timezone.utc).timestamp())))
+
+        class Frozen(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 10, 20, 15, 0, tzinfo=timezone.utc)
+        offset, now, hourly = weather.parse_open_meteo(fixture("open-meteo-liesing.json"))
+        view = weather.grid_view(15, {"offset_s": offset, "hourly": hourly}, datetime(2026, 10, 24, 11, 40))
+        with mock.patch.dict(weather.LOC, {"name": "wien-sued"}), mock.patch.object(weather, "AREA", None), \
+                mock.patch.object(weather, "COUNTRY", "AT"), mock.patch.object(weather, "datetime", Frozen), \
+                mock.patch.object(weather, "get_json", side_effect=lambda url: ma if "meteoalarm" in url else gs):
+            ws, ok = weather.fetch_warnings()
+            self.assertEqual(ok, ["meteoalarm:country", "geosphere"])
+            self.assertEqual([(w["source"], w["from"]) for w in ws],
+                             [("meteoalarm", "2026-10-20T12:00:00Z"), ("geosphere", "2026-10-22T00:00:00Z")])
+            s = weather.summary(view, ws, ok)
+            self.assertIn("official yellow wind warning (+1 more)", s)
+            self.assertNotIn("elsewhere", s)
+
 
 if __name__ == "__main__":
     unittest.main()
