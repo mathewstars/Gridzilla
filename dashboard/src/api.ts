@@ -478,3 +478,71 @@ export function useWeather() {
 
 /** What the weather hook hands to views: `available` false = show "weather offline", `sample` = bundled fixture. */
 export type WeatherFeed = { data: Weather | null; available: boolean; sample: boolean; checking?: boolean };
+
+// ------------------------------------------------------------------ the diet plan (/api/flatten, platform flatten.py)
+
+/** One transformer's line in an aggregated plan (feeder, substation, city). */
+export interface FlattenTf {
+  tf: string;
+  rating_kw: number;
+  level_kw: number;
+  peak_naive_pct: number;
+  peak_plan_pct: number;
+  houses: number;
+  ev_houses: number;
+}
+
+/** The water-filling diet plan for one node: 96 slots of 15 grid minutes from `start_h`. `naive_kw` is the street with
+ *  every car charging when it arrives, `planned_kw` what the street draws with the plan, `level_kw` the flat import
+ *  ceiling L the plan fills up to and `export_level_kw` the export ceiling Le. Per-house ceilings
+ *  (`import_max_kw`/`export_max_kw`) ship only for a single transformer, `tfs` only for an aggregate. */
+export interface FlattenPlan {
+  tf: string;
+  rating_kw: number;
+  houses: number;
+  ev_houses: number;
+  start_h: number;
+  bias_kw?: number;
+  level_kw: number;
+  export_level_kw: number;
+  ev_kwh: number;
+  batt_kwh_usable: number;
+  batt_kwh_free: number;
+  shaved_kwh: number;
+  shifted_kwh: number;
+  peak_naive_kw: number;
+  peak_plan_kw: number;
+  peak_naive_pct: number;
+  peak_plan_pct: number;
+  cars_full: boolean;
+  hours: number[];
+  other_kw: number[];
+  base_kw: number[];
+  pv_kw: number[];
+  naive_kw: number[];
+  planned_kw: number[];
+  import_max_kw?: number[];
+  export_max_kw?: number[];
+  tfs?: FlattenTf[];
+}
+
+export interface Flatten {
+  node: string;
+  sim_hour: number;
+  renewed_at: string | null;
+  rounds: number;
+  /** False while the diet plan is switched off (houses keep the last plan until it expires). */
+  enabled: boolean;
+  shape_seq: Record<string, number>;
+  plan: FlattenPlan | null;
+}
+
+/** The diet plan for one node ("tf:mauer-2", a feeder or "region:at"), polled every 5 s. `plan` is null until it
+ *  arrives, while the plan is switched off, for an unknown node and on a platform without /api/flatten (404: no plan,
+ *  no error on screen). `data` keeps the whole answer, `enabled` included. */
+export function useFlatten(node: string | null | undefined) {
+  const r = usePoll<Flatten>(`flatten?node=${encodeURIComponent(node ?? "")}`, 5000, !!node);
+  const data = r.data && r.data.node === node ? r.data : null;
+  const plan = data && data.enabled && data.plan && data.plan.tf === node ? data.plan : null;
+  return { data, plan, available: !!data, missing: r.error?.status === 404 };
+}
