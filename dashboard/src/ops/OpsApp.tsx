@@ -6,8 +6,8 @@ import { useOps } from "./useOps";
 import Sidebar, { type Route } from "./shell/Sidebar";
 import TopBar from "./shell/TopBar";
 import CityColumn from "./cols/CityColumn";
-import FeedColumn from "./cols/FeedColumn";
-import ControlColumn from "./cols/ControlColumn";
+import NowPanel from "./now/NowPanel";
+import FeedStrip from "./now/FeedStrip";
 import OtherView from "./views/OtherView";
 import "./ops.css";
 import { applyTheme, initialTheme } from "./theme";
@@ -52,10 +52,14 @@ function Console({ route }: { route: Route }) {
       <div className="ops-main">
         <TopBar ops={ops} />
         {route === "ops" ? (
+          // Two-column hierarchy: the city and its curve on the left, one Now panel on the right with the newest three
+          // events in a strip under it; the composer opens in a drawer from the Now panel.
           <main className="ops-cols">
             <section className="ops-col ops-col-city" data-scroll="column"><CityColumn ops={ops} /></section>
-            <section className="ops-col ops-col-feed" data-scroll="column"><FeedColumn ops={ops} /></section>
-            <section className="ops-col ops-col-ctl" data-scroll="column"><ControlColumn ops={ops} /></section>
+            <section className="ops-col ops-col-now" data-scroll="column">
+              <NowPanel ops={ops} />
+              <FeedStrip ops={ops} />
+            </section>
           </main>
         ) : (
           <main className="ops-view"><OtherView route={route} ops={ops} /></main>

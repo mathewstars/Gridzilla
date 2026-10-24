@@ -36,7 +36,7 @@ export default function SignalCard({ ops }: { ops: Ops }) {
   );
 }
 
-function ActiveList({ ops }: { ops: Ops }) {
+export function ActiveList({ ops }: { ops: Ops }) {
   const s = ops.s as State;
   const now = useNow();
   const act = useAction();
@@ -86,7 +86,7 @@ function ActiveList({ ops }: { ops: Ops }) {
   );
 }
 
-function Composer({ ops }: { ops: Ops }) {
+export function Composer({ ops }: { ops: Ops }) {
   const s = ops.s as State;
   const act = useAction();
   const [level, setLevel] = useState<Level>("tf");

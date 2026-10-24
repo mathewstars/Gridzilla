@@ -45,6 +45,12 @@ function detect([oneScreen, W]) {
     if (!t) continue;
     const el = n.parentElement;
     if (!el || hidden(el)) continue;
+    // text scrolled out of view inside a deliberate scroll area (data-scroll) is not on screen: it cannot overlap anything
+    const sc = el.closest("[data-scroll]");
+    if (sc) {
+      const r0 = sc.getBoundingClientRect(), rr = el.getBoundingClientRect();
+      if (rr.bottom <= r0.top || rr.top >= r0.bottom) continue;
+    }
     const svgText = el.closest("text");
     if (svgText && svgText.ownerSVGElement) {
       if (seenSvg.has(svgText)) continue;

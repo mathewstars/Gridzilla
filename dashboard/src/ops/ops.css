@@ -4,12 +4,13 @@
 .ops-main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; }
 .ops-cols { display: grid; gap: 12px; padding: 12px; grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .ops-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ops-col > * { flex-shrink: 0; } /* cards keep their height; the column scrolls */
 .ops-view { padding: 12px; min-width: 0; }
 .ops-splash { display: grid; place-content: center; gap: 6px; min-height: 100vh; text-align: center; }
 @media (min-width: 1240px) {
   .ops { height: 100vh; }
   .ops-main { min-height: 0; }
-  .ops-cols { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr) minmax(0, 3fr); min-height: 0; }
+  .ops-cols { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
   .ops-col { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 }
 @media (max-width: 760px) {
