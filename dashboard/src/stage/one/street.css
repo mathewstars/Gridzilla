@@ -1,0 +1,65 @@
+/* The street card (design/STAGE.md section 9). The shell's card runs edge to edge and rounds the canvas; the 3D fills
+   it, white like every other card, and the words sit in the card's own flow on top: the name and the "stands for 8"
+   line across the top, one plain note along the bottom. The camera frames the street in the band between them
+   (StreetCard measures it), so text never sits on a house. Nothing has a fixed height. */
+
+.gzs {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: var(--pad, clamp(16px, 1.6vw, 36px));
+  color: #1d1d1f;
+  background: #ffffff;
+}
+
+/* The canvas lies under the words and fills the whole card. */
+.gzs-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Name and footnote on one line when they fit, the footnote under the name when they do not. */
+.gzs-head {
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.75rem;
+  min-width: 0;
+}
+.gzs-title {
+  margin: 0;
+  font-size: clamp(1.0625rem, 0.9rem + 0.45vw, 1.75rem);
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: 0.007em;
+  overflow-wrap: break-word;
+}
+.gzs-sub,
+.gzs-note {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.43;
+  letter-spacing: -0.016em;
+  color: #6e6e73;
+  text-wrap: pretty;
+}
+.gzs-sub b,
+.gzs-note b {
+  font-weight: 600;
+  color: #1d1d1f;
+}
+.gzs-wait {
+  color: #86868b;
+}
+
+/* One plain line about what moves: what the green lots and the dots mean. */
+.gzs-note {
+  grid-row: 3;
+  position: relative;
+  z-index: 1;
+}
