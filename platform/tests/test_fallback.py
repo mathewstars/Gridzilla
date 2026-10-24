@@ -1,5 +1,5 @@
 """Offline tests for the AI-offline fallback (fallback.py) and its hooks in gridzilla.py. Never touches the network
-except a hanging socket on 127.0.0.1 that stands in for a dead DeepSeek. MQTT publishing and state.json writes are mocked.
+except a hanging socket on 127.0.0.1 that stands in for a dead DeepSeek. MQTT publishing, state.json and autopilot-history.json writes are mocked.
 
 Run:   cd platform && python3 -m unittest discover -s tests
 """
@@ -39,7 +39,8 @@ GOOD_SUPPORT = json.dumps({"segment": TF, "mode": "SUPPORT", "fields": {"import_
 class Base(unittest.TestCase):
     def setUp(self):
         self.clock = Clock()
-        self.patches = [mock.patch.object(g, "persist"), mock.patch.object(g.mq, "publish"), mock.patch.object(g, "log"),
+        self.patches = [mock.patch.object(g, "persist"), mock.patch.object(g, "AP_HIST_FILE"),
+                        mock.patch.object(g.mq, "publish"), mock.patch.object(g, "log"),
                         mock.patch.object(g, "LLM_URL", "http://llm.invalid/v1"),
                         mock.patch.object(fallback, "BRAIN", None),
                         mock.patch.dict(g.SCENARIO, {"name": "normal", "load_x": 1.0, "pv_x": 1.0})]
