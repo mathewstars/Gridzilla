@@ -68,7 +68,7 @@ function saveSeq(id, seq) { fs.writeFileSync(seqFile(id), String(seq)); }
 function makeHouse(cfg, keys) {
   return {
     cfg, keys,
-    soc: cfg.soc ?? 60,
+    soc: process.env.GZ_SOC0 != null ? Math.min(100, +process.env.GZ_SOC0 + Math.random() * (100 - +process.env.GZ_SOC0)) : (cfg.soc ?? 60),   // GZ_SOC0: start between that and 100 %, as after a sunny day
     simMinutes: (process.env.GZ_START_HOUR != null ? +process.env.GZ_START_HOUR : (cfg.start_hour ?? 16)) * 60,   // GZ_START_HOUR jumps the simulated clock
     lastSeq: loadSeq(cfg.id),
     lastHb: Date.now(),
