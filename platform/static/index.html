@@ -140,6 +140,52 @@
   .citystrip { display:flex; gap:2px; flex-wrap:wrap; }
   .citystrip .cell { width:26px; height:15px; border-radius:2px; font-family:var(--mono); font-size:8px; display:flex; align-items:center; justify-content:center; color:#15181c; font-weight:600; cursor:pointer; }
   .citystrip .cell.sig { box-shadow: inset 0 0 0 2px var(--acc); }
+
+  /* ---- phones and narrow tablets: one column, the page scrolls, charts get a fixed height, bigger tap targets ---- */
+  @media (max-width: 900px) {
+    html, body { height:auto; min-height:100%; overflow:auto; -webkit-text-size-adjust:100%; }
+    body { font-size:14px; }
+    header { flex-wrap:wrap; gap:6px 8px; padding:8px 12px; position:sticky; top:0; z-index:5; }
+    header h1 { font-size:17px; }
+    header .sub { display:none; }
+    header .clock { font-size:15px; }
+    .views { order:10; flex:1 0 100%; margin:2px 0 0; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .views::-webkit-scrollbar { display:none; }
+    .views button { flex:0 0 auto; padding:8px 12px; min-height:36px; }
+    main, main[data-view] { display:grid; grid-template-columns:1fr !important; grid-template-rows:none !important; grid-auto-rows:auto; padding:10px 12px 24px; gap:10px; }
+    .span3 { grid-column:1; }
+    section { overflow:visible; min-height:auto; }
+    section.scroll { overflow:visible; }
+    section[data-tab="homes"] { overflow-x:auto; }
+    h2 { flex-wrap:wrap; }
+    h2 .hint { white-space:normal; }
+    .fill { flex:none; }
+    .schem { height:auto; }
+    .chartbox { flex:none; height:220px; min-height:220px; }
+    .city, #signals, #apstatus, #rationale { max-height:none !important; }
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .kpi .l { white-space:normal; }
+    .steps { grid-template-columns:1fr 1fr; }
+    .countdown { grid-column:1 / -1; }
+    .step .v { font-size:19px; }
+    .dcard { grid-template-columns:44px 1fr; }
+    .dcard > :nth-child(3) { grid-column:1 / -1; }
+    .sig { grid-template-columns:62px 1fr 50px; }
+    .row { grid-template-columns:1fr; }
+    .log, #decisions { max-height:320px; overflow:auto; }
+    .tflist { grid-template-columns:1fr 1fr; }
+    .tile .v { font-size:22px; }
+    section > div[style*="grid-template-columns: 1fr 1.4fr"] { grid-template-columns:1fr !important; }
+    section[data-tab="story"][style*="flex-direction:row"] { flex-direction:column !important; }
+    button, .modes button, .tabs button { min-height:36px; padding:7px 12px; }
+    input, select, textarea { padding:9px 10px; font-size:15px; }
+    th, td { padding:7px 8px; }
+  }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .steps { grid-template-columns:1fr; }
+    .sig { grid-template-columns:56px 1fr 46px; }
+  }
 </style>
 </head>
 <body>
