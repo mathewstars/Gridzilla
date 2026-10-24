@@ -100,6 +100,8 @@ export interface HouseholdTelemetry {
   ev: number;
   mode: string;
   rx?: string;
+  /** True while the house follows the SHAPE flattening plan (the per-slot diet plan for its feeder). */
+  shape?: boolean;
 }
 
 export interface Household {
@@ -128,6 +130,8 @@ export interface Aggregate {
   other_kw: number | null;
   rating_kw: number | null;
   load_pct: number | null;
+  /** What the same node would carry without Gridzilla (simulator counterfactual). */
+  baseline_kw?: number | null;
 }
 
 export interface Decision {
@@ -144,6 +148,9 @@ export interface Decision {
   verdict: "sent" | "held" | "refused" | "error" | "none" | "pending" | "rejected" | "expired";
   detail: string;
   seq: number | null;
+  target?: string | null;
+  hot?: string[];
+  worst_pct?: number | null;
 }
 
 export interface Proposal {
@@ -159,7 +166,44 @@ export interface Proposal {
   situation?: string;
   at?: string;
   error?: string;
+  focus?: AutopilotFocus | null;
 }
+
+/** What the autopilot is looking at: the node it would signal and its hottest transformers. */
+export interface AutopilotFocus {
+  node: string;
+  dir: "import" | "export";
+  hot: string[];
+  worst: string;
+  worst_pct: number;
+  worst_at_h: number;
+  under: number;
+  excess_kw: number;
+  choices?: string[];
+  others?: number;
+}
+
+/** Forecast hotspot per transformer as the autopilot ranks them. */
+export interface Hotspot {
+  pct: number;
+  at_h: number;
+  kw: number;
+  excess_kw: number;
+  feeder: string;
+  sub: string;
+  covered: boolean;
+}
+
+/** The SHAPE flattening plan: renewed per feeder every few grid hours (households carry `telemetry.shape`). */
+export interface ShapeInfo {
+  at: string | null;
+  rounds: number;
+  enabled: boolean;
+  feeders: number;
+}
+
+/** Last signal per node, kept after it ended ("released by seq 115", "window over"). */
+export type RecentSignal = Signal & { ended_at: string | null; ended: string | null };
 
 export interface Autopilot {
   mode: "off" | "propose" | "auto";
@@ -178,6 +222,8 @@ export interface Autopilot {
   max_per_day: number;
   interval_s: number;
   sim_x: number;
+  target?: AutopilotFocus | null;
+  hotspots?: Record<string, Hotspot>;
 }
 
 export interface LogEntry {
@@ -228,8 +274,10 @@ export interface State {
   forecast: Record<string, ForecastPoint[]>;
   plan?: Record<string, PlanEntry>;
   /** City totals computed server-side (platform since a8e1311: households only ship for the feeder on screen). */
-  summary?: { households: number; online: number; houses: number; ev_kw: number; hp_kw: number };
+  summary?: { households: number; online: number; shaped?: number; houses: number; ev_kw: number; hp_kw: number };
   forecast_peak?: Record<string, { pct: number; h: number }>;
+  recent?: Record<string, RecentSignal>;
+  shape?: ShapeInfo;
 }
 
 export interface NodePoint {

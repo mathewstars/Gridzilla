@@ -10,7 +10,7 @@ import type { HoverInfo } from "./Street3D";
 
 const Street3D = lazy(() => import("./Street3D"));
 
-function hasWebGL() {
+export function hasWebGL() {
   try {
     if (new URLSearchParams(location.search).has("nogl")) return false; // review the flat fallback
     const c = document.createElement("canvas");
@@ -21,7 +21,7 @@ function hasWebGL() {
 }
 
 /** True when the viewer asked the system for less motion: the power dots then stand still. */
-function useReducedMotion() {
+export function useReducedMotion() {
   const q = "(prefers-reduced-motion: reduce)";
   const [on, setOn] = useState(() => typeof matchMedia !== "undefined" && matchMedia(q).matches);
   useEffect(() => {
@@ -68,7 +68,7 @@ function tfStatus(st: StreetModel) {
   return `${flow}: ${p} % of its ${lim} kW limit${p >= 100 ? ", over the limit" : p >= 85 ? ", close to it" : ""}`;
 }
 
-function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder: string; box: { w: number; h: number } }) {
+export function Tooltip({ hover, s, feeder, box, hint = "Click to show its curve" }: { hover: HoverInfo; s: State; feeder: string; box: { w: number; h: number }; hint?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   let title = "",
     sub = "",
@@ -94,7 +94,7 @@ function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder
     tech = `${st.tf}, rated ${st.rating} kW`;
     state = tfShort(st);
     alert = isOver(st);
-    lines = [tfStatus(st), "Click to show its curve"];
+    lines = hint ? [tfStatus(st), hint] : [tfStatus(st)];
   } else if (hover.kind === "substation") {
     const a = s.aggregates[feeder];
     title = "Substation";
@@ -192,7 +192,7 @@ function Status({ st, on, compact }: { st: StreetModel; on: boolean; compact: bo
 }
 
 /** Flat drawing of the same street for machines without WebGL: one column per transformer, its homes under it. */
-function Street2D({ streets }: { streets: StreetModel[] }) {
+export function Street2D({ streets }: { streets: StreetModel[] }) {
   return (
     <div className="grid h-full grid-cols-3 content-start gap-2">
       {streets.map((st) => (
