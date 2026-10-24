@@ -12,7 +12,7 @@
   "name": "gridzilla broker",
   "broker": "mqtt.victronlab.sk",
   "port": "8883",
-  "clientid": "gz-vic-atzgersdorf-07",
+  "clientid": "gz-real-powerplant-blatnica",
   "autoConnect": true,
   "usetls": true,
   "verifyservercert": true,
@@ -27,7 +27,7 @@
    "user": "gz-devices",
    "password": ""
   },
-  "id": "abb9966c443e43db",
+  "id": "6363029228424e53",
   "wires": []
  },
  {
@@ -35,7 +35,7 @@
   "z": null,
   "name": "venus",
   "showValues": true,
-  "id": "312bc61f30424165",
+  "id": "6a68ce8dcd9e4f9f",
   "wires": []
  },
  {
@@ -55,18 +55,18 @@
   "payloadType": "date",
   "x": 120,
   "y": 60,
-  "id": "ba071b44785b49a2",
+  "id": "4ea9f0dcf0e94b18",
   "z": "gz_tab",
   "wires": [
    [
-    "c492a2de1536420d"
+    "84a1209953954d77"
    ]
   ]
  },
  {
   "type": "function",
   "name": "init + device key",
-  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"vic-atzgersdorf-07\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"https://gridzilla.victronlab.sk\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
+  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"real-powerplant-blatnica\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"https://gridzilla.victronlab.sk\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -87,11 +87,11 @@
   ],
   "x": 320,
   "y": 60,
-  "id": "c492a2de1536420d",
+  "id": "84a1209953954d77",
   "z": "gz_tab",
   "wires": [
    [
-    "0a6963a88cb047d1"
+    "cbceaed6907e4564"
    ]
   ]
  },
@@ -106,11 +106,11 @@
   "authType": "",
   "x": 540,
   "y": 60,
-  "id": "0a6963a88cb047d1",
+  "id": "cbceaed6907e4564",
   "z": "gz_tab",
   "wires": [
    [
-    "cda8088f48a94d8e"
+    "169471b68002404b"
    ]
   ]
  },
@@ -138,11 +138,11 @@
   ],
   "x": 760,
   "y": 60,
-  "id": "cda8088f48a94d8e",
+  "id": "169471b68002404b",
   "z": "gz_tab",
   "wires": [
    [
-    "57937579572c42d4"
+    "c6e5f1a186dd45c0"
    ]
   ]
  },
@@ -157,11 +157,11 @@
   "authType": "",
   "x": 980,
   "y": 60,
-  "id": "57937579572c42d4",
+  "id": "c6e5f1a186dd45c0",
   "z": "gz_tab",
   "wires": [
    [
-    "23b58cd6cdd04c3e"
+    "2302404d26ee49e2"
    ]
   ]
  },
@@ -176,14 +176,14 @@
   "libs": [],
   "x": 1180,
   "y": 60,
-  "id": "23b58cd6cdd04c3e",
+  "id": "2302404d26ee49e2",
   "z": "gz_tab",
   "wires": []
  },
  {
   "type": "function",
   "name": "verify + scope + freshness",
-  "func": "// Node-RED function node: VERIFY + SCOPE + FRESHNESS\n// Wire: [mqtt in: gridzilla/sig/# and gridzilla/hb] -> this -> [merge.js]\n// Setup tab: Modules -> add \"crypto\" as `crypto` (Node-RED >= 1.3, functionExternalModules: true in settings).\n// On Venus OS Large: /data/home/nodered/.node-red/settings-user.js  ->  functionExternalModules: true\n//\n// Context expected (set once at registration / in a startup inject):\n//   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)\n//   flow.device_id      : e.g. \"vic-atzgersdorf-07\"\n//   flow.path           : [\"region:at\",\"sub:wien-sued\",\"feeder:liesing-3\",\"tf:atzgersdorf-1\"]\n//   flow.last_seq       : last accepted signal seq (persisted context store recommended)\n//\n// Outputs: 1 = verified signal (msg.signal), 2 = ack to publish (msg.topic/msg.payload), 3 = heartbeat ok (msg.hb = true)\n\nconst env = msg.payload;                              // {v, kid, payload, sig}\nconst pubPem = flow.get(\"platform_pub\");\nif (!pubPem) { node.error(\"no pinned platform key\"); return null; }\n\nconst ok = env && env.v === 1 && typeof env.payload === \"string\" && typeof env.sig === \"string\" &&\n  crypto.verify(null, Buffer.from(env.payload, \"utf8\"), crypto.createPublicKey(pubPem), Buffer.from(env.sig, \"base64\"));\n\nconst ack = (seq, status, reason) => ({\n  topic: `gridzilla/ack/${flow.get(\"device_id\")}`,\n  ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq, status, reason,\n            applied: flow.get(\"effective\") || {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0,\n            ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") }\n});\n\nif (!ok) { node.warn(\"bad_sig\"); return [null, ack(null, \"refused\", \"bad_sig\"), null]; }\n\nconst doc = JSON.parse(env.payload);\n\nif (msg.topic === \"gridzilla/hb\") {\n  const hbAge = (Date.now() - Date.parse(doc.ts)) / 1000;\n  if (!(doc.seq > (flow.get(\"last_hb_seq\") || 0)) || hbAge > 90 || hbAge < -30) return null;   // replayed or stale heartbeat: ignore\n  flow.set(\"last_hb_seq\", doc.seq); flow.set(\"last_hb\", Date.now());\n  return [null, null, { hb: true }];\n}\n\nif (!(flow.get(\"path\") || []).includes(doc.segment)) return null;        // not for me\nif (doc.cohort && (parseInt(crypto.createHash(\"sha256\").update(flow.get(\"device_id\")).digest(\"hex\").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort\n\nconst lastSeq = flow.get(\"last_seq\") || 0;\nif (doc.seq <= lastSeq) { node.warn(`stale_seq ${doc.seq} <= ${lastSeq}`); return [null, ack(doc.seq, \"refused\", \"stale_seq\"), null]; }\n\nconst age = (Date.now() - Date.parse(doc.issued_at)) / 1000;\nif (age > 120 || age < -30 || Date.parse(doc.valid_to) < Date.now()) return [null, ack(doc.seq, \"refused\", \"expired\"), null];\n\nflow.set(\"last_seq\", doc.seq); try { fs.writeFileSync(flow.get(\"dir\") + \"/state.json\", JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get(\"last_hb_seq\") || 0 })); } catch (e) {}\nmsg.signal = doc;\nreturn [msg, null, null];",
+  "func": "// Node-RED function node: VERIFY + SCOPE + FRESHNESS\n// Wire: [mqtt in: gridzilla/sig/# and gridzilla/hb] -> this -> [merge.js]\n// Setup tab: Modules -> add \"crypto\" as `crypto` (Node-RED >= 1.3, functionExternalModules: true in settings).\n// On Venus OS Large: /data/home/nodered/.node-red/settings-user.js  ->  functionExternalModules: true\n//\n// Context expected (set once at registration / in a startup inject):\n//   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)\n//   flow.device_id      : e.g. \"real-powerplant-blatnica\"\n//   flow.path           : [\"region:at\",\"sub:wien-sued\",\"feeder:liesing-3\",\"tf:atzgersdorf-1\"]\n//   flow.last_seq       : last accepted signal seq (persisted context store recommended)\n//\n// Outputs: 1 = verified signal (msg.signal), 2 = ack to publish (msg.topic/msg.payload), 3 = heartbeat ok (msg.hb = true)\n\nconst env = msg.payload;                              // {v, kid, payload, sig}\nconst pubPem = flow.get(\"platform_pub\");\nif (!pubPem) { node.error(\"no pinned platform key\"); return null; }\n\nconst ok = env && env.v === 1 && typeof env.payload === \"string\" && typeof env.sig === \"string\" &&\n  crypto.verify(null, Buffer.from(env.payload, \"utf8\"), crypto.createPublicKey(pubPem), Buffer.from(env.sig, \"base64\"));\n\nconst ack = (seq, status, reason) => ({\n  topic: `gridzilla/ack/${flow.get(\"device_id\")}`,\n  ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq, status, reason,\n            applied: flow.get(\"effective\") || {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0,\n            ts: new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\") }\n});\n\nif (!ok) { node.warn(\"bad_sig\"); return [null, ack(null, \"refused\", \"bad_sig\"), null]; }\n\nconst doc = JSON.parse(env.payload);\n\nif (msg.topic === \"gridzilla/hb\") {\n  const hbAge = (Date.now() - Date.parse(doc.ts)) / 1000;\n  if (!(doc.seq > (flow.get(\"last_hb_seq\") || 0)) || hbAge > 90 || hbAge < -30) return null;   // replayed or stale heartbeat: ignore\n  flow.set(\"last_hb_seq\", doc.seq); flow.set(\"last_hb\", Date.now());\n  return [null, null, { hb: true }];\n}\n\nif (!(flow.get(\"path\") || []).includes(doc.segment)) return null;        // not for me\nif (doc.cohort && (parseInt(crypto.createHash(\"sha256\").update(flow.get(\"device_id\")).digest(\"hex\").slice(0, 8), 16) % doc.cohort[1]) !== doc.cohort[0]) return null; // not my cohort\n\nconst lastSeq = flow.get(\"last_seq\") || 0;\nif (doc.seq <= lastSeq) { node.warn(`stale_seq ${doc.seq} <= ${lastSeq}`); return [null, ack(doc.seq, \"refused\", \"stale_seq\"), null]; }\n\nconst age = (Date.now() - Date.parse(doc.issued_at)) / 1000;\nif (age > 120 || age < -30 || Date.parse(doc.valid_to) < Date.now()) return [null, ack(doc.seq, \"refused\", \"expired\"), null];\n\nflow.set(\"last_seq\", doc.seq); try { fs.writeFileSync(flow.get(\"dir\") + \"/state.json\", JSON.stringify({ last_seq: doc.seq, last_hb_seq: flow.get(\"last_hb_seq\") || 0 })); } catch (e) {}\nmsg.signal = doc;\nreturn [msg, null, null];",
   "outputs": 3,
   "noerr": 0,
   "initialize": "",
@@ -204,14 +204,14 @@
   ],
   "x": 420,
   "y": 220,
-  "id": "214ad25ecea44ce3",
+  "id": "34d2c94941dc4b5f",
   "z": "gz_tab",
   "wires": [
    [
-    "c39f9dcb5cee4627"
+    "5a325a242a744819"
    ],
    [
-    "0532b902654c4061"
+    "dc44c770bec94db9"
    ],
    []
   ]
@@ -222,7 +222,7 @@
   "topic": "gridzilla/sig/region:at",
   "qos": "1",
   "datatype": "json",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -231,10 +231,10 @@
   "y": 160,
   "wires": [
    [
-    "214ad25ecea44ce3"
+    "34d2c94941dc4b5f"
    ]
   ],
-  "id": "6cd21df909704521",
+  "id": "a45177ec428c4cb0",
   "z": "gz_tab"
  },
  {
@@ -243,7 +243,7 @@
   "topic": "gridzilla/sig/sub:wien-sued",
   "qos": "1",
   "datatype": "json",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -252,10 +252,10 @@
   "y": 200,
   "wires": [
    [
-    "214ad25ecea44ce3"
+    "34d2c94941dc4b5f"
    ]
   ],
-  "id": "5ba325cccc8d4571",
+  "id": "9d434d88c3c24dcf",
   "z": "gz_tab"
  },
  {
@@ -264,7 +264,7 @@
   "topic": "gridzilla/sig/feeder:liesing-3",
   "qos": "1",
   "datatype": "json",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -273,10 +273,10 @@
   "y": 240,
   "wires": [
    [
-    "214ad25ecea44ce3"
+    "34d2c94941dc4b5f"
    ]
   ],
-  "id": "b0694b82b44a443a",
+  "id": "b16ee71368824aa4",
   "z": "gz_tab"
  },
  {
@@ -285,7 +285,7 @@
   "topic": "gridzilla/sig/tf:atzgersdorf-1",
   "qos": "1",
   "datatype": "json",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -294,10 +294,10 @@
   "y": 280,
   "wires": [
    [
-    "214ad25ecea44ce3"
+    "34d2c94941dc4b5f"
    ]
   ],
-  "id": "1da9b26b55074bce",
+  "id": "b51b0bba2661457d",
   "z": "gz_tab"
  },
  {
@@ -306,7 +306,7 @@
   "topic": "gridzilla/hb",
   "qos": "1",
   "datatype": "json",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -315,10 +315,10 @@
   "y": 320,
   "wires": [
    [
-    "214ad25ecea44ce3"
+    "34d2c94941dc4b5f"
    ]
   ],
-  "id": "0c24919ab7474302",
+  "id": "888220511f33401f",
   "z": "gz_tab"
  },
  {
@@ -332,17 +332,17 @@
   "libs": [],
   "x": 680,
   "y": 220,
-  "id": "c39f9dcb5cee4627",
+  "id": "5a325a242a744819",
   "z": "gz_tab",
   "wires": [
    [
-    "88a5195a67c8437b"
+    "f745ca47144f4a07"
    ],
    [
-    "0532b902654c4061"
+    "dc44c770bec94db9"
    ],
    [
-    "8b7d5b93b89c433d"
+    "af5936f4d1e04b5b"
    ]
   ]
  },
@@ -370,11 +370,11 @@
   ],
   "x": 940,
   "y": 300,
-  "id": "0532b902654c4061",
+  "id": "dc44c770bec94db9",
   "z": "gz_tab",
   "wires": [
    [
-    "2240b8c720da428e"
+    "74edd8a8612a4a74"
    ]
   ]
  },
@@ -384,10 +384,10 @@
   "topic": "",
   "qos": "1",
   "retain": "false",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "x": 1140,
   "y": 300,
-  "id": "2240b8c720da428e",
+  "id": "74edd8a8612a4a74",
   "z": "gz_tab",
   "wires": []
  },
@@ -402,29 +402,29 @@
   "libs": [],
   "x": 940,
   "y": 200,
-  "id": "88a5195a67c8437b",
+  "id": "f745ca47144f4a07",
   "z": "gz_tab",
   "wires": [
    [
-    "34ae607273da4af8"
+    "bfb735c208144212"
    ],
    [
-    "a77ed16671d746fe"
+    "204b2ed3ad9c4631"
    ],
    [
-    "7977a9608417418a"
+    "94e17b9d6e4d4ce5"
    ],
    [
-    "9f5116508dfb4ce8"
+    "c3400a37a7d147c8"
    ],
    [
-    "a93efedfca304560"
+    "5124b8a5ff524ff0"
    ],
    [
-    "338407cbee444858"
+    "0b164c3099ee430c"
    ],
    [
-    "4550d259fe814039"
+    "c4053f4f3bf141fc"
    ]
   ]
  },
@@ -446,10 +446,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 160,
-  "id": "34ae607273da4af8",
+  "id": "bfb735c208144212",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-output-custom",
@@ -469,10 +469,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 200,
-  "id": "a77ed16671d746fe",
+  "id": "204b2ed3ad9c4631",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-output-custom",
@@ -492,10 +492,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 240,
-  "id": "7977a9608417418a",
+  "id": "94e17b9d6e4d4ce5",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-output-custom",
@@ -515,10 +515,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 280,
-  "id": "9f5116508dfb4ce8",
+  "id": "c3400a37a7d147c8",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "function",
@@ -531,7 +531,7 @@
   "libs": [],
   "x": 940,
   "y": 380,
-  "id": "8b7d5b93b89c433d",
+  "id": "af5936f4d1e04b5b",
   "z": "gz_tab",
   "wires": []
  },
@@ -553,10 +553,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 340,
-  "id": "a93efedfca304560",
+  "id": "5124b8a5ff524ff0",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-output-custom",
@@ -576,10 +576,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 380,
-  "id": "338407cbee444858",
+  "id": "0b164c3099ee430c",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-output-custom",
@@ -599,10 +599,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 420,
-  "id": "4550d259fe814039",
+  "id": "c4053f4f3bf141fc",
   "z": "gz_tab",
   "wires": [],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "inject",
@@ -621,11 +621,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 480,
-  "id": "3b41705608a142c0",
+  "id": "2ec59f78f4de49bb",
   "z": "gz_tab",
   "wires": [
    [
-    "bb7169334d95442d"
+    "17cbe2d4e2a44b16"
    ]
   ]
  },
@@ -640,20 +640,20 @@
   "libs": [],
   "x": 420,
   "y": 480,
-  "id": "bb7169334d95442d",
+  "id": "17cbe2d4e2a44b16",
   "z": "gz_tab",
   "wires": [
    [
-    "88a5195a67c8437b"
+    "f745ca47144f4a07"
    ],
    [
-    "0532b902654c4061"
+    "dc44c770bec94db9"
    ],
    [
-    "a93efedfca304560"
+    "5124b8a5ff524ff0"
    ],
    [
-    "338407cbee444858"
+    "0b164c3099ee430c"
    ]
   ]
  },
@@ -668,7 +668,7 @@
   "libs": [],
   "x": 420,
   "y": 1120,
-  "id": "a1272a84841846d2",
+  "id": "cb1018dc59fa47bc",
   "z": "gz_tab",
   "wires": []
  },
@@ -691,14 +691,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1100,
-  "id": "42f0c97e0a434ba0",
+  "id": "69927024644e4e7d",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -719,14 +719,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1140,
-  "id": "c9edaf28295a4357",
+  "id": "11cc2207a00746d1",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -747,14 +747,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1180,
-  "id": "816ed0419aa74a9c",
+  "id": "cc059603075f41d7",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -775,14 +775,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1220,
-  "id": "2e8b3b98230740a9",
+  "id": "cd5f2ee8b6014431",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -803,14 +803,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1260,
-  "id": "6f95dba171dd4e9d",
+  "id": "d38dc4eac7034bf8",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -831,14 +831,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1300,
-  "id": "212d6bbfde324b87",
+  "id": "bb6889b921a24384",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -859,14 +859,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1340,
-  "id": "44933f3212924a4a",
+  "id": "79aa4b0130284da9",
   "z": "gz_tab",
   "wires": [
    [
-    "a1272a84841846d2"
+    "cb1018dc59fa47bc"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -887,14 +887,14 @@
   "roundValues": "1",
   "x": 140,
   "y": 580,
-  "id": "81f8aa93257f4c7f",
+  "id": "6e1eaa2d37084ea6",
   "z": "gz_tab",
   "wires": [
    [
-    "7834ca78592b4560"
+    "b5d0feda78494c0f"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "function",
@@ -907,7 +907,7 @@
   "libs": [],
   "x": 380,
   "y": 580,
-  "id": "7834ca78592b4560",
+  "id": "b5d0feda78494c0f",
   "z": "gz_tab",
   "wires": []
  },
@@ -922,7 +922,7 @@
   "libs": [],
   "x": 380,
   "y": 640,
-  "id": "5978d78f740c4e5f",
+  "id": "d0cc062f8248471b",
   "z": "gz_tab",
   "wires": []
  },
@@ -945,14 +945,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 640,
-  "id": "1b99dc6da26a49a9",
+  "id": "a65ec966b95b4f62",
   "z": "gz_tab",
   "wires": [
    [
-    "5978d78f740c4e5f"
+    "d0cc062f8248471b"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -973,14 +973,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 680,
-  "id": "2e1296445441464a",
+  "id": "bae357d5e23648e7",
   "z": "gz_tab",
   "wires": [
    [
-    "5978d78f740c4e5f"
+    "d0cc062f8248471b"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -1001,14 +1001,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 720,
-  "id": "35ab074a8f9d4784",
+  "id": "7bf69fada3e54e49",
   "z": "gz_tab",
   "wires": [
    [
-    "5978d78f740c4e5f"
+    "d0cc062f8248471b"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "function",
@@ -1021,7 +1021,7 @@
   "libs": [],
   "x": 420,
   "y": 800,
-  "id": "dd68417abb774403",
+  "id": "35cc8417b1c14ed8",
   "z": "gz_tab",
   "wires": []
  },
@@ -1044,14 +1044,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 780,
-  "id": "51da5517155c4306",
+  "id": "8cbf04fc0fb7468e",
   "z": "gz_tab",
   "wires": [
    [
-    "dd68417abb774403"
+    "35cc8417b1c14ed8"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -1072,14 +1072,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 820,
-  "id": "b0e75adddd154913",
+  "id": "05b40f31775f4a61",
   "z": "gz_tab",
   "wires": [
    [
-    "dd68417abb774403"
+    "35cc8417b1c14ed8"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -1100,14 +1100,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 860,
-  "id": "947d818ee2d24eed",
+  "id": "be731327176a4691",
   "z": "gz_tab",
   "wires": [
    [
-    "dd68417abb774403"
+    "35cc8417b1c14ed8"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -1128,14 +1128,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 900,
-  "id": "7a58efa119be455e",
+  "id": "432aa38b715342a3",
   "z": "gz_tab",
   "wires": [
    [
-    "dd68417abb774403"
+    "35cc8417b1c14ed8"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "victron-input-custom",
@@ -1156,14 +1156,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 960,
-  "id": "af91d0d3ac194ed7",
+  "id": "9c93cc76c3a04fe1",
   "z": "gz_tab",
   "wires": [
    [
-    "bf7e9bafc7604d02"
+    "f310f9eab7e24810"
    ]
   ],
-  "client": "312bc61f30424165"
+  "client": "6a68ce8dcd9e4f9f"
  },
  {
   "type": "function",
@@ -1176,7 +1176,7 @@
   "libs": [],
   "x": 420,
   "y": 960,
-  "id": "bf7e9bafc7604d02",
+  "id": "f310f9eab7e24810",
   "z": "gz_tab",
   "wires": []
  },
@@ -1197,11 +1197,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 1040,
-  "id": "a215eb067a2b4cd1",
+  "id": "eaca68476042406b",
   "z": "gz_tab",
   "wires": [
    [
-    "6facb52dddd44606"
+    "74428a91069145b1"
    ]
   ]
  },
@@ -1216,11 +1216,11 @@
   "libs": [],
   "x": 380,
   "y": 1040,
-  "id": "6facb52dddd44606",
+  "id": "74428a91069145b1",
   "z": "gz_tab",
   "wires": [
    [
-    "058a42f15d424efa"
+    "0c999d7448a845ed"
    ]
   ]
  },
@@ -1230,10 +1230,10 @@
   "topic": "",
   "qos": "0",
   "retain": "false",
-  "broker": "abb9966c443e43db",
+  "broker": "6363029228424e53",
   "x": 600,
   "y": 1040,
-  "id": "058a42f15d424efa",
+  "id": "0c999d7448a845ed",
   "z": "gz_tab",
   "wires": []
  }

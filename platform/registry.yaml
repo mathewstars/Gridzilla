@@ -11,7 +11,7 @@ tree:
   tf:mauer-2:     { parent: feeder:liesing-3, rating_kw: 400, reverse_kw: 400, other_houses: 70 }
 
 devices:
-  - id: vic-atzgersdorf-07      # the real Victron plant on VRM
+  - id: real-powerplant-blatnica      # the real Victron plant on VRM
     tf: tf:atzgersdorf-1
     vendor: victron
     kw: 10

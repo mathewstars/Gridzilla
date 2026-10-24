@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate gridzilla-flow.json: the Gridzilla agent as a Node-RED flow for Venus OS Large.
 
-    python3 build-flow.py --platform http://192.168.90.119:8080 --broker 192.168.90.119 --device vic-atzgersdorf-07 \
+    python3 build-flow.py --platform http://192.168.90.119:8080 --broker 192.168.90.119 --device real-powerplant-blatnica \
         --path region:at sub:wien-sued feeder:liesing-3 tf:atzgersdorf-1 > gridzilla-flow.json
 
 Import in the editor (menu > Import) or push with the admin API (deploy-flow.sh).
@@ -17,7 +17,7 @@ ap.add_argument("--tls", action="store_true", help="MQTT over TLS (8883), server
 ap.add_argument("--mqtt-user", default="")
 ap.add_argument("--mqtt-pass", default="")
 ap.add_argument("--evcharger", default="", help="D-Bus instance of a Victron EV Charging Station, e.g. 40; empty = none")
-ap.add_argument("--device", default="vic-atzgersdorf-07")
+ap.add_argument("--device", default="real-powerplant-blatnica")
 ap.add_argument("--path", nargs="+", default=["region:at", "sub:wien-sued", "feeder:liesing-3", "tf:atzgersdorf-1"])
 a = ap.parse_args()
 

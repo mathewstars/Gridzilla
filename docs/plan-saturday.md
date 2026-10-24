@@ -22,7 +22,7 @@ Three people, one day, one real battery. The protocol is frozen in `protocol/PRO
 - Dashboard: https://gridzilla.victronlab.sk (no login for the demo; Apache on cruiser, Let's Encrypt, proxy to the platform on turboprop).
 - Broker: mqtts://mqtt.victronlab.sk:8883 (cruiser, Let's Encrypt, credentials + ACL; vault items `gridzilla mqtt - gz-platform` / `gz-devices`).
 - Platform + 4 simulated houses: user services on turboprop (`systemctl --user status gz-platform gz-agent`), signing key copied from the site box, sequence counter raised to 100 so the Cerbo's replay protection accepts new signals.
-- Real plant `vic-atzgersdorf-07` = Blatnica Cerbo GX (192.168.90.147, portal c0619ab3794e): Node-RED tab "Gridzilla agent" (52 nodes) incl. the Victron EV Charging Station (instance 40): throttled first under an import cap (min 6 A), raised under an export cap, paused in STRETCH, mode/current restored on revert. Nothing is written until a signal with a cap arrives.
+- Real plant `real-powerplant-blatnica` = Blatnica Cerbo GX (192.168.90.147, portal c0619ab3794e): Node-RED tab "Gridzilla agent" (52 nodes) incl. the Victron EV Charging Station (instance 40): throttled first under an import cap (min 6 A), raised under an export cap, paused in STRETCH, mode/current restored on revert. Nothing is written until a signal with a cap arrives.
 - Battery sits at the 20 % ESS floor: start the demo with PREPARE to 90 % or wait for PV before the first SUPPORT. Plug a car in for the EV throttle to show.
 - Site box (192.168.90.119): only the local Mosquitto fallback still runs; platform and agents there are stopped.
 

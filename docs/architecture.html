@@ -737,7 +737,7 @@ li { margin-bottom: 6px; }
 <tr><td>4</td><td>GX, verify</td><td>Signature over the envelope bytes with the pinned platform key. Then seq greater than last, issued within 120 s, window not expired, segment on my path, cohort match.</td></tr>
 <tr><td>5</td><td>GX, merge</td><td>Owner limits win: minimum SoC from ESS, charge and discharge caps, feed-in limit. Partial or refused is a valid outcome with a reason.</td></tr>
 <tr><td>6</td><td>GX, apply</td><td>Current ESS values saved once. After a random ramp delay, the Victron output nodes write the limits to com.victronenergy.settings.</td></tr>
-<tr><td>7</td><td>GX, ack</td><td>Ack document with status, applied limits, SoC and grid kW, signed with the device key, published to gridzilla/ack/vic-atzgersdorf-07.</td></tr>
+<tr><td>7</td><td>GX, ack</td><td>Ack document with status, applied limits, SoC and grid kW, signed with the device key, published to gridzilla/ack/real-powerplant-blatnica.</td></tr>
 <tr><td>8</td><td>Platform</td><td>Ack signature verified against the registered device key, logged, shown on the board and counted in the node aggregates.</td></tr>
 <tr><td>9</td><td>GX, watchdog</td><td>Every 5 s: at window end, or after 120 s without a valid heartbeat for live modes, the saved ESS values are written back and a reverted ack is sent.</td></tr>
 </tbody>

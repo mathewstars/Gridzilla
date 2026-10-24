@@ -5,7 +5,7 @@
 //
 // Context expected (set once at registration / in a startup inject):
 //   flow.platform_pub   : platform public key PEM, fetched from GET /api/pubkey and pinned (trust on first use)
-//   flow.device_id      : e.g. "vic-atzgersdorf-07"
+//   flow.device_id      : e.g. "real-powerplant-blatnica"
 //   flow.path           : ["region:at","sub:wien-sued","feeder:liesing-3","tf:atzgersdorf-1"]
 //   flow.last_seq       : last accepted signal seq (persisted context store recommended)
 //
