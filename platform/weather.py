@@ -1,6 +1,6 @@
 """Live weather and official warnings for Gridzilla (stdlib only), for any place in Europe.
 
-Env:   GZ_WEATHER=0 disables fetching (offline demo)   GZ_WEATHER_REFRESH_S=900
+Env:   GZ_WEATHER=0 disables fetching (offline demo)   GZ_WEATHER_REFRESH_S=900 (at least 60)
        GZ_WEATHER_LAT / GZ_WEATHER_LON / GZ_WEATHER_NAME   location (default: lat/lon of the top registry node that has
                                                           them, else Wien-Liesing 48.14, 16.29)
        GZ_WEATHER_COUNTRY=AT   ISO code, picks the MeteoAlarm country feed
@@ -27,7 +27,21 @@ import json, math, os, re, threading, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 
 ENABLED = os.environ.get("GZ_WEATHER", "1") != "0"
-REFRESH_S = float(os.environ.get("GZ_WEATHER_REFRESH_S", "900"))
+
+
+def refresh_interval(raw, default=900.0, minimum=60.0):
+    """GZ_WEATHER_REFRESH_S in seconds: the default for a value that is not a finite number, at least `minimum`."""
+    try:
+        s = float(raw)
+    except (TypeError, ValueError):
+        s = math.nan
+    if not math.isfinite(s):
+        print(f"[weather] GZ_WEATHER_REFRESH_S={raw!r} is not a number, refreshing every {default:.0f} s", flush=True)
+        return default
+    return max(minimum, s)
+
+
+REFRESH_S = refresh_interval(os.environ.get("GZ_WEATHER_REFRESH_S", "900"))
 LOC = {"name": "Wien-Liesing", "lat": 48.14, "lon": 16.29}
 COUNTRY = os.environ.get("GZ_WEATHER_COUNTRY", "AT").upper()
 AREA = os.environ.get("GZ_WEATHER_AREA")
@@ -133,16 +147,20 @@ def _words(text):
 def parse_meteoalarm(d, area=None, name=None, at=None):
     """MeteoAlarm country feed -> (warnings, scope). Region filter by EMMA_ID `area`, else by the words of `name`
     in the area description; scope is "region", or "country" when neither is given or the name matches no area
-    (titles then carry the area). English text preferred, expired warnings dropped."""
+    (titles then carry the area). English text preferred, expired warnings dropped. CAP messages that are not
+    Actual, Cancel messages, and every message an Update or Cancel references are dropped."""
     at = at or datetime.now(timezone.utc)
-    alerts = [w.get("alert") or {} for w in d.get("warnings") or []]
+    feed = [w.get("alert") or {} for w in d.get("warnings") or []]
+    superseded = {ref.split(",")[1] for a in feed for ref in (a.get("references") or "").split() if ref.count(",") >= 2}
+    alerts = [a for a in feed if a.get("status", "Actual") == "Actual" and a.get("msgType") != "Cancel"
+              and a.get("identifier") not in superseded]
 
     def areas(i):
         return i.get("area") or []
 
     if area:
         hit = lambda ar: any(g.get("value") == area for g in ar.get("geocode") or [])
-    elif name and any(_words(name) <= _words(ar.get("areaDesc")) for a in alerts for i in a.get("info") or [] for ar in areas(i)):
+    elif name and any(_words(name) <= _words(ar.get("areaDesc")) for a in feed for i in a.get("info") or [] for ar in areas(i)):
         hit = lambda ar: _words(name) <= _words(ar.get("areaDesc"))
     else:
         hit = None

@@ -4,7 +4,7 @@ Run:   cd platform && python3 -m unittest discover -s tests
 Fixtures: open-meteo-liesing.json and meteoalarm-austria.json are real responses (24 and 20 Oct 2026, trimmed);
 geosphere-spec-example.json is the example from GeoSphere's own OpenAPI spec (openapi.hub.geosphere.at/warnapi/v1).
 """
-import json, sys, unittest
+import copy, json, sys, unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
@@ -74,6 +74,32 @@ class ParseTest(unittest.TestCase):
         self.assertTrue(ws and all(", " in w["title"] for w in ws))        # titles name the area
         self.assertTrue(any("Innsbruck" in w["title"] for w in ws))
 
+    def test_meteoalarm_cancel_update_and_exercise(self):
+        d = fixture("meteoalarm-austria.json")
+        innsbruck, update = (w["alert"] for w in d["warnings"])
+        original = copy.deepcopy(update)          # the Alert the recorded Update replaces, with a shorter window
+        _, ref_id, ref_sent = update["references"].split(",")
+        original.update(identifier=ref_id, sent=ref_sent, msgType="Alert")
+        del original["references"]
+        for i in original["info"]:
+            i["expires"] = "2026-10-22T08:00:00+02:00"
+        cancel = copy.deepcopy(innsbruck)
+        cancel.update(identifier=innsbruck["identifier"] + "_c", msgType="Cancel", sent="2026-10-20T17:00:00+02:00",
+                      references=f"{innsbruck['sender']},{innsbruck['identifier']},{innsbruck['sent']}")
+        drill = copy.deepcopy(innsbruck)
+        drill.update(identifier="drill", status="Exercise")
+        for i in drill["info"]:
+            i["headline"] = "Drill"
+        d["warnings"] += [{"alert": a} for a in (original, cancel, drill)]
+        at = datetime(2026, 10, 20, 15, 0, tzinfo=timezone.utc)
+        ws, scope = weather.parse_meteoalarm(d, name="Graz", at=at)
+        self.assertEqual(scope, "country")
+        self.assertEqual([(w["title"], w["to"]) for w in ws], [("Stormwarning, Wien Liesing", "2026-10-22T10:00:00Z")])
+        ws, scope = weather.parse_meteoalarm(d, area="AT923", at=at)
+        self.assertEqual([(w["title"], w["to"], scope) for w in ws], [("Stormwarning", "2026-10-22T10:00:00Z", "region")])
+        ws, scope = weather.parse_meteoalarm(d, name="Innsbruck", at=at)
+        self.assertEqual((ws, scope), ([], "region"))
+
     def test_registry_name_drops_kind(self):
         tree = {"sub:wien-liesing": {"parent": None, "lat": 48.14, "lon": 16.29}}
         with mock.patch.dict(weather.LOC), mock.patch.object(weather, "AREA", None), mock.patch.dict("os.environ"):
@@ -101,6 +127,13 @@ class FactorTest(unittest.TestCase):
         self.assertLess(weather.pv_factor(clear * 0.3, noon, 7200), 0.35)
         self.assertEqual(weather.pv_factor(0, datetime(2026, 10, 24, 22, 0), 7200), 0.0)
         self.assertEqual(weather.pv_factor(50, datetime(2026, 10, 24, 3, 0), 7200), 0.0)
+
+
+    def test_refresh_interval(self):
+        with mock.patch("builtins.print"):
+            for raw, want in (("900", 900), ("1800", 1800), ("0", 60), ("-5", 60), ("abc", 900), ("", 900),
+                              ("inf", 900), ("nan", 900), (None, 900)):
+                self.assertEqual(weather.refresh_interval(raw), want, raw)
 
 
 class GridViewTest(unittest.TestCase):
