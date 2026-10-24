@@ -141,7 +141,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
     <header className={`tb${compact ? " is-compact" : ""}`}>
       <div className="tb-clock" {...tip(`Grid time ${clock(s.sim_hour)}: the simulated city's clock, which runs faster than the wall clock`)}>
         <span className="tb-cap">Grid</span>
-        <b data-src="state.sim_hour">{clock(s.sim_hour)}</b>
+        <b data-src="axis">{clock(s.sim_hour)}</b>
       </div>
       <span className="tb-sep" />
       <div className="tb-grp">
@@ -188,14 +188,14 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
       {!compact && (
         <Chip title={signedTip}>
           <PenNib size={14} weight="bold" />
-          <span data-src="feed.signals">{signed.toLocaleString("en-US")}</span>
+          <span data-src="page" data-label="counted by this page from today's feed">{signed.toLocaleString("en-US")}</span>
           <span className="t">{signedWord}</span>
         </Chip>
       )}
       {compact ? null : wx.available && now ? (
         <Chip className="tb-wx" title={`${place} now: ${Math.round(now.temp_c)} °C outside${wx.data?.summary ? `, ${wx.data.summary}` : ""}`}>
           <WxIcon size={15} weight="bold" />
-          <span>{Math.round(now.temp_c)} °C</span>
+          <span data-src={wx.sample ? "sample" : "weather/now/temp_c"} data-val={now.temp_c}>{Math.round(now.temp_c)} °C</span>
           <span className="t tb-wx-place">{place}</span>
           {worstWarn && (
             <span title={worstWarn.title} style={{ display: "inline-flex", color: worstWarn.level === "red" ? "var(--sh-red)" : "var(--sh-orange)" }}>

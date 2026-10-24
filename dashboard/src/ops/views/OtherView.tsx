@@ -6,6 +6,8 @@ import { BLATNICA_DEVICE, useGridState, type Decision, type Household, type LogE
 import type { Ops } from "../useOps";
 import type { Route } from "../shell/Sidebar";
 import Table, { type Col } from "./Table";
+import HeatGrid from "../city/HeatGrid";
+import "../city/city.css";
 import { MODE_LABEL, clock, kw, minsLeft, nice, signalOver, wall } from "./fmt";
 import "../shell/shell.css";
 
@@ -122,20 +124,23 @@ function City({ ops }: { ops: Ops }) {
     { key: "tf", label: "Transformer", cell: (r) => <b style={{ fontWeight: 600 }}>{nice(r.tf)}</b>, sort: (r) => r.tf },
     { key: "feeder", label: "Feeder", cell: (r) => <span className="mut">{nice(r.feeder)}</span>, sort: (r) => r.feeder },
     { key: "sub", label: "Substation", cell: (r) => <span className="mut">{nice(r.sub)}</span>, sort: (r) => r.sub },
-    { key: "pct", label: "Load, % of limit", right: true, cell: (r) => <Load pct={r.pct} />, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
+    { key: "pct", label: "Load, % of limit", right: true, phone: "aside", phoneLabel: "", cell: (r) => <Load pct={r.pct} />, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
     { key: "kw", label: "Power now, kW", right: true, cell: (r) => kw(r.kw), sort: (r) => r.kw },
     { key: "rating", label: "Limit, kW", right: true, cell: (r) => <span className="mut">{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
     { key: "peak", label: "Peak ahead, % of limit", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}>{r.peak.pct} % <span className="dim">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
-    { key: "sig", label: "Active signal", className: "nw", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
+    { key: "sig", label: "Active signal", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
   ];
   return (
-    <div className="vw">
-      <Head title="City" desc="Every transformer in the city, live. Click a row to open it in Operations.">
+    <div className="vw" data-scroll="view">
+      <Head title="City" desc="Every transformer in the city, live. Click a tile to pick it, click a row to open it in Operations.">
         <Stat k="Transformers" v={rows.length} hint="Every street transformer in the simulated Vienna grid" />
         <Stat k="Over limit" v={over} hint="Transformers carrying more than their limit right now, in either direction" tone={over ? "var(--sh-red)" : "var(--sh-green)"} />
         <Stat k="Near limit" v={near} hint="Transformers at 85 % of their limit or more" tone={near ? "var(--sh-orange)" : "var(--sh-green)"} />
         <Stat k="Signals running" v={Object.keys(s.active).length} hint="Signals the grid operator has running right now; each ends on its own" />
       </Head>
+      <div className="vw-heat">
+        <HeatGrid s={s} city={ops.city} selected={ops.tf} onSelect={ops.select} />
+      </div>
       <Card>
         <Table rows={rows} cols={cols} rowKey={(r) => r.tf} onRow={(r) => open(ops, r.tf)} initial={{ key: "pct", dir: -1 }} />
       </Card>
@@ -149,11 +154,11 @@ function Autopilot({ ops }: { ops: Ops }) {
   const hist = ap?.history ?? [];
   const cols: Col<Decision>[] = [
     { key: "t", label: "Grid time", className: "nw", cell: (d) => <span>{clock(d.sim_h)} <span className="dim">{wall(d.at, false)}</span></span>, sort: (d) => d.at },
-    { key: "trigger", label: "What it saw", className: "wrap", cell: (d) => <span className="mut">{d.trigger ?? "–"}</span> },
+    { key: "trigger", label: "What it saw", className: "wrap", phone: "line", cell: (d) => <span className="mut">{d.trigger ?? "–"}</span> },
     { key: "mode", label: "Decision", className: "nw", cell: (d) => <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={d.mode} />{d.segment && <span className="dim">{nice(d.segment)}</span>}</span>, sort: (d) => d.mode },
-    { key: "verdict", label: "Outcome", className: "nw", cell: (d) => { const [t, l] = VERDICT[d.verdict] ?? ["", d.verdict]; return <span title={d.detail || undefined}><span className={`tag ${t}`}>{l}</span>{d.seq != null && <span className="dim"> #{d.seq}</span>}</span>; }, sort: (d) => d.verdict },
+    { key: "verdict", label: "Outcome", className: "nw", phone: "aside", phoneLabel: "", cell: (d) => { const [t, l] = VERDICT[d.verdict] ?? ["", d.verdict]; return <span title={d.detail || undefined}><span className={`tag ${t}`}>{l}</span>{d.seq != null && <span className="dim"> #{d.seq}</span>}</span>; }, sort: (d) => d.verdict },
     { key: "lat", label: "AI answered in", right: true, className: "nw", cell: (d) => (d.latency_ms != null ? `${(d.latency_ms / 1000).toFixed(1)} s` : <span className="dim">–</span>), sort: (d) => d.latency_ms },
-    { key: "why", label: "Why", className: "wrap", cell: (d) => <span>{d.rationale ?? d.detail ?? "–"}{d.verdict !== "sent" && d.detail && d.rationale ? <span className="dim"> · {d.detail}</span> : null}</span> },
+    { key: "why", label: "Why", className: "wrap", phone: "line", cell: (d) => <span>{d.rationale ?? d.detail ?? "–"}{d.verdict !== "sent" && d.detail && d.rationale ? <span className="dim"> · {d.detail}</span> : null}</span> },
   ];
   const sent = hist.filter((d) => d.verdict === "sent").length;
   return (
@@ -180,11 +185,11 @@ function signalCols(): Col<Signal>[] {
   return [
     { key: "seq", label: "Signed #", className: "nw", cell: (g) => <b style={{ fontWeight: 600 }}>#{g.seq}</b>, sort: (g) => g.seq },
     { key: "seg", label: "Where", className: "nw", cell: (g) => nice(g.segment), sort: (g) => g.segment },
-    { key: "mode", label: "Mode", className: "nw", cell: (g) => <ModeTag mode={g.mode} />, sort: (g) => g.mode },
+    { key: "mode", label: "Mode", className: "nw", phone: "aside", phoneLabel: "", cell: (g) => <ModeTag mode={g.mode} />, sort: (g) => g.mode },
     { key: "lim", label: "Limits", className: "nw", cell: (g) => <span className="mut">{limits(g)}</span> },
     { key: "win", label: "Window", className: "nw", cell: (g) => <span className="mut">{wall(g.valid_from, false)} – {wall(g.valid_to, false)}</span>, sort: (g) => g.valid_from },
     { key: "left", label: "Time left", right: true, className: "nw", cell: (g) => (g.valid_to ? `${minsLeft(g.valid_to)} min` : "–"), sort: (g) => g.valid_to },
-    { key: "note", label: "Note", className: "wrap", cell: (g) => <span className="mut">{g.note || "–"}</span> },
+    { key: "note", label: "Note", className: "wrap", phone: "line", cell: (g) => <span className="mut">{g.note || "–"}</span> },
   ];
 }
 function limits(g: Signal) {
@@ -247,13 +252,13 @@ function Households({ ops }: { ops: Ops }) {
   const cols: Col<Household>[] = [
     { key: "id", label: "House", className: "nw", cell: (h) => <span><b style={{ fontWeight: 600 }}>{h.real ? "Blatnica (real)" : nice(h.id.replace(/^sim-/, ""))}</b>{h.represents > 1 && <span className="dim"> ×{h.represents}</span>}</span>, sort: (h) => h.id },
     { key: "tf", label: "Transformer", className: "nw", cell: (h) => <span className="mut">{nice(h.tf)}</span>, sort: (h) => h.tf },
-    { key: "soc", label: "Battery, % full", right: true, cell: (h) => (h.telemetry?.soc != null ? `${Math.round(h.telemetry.soc)} %` : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
+    { key: "soc", label: "Battery, % full", right: true, phone: "aside", phoneLabel: "Battery", cell: (h) => (h.telemetry?.soc != null ? `${Math.round(h.telemetry.soc)} %` : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
     { key: "grid", label: "From grid, kW", right: true, cell: (h) => kw(h.telemetry?.grid_kw), sort: (h) => h.telemetry?.grid_kw },
     { key: "ev", label: "Car charging, kW", right: true, cell: (h) => kw(h.telemetry?.ev_kw), sort: (h) => h.telemetry?.ev_kw },
     { key: "hp", label: "Heat pump, kW", right: true, cell: (h) => kw(h.telemetry?.hp_kw), sort: (h) => h.telemetry?.hp_kw },
     { key: "mode", label: "Mode", className: "nw", cell: (h) => (h.telemetry ? <span className={`tag ${h.telemetry.mode === "owner" ? "" : "b"}`}>{h.telemetry.mode === "owner" ? "Owner" : h.telemetry.mode}</span> : <span className="tag">offline</span>), sort: (h) => h.telemetry?.mode },
     { key: "ack", label: "Last reply", className: "nw", cell: (h) => (h.ack ? <span title={h.ack.reason ?? undefined}><span className={`tag ${h.ack.status === "applied" ? "g" : h.ack.status === "refused" ? "r" : "o"}`}>{h.ack.status}</span>{h.ack.seq != null && <span className="dim"> #{h.ack.seq}</span>}{h.ack.reason && <span className="dim"> · {h.ack.reason}</span>}</span> : <span className="dim">–</span>), sort: (h) => h.ack?.seq },
-    { key: "sig", label: "Signature checked", className: "nw", cell: (h) => (h.ack?.verified ? <span className="tag g">Checked</span> : h.ack ? <span className="tag">Not checked</span> : <span className="dim">–</span>), sort: (h) => (h.ack?.verified ? 1 : 0) },
+    { key: "sig", label: "Signature checked", phoneLabel: "Signature", className: "nw", cell: (h) => (h.ack?.verified ? <span className="tag g">Checked</span> : h.ack ? <span className="tag">Not checked</span> : <span className="dim">–</span>), sort: (h) => (h.ack?.verified ? 1 : 0) },
   ];
   return (
     <div className="vw">
@@ -322,7 +327,7 @@ function Plant({ ops }: { ops: Ops }) {
             rowKey={(p) => p.ts}
             cols={[
               { key: "t", label: "Grid time", cell: (p) => clock(p.h) },
-              { key: "soc", label: "Battery, % full", right: true, cell: (p) => (p.soc != null ? `${Math.round(p.soc)} %` : "–") },
+              { key: "soc", label: "Battery, % full", right: true, phone: "aside", phoneLabel: "Battery", cell: (p) => (p.soc != null ? `${Math.round(p.soc)} %` : "–") },
               { key: "g", label: "From grid, kW", right: true, cell: (p) => kw(p.grid_kw) },
               { key: "m", label: "Mode", cell: (p) => <span className="mut">{p.mode ?? "–"}</span> },
               { key: "c", label: "Import limit, kW", right: true, cell: (p) => kw(p.imp_cap) },
@@ -350,7 +355,7 @@ function WeatherView({ ops }: { ops: Ops }) {
   const warns = d.warnings ?? [];
   const cols: Col<WeatherHour>[] = [
     { key: "h", label: "Hour", cell: (w) => (w.hour != null ? `${String(w.hour).padStart(2, "0")}:00` : w.time?.slice(11, 16) ?? "–") },
-    { key: "t", label: "Temperature, °C", right: true, cell: (w) => w.temp_c.toFixed(1) },
+    { key: "t", label: "Temperature, °C", right: true, phone: "aside", cell: (w) => w.temp_c.toFixed(1) },
     { key: "f", label: "Feels like, °C", right: true, cell: (w) => <span className="mut">{w.feels_c != null ? w.feels_c.toFixed(1) : "–"}</span> },
     { key: "c", label: "Cloud cover, %", right: true, cell: (w) => (w.cloud_pct != null ? `${Math.round(w.cloud_pct)} %` : "–") },
     { key: "s", label: "Sunshine, W/m²", right: true, cell: (w) => (w.sun_wm2 != null ? Math.round(w.sun_wm2) : "–") },
@@ -398,8 +403,8 @@ function Log({ ops }: { ops: Ops }) {
   const rows = (k === "all" ? log : log.filter((e) => e.kind === k)).map((e, i) => ({ ...e, i }));
   const cols: Col<LogEntry & { i: number }>[] = [
     { key: "ts", label: "Time", className: "nw", cell: (e) => <span className="mut">{wall(e.ts)}</span> },
-    { key: "kind", label: "Kind", className: "nw", cell: (e) => <span className={`tag ${e.status === "refused" ? "r" : KIND_TONE[e.kind] ?? ""}`}>{e.kind}</span> },
-    { key: "msg", label: "What happened", className: "wrap", cell: (e) => <span>{e.msg}</span> },
+    { key: "kind", label: "Kind", className: "nw", phone: "aside", phoneLabel: "", cell: (e) => <span className={`tag ${e.status === "refused" ? "r" : KIND_TONE[e.kind] ?? ""}`}>{e.kind}</span> },
+    { key: "msg", label: "What happened", className: "wrap", phone: "line", phoneLabel: "", cell: (e) => <span>{e.msg}</span> },
   ];
   return (
     <div className="vw">

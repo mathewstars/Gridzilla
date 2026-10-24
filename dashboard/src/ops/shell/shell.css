@@ -36,16 +36,16 @@
 }
 .sb-brand-txt { min-width: 0; line-height: 1.15; }
 .sb-name { font-size: 0.9375rem; font-weight: 600; color: var(--color-ink); letter-spacing: -0.01em; }
-.sb-sub { font-size: max(12px, 0.6875rem); color: var(--color-tertiary); white-space: nowrap; }
+.sb-sub { font-size: max(14px, 0.6875rem); color: var(--color-tertiary); white-space: nowrap; }
 .sb-nav { display: flex; flex-direction: column; gap: 1px; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
 .sb-sec {
-  font-size: max(12px, 0.6875rem); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase;
+  font-size: max(14px, 0.6875rem); font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase;
   color: var(--color-tertiary); padding: 12px 10px 4px; white-space: nowrap;
 }
 .sb-item {
   position: relative; display: flex; align-items: center; gap: 10px;
   height: 32px; padding: 0 10px; border-radius: 8px;
-  font-size: 0.8125rem; font-weight: 500; color: var(--color-secondary); text-decoration: none; white-space: nowrap;
+  font-size: max(15px, 0.9375rem); font-weight: 500; color: var(--color-secondary); text-decoration: none; white-space: nowrap;
   transition: background-color 100ms linear, color 100ms linear;
   outline: none;
 }
@@ -60,7 +60,7 @@
 .sb-lbl { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sb-badge {
   position: relative; z-index: 1; flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-  display: grid; place-items: center; font-size: max(12px, 0.6875rem); font-weight: 600; font-variant-numeric: tabular-nums;
+  display: grid; place-items: center; font-size: max(14px, 0.6875rem); font-weight: 600; font-variant-numeric: tabular-nums;
   background: var(--sh-track); color: var(--color-secondary);
 }
 .sb-badge.is-blue { background: var(--sh-blue); color: #fff; }
@@ -69,7 +69,7 @@
 .sb-dot.is-green { background: var(--sh-green); }
 .sb-foot {
   display: flex; align-items: center; gap: 8px; padding: 10px 10px 2px; margin-top: 4px;
-  box-shadow: inset 0 1px 0 var(--sh-line); font-size: max(12px, 0.6875rem); color: var(--color-tertiary); white-space: nowrap;
+  box-shadow: inset 0 1px 0 var(--sh-line); font-size: max(14px, 0.6875rem); color: var(--color-tertiary); white-space: nowrap;
 }
 .sb-foot .sb-dot { width: 6px; height: 6px; }
 
@@ -87,7 +87,7 @@
   .sb-item::after {
     content: attr(data-label); position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%);
     padding: 4px 9px; border-radius: 7px; background: var(--color-ink); color: var(--color-card);
-    font-size: max(12px, 0.75rem); font-weight: 500; white-space: nowrap; pointer-events: none;
+    font-size: max(14px, 0.75rem); font-weight: 500; white-space: nowrap; pointer-events: none;
     opacity: 0; visibility: hidden; transition: opacity 120ms var(--sh-ease), transform 120ms var(--sh-ease);
   }
   .sb-item:hover::after, .sb-item:focus-visible::after { opacity: 1; visibility: visible; transform: translate(0, -50%); }
@@ -107,7 +107,7 @@
   .sb.is-rail .sb-item::after {
     content: attr(data-label); position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%);
     padding: 4px 9px; border-radius: 7px; background: var(--color-ink); color: var(--color-card);
-    font-size: max(12px, 0.75rem); font-weight: 500; white-space: nowrap; pointer-events: none;
+    font-size: max(14px, 0.75rem); font-weight: 500; white-space: nowrap; pointer-events: none;
     opacity: 0; visibility: hidden; transition: opacity 120ms var(--sh-ease), transform 120ms var(--sh-ease);
   }
   .sb.is-rail .sb-item:hover::after, .sb.is-rail .sb-item:focus-visible::after { opacity: 1; visibility: visible; transform: translate(0, -50%); }
@@ -145,10 +145,10 @@
   background: color-mix(in srgb, var(--color-ground) 86%, transparent);
   backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
   box-shadow: inset 0 -1px 0 var(--sh-line);
-  font-size: 0.8125rem;
+  font-size: max(14px, 0.875rem);
 }
 .tb-grp { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.tb-cap { font-size: max(12px, 0.6875rem); font-weight: 500; color: var(--color-tertiary); white-space: nowrap; }
+.tb-cap { font-size: max(14px, 0.6875rem); font-weight: 500; color: var(--color-tertiary); white-space: nowrap; }
 .tb-clock { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .tb-clock b { font-size: 1.0625rem; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .tb-sep { width: 1px; height: 20px; background: var(--sh-line); flex: none; }
@@ -160,7 +160,7 @@
 .seg-btn {
   position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px;
   height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent;
-  font: inherit; font-size: 0.8125rem; font-weight: 500; color: var(--color-secondary); white-space: nowrap;
+  font: inherit; font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-secondary); white-space: nowrap;
   cursor: pointer; transition: color 100ms linear, background-color 100ms linear;
 }
 .seg-btn:hover { color: var(--color-ink); background: var(--sh-hover); }
@@ -180,7 +180,7 @@
 /* pills and small buttons */
 .chip {
   display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px;
-  background: var(--sh-track); color: var(--color-ink); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; flex: none;
+  background: var(--sh-track); color: var(--color-ink); font-size: max(14px, 0.875rem); font-weight: 500; white-space: nowrap; flex: none;
 }
 .chip .t { color: var(--color-secondary); font-weight: 400; }
 .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
@@ -191,7 +191,7 @@
 .hb.is-dark .chip-dot { background: var(--sh-red); }
 .tbtn {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 22px; padding: 0 9px; border: 0; border-radius: 11px;
-  font: inherit; font-size: max(12px, 0.75rem); font-weight: 600; cursor: pointer; white-space: nowrap;
+  font: inherit; font-size: max(14px, 0.75rem); font-weight: 600; cursor: pointer; white-space: nowrap;
   background: var(--color-card); color: var(--color-ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), inset 0 0 0 1px var(--sh-line);
   transition: background-color 100ms linear, transform 100ms linear, filter 100ms linear;
 }
@@ -210,7 +210,7 @@
 .ibtn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sh-blue); }
 .tb-err {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; height: 28px; padding: 0 4px 0 10px; border-radius: 14px;
-  background: color-mix(in srgb, var(--sh-red) 12%, transparent); color: var(--sh-red); font-size: 0.8125rem; font-weight: 500;
+  background: color-mix(in srgb, var(--sh-red) 12%, transparent); color: var(--sh-red); font-size: max(14px, 0.875rem); font-weight: 500;
 }
 .tb-err span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tb-err button { border: 0; background: transparent; color: inherit; cursor: pointer; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 11px; }
@@ -236,39 +236,45 @@
   .tb-sep, .tb-spacer { display: none; }
   .tb-grp { flex-wrap: wrap; }
   .seg-btn { height: 30px; padding: 0 9px; }
+  /* help and theme ride at the right end of the autopilot line instead of after the chips; the status chips follow */
+  .tb:not(.is-compact) > .tb-icons { margin-left: auto; }
+  .tb-icons .ibtn { width: 34px; height: 34px; border-radius: 17px; }
+  .tb > .chip, .tb > .tb-err { order: 2; }
+  .chip { height: 32px; border-radius: 16px; }
+  .tbtn { height: 26px; padding: 0 11px; border-radius: 13px; }
 }
 
 /* ---------------------------------------------------------------- table views */
 .vw { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
 .vw-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 2px 2px 0; }
-.vw-title { font-size: 1.3125rem; font-weight: 600; color: var(--color-ink); letter-spacing: 0.005em; line-height: 1.2; }
-.vw-desc { font-size: 0.8125rem; color: var(--color-secondary); margin-top: 2px; max-width: 70ch; }
+.vw-title { font-size: max(24px, 1.5rem); font-weight: 600; color: var(--color-ink); letter-spacing: 0.005em; line-height: 1.2; }
+.vw-desc { font-size: max(16px, 1rem); color: var(--color-secondary); margin-top: 2px; max-width: 70ch; }
 .vw-stats { display: flex; flex-wrap: wrap; gap: 6px; }
 .vw-card { background: var(--color-card); border-radius: 14px; box-shadow: var(--shadow-card), inset 0 0 0 1px var(--sh-line); min-width: 0; overflow: clip; }
 .vw-card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; box-shadow: inset 0 -1px 0 var(--sh-line); }
-.vw-card-t { font-size: 0.875rem; font-weight: 600; color: var(--color-ink); }
-.vw-empty { padding: 28px 16px; text-align: center; font-size: 0.875rem; color: var(--color-secondary); }
+.vw-card-t { font-size: max(16px, 1rem); font-weight: 600; color: var(--color-ink); }
+.vw-empty { padding: 28px 16px; text-align: center; font-size: max(16px, 1rem); color: var(--color-secondary); }
 .vw-empty b { display: block; color: var(--color-ink); font-weight: 600; margin-bottom: 2px; }
 .vw-scroll { overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
 .vw-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .vw-input {
   height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--sh-track); color: var(--color-ink);
-  font: inherit; font-size: 0.8125rem; width: 200px; max-width: 100%;
+  font: inherit; font-size: max(16px, 1rem); width: 200px; max-width: 100%;
 }
 .vw-input::placeholder { color: var(--color-tertiary); }
 .vw-input:focus { outline: none; box-shadow: 0 0 0 2px var(--sh-blue); }
 .vw-link { border: 0; background: none; padding: 0; font: inherit; color: var(--sh-blue-text); cursor: pointer; font-weight: 500; }
 .vw-link:hover { text-decoration: underline; }
 .vw-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); padding: 14px; }
-.vw-kv .k { font-size: max(12px, 0.6875rem); color: var(--color-tertiary); font-weight: 500; }
-.vw-kv .v { font-size: 1.125rem; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
-.vw-kv .v small { font-size: max(12px, 0.75rem); color: var(--color-secondary); font-weight: 500; margin-left: 2px; }
+.vw-kv .k { font-size: max(14px, 0.6875rem); color: var(--color-tertiary); font-weight: 500; }
+.vw-kv .v { font-size: max(24px, 1.5rem); font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.vw-kv .v small { font-size: max(14px, 0.75rem); color: var(--color-secondary); font-weight: 500; margin-left: 2px; }
 
-.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: max(16px, 1rem); font-variant-numeric: tabular-nums; }
 .tbl th {
   position: sticky; top: 0; z-index: 1; background: var(--color-card); text-align: left; white-space: nowrap;
-  font-size: max(12px, 0.6875rem); font-weight: 600; color: var(--color-tertiary); letter-spacing: 0.01em;
+  font-size: max(14px, 0.6875rem); font-weight: 600; color: var(--color-tertiary); letter-spacing: 0.01em;
   padding: 8px 12px; box-shadow: inset 0 -1px 0 var(--sh-line);
 }
 .tbl th.r, .tbl td.r { text-align: right; }
@@ -285,11 +291,11 @@
 .tbl .dim { color: var(--color-tertiary); }
 .tbl .nw { white-space: nowrap; }
 .tbl .wrap { min-width: 180px; max-width: 520px; }
-.tbl .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: max(12px, 0.75rem); }
+.tbl .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: max(14px, 0.75rem); }
 
 .tag {
   display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: 6px; white-space: nowrap;
-  font-size: max(12px, 0.6875rem); font-weight: 600; letter-spacing: 0.01em; background: var(--sh-track); color: var(--color-secondary);
+  font-size: max(14px, 0.6875rem); font-weight: 600; letter-spacing: 0.01em; background: var(--sh-track); color: var(--color-secondary);
 }
 .tag.g { background: color-mix(in srgb, var(--sh-green) 15%, transparent); color: color-mix(in srgb, var(--sh-green) 70%, var(--color-ink)); }
 .tag.o { background: color-mix(in srgb, var(--sh-orange) 16%, transparent); color: color-mix(in srgb, var(--sh-orange) 72%, var(--color-ink)); }
@@ -298,6 +304,45 @@
 .loadbar { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .loadbar i { position: relative; display: block; width: 54px; height: 5px; border-radius: 3px; background: var(--sh-track); overflow: hidden; }
 .loadbar i b { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+
+/* phones: no table wider than the screen. Each row is a block: title, aside value at its right, then the other cells as
+   "label value" items that wrap (Table.tsx sets ph-* and data-label); the header becomes a Sort by picker. */
+.tbl-sort { display: none; }
+@media (max-width: 760px) {
+  .vw-scroll { overflow-x: visible; }
+  .tbl-sort {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px;
+    box-shadow: inset 0 -1px 0 var(--sh-line); font-size: max(12px, 0.75rem); font-weight: 500; color: var(--color-tertiary);
+  }
+  .tbl-sort label { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .tbl-sort-sel {
+    appearance: none; height: 32px; min-width: 0; max-width: 100%; padding: 0 28px 0 10px; border: 0; border-radius: 8px;
+    background-color: var(--sh-track); color: var(--color-ink); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-secondary) 50%), linear-gradient(135deg, var(--color-secondary) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 52%, calc(100% - 10px) 52%; background-size: 4px 4px; background-repeat: no-repeat;
+  }
+  .tbl-sort-sel:focus-visible, .tbl-sort-dir:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sh-blue); }
+  .tbl-sort-dir {
+    display: grid; place-items: center; flex: none; width: 34px; height: 32px; border: 0; border-radius: 8px;
+    background: var(--sh-track); color: var(--color-ink); cursor: pointer;
+  }
+  .tbl-sort-dir:disabled { color: var(--color-tertiary); cursor: default; }
+  .tbl, .tbl tbody { display: block; }
+  .tbl thead { display: none; }
+  .tbl tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; padding: 10px 14px; box-shadow: inset 0 -1px 0 var(--sh-line); }
+  .tbl tr:last-child { box-shadow: none; }
+  .tbl tr::after { content: ""; order: 2; flex-basis: 100%; } /* line break after the title line */
+  .tbl td { order: 3; display: block; max-width: 100%; min-width: 0; padding: 0; box-shadow: none; text-align: left; overflow-wrap: break-word; }
+  .tbl td.ph-title { order: 0; flex: 1 1 0; font-size: 0.875rem; }
+  .tbl td.ph-aside { order: 1; flex: none; max-width: 60%; text-align: right; }
+  .tbl td.ph-line { flex-basis: 100%; }
+  .tbl td[data-label]::before { content: attr(data-label) "\00a0\00a0"; color: var(--color-tertiary); font-size: max(12px, 0.75rem); font-weight: 400; }
+  .tbl .nw { white-space: normal; }
+  .tbl .wrap { min-width: 0; max-width: none; }
+  /* card header tools: the filter takes its own full line (placeholder not cut), a segmented filter wraps */
+  .vw-card-h .vw-input { flex: 1 1 100%; width: auto; height: 34px; }
+  .vw-card-h .seg { flex-wrap: wrap; max-width: 100%; }
+}
 
 /* From 1240 the console is one screen tall (ops.css): the view scrolls inside itself so the sidebar and top bar stay put,
    and table headers stick to the top of that scroller. */
@@ -309,7 +354,22 @@
 /* One-sentence explanation on tap (phones, tablets): see TapTip in TopBar.tsx. */
 .taptip {
   position: fixed; z-index: 90; max-width: min(300px, calc(100vw - 16px)); transform: translate(-50%, -100%);
-  padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.35; color: var(--color-ink);
+  padding: 8px 10px; border-radius: 10px; font-size: 15px; line-height: 1.35; color: var(--color-ink);
   background: var(--color-card); box-shadow: 0 0 0 1px var(--color-fill), 0 8px 24px rgb(0 0 0 / 0.18); pointer-events: none;
 }
 .taptip.is-below { transform: translate(-50%, 0); }
+
+/* Phones: every table row becomes a small card, each cell with its column name, so nothing runs off the screen. */
+@media (max-width: 760px) {
+  .tbl, .tbl tbody { display: block; }
+  .tbl thead { display: none; }
+  .tbl tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; padding: 10px 12px; box-shadow: inset 0 -1px 0 var(--sh-line); }
+  .tbl tbody tr:last-child { box-shadow: none; }
+  .tbl td { display: flex; flex-direction: column; gap: 1px; padding: 0; box-shadow: none; min-width: 0; text-align: left; overflow-wrap: anywhere; }
+  .tbl th.r, .tbl td.r { text-align: left; }
+  .tbl td::before { content: attr(data-label); font-size: 14px; font-weight: 500; color: var(--color-tertiary); }
+  .tbl td:first-child { grid-column: 1 / -1; }
+  .tbl .nw { white-space: normal; }
+  .tbl .wrap { min-width: 0; max-width: none; grid-column: 1 / -1; }
+  .tbl .loadbar { justify-content: flex-start; }
+}

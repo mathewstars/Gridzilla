@@ -1,6 +1,6 @@
 // The operations console's one data hook: the whole city (state without households except the selected feeder), the
 // selected transformer's history, its diet plan, the weather. Selection lives here so every column agrees on it.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BLATNICA_DEVICE, meterDevice, useFlatten, useGridState, useHistory, useWeather, type State } from "../api";
 import { feederOf, headline } from "../model";
 
@@ -14,6 +14,9 @@ function hottest(s: State): string {
 
 export function useOps() {
   const [sel, setSel] = useState<string>("");
+  // The node the big curve shows (dad's storyChart chips): "region:at" (the whole city, the default), a substation, a
+  // feeder or a transformer. Picking a transformer anywhere (ops.select) also puts its curve on screen.
+  const [view, setView] = useState<string>("region:at");
   const [q, setQ] = useState({ feeder: "", tf: "" });
   const grid = useGridState(q.feeder, q.tf);
   const s = grid.data;
@@ -23,12 +26,18 @@ export function useOps() {
     if (feeder !== q.feeder || tf !== q.tf) setQ({ feeder, tf });
   }, [feeder, tf, q]);
   const houseDevs = s ? Object.values(s.households ?? {}).filter((h) => h.tf === tf).map(meterDevice) : [];
-  const history = useHistory(tf ? [tf, feeder] : [], [...houseDevs.slice(0, 16), BLATNICA_DEVICE]);
+  const viewNode = s && s.tree[view] ? view : "region:at";
+  const nodes = tf ? [...new Set([tf, feeder, viewNode])] : [];
+  const history = useHistory(nodes, [...houseDevs.slice(0, 16), BLATNICA_DEVICE]);
+  const select = useCallback((n: string) => {
+    setSel(n);
+    setView(n);
+  }, []);
   const weather = useWeather();
   const plan = useFlatten(tf || null);
   const city = useFlatten("region:at");
   const head = useMemo(() => (s ? headline(s) : null), [s]);
-  return { s, error: grid.error, reload: grid.reload, history: history.data, weather, plan: plan.data ?? null, city: city.data ?? null, tf, feeder, select: setSel, headline: head };
+  return { s, error: grid.error, reload: grid.reload, history: history.data, weather, plan: plan.data ?? null, city: city.data ?? null, tf, feeder, select, view: viewNode, setView, headline: head };
 }
 
 export type Ops = ReturnType<typeof useOps>;

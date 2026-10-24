@@ -11,6 +11,7 @@ import { arg, launch, newPage, ready, stageUrl } from "./lib.mjs";
 
 const dev = !!arg("dev", false);
 const sizes = String(arg("sizes", "1440x900,390x844")).split(",");
+const hash = String(arg("hash", "")); // e.g. /demo
 const out = String(arg("out", "/tmp/gzqa/truth"));
 fs.mkdirSync(out, { recursive: true });
 
@@ -88,6 +89,8 @@ function audit() {
     const src = host.dataset.src;
     if (src === "axis") continue;
     if (src === "deck") { if (!host.dataset.label) F.untraced.push(`deck fact without data-label: ${t.trim().slice(0, 40)}`); continue; }
+    // a count the page keeps itself (e.g. today's signals from the feed): allowed, but it must say so
+    if (src === "page") { if (!host.dataset.label) F.untraced.push(`page count without data-label: ${t.trim().slice(0, 40)}`); continue; }
     if (src === "sample") { if (!sample) F.fixture.push(t.trim().slice(0, 40)); continue; }
     const val = parseFloat(host.dataset.val);
     const truth = src === "derived" ? evalFrom(host.dataset.from || "") : get(src);
@@ -114,7 +117,7 @@ const browser = await launch();
 const results = [];
 for (const size of sizes) {
   const { ctx, page } = await newPage(browser, size);
-  await page.goto(stageUrl(dev), { waitUntil: "domcontentloaded" });
+  await page.goto(stageUrl(dev) + (hash ? `#${hash}` : ""), { waitUntil: "domcontentloaded" });
   await ready(page, 6000);
   // freshness: what the page holds must be the live platform's current state (seq within a few ticks)
   const pageSeq = await page.evaluate(() => window.__gz?.state?.seq ?? null);

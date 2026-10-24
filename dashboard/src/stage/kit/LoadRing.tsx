@@ -6,7 +6,7 @@
 // It fits its container: `size` is the largest it gets, it shrinks with the box it sits in (ResizeObserver), and the
 // centre text is measured so it always sits inside the inner ring: the type shrinks first, then the small label above
 // the number drops, then the sublabel wraps to two lines, then it drops. The number itself always stays.
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { P, loadTone } from "../palette";
 import Counter from "./Counter";
 import { textW } from "./layout";
@@ -98,9 +98,11 @@ export default function LoadRing({
   const id = useId().replace(/:/g, "");
   const box = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
+    // measured before the first paint, so a phone never sees the full-size ring and its number spill past the screen
+    setRoom(el.clientWidth);
     const ro = new ResizeObserver(([e]) => setRoom(Math.round(e.contentRect.width)));
     ro.observe(el);
     return () => ro.disconnect();
@@ -143,7 +145,8 @@ export default function LoadRing({
 
   return (
     <div ref={box} className="relative grid min-w-0 place-items-center" style={{ width: size, maxWidth: "100%", aspectRatio: "1 / 1", flexShrink: 1 }}>
-      <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" aria-hidden>
+      {/* capped to the box: before the first measure D is the full `size`, which would widen a phone page for a frame */}
+      <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ maxWidth: "100%", maxHeight: "100%" }} aria-hidden>
         <defs>
           <filter id={`tip-${id}`} x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation={sw * 0.16} />

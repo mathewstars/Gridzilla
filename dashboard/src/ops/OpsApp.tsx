@@ -5,12 +5,11 @@ import { useEffect, useState } from "react";
 import { useOps } from "./useOps";
 import Sidebar, { type Route } from "./shell/Sidebar";
 import TopBar from "./shell/TopBar";
-import CityColumn from "./cols/CityColumn";
-import NowPanel from "./now/NowPanel";
 import DemoView from "./demo/DemoView";
 import HelpOverlay from "./help/HelpOverlay";
+import OperationsView from "./ops2/OperationsView";
+import PlanView from "./plan/PlanView";
 import { API_BASE, READ_ONLY } from "../api";
-import FeedStrip from "./now/FeedStrip";
 import OtherView from "./views/OtherView";
 import "./ops.css";
 import { applyTheme, initialTheme } from "./theme";
@@ -18,7 +17,7 @@ import { applyTheme, initialTheme } from "./theme";
 // Theme before the first paint, so the console never flashes light.
 applyTheme(initialTheme());
 
-const ROUTES: Route[] = ["ops", "demo", "city", "autopilot", "manual", "households", "plant", "weather", "log"];
+const ROUTES: Route[] = ["ops", "demo", "plan", "city", "autopilot", "manual", "households", "plant", "weather", "log"];
 const routeOf = (): Route => {
   const r = location.hash.replace(/^#\/?/, "");
   if (r === "present") {
@@ -60,15 +59,9 @@ function Console({ route }: { route: Route }) {
         {route === "demo" ? (
           <main className="ops-demo"><DemoView ops={ops} /></main>
         ) : route === "ops" ? (
-          // Two-column hierarchy: the city and its curve on the left, one Now panel on the right with the newest three
-          // events in a strip under it; the composer opens in a drawer from the Now panel.
-          <main className="ops-cols">
-            <section className="ops-col ops-col-city" data-scroll="column"><CityColumn ops={ops} /></section>
-            <section className="ops-col ops-col-now" data-scroll="column">
-              <NowPanel ops={ops} />
-              <FeedStrip ops={ops} />
-            </section>
-          </main>
+          <main className="ops-op2" data-scroll="page"><OperationsView ops={ops} /></main>
+        ) : route === "plan" ? (
+          <main className="ops-view"><PlanView ops={ops} /></main>
         ) : (
           <main className="ops-view"><OtherView route={route} ops={ops} /></main>
         )}

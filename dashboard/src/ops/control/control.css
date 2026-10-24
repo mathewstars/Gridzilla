@@ -159,6 +159,18 @@ input.cp-input[type="number"]::-webkit-inner-spin-button, input.cp-input[type="n
 @media (max-width: 420px) {
   .cp-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* phones: the AI note gets the whole line (its placeholder is not cut), its buttons go under it; small buttons grow to a
+   thumb-sized height */
+@media (max-width: 760px) {
+  .cp-inline { flex-wrap: wrap; }
+  .cp-inline .cp-input { flex-basis: 100%; min-height: 34px; }
+  .cp-btn-sm { min-height: 32px; padding-inline: 0.85rem; }
+  /* a running signal's top line wraps as whole words (mode, code, where) instead of squeezing each into a column; the
+     time left stays at the right */
+  .cp-sig-top { flex-wrap: wrap; row-gap: 2px; }
+  .cp-sig-top .cp-strong { white-space: nowrap; }
+  .cp-sig-top .cp-count { margin-left: auto; }
+}
 
 .cp-sig-top .cp-wrap { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .cp-title-code { margin-left: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--color-tertiary); }
