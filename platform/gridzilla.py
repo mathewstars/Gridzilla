@@ -795,7 +795,7 @@ def households():
             h["telemetry"] = m
         if a:
             rank = {"refused": 3, "partial": 2, "reverted": 1, "applied": 0}
-            if h["ack"] is None or rank.get(a.get("status"), 0) > rank.get(h["ack"].get("status"), 0) or a.get("seq", 0) > (h["ack"].get("seq") or 0):
+            if h["ack"] is None or rank.get(a.get("status"), 0) > rank.get(h["ack"].get("status"), 0) or (a.get("seq") or 0) > (h["ack"].get("seq") or 0):
                 h["ack"] = {k: a.get(k) for k in ("status", "reason", "seq", "verified", "applied")}
     return out
 
