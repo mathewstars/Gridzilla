@@ -1,13 +1,15 @@
 // Data prep for the hero curve: turns the platform's wrapping sim hours (23.9 -> 0.1) into one continuous time axis,
 // keeps only the latest unbroken run of history, places Peter's forecast ahead of now and collects the signal pins.
 import type { History, State } from "../../api";
-import { pathOf } from "../../model";
+import { MODE_WORDS, pathOf } from "../../model";
 
 export interface HistPt {
   t: number; // unwrapped sim hours
   total: number;
   program: number;
   other: number;
+  /** What the same houses would draw without Gridzilla (simulator counterfactual); null on older platforms. */
+  base: number | null;
 }
 
 export interface FcPt {
@@ -44,7 +46,7 @@ export function unwrapHistory(history: History | null, node: string, tNow: numbe
       if (dt > 1) break;
       t -= dt;
     }
-    out.push({ t, total: p.total_kw, program: p.program_kw, other: p.other_kw });
+    out.push({ t, total: p.total_kw, program: p.program_kw, other: p.other_kw, base: p.baseline_kw ?? null });
   }
   return out.reverse();
 }
@@ -88,6 +90,12 @@ export function signalMarks(s: State, node: string, tNow: number): Mark[] {
     if (l.seq != null) seen.add(l.seq);
   }
   return marks.sort((a, b) => a.t - b.t);
+}
+
+/** Short plain label for a marker on the time axis: "Gridzilla: store the sun". */
+export function markLabel(m: Mark) {
+  const t = MODE_WORDS[m.mode]?.title ?? m.mode;
+  return `${m.by === "ai" ? "Gridzilla" : "Operator"}: ${t.charAt(0).toLowerCase()}${t.slice(1)}`;
 }
 
 /** Round step for about `n` ticks over `span`. */

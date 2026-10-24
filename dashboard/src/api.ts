@@ -1,6 +1,6 @@
 // Data shapes of the Gridzilla platform API (platform/gridzilla.py) and the polling hooks that keep them fresh.
 // Same-origin relative URLs only: the page is served by the platform itself at /static/new/.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type Mode = "PREPARE" | "ABSORB" | "SUPPORT" | "STRETCH" | "RECOVER" | "RELEASE";
 
@@ -227,6 +227,9 @@ export interface State {
   scenario: { name: string; load_x: number; pv_x: number };
   forecast: Record<string, ForecastPoint[]>;
   plan?: Record<string, PlanEntry>;
+  /** City totals computed server-side (platform since a8e1311: households only ship for the feeder on screen). */
+  summary?: { households: number; online: number; houses: number; ev_kw: number; hp_kw: number };
+  forecast_peak?: Record<string, { pct: number; h: number }>;
 }
 
 export interface NodePoint {
@@ -235,6 +238,8 @@ export interface NodePoint {
   program_kw: number;
   other_kw: number;
   total_kw: number;
+  /** What the same houses would draw without Gridzilla (simulator counterfactual). */
+  baseline_kw?: number;
 }
 
 export interface DevPoint {
@@ -337,8 +342,56 @@ function usePoll<T>(path: string, ms: number, enabled = true) {
   return { data, error, reload: load };
 }
 
-export const useGridState = () => usePoll<State>("state", 3000);
-export const useHistory = () => usePoll<History>("history", 5000);
+/** Path of a node up to the root, nearest parent first. */
+const pathOf = (tree: Record<string, TreeNode>, n: string) => {
+  const out: string[] = [];
+  for (let c: string | null = n; c && tree[c]; c = tree[c].parent) out.push(c);
+  return out;
+};
+
+/** The real Victron plant at the captain's family home (household "blatnica": Cerbo GX battery + Vitocal heat pump). */
+export const BLATNICA_DEVICE = "real-powerplant-blatnica";
+
+/** The device that owns a household's meter and battery (the heat pump agent is a separate device behind the same meter). */
+export const meterDevice = (h: Household) => h.devices.find((d) => !/vicare/.test(d)) ?? h.devices[0] ?? h.id;
+
+/** The trimmed board payload (platform 19e44d7/a8e1311) ships the tree once, no raw devices and households only for the
+ *  feeder on screen. Rebuild the fields the views read: the cached tree, household paths, and one device per household. */
+function normalize(raw: State, tree: Record<string, TreeNode> | null): State {
+  const t = raw.tree ?? tree ?? {};
+  const s = { ...raw, tree: t, forecast: raw.forecast ?? {} };
+  Object.values(s.households ?? {}).forEach((h) => (h.path = h.path ?? pathOf(t, h.tf)));
+  if (!raw.devices) {
+    s.devices = {};
+    Object.values(s.households ?? {}).forEach((h) => {
+      const id = meterDevice(h);
+      s.devices[id] = {
+        id, tf: h.tf, vendor: h.real ? "real" : "sim", kw: h.kw, kwh: h.kwh, feedin_max_kw: 0, represents: h.represents,
+        household: h.id, path: h.path, registered: h.registered,
+        telemetry: h.telemetry as unknown as Telemetry | null,
+        ack: h.ack ? ({ device: id, rx: undefined, ...h.ack } as Ack) : null,
+      };
+    });
+  }
+  return s;
+}
+
+/** Board state for the feeder on screen (`hh`) with the full forecast of one node (`fc`). Older platforms ignore the
+ *  query and send everything, which normalizes to the same shape. */
+export function useGridState(hh = "", fc = "") {
+  const tree = useRef<Record<string, TreeNode> | null>(null);
+  const q = `state?hh=${encodeURIComponent(hh)}&fc=${encodeURIComponent(fc)}&tree=${tree.current ? 0 : 1}`;
+  const r = usePoll<State>(q, 3000);
+  if (r.data?.tree) tree.current = r.data.tree;
+  const data = useMemo(() => (r.data ? normalize(r.data, tree.current) : null), [r.data]);
+  return { ...r, data };
+}
+
+/** History only for what is on screen, downsampled by the platform. */
+export function useHistory(nodes: string[], devices: string[]) {
+  const q = `history?nodes=${encodeURIComponent(nodes.filter(Boolean).join(","))}&devices=${encodeURIComponent(devices.filter(Boolean).join(","))}&limit=240`;
+  return usePoll<History>(q, 5000, nodes.length > 0);
+}
 
 /** True while the platform advertises `path` in its OpenAPI schema. Checked once a minute, so a missing optional
  *  feature never produces a stream of 404s in the console. */

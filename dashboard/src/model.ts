@@ -185,6 +185,20 @@ export function headline(s: State) {
       if (d.ack && (d.ack.status === "applied" || d.ack.status === "partial")) obeying += r;
     }
   });
+  // Trimmed payload: households only for the feeder on screen, so city-wide numbers come from the root aggregate and the
+  // server's summary (aggregates count devices; each simulated household stands for `houses / households` real ones).
+  const root = Object.keys(s.tree).find((n) => !s.tree[n].parent);
+  if (s.summary && root && s.aggregates[root]) {
+    const r = s.summary.households ? s.summary.houses / s.summary.households : 1;
+    const a = s.aggregates[root];
+    kwh = a.kwh_available * r;
+    kw = a.kw * r;
+    houses = s.summary.houses;
+    online = s.summary.online * r;
+    obeying = a.applied * r;
+    under = Object.keys(s.active).filter((n) => !Object.keys(s.active).some((m) => m !== n && pathOf(s, n).includes(m)))
+      .reduce((acc, n) => acc + (s.aggregates[n]?.devices ?? 0) * r, 0);
+  }
   const tfs = allTfs(s);
   let worst = tfs[0],
     worstPct = 0;

@@ -1,9 +1,9 @@
-// "Your street, live": the selected feeder as a 3D town with its overlays (title, how many homes follow Gridzilla,
-// a plain-words legend, hover tooltips). Falls back to a flat drawing when the machine has no WebGL.
-import { motion, useReducedMotion } from "motion/react";
-import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from "react";
+// "Your street, live": the selected feeder as a white clay model, with the feeder's transformers listed beside it
+// (load, plain status, click to show the curve) and plain-English hover tooltips. Falls back to a flat drawing when
+// the machine has no WebGL. Phones get a lighter scene with the list under it.
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { State } from "../../api";
-import { COLORS, loadColor, nice, type House } from "../../model";
+import { nice, type House } from "../../model";
 import { Empty } from "../ui";
 import { buildStreets, FLOW_EPS, type StreetModel } from "./layout";
 import type { HoverInfo } from "./Street3D";
@@ -20,7 +20,21 @@ function hasWebGL() {
   }
 }
 
+/** True when the viewer asked the system for less motion: the power dots then stand still. */
+function useReducedMotion() {
+  const q = "(prefers-reduced-motion: reduce)";
+  const [on, setOn] = useState(() => typeof matchMedia !== "undefined" && matchMedia(q).matches);
+  useEffect(() => {
+    const m = matchMedia(q);
+    const f = () => setOn(m.matches);
+    m.addEventListener("change", f);
+    return () => m.removeEventListener("change", f);
+  }, []);
+  return on;
+}
+
 const kw = (v: number) => (Math.abs(v) >= 100 ? Math.round(v).toLocaleString("en-US") : v.toFixed(1));
+const isOver = (st: StreetModel) => Math.abs(st.pct ?? 0) >= 100;
 
 function houseLines(h: House) {
   if (!h.online) return ["Offline: no reading from this house right now"];
@@ -36,13 +50,22 @@ function houseLines(h: House) {
   return out;
 }
 
+/** Short plain status for the list. Reverse flow over the limit counts as over too. */
+function tfShort(st: StreetModel, compact = false) {
+  if (st.load_kw == null || st.pct == null) return "No reading yet";
+  const p = Math.abs(st.pct);
+  if (p >= 100) return compact ? "Over the limit" : st.load_kw < 0 ? "Over the limit: solar flowing back" : "Over the limit: too much demand";
+  if (p >= 85) return "Close to the limit";
+  return "Within the limit";
+}
+
 function tfStatus(st: StreetModel) {
   if (st.load_kw == null || st.pct == null) return "No reading yet";
   const p = Math.abs(st.pct);
   const back = st.load_kw < 0;
   const flow = back ? `Pushing ${kw(-st.load_kw)} kW back up the line` : `Carrying ${kw(st.load_kw)} kW to the houses`;
   const lim = back ? st.reverse : st.rating;
-  return `${flow}: ${p} % of its ${lim} kW limit${p >= 100 ? ", overloaded" : p >= 85 ? ", close to it" : ""}`;
+  return `${flow}: ${p} % of its ${lim} kW limit${p >= 100 ? ", over the limit" : p >= 85 ? ", close to it" : ""}`;
 }
 
 function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder: string; box: { w: number; h: number } }) {
@@ -50,15 +73,16 @@ function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder
   let title = "",
     sub = "",
     tech = "",
-    lines: string[] = [],
-    tag: { text: string; color: string } | null = null;
+    state = "",
+    alert = false,
+    lines: string[] = [];
   if (hover.kind === "house" && hover.house) {
     const h = hover.house;
     title = h.real ? `${h.name}, a real home` : h.name;
     sub = `In the program, stands for ${h.represents} homes`;
     lines = houseLines(h);
-    if (h.underSignal) tag = { text: `Following Gridzilla (${h.mode.toLowerCase()})`, color: COLORS.signal };
-    else if (h.online) tag = { text: "Owner in charge of the battery", color: COLORS.muted };
+    if (h.underSignal) state = `Following Gridzilla (${h.mode.toLowerCase()})`;
+    else if (h.online) state = "Owner in charge of the battery";
   } else if (hover.kind === "normal" && hover.street) {
     title = "Neighbour, not in the program";
     sub = `One of ${hover.street.others} homes on ${nice(hover.street.tf)}`;
@@ -68,6 +92,8 @@ function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder
     title = `${nice(st.tf)} street transformer`;
     sub = `${st.houses.length} program homes, ${st.others} others`;
     tech = `${st.tf}, rated ${st.rating} kW`;
+    state = tfShort(st);
+    alert = isOver(st);
     lines = [tfStatus(st), "Click to show its curve"];
   } else if (hover.kind === "substation") {
     const a = s.aggregates[feeder];
@@ -81,104 +107,115 @@ function Tooltip({ hover, s, feeder, box }: { hover: HoverInfo; s: State; feeder
     if (!el) return;
     const w = el.offsetWidth,
       h = el.offsetHeight;
-    const left = hover.x + 18 + w > box.w - 8 ? hover.x - w - 18 : hover.x + 18;
-    const top = Math.min(Math.max(8, hover.y - 24), box.h - h - 8);
+    // beside the pointer when there is room, otherwise above or below it, so it never sits on what it describes
+    let left = hover.x + 18,
+      top = Math.min(Math.max(8, hover.y - 24), box.h - h - 8);
+    if (left + w > box.w - 8) left = hover.x - w - 18;
+    if (left < 8) {
+      left = Math.min(Math.max(8, hover.x - w / 2), box.w - w - 8);
+      top = hover.y - h - 18 >= 8 ? hover.y - h - 18 : hover.y + 18;
+    }
     el.style.transform = `translate(${Math.max(8, left)}px, ${Math.max(8, top)}px)`;
   });
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute left-0 top-0 z-30 w-[18rem] max-w-[calc(100%-16px)] rounded-2xl bg-[#0b131f]/95 p-4 shadow-[0_24px_60px_-12px_rgb(0_0_0/0.95),inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.07)] backdrop-blur-md"
+      className="pointer-events-none absolute left-0 top-0 z-30 w-[17rem] max-w-[calc(100%-16px)] rounded-[14px] bg-white p-4 text-ink shadow-[0_8px_32px_rgb(0_0_0/0.12),0_1px_3px_rgb(0_0_0/0.08)]"
     >
-      <div className="text-[1rem] font-semibold leading-snug tracking-[-0.01em]">{title}</div>
-      <div className="mt-0.5 text-[0.78rem] text-dim">{sub}</div>
-      {tag && (
-        <div className="mt-2.5 inline-flex rounded-full px-2.5 py-1 text-[0.74rem] font-semibold" style={{ color: tag.color, background: `${tag.color}1f` }}>
-          {tag.text}
-        </div>
-      )}
-      <ul className="mt-2.5 space-y-1.5 text-[0.86rem] leading-snug text-fg/90">
+      <div className="text-[1.0625rem] font-semibold leading-snug tracking-[-0.022em]">{title}</div>
+      <div className="t-small mt-0.5">{sub}</div>
+      {state && <div className={`mt-2 text-[0.875rem] font-semibold tracking-[-0.016em] ${alert ? "text-red" : "text-ink"}`}>{state}</div>}
+      <ul className="mt-1.5 space-y-1 text-[0.875rem] leading-snug tracking-[-0.016em] text-ink">
         {lines.map((l) => (
           <li key={l}>{l}</li>
         ))}
       </ul>
-      {tech && <div className="tech mt-2.5">{tech}</div>}
+      {tech && <div className="t-caption mt-2">{tech}</div>}
     </div>
   );
 }
 
-/** Flat drawing of the same street for machines without WebGL. */
-function Street2D({ streets, selected, onSelect, compact }: { streets: StreetModel[]; selected: string; onSelect: (tf: string) => void; compact: boolean }) {
+/** The feeder's transformers, left to right as they stand in the street. Clicking one shows its curve. */
+function TfList({ streets, selected, onSelect, compact }: { streets: StreetModel[]; selected: string; onSelect: (tf: string) => void; compact: boolean }) {
+  const others = streets.reduce((a, st) => a + st.others, 0);
   return (
-    <div className={`scroll-thin grid h-full content-start gap-3 overflow-auto px-4 pb-20 ${compact ? "grid-cols-1 pt-24" : "grid-cols-3 pt-28"}`}>
-      {streets.map((st) => {
-        const c = loadColor(st.pct);
-        const on = selected === st.tf;
-        return (
-          <button
-            key={st.tf}
-            onClick={() => onSelect(st.tf)}
-            className="rounded-2xl bg-deck-2 p-4 text-left shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_14px_30px_-16px_rgb(0_0_0/0.9)] transition hover:bg-deck-3 active:scale-[0.99]"
-            style={{ boxShadow: on ? `inset 0 0 0 2px #eef3f9aa, 0 0 30px -10px ${c}` : `inset 0 0 0 1px ${c}44` }}
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[0.95rem] font-semibold">{nice(st.tf)}</span>
-              <span className="num text-[1.5rem] font-semibold leading-none" style={{ color: c }}>
+    <div className={compact ? "shrink-0" : "flex w-[14.5rem] shrink-0 flex-col"}>
+      <div className={compact ? "grid grid-cols-3 gap-1.5" : "flex flex-col gap-1.5"}>
+        {streets.map((st) => {
+          const on = st.tf === selected;
+          const over = isOver(st);
+          return (
+            <button
+              key={st.tf}
+              type="button"
+              onClick={() => onSelect(st.tf)}
+              aria-pressed={on}
+              aria-label={`${nice(st.tf)} transformer, ${st.pct == null ? "no reading" : `${Math.abs(st.pct)} percent of its limit`}, ${tfShort(st)}. Show its curve.`}
+              className={`grid rounded-[14px] text-left transition-[background-color,transform] duration-[250ms] ease-[cubic-bezier(0,0,0.5,1)] focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_#fff,0_0_0_5px_#1d1d1f] active:scale-[0.98] ${
+                compact ? "px-2.5 py-2" : "grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 px-3.5 py-1.5"
+              } ${on ? "bg-ink text-white" : "bg-ground text-ink hover:bg-fill active:bg-fill-press"}`}
+            >
+              <span className={`block min-w-0 font-semibold ${compact ? "text-[0.8125rem] leading-tight tracking-[-0.01em]" : "text-[1.0625rem] leading-tight tracking-[-0.022em]"}`}>
+                {nice(st.tf)}
+              </span>
+              <span
+                className={`block font-semibold leading-none tracking-[-0.015em] ${compact ? "mt-1 text-[1.5rem]" : "text-[1.75rem]"} ${over ? "text-red" : ""}`}
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
                 {st.pct == null ? "-" : `${Math.abs(st.pct)} %`}
               </span>
-            </div>
-            <div className="mt-1 text-[0.74rem] text-dim">{tfStatus(st)}</div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {st.houses.map(({ house: h }) => (
-                <span
-                  key={h.key}
-                  title={houseLines(h).join("\n")}
-                  className="num rounded-lg px-2 py-1 text-[0.76rem] font-medium"
-                  style={{
-                    background: h.underSignal ? `${COLORS.signal}2a` : "#1a2433",
-                    boxShadow: h.underSignal ? `inset 0 0 0 1px ${COLORS.signal}66` : undefined,
-                    color: !h.online ? COLORS.muted : h.grid_kw > FLOW_EPS ? COLORS.take : h.grid_kw < -FLOW_EPS ? COLORS.give : "#eef3f9",
-                  }}
-                >
-                  {h.online ? `${h.grid_kw > 0 ? "+" : ""}${h.grid_kw.toFixed(1)} kW` : "offline"}
-                </span>
-              ))}
-            </div>
-            <div className="tech mt-2.5">+ {st.others} homes not in the program</div>
-          </button>
-        );
-      })}
+              <Status st={st} on={on} compact={compact} />
+            </button>
+          );
+        })}
+      </div>
+      {!compact && (
+        <div className="t-caption mt-auto px-1 pt-2">
+          {others > 0 && <p>Plus {others.toLocaleString("en-US")} homes not in the program.</p>}
+        </div>
+      )}
     </div>
   );
 }
 
-function Swatch({ color, ring }: { color: string; ring?: boolean }) {
+function Status({ st, on, compact }: { st: StreetModel; on: boolean; compact: boolean }) {
+  const over = isOver(st);
   return (
     <span
-      aria-hidden
-      className="inline-block h-[0.6rem] w-[0.6rem] shrink-0 rounded-full"
-      style={ring ? { boxShadow: `inset 0 0 0 2px ${color}, 0 0 10px ${color}aa` } : { background: color, boxShadow: `0 0 10px 1px ${color}cc` }}
-    />
+      className={`mt-0.5 block leading-snug ${compact ? "text-[0.75rem] tracking-[-0.01em]" : "col-span-2 text-[0.875rem] tracking-[-0.016em]"} ${
+        over ? "font-semibold text-red" : on ? "text-white/70" : "text-secondary"
+      }`}
+    >
+      {tfShort(st, compact)}
+    </span>
   );
 }
 
-function Legend({ compact }: { compact: boolean }) {
-  const items = [
-    { color: COLORS.take, text: compact ? "Taking power" : "Taking power from the street" },
-    { color: COLORS.give, text: compact ? "Giving back" : "Giving power back" },
-    { color: COLORS.signal, text: "Following Gridzilla", ring: true },
-  ];
+/** Flat drawing of the same street for machines without WebGL: one column per transformer, its homes under it. */
+function Street2D({ streets }: { streets: StreetModel[] }) {
   return (
-    <div
-      className={`pointer-events-none absolute bottom-3 left-3 z-20 flex flex-wrap items-center rounded-2xl bg-[#070c14]/75 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),inset_0_0_0_1px_rgb(255_255_255/0.05)] backdrop-blur-md ${
-        compact ? "max-w-[calc(100%-24px)] gap-x-3 gap-y-1 px-3 py-2 text-[0.72rem]" : "gap-x-5 gap-y-1 px-4 py-2.5 text-[0.8rem]"
-      }`}
-    >
-      {items.map((i) => (
-        <span key={i.text} className="flex items-center gap-2 whitespace-nowrap font-medium text-fg/90">
-          <Swatch color={i.color} ring={i.ring} />
-          {i.text}
-        </span>
+    <div className="grid h-full grid-cols-3 content-start gap-2">
+      {streets.map((st) => (
+        <div key={st.tf} className="flex min-w-0 flex-col gap-1">
+          <div className={`rounded-[10px] px-2.5 py-1.5 text-[0.875rem] font-semibold leading-tight ${isOver(st) ? "bg-red text-white" : "bg-fill text-ink"}`}>{nice(st.tf)}</div>
+          {st.houses.map(({ house: h }) => {
+            const g = h.grid_kw;
+            return (
+              <div
+                key={h.key}
+                title={houseLines(h).join("\n")}
+                className={`flex flex-wrap items-baseline justify-between gap-x-2 rounded-[10px] px-2.5 py-1 text-[0.75rem] leading-tight ${
+                  h.underSignal ? "bg-ink text-white" : "bg-white text-ink shadow-[0_1px_4px_rgb(0_0_0/0.1)]"
+                }`}
+              >
+                <span className="font-semibold">{h.name}</span>
+                <span className={h.underSignal ? "text-white/70" : "text-secondary"} style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {!h.online ? "Offline" : Math.abs(g) < FLOW_EPS ? "Balanced" : g > 0 ? `Taking ${kw(g)} kW` : `Giving ${kw(-g)} kW`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       ))}
     </div>
   );
@@ -187,8 +224,8 @@ function Legend({ compact }: { compact: boolean }) {
 export default function StreetPanel({ s, feeder, selected, onSelect, compact }: { s: State; feeder: string; selected: string; onSelect: (tf: string) => void; compact: boolean }) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const gl = useMemo(hasWebGL, []);
-  const reduce = !!useReducedMotion();
-  const streets = useMemo(() => buildStreets(s, feeder, compact ? 2 : 4), [s, feeder, compact]);
+  const still = useReducedMotion();
+  const streets = useMemo(() => buildStreets(s, feeder, compact ? 0 : 6), [s, feeder, compact]);
   const wrap = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   useLayoutEffect(() => {
@@ -202,52 +239,46 @@ export default function StreetPanel({ s, feeder, selected, onSelect, compact }: 
   const homes = streets.flatMap((st) => st.houses.map((h) => h.house));
   const following = homes.filter((h) => h.underSignal).length;
   const online = homes.filter((h) => h.online).length;
+  const n = streets.length;
+  const subtitle = `${nice(feeder)} line: ${n} street transformer${n === 1 ? "" : "s"}, ${
+    following ? `${following} of ${homes.length} homes following Gridzilla` : online ? `${homes.length} homes in the program, owners in charge` : `${homes.length} homes in the program, none online yet`
+  }`;
   // keep a hovered house's tooltip live as new readings arrive
   const liveHover = hover?.house ? { ...hover, house: homes.find((h) => h.key === hover.house!.key) ?? hover.house } : hover?.street ? { ...hover, street: streets.find((st) => st.tf === hover.street!.tf) ?? hover.street } : hover;
 
   return (
-    <div ref={wrap} className="relative flex h-full min-h-0 w-full flex-1 overflow-hidden rounded-[inherit] bg-[#070b12]">
+    <div className={`flex h-full min-h-0 w-full flex-col ${compact ? "gap-2 p-4" : "gap-3 p-5"}`}>
+      {/* title and plain subtitle on one line, so the model gets the height */}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <h2 className="t-title text-ink">Your street, live</h2>
+        <span className="t-small">{subtitle}</span>
+      </div>
       {streets.length === 0 ? (
         <Empty>No street transformers on this feeder yet.</Empty>
-      ) : gl ? (
-        <Suspense fallback={<div className="absolute inset-0 animate-pulse bg-deck-2/40" />}>
-          <motion.div className="absolute inset-0" initial={reduce ? false : { opacity: 0, scale: 1.02 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
-            <Street3D streets={streets} selected={selected} onSelect={onSelect} onHover={setHover} compact={compact} still={reduce} />
-          </motion.div>
-        </Suspense>
       ) : (
-        <Street2D streets={streets} selected={selected} onSelect={onSelect} compact={compact} />
-      )}
-
-      {/* soft vignette so the overlays sit on calm ground */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-[15] bg-[radial-gradient(120%_90%_at_50%_45%,transparent_55%,rgb(5_8_13/0.75))]" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[15] h-28 bg-gradient-to-b from-[#070b12]/90 to-transparent" />
-
-      <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 ${compact ? "p-3.5" : "p-5"}`}>
-        <div className="min-w-0">
-          <h2 className={`font-semibold leading-tight tracking-[-0.02em] text-fg ${compact ? "text-[1.15rem]" : "text-[1.45rem]"}`}>Your street, live</h2>
-          <div className={`mt-0.5 font-medium text-dim ${compact ? "text-[0.78rem]" : "text-[0.9rem]"}`}>
-            {nice(feeder)} line, {streets.length} street transformer{streets.length === 1 ? "" : "s"}
+        <div className={`flex min-h-0 flex-1 ${compact ? "flex-col gap-2" : "gap-5"}`}>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div ref={wrap} className="relative min-h-0 flex-1">
+              {gl ? (
+                <Suspense fallback={null}>
+                  <div className="absolute inset-0">
+                    <Street3D streets={streets} selected={selected} onSelect={onSelect} onHover={setHover} compact={compact} still={still} />
+                  </div>
+                </Suspense>
+              ) : (
+                <Street2D streets={streets} />
+              )}
+              {liveHover && <Tooltip hover={liveHover} s={s} feeder={feeder} box={box} />}
+            </div>
+            <p className="t-caption mt-1">
+              {gl
+                ? `Dots run into a home taking power, out of one giving it back. Dark base: following Gridzilla.${compact ? "" : " Dark bar: battery."}`
+                : "Dark: following Gridzilla right now. Red: over the limit."}
+            </p>
           </div>
+          <TfList streets={streets} selected={selected} onSelect={onSelect} compact={compact} />
         </div>
-        {homes.length > 0 && (
-          <div className={`shrink-0 rounded-2xl bg-[#06131a]/80 text-right shadow-[inset_0_0_0_1px_rgb(51_225_201/0.28)] backdrop-blur-md ${compact ? "px-3 py-1.5" : "px-4 py-2"}`}>
-            <div className={`num font-semibold leading-none text-signal ${compact ? "text-[1.1rem]" : "text-[1.45rem]"}`}>
-              {following}
-              <span className="text-[0.6em] font-medium text-dim"> of {homes.length}</span>
-            </div>
-            <div className={`mt-1 font-medium text-fg/80 ${compact ? "text-[0.66rem]" : "text-[0.74rem]"}`}>
-              {following ? "homes following Gridzilla" : online ? "homes, owners in charge" : "homes, none online yet"}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {streets.length > 0 && <Legend compact={compact} />}
-      {gl && !compact && streets.length > 0 && (
-        <div className="pointer-events-none absolute bottom-4 right-5 z-20 text-[0.74rem] font-medium text-faint">Drag to look around. Click a transformer for its curve.</div>
       )}
-      {liveHover && <Tooltip hover={liveHover} s={s} feeder={feeder} box={box} />}
     </div>
   );
 }

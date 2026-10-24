@@ -1,8 +1,7 @@
 // Small helpers shared by the board chrome (header, headline numbers, drawer).
-import { Sun } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import type { State } from "../../api";
-import { loadColor, loadPct, tfsOf } from "../../model";
+import { loadPct, tfsOf } from "../../model";
 
 /** Worst transformer load on a feeder, signed (negative = power flowing back), in % of the limit in that direction. */
 export function feederWorst(s: State, feeder: string) {
@@ -16,16 +15,15 @@ export function feederWorst(s: State, feeder: string) {
 
 export const tfLoad = (s: State, tf: string) => loadPct(s, tf, s.aggregates[tf]?.total_kw);
 
-/** Load in % as a tinted pill: green / amber / red against the limit, a sun when the power flows back. */
+export const isOver = (pct: number | null | undefined) => pct != null && Math.abs(pct) >= 100;
+
+/** Load in % as plain text: ink, Apple red at or above the limit (either direction). Not a chip. */
 export function LoadPill({ pct, size = "md" }: { pct: number | null; size?: "sm" | "md" }) {
-  const c = loadColor(pct);
   return (
     <span
-      className={`num inline-flex shrink-0 items-center gap-1 rounded-full font-semibold ${size === "sm" ? "px-2 py-0.5 text-[0.74rem]" : "px-2.5 py-1 text-[0.82rem]"}`}
-      style={{ color: c, background: `${c}1f`, boxShadow: `inset 0 0 0 1px ${c}33` }}
+      className={`num shrink-0 whitespace-nowrap font-semibold ${size === "sm" ? "text-[0.875rem]" : "text-[1.0625rem]"} ${isOver(pct) ? "text-red" : "text-ink"}`}
       title={pct == null ? "no reading yet" : pct < 0 ? "power flowing back up from the houses" : "power flowing down to the houses"}
     >
-      {pct != null && pct < 0 && <Sun weight="fill" size={size === "sm" ? 10 : 12} aria-hidden />}
       {pct == null ? "-" : `${Math.abs(pct)} %`}
     </span>
   );

@@ -1,7 +1,7 @@
 // Where everything stands in the street scene. Shared by the 3D scene and the 2D fallback so both tell the same story.
-// One street per transformer of the feeder. The transformer kiosk stands at the head of its street, houses line both
-// sides behind it (one house per meter, from `housesOf`), the feeder's overhead line runs across the front from the
-// substation on the left.
+// One street per transformer of the feeder, left to right in the same order as the transformer list beside the scene.
+// The transformer kiosk stands at the head of its street, houses line both sides behind it (one house per meter, from
+// `housesOf`), the feeder's overhead line runs from the substation on the left from kiosk to kiosk.
 import type { State } from "../../api";
 import { housesOf, loadPct, tfsOf, type House } from "../../model";
 
@@ -20,18 +20,19 @@ export interface StreetModel {
   reverse: number;
   others: number; // houses on this transformer not in the program
   houses: { house: House; spot: Spot }[];
-  normals: Spot[]; // a few normal houses stand in for `others`
+  normals: Spot[]; // a few neighbours stand in for `others`
   length: number; // road length behind the transformer
 }
 
-export const STREET_GAP = 17;
+export const STREET_GAP = 12;
 export const LOT = 5.2; // distance between houses along the road
-export const HOUSE_OFFSET = 4.6; // house centre from road centre
+export const HOUSE_OFFSET = 4.0; // house centre from road centre
 export const TF_Z = 1.6; // transformer kiosk
-export const FEEDER_Z = 6.2; // overhead feeder line
-export const FEEDER_Y = 4.2;
+export const FEEDER_Z = TF_Z; // the feeder's overhead line runs kiosk to kiosk along the front
+export const FEEDER_Y = 2.95; // wire height: the kiosk roof
 
-export function buildStreets(s: State, feeder: string, normalsPerStreet: number): StreetModel[] {
+/** `slots` = how many house spots each street shows; neighbours outside the program fill the spots left over. */
+export function buildStreets(s: State, feeder: string, slots: number): StreetModel[] {
   const tfs = tfsOf(s, feeder);
   return tfs.map((tf, i) => {
     const x = (i - (tfs.length - 1) / 2) * STREET_GAP;
@@ -44,7 +45,7 @@ export function buildStreets(s: State, feeder: string, normalsPerStreet: number)
         return { x: x + side * HOUSE_OFFSET, z: -2.4 - Math.floor(j / 2) * LOT, side };
       });
     const prog = spots(houses.length, 0);
-    const normals = spots(normalsPerStreet, houses.length + (houses.length % 2));
+    const normals = spots(Math.max(0, slots - houses.length), houses.length);
     const all = [...prog, ...normals];
     const agg = s.aggregates[tf];
     const node = s.tree[tf];

@@ -1,7 +1,7 @@
-// Details drawer: a right-side sheet over a dimmed board. Tabs: the houses on the selected feeder, the event log,
-// and the fail-safe demo. Esc or the scrim closes it; Tab stays inside while it is open.
+// Details drawer: a white sheet from the right over a lightly dimmed board. Tabs: the houses on the selected feeder,
+// the event log, and the fail-safe demo. Esc or the scrim closes it; Tab stays inside while it is open.
+// Motion: one straight 0.25 s ease-out slide (CSS @starting-style in, a class out), no spring, no blur.
 import { X } from "@phosphor-icons/react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { State } from "../api";
 import { housesOf, nice, tfsOf } from "../model";
@@ -13,12 +13,12 @@ import { LoadPill, feederWorst } from "./chrome/shared";
 
 type Tab = "houses" | "log" | "failsafe";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+const SLIDE_MS = 250;
+const ease = "duration-[250ms] ease-[cubic-bezier(0,0,0.5,1)]";
 
-function Sheet({ s, feeder, onClose }: { s: State; feeder: string; onClose: () => void }) {
+function Sheet({ s, feeder, closing, onClose }: { s: State; feeder: string; closing: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("houses");
   const ref = useRef<HTMLDivElement>(null);
-  const closeBtn = useRef<HTMLButtonElement>(null);
-  const reduce = useReducedMotion();
   // App hands a fresh onClose every render; keep the latest in a ref so the focus effect runs only once per open.
   const close = useRef(onClose);
   close.current = onClose;
@@ -64,45 +64,33 @@ function Sheet({ s, feeder, onClose }: { s: State; feeder: string; onClose: () =
 
   return (
     <>
-      <motion.div
-        className="fixed inset-0 z-40 bg-[rgb(2_4_8/0.62)] backdrop-blur-[3px]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: reduce ? 0 : 0.25 }}
+      <div
+        className={`fixed inset-0 z-40 bg-black/25 transition-opacity ${ease} starting:opacity-0 ${closing ? "pointer-events-none opacity-0" : "opacity-100"}`}
         onClick={onClose}
         aria-hidden
       />
-      <motion.div
+      <div
         ref={ref}
         role="dialog"
         tabIndex={-1}
         aria-modal="true"
         aria-labelledby="drawer-title"
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col outline-none bg-deck shadow-[inset_1px_0_0_rgb(255_255_255/0.07),-40px_0_120px_-30px_rgb(0_0_0/0.9)] sm:inset-y-3 sm:right-3 sm:w-[min(46rem,calc(100vw-1.5rem))] sm:rounded-[1.4rem] sm:shadow-[inset_0_1px_0_rgb(255_255_255/0.08),inset_0_0_0_1px_rgb(255_255_255/0.06),-40px_0_120px_-30px_rgb(0_0_0/0.9)]"
-        style={{ backgroundImage: "radial-gradient(90% 40% at 100% 0%, rgb(51 225 201 / 0.06), transparent 60%)" }}
-        initial={reduce ? { opacity: 0 } : { x: "104%" }}
-        animate={reduce ? { opacity: 1 } : { x: 0 }}
-        exit={reduce ? { opacity: 0 } : { x: "104%" }}
-        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 36 }}
+        className={`fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-card shadow-[0_24px_80px_rgb(0_0_0/0.18)] outline-none transition-transform ${ease} starting:translate-x-[105%] sm:inset-y-3 sm:right-3 sm:w-[min(48rem,calc(100vw-1.5rem))] sm:rounded-[18px] ${closing ? "translate-x-[105%]" : "translate-x-0"}`}
       >
-        <div className="flex items-start gap-4 px-5 pb-4 pt-5 sm:px-6">
+        <div className="flex items-start gap-4 px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
           <div className="min-w-0 flex-1">
-            <h2 id="drawer-title" className="text-[1.35rem] font-semibold leading-tight tracking-[-0.02em]">
+            <h2 id="drawer-title" className="t-headline text-ink">
               Details
             </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.86rem] text-dim">
-              <span>
-                {nice(feeder)} feeder, {tfs.length} transformers, {houses} houses
-              </span>
-              <LoadPill pct={feederWorst(s, feeder)} size="sm" />
+            <div className="t-small mt-1">
+              {nice(feeder)} feeder, {tfs.length} transformers, {houses} houses. Busiest at <LoadPill pct={feederWorst(s, feeder)} size="sm" />
             </div>
           </div>
-          <button ref={closeBtn} type="button" onClick={onClose} className="btn !px-2.5" aria-label="Close details">
-            <X size={17} weight="bold" aria-hidden />
+          <button type="button" onClick={onClose} className="btn btn-white size-10 shrink-0 !rounded-full !p-0" aria-label="Close details">
+            <X size={18} weight="bold" aria-hidden />
           </button>
         </div>
-        <div className="scroll-thin overflow-x-auto px-5 pb-3 sm:px-6">
+        <div className="px-5 pb-3 sm:px-7">
           <Segmented
             id="drawer-tab"
             value={tab}
@@ -114,25 +102,25 @@ function Sheet({ s, feeder, onClose }: { s: State; feeder: string; onClose: () =
             ]}
           />
         </div>
-        <div className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-6 pt-2 sm:px-4">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={tab}
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="px-2"
-            >
-              {tab === "houses" ? <HousesTab s={s} feeder={feeder} /> : tab === "log" ? <LogTab s={s} /> : <FailsafeTab s={s} />}
-            </motion.div>
-          </AnimatePresence>
+        <div className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-6 pt-2 sm:px-5">
+          <div className="px-2">{tab === "houses" ? <HousesTab s={s} feeder={feeder} /> : tab === "log" ? <LogTab s={s} /> : <FailsafeTab s={s} />}</div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }
 
 export default function Drawer({ s, feeder, open, onClose }: { s: State; feeder: string; open: boolean; onClose: () => void }) {
-  return <AnimatePresence>{open && <Sheet key="drawer" s={s} feeder={feeder} onClose={onClose} />}</AnimatePresence>;
+  // Stay mounted for one slide after closing so the sheet can leave the way it came.
+  const [mounted, setMounted] = useState(open);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      return;
+    }
+    const t = window.setTimeout(() => setMounted(false), SLIDE_MS);
+    return () => window.clearTimeout(t);
+  }, [open]);
+  if (!open && !mounted) return null;
+  return <Sheet s={s} feeder={feeder} closing={!open} onClose={onClose} />;
 }

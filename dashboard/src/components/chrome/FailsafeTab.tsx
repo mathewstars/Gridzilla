@@ -1,36 +1,30 @@
 // Drawer tab: the two fail-safe demos from the operator page. Pause the heartbeat (houses drop back to safe owner
 // mode) and replay an old signal (houses must refuse it as stale). Results and errors show inline.
-import { ArrowCounterClockwise, Check, Pause, Play, WarningCircle } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { post, type State } from "../../api";
 import { MODE_WORDS, nice } from "../../model";
+import { Badge } from "../ui";
 import { errText } from "./shared";
 
 type Result = { ok: boolean; text: string } | null;
 
-function Card({ title, plain, tech, status, children, result }: { title: string; plain: string; tech: string; status: ReactNode; children: ReactNode; result: Result }) {
+/** One demo as a grey tile on the white sheet: what it proves, where it stands, the button, the outcome. */
+function Card({ title, plain, tech, badge, status, children, result }: { title: string; plain: string; tech: string; badge?: ReactNode; status: ReactNode; children: ReactNode; result: Result }) {
   return (
-    <section className="relative overflow-hidden rounded-[1rem] bg-deck-2 p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.07),inset_0_0_0_1px_rgb(255_255_255/0.05),0_18px_40px_-24px_rgb(0_0_0/0.9)]">
-      <h3 className="text-[1.08rem] font-semibold tracking-[-0.01em]">{title}</h3>
-      <p className="mt-1.5 max-w-[60ch] text-[0.9rem] leading-relaxed text-dim">{plain}</p>
-      <div className="mt-4 rounded-[0.8rem] bg-black/25 px-3.5 py-3 text-[0.88rem] shadow-[inset_0_1px_2px_rgb(0_0_0/0.5)]">{status}</div>
+    <section className="rounded-[18px] bg-ground p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="t-title text-ink">{title}</h3>
+        {badge}
+      </div>
+      <p className="t-body mt-1.5 max-w-[60ch] text-secondary">{plain}</p>
+      <div className="t-body mt-4 text-ink">{status}</div>
       <div className="mt-4 flex flex-wrap items-center gap-3">{children}</div>
-      <AnimatePresence>
-        {result && (
-          <motion.div
-            role="status"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`mt-3 flex items-start gap-2 text-[0.85rem] ${result.ok ? "text-signal" : "text-fg"}`}
-          >
-            {result.ok ? <Check size={15} weight="bold" className="mt-0.5 shrink-0" aria-hidden /> : <WarningCircle size={15} weight="bold" className="mt-0.5 shrink-0" aria-hidden />}
-            <span>{result.text}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="tech mt-4">{tech}</div>
+      {result && (
+        <p role="status" className={`t-body mt-3 ${result.ok ? "text-ink" : "text-red"}`}>
+          {result.text}
+        </p>
+      )}
+      <p className="t-caption mt-4">{tech}</p>
     </section>
   );
 }
@@ -63,60 +57,58 @@ export default function FailsafeTab({ s }: { s: State }) {
     <div className="flex flex-col gap-4">
       <Card
         title="Simulate platform outage"
-        plain="Houses fall back to safe mode when the heartbeat stops. Nothing has to reach them for this to work."
-        tech="heartbeat on gridzilla/hb every 30 s. ABSORB and SUPPORT revert to owner mode after 120 s without a valid one (reason heartbeat_lost)."
+        plain="Stop the heartbeat and the houses fall back to safe mode on their own. Nothing has to reach them for this to work."
+        tech="Heartbeat on gridzilla/hb every 30 s. ABSORB and SUPPORT revert to owner mode after 120 s without a valid one (reason heartbeat_lost)."
         result={hbRes}
+        badge={paused ? <Badge alert>Heartbeat paused</Badge> : undefined}
         status={
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="flex items-center gap-2 font-medium">
-              <span className={`size-2 rounded-full ${paused ? "bg-fg" : "bg-signal shadow-[0_0_10px_rgb(51_225_201/0.8)]"}`} aria-hidden />
-              {paused ? "Heartbeat paused" : "Heartbeat running"}
+          <>
+            <span className="font-semibold">{paused ? "Heartbeat paused." : "Heartbeat running."}</span>{" "}
+            <span className="text-secondary">
+              {lost > 0 ? `${lost.toLocaleString("en-US")} houses are back in safe owner mode.` : paused ? "Houses drop back after about 2 minutes." : "Houses under a signal stay on it."}
             </span>
-            <span className="text-dim">
-              {lost > 0 ? `${lost.toLocaleString("en-US")} houses back in safe owner mode` : paused ? "Houses drop back after about 2 minutes" : "Houses under a signal stay on it"}
-            </span>
-          </div>
+          </>
         }
       >
         {paused ? (
           <button type="button" className="btn btn-primary" disabled={busy != null} onClick={() => run("hb", "heartbeat/resume", setHbRes, "Heartbeat resumed. Houses accept signals again.")}>
-            <Play size={15} weight="fill" aria-hidden /> Resume heartbeat
+            Resume heartbeat
           </button>
         ) : (
           <button type="button" className="btn btn-danger" disabled={busy != null} onClick={() => run("hb", "heartbeat/pause", setHbRes, "Heartbeat paused. Watch the houses fall back within about 2 minutes.")}>
-            <Pause size={15} weight="fill" aria-hidden /> Pause heartbeat
+            Pause heartbeat
           </button>
         )}
       </Card>
 
       <Card
         title="Replay an old signal"
-        plain="Houses must refuse it (stale_seq). A captured message can never be sent again to take control."
-        tech="re-publishes the newest active signal unchanged. Agents accept only a seq higher than the last one they saw."
+        plain="Send the newest signal again, unchanged. Houses must refuse it, so a captured message can never be used to take control."
+        tech="Re-publishes the newest active signal as is. Agents accept only a seq higher than the last one they saw (reason stale_seq)."
         result={rpRes}
         status={
           newest ? (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span className="font-medium">
-                Newest signal <span className="num text-signal">#{newest.seq}</span>
+            <>
+              <span className="font-semibold">
+                Newest signal <span className="num">#{newest.seq}</span>:
+              </span>{" "}
+              <span className="text-secondary">
+                {MODE_WORDS[newest.mode]?.title ?? newest.mode} on {nice(newest.segment)}.
               </span>
-              <span className="text-dim">
-                {MODE_WORDS[newest.mode]?.title ?? newest.mode} on {nice(newest.segment)}
-              </span>
-              {stale > 0 && <span className="text-fg">{stale.toLocaleString("en-US")} houses refused a replay</span>}
-            </div>
+              {stale > 0 && <span className="text-ink"> {stale.toLocaleString("en-US")} houses refused a replay.</span>}
+            </>
           ) : (
-            <span className="text-dim">No signal is active right now. When the autopilot sends one, it can be replayed here.</span>
+            <span className="text-secondary">No signal is active right now. When the autopilot sends one, it can be replayed here.</span>
           )
         }
       >
         <button
           type="button"
-          className="btn"
+          className="btn btn-primary"
           disabled={!newest || busy != null}
           onClick={() => newest && run("rp", `replay/${newest.seq}`, setRpRes, `Signal #${newest.seq} sent again. The houses should refuse it as an old signal.`)}
         >
-          <ArrowCounterClockwise size={15} weight="bold" aria-hidden /> {newest ? `Replay signal #${newest.seq}` : "Replay signal"}
+          {newest ? `Replay signal #${newest.seq}` : "Replay signal"}
         </button>
       </Card>
     </div>

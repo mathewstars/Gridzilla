@@ -1,14 +1,20 @@
 // Plain-English helpers for the AI brain strip: turn the autopilot's technical sentences into lines a judge reads at a glance.
-import type { Decision, Envelope } from "../../api";
+import type { Decision, Envelope, WeatherFeed } from "../../api";
 import { MODE_WORDS, hhmm, nice } from "../../model";
 
-/** Replace raw node ids ("tf:kagran-16") with their names and decimal hours ("19.0h") with clock time. */
-export function cleanText(t: string | null | undefined) {
+/** Replace raw node ids ("tf:kagran-16", or the bare "kagran-16" when `ids` lists the grid's nodes) with their names
+ *  and decimal hours ("19.0h") with clock time. */
+export function cleanText(t: string | null | undefined, ids: string[] = []) {
   if (!t) return "";
-  return t
-    .replace(/\b(?:tf|feeder|substation|street|node):[\w-]+/g, (id) => nice(id))
+  let out = t.replace(/\b(?:tf|feeder|sub|substation|street|node):[\w-]+/g, (id) => nice(id));
+  ids.forEach((id) => {
+    const slug = id.split(":")[1];
+    if (slug && /-\d+$/.test(slug)) out = out.replace(new RegExp(`\\b${slug}\\b`, "g"), nice(id));
+  });
+  return out
     .replace(/\b(\d{1,2}\.\d{1,2})\s?h\b/g, (_, h) => hhmm(+h))
     .replace(/\s+\|\s+guard ok$/i, "")
+    .replace(/(\d) (%|kWh|kW|h|min|s|°C)(?=[\s.,;:)]|$)/g, "$1\u00a0$2") // keep "118 %" on one line
     .trim();
 }
 
@@ -22,6 +28,37 @@ export function worstOf(trigger: string | null | undefined) {
   if (!hot.length) return null;
   const w = hot.reduce((a, b) => (Math.abs(+b[3]) > Math.abs(+a[3]) ? b : a));
   return { tf: w[1], pct: +w[3], at: hhmm(+w[4]), others: hot.length - 1 };
+}
+
+/** Split a paragraph into sentences, so long reasoning is shortened at a full stop and never cut mid-word. */
+export const sentences = (t: string) =>
+  t
+    .split(/(?<=[.!?])\s+(?=[A-Z"])/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+/** What the AI sees of the weather, in one short line. Null when the feed is offline. */
+export function weatherLine(w: WeatherFeed) {
+  const now = w.available ? w.data?.now : null;
+  if (!now) return null;
+  const sun = now.sun_wm2 ?? null;
+  const sky =
+    sun != null
+      ? sun >= 600
+        ? "strong sun"
+        : sun >= 200
+          ? "some sun"
+          : sun > 20
+            ? "cloudy"
+            : "dark"
+      : now.cloud_pct != null
+        ? now.cloud_pct >= 70
+          ? "cloudy"
+          : "clear sky"
+        : null;
+  const wind = (now.wind_kmh ?? 0) >= 40 ? `wind ${Math.round(now.wind_kmh!)} km/h` : null;
+  const parts = [`${Math.round(now.temp_c)} °C`, sky, wind].filter(Boolean).join(", ");
+  return `${w.sample ? "Sample weather" : "Weather"}: ${parts}`;
 }
 
 export const modeTitle = (m: string | null | undefined) => (m ? MODE_WORDS[m]?.title ?? nice(m.toLowerCase()) : "");
