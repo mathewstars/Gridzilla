@@ -58,6 +58,12 @@ class PlatformTest(unittest.TestCase):
         (self.dir / "state.json").write_text('{"seq": 4')            # torn write from an old crash
         self.assertEqual(load(self.dir, "gz_test_restart").state["seq"], seq)
 
+    def test_deleting_state_json_resets_even_with_a_backup(self):
+        self.gz.send_signal(TF, "SUPPORT", {"import_max_kw": 3}, 5)
+        (self.dir / "state.json").unlink()                              # the README reset step
+        self.assertTrue((self.dir / "state.json.bak").exists())
+        self.assertEqual(load(self.dir, "gz_test_reset").state["seq"], 0)
+
     def test_stagger_cohorts_count_as_the_autopilots_own(self):
         gz = self.gz
         doc = gz.send_proposal({"segment": TF, "mode": "ABSORB", "fields": {"max_soc_by": 40}, "duration_min": 16 * gz.SIM_X}, "test")
@@ -82,6 +88,10 @@ class PlatformTest(unittest.TestCase):
             self.assertEqual(d["export_max_kw"], min(curve["export_max_kw"][off:]))   # flat fallback = tightest slot it carries
         self.assertEqual([d["export_max_kw"] for d in sigs], [1.0, 3.5, 4.4, 5.0])
         self.assertEqual(gz.cohort_curve(curve, 30)["export_max_kw"], [5.0])         # never an empty curve
+        self.assertEqual(gz.state["active"][TF]["seq"], sigs[-1]["seq"])
+        self.assertEqual(gz.state["active"][TF]["envelope"], curve)                  # the board still draws the whole plan
+        self.assertEqual(gz.state["recent"][TF]["envelope"]["start_sim_h"], curve["start_sim_h"])
+        self.assertEqual(sigs[-1]["envelope"]["export_max_kw"], curve["export_max_kw"][12:])
 
     def test_applied_counts_only_acks_of_the_running_event(self):
         gz = self.gz

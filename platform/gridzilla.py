@@ -229,7 +229,7 @@ def sampler_loop():
         time.sleep(5)
 
 STATE_TMP, STATE_BAK = HERE / "state.json.tmp", HERE / "state.json.bak"
-for _f in (STATE_FILE, STATE_BAK):       # a lost seq makes every device refuse every signal as stale_seq: never reset it silently
+for _f in (STATE_FILE, STATE_BAK) if STATE_FILE.exists() else ():       # a lost seq makes every device refuse every signal as stale_seq: never reset it silently
     if not _f.exists():
         continue
     try:
@@ -424,6 +424,12 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
             docs.append(send_signal(segment, mode, fields, int(duration_min - off), note, start_in_min + off, [k, n], cohort_curve(curve, off), stagger=1))
         seqs = tuple(d["seq"] for d in docs)
         COHORT_SEQS.update({q: seqs for q in seqs})
+        if curve is not None:
+            with _lock:
+                if state["active"].get(segment, {}).get("seq") == seqs[-1]:
+                    state["active"][segment] = {**state["active"][segment], "envelope": curve}
+                    state["recent"][segment] = {**state["recent"][segment], "envelope": curve}
+                    persist()
         log("signal", f"{mode} -> {segment} staggered over {n} cohorts, {step:.0f} min apart, all done by the same deadline")
         return docs[0]
     if curve:                 # flat fallback for devices that ignore the curve: the tightest slot this document carries
