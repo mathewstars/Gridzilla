@@ -8,3 +8,7 @@ node_modules/
 agent/keys/
 platform/state.json
 __pycache__/
+
+# raw video generations and the jingle copy, the final trailer lives in docs/
+video/hf_*.mp4
+video/Gridzilla-2.m4a
