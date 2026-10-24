@@ -173,6 +173,13 @@ class Wiring(Base):
         self.assertEqual((h["source"], h["verdict"], h["mode"]), ("ai", "sent", "SUPPORT"))
         self.assertEqual(g.autopilot_public()["brain"], "ai")
 
+    def test_brain_before_first_decision_follows_demo_switch(self):
+        self.assertEqual(g.autopilot_public()["brain"], "ai")
+        g.demo_ai("down")
+        self.assertEqual(g.autopilot_public()["brain"], "rules")
+        g.demo_ai("up")
+        self.assertEqual(g.autopilot_public()["brain"], "ai")
+
     def test_timeout_falls_back_to_rules_and_sends(self):
         self.hot()
         with self.urlopen(side_effect=TimeoutError("timed out")):

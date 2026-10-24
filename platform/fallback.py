@@ -76,7 +76,7 @@ BRAIN = Brain()
 
 def brain(llm_url):
     """Who decided last ("ai" | "rules"); before the first decision, who would decide."""
-    return BRAIN.last or ("ai" if llm_url else "rules")
+    return BRAIN.last or ("ai" if BRAIN.available(llm_url)[0] else "rules")
 
 
 def err_text(e):
