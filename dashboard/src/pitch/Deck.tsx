@@ -7,6 +7,7 @@
 //   Left, PageUp            back: previous step, then the previous slide at its last step
 //   F                       full screen, with Esc kept for the page (hold Esc to leave full screen)
 //   T                       small elapsed timer, bottom right      N  presenter notes      Esc  slide overview
+//   D                       dark or light theme (dark by default; ?theme=dark|light; remembered like the ops console)
 // URL: ?slide=N (1-based) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
 // are written back to the URL as you move, so a reload stays put. window.__pitch exposes the state for QA.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +16,8 @@ import { useJingle } from "./shell/useJingle";
 import Timer from "./shell/Timer";
 import Notes from "./shell/Notes";
 import Overview, { overviewLayout } from "./shell/Overview";
+import { useTheme } from "../ops/theme";
+import Backdrop from "./shell/Backdrop";
 import "./deck.css";
 
 const W = 1920;
@@ -102,6 +105,7 @@ export default function Deck() {
   const t0Ref = useRef<number | null>(null);
   const jingle = useJingle(`${import.meta.env.BASE_URL}pitch/jingle.m4a`, !freeze);
   const size = useWindowSize();
+  const [theme, setTheme] = useTheme();
   const cursorHidden = useIdleCursor(CURSOR_IDLE_MS);
 
   const setPos = useCallback((p: Pos) => {
@@ -163,10 +167,11 @@ export default function Deck() {
       const lower = k.length === 1 ? k.toLowerCase() : k;
 
       // Toggles work everywhere, the overview included.
-      if (lower === "f" || lower === "t" || lower === "n") {
+      if (lower === "f" || lower === "t" || lower === "n" || lower === "d") {
         take();
         if (e.repeat) return;
-        if (lower === "f") toggleFullscreen();
+        if (lower === "d") setTheme((t) => (t === "dark" ? "light" : "dark"));
+        else if (lower === "f") toggleFullscreen();
         else if (lower === "t") setUi({ ...u, timer: !u.timer });
         else setUi({ ...u, notes: !u.notes });
         return;
@@ -202,7 +207,7 @@ export default function Deck() {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [jump, next, prev, setUi]);
+  }, [jump, next, prev, setUi, setTheme]);
 
   // Keep the slide and step in the URL (freeze and anything else untouched), so a reload stays on this slide.
   useEffect(() => {
@@ -254,6 +259,7 @@ export default function Deck() {
 
   return (
     <div className={`p-deck${cursorHidden ? " p-nocursor" : ""}`} data-slide-current={pos.i + 1}>
+      <Backdrop kind={SLIDES[pos.i].bg ?? "none"} theme={theme} freeze={!!freeze} />
       {SLIDES.map((d, i) => {
         const on = i === pos.i;
         if (!on && !d.keepMounted) return null;

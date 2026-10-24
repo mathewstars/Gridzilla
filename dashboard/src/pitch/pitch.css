@@ -1,16 +1,24 @@
-/* Pitch tokens: the stage's Apple-white system (DESIGN.md, APPLE-R2.md, src/stage/palette.ts) at projector scale.
+/* Pitch tokens: the stage's Apple system (DESIGN.md, APPLE-R2.md, src/stage/palette.ts) at projector scale, in two
+   themes. Dark is the default (index.css :root[data-theme="dark"], set by src/ops/theme.ts): near-black slides, #1d1d1f
+   cards with a 1px #2a2a2e hairline, no glows. Light is Apple white. Slides only ever read these variables.
    Every slide is drawn on a 1920x1080 canvas in px; the shell scales the canvas to the window, so these sizes are
    design pixels, not screen pixels. Smallest text on any slide: 30px (about 17px at the captain's 1240x635 window and
    readable from 5 m on a projector). */
 
 :root {
-  --p-white: #ffffff;
-  --p-ground: #f5f5f7;
+  --p-bg: #ffffff; /* the slide */
+  --p-surface: #ffffff; /* a card on the slide */
+  --p-white: var(--p-surface);
+  --p-ground: #f5f5f7; /* a quiet tile, an unlit box */
+  --p-tile: #f5f5f7;
+  --p-tile-edge: 0 0 0 0 transparent;
+  --p-hairline: transparent;
   --p-ink: #1d1d1f;
   --p-secondary: #6e6e73;
   --p-tertiary: #86868b;
   --p-fill: #e8e8ed;
   --p-fill-press: #d2d2d7;
+  --p-wire: rgb(29 29 31 / 0.28);
   --p-green: #34c759; /* inside the limit, stored, done */
   --p-orange: #ff9500; /* peak building */
   --p-red: #ff3b30; /* over the limit, either direction */
@@ -27,6 +35,22 @@
   --p-margin-x: 120px;
   --p-margin-y: 96px;
   --p-gutter: 40px;
+}
+:root[data-theme="dark"] {
+  --p-bg: #0b0b0f;
+  --p-surface: #1d1d1f;
+  --p-ground: #141418;
+  --p-tile: #1d1d1f;
+  --p-tile-edge: 0 0 0 1px #2a2a2e;
+  --p-hairline: #2a2a2e;
+  --p-ink: #f5f5f7;
+  --p-secondary: #a1a1a6;
+  --p-tertiary: #8e8e93;
+  --p-fill: #2a2a2e;
+  --p-fill-press: #3a3a3e;
+  --p-wire: rgb(245 245 247 / 0.3);
+  --p-shadow: 0 0 0 1px #2a2a2e;
+  --p-shadow-lift: 0 0 0 1px #3a3a3e;
 }
 
 /* Type scale in design px. Weight 600 for headlines and numbers, 400 for body, nothing else. No uppercase labels, no
@@ -53,17 +77,18 @@
   width: 1920px;
   height: 1080px;
   overflow: hidden;
-  background: var(--p-white);
+  background: transparent; /* the deck's ground and background family sit behind every slide (deck.css, Backdrop) */
   color: var(--p-ink);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter Variable", "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .p-tile {
-  background: var(--p-ground);
+  background: var(--p-tile);
+  box-shadow: var(--p-tile-edge);
   border-radius: var(--p-r);
 }
 .p-card {
-  background: var(--p-white);
+  background: var(--p-surface);
   border-radius: var(--p-r);
   box-shadow: var(--p-shadow);
 }

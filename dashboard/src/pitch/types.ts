@@ -5,6 +5,9 @@ import type { ComponentType } from "react";
 
 export type JingleState = "idle" | "playing" | "ended";
 
+/** The deck background behind a slide (shell/Backdrop.tsx): the animated hero, its still sibling, or the plain ground. */
+export type BgKind = "hero" | "calm" | "none";
+
 export interface SlideProps {
   /** Build step inside the slide, 0-based. Right/Space moves to step + 1 until `steps - 1`, then to the next slide. */
   step: number;
@@ -29,4 +32,6 @@ export interface SlideDef {
   fullBleed?: boolean;
   /** Stays mounted (hidden off-screen) from the first frame, so it is live the moment it comes on. */
   keepMounted?: boolean;
+  /** Background behind the slide (default "none"). */
+  bg?: BgKind;
 }

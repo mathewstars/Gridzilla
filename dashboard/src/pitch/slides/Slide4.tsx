@@ -1,6 +1,8 @@
 // Slide 4: the monster eats peaks (1:35, 40 s, Peter). One big curve from the live diet plan for Vienna
-// (/api/flatten?node=region:at), snapshotted once at mount: the street without Gridzilla heads past its limit at six,
-// the orange slice above the plan level is eaten, the energy reappears as green in the night, the plan draws flat.
+// (/api/flatten?node=region:at), snapshotted once at mount: the next 24 hours from now, one continuous line (the plan
+// starts at the sim's now, which can be any hour, so a fixed clock window would stitch two days together). Without
+// Gridzilla the evening heads past the limit; the orange slice is the peak Gridzilla eats and stays on screen; green
+// is the car charging the plan moves into the night; the plan draws over it in ink.
 // Line draw-in adapted from 21st.dev "Line graph" by @motiondotdev (id 24687): pathLength draw-in, hover dropped.
 import { useEffect, useId, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
@@ -12,10 +14,9 @@ import "./slide4.css";
 
 const EASE = [0.25, 0.1, 0.3, 1] as const;
 
-// Window on the x axis: clock 15:30 to 08:30 next morning, 17 hours.
-const W_START = 15.5;
-const W_HOURS = 17;
-const TICKS = [16, 18, 20, 22, 0, 2, 4, 6, 8];
+// The illustration's window (only when the plan is not reachable): clock 15:30 to 08:30, 17 hours.
+const IL_START = 15.5;
+const IL_HOURS = 17;
 
 // Chart geometry inside the 1180x620 svg (canvas x 120..1300, y 300..920).
 const X0 = 40;
@@ -27,7 +28,9 @@ const TICK_Y = 596;
 interface Pt { off: number; naive: number; planned: number }
 interface Snap {
   live: boolean;
-  runs: Pt[][]; // continuous runs in window order (a new run where the plan's own 24 h wrap breaks the clock)
+  start: number; // clock hour at the left edge
+  hours: number; // hours across the chart
+  runs: Pt[][]; // continuous runs in time order
   level: number; // plan level, % of the limit
   peakNaive: number;
   peakPlan: number;
@@ -35,32 +38,25 @@ interface Snap {
   carsFull: boolean;
 }
 
-const offOf = (h: number) => (((h - W_START) % 24) + 24) % 24;
+/** Hours from the left edge to the next time the clock shows hour h. */
+const offOf = (start: number, h: number) => (((h - start) % 24) + 24) % 24;
+const hhmm = (h: number) => {
+  const m = Math.round((((h % 24) + 24) % 24) * 4) * 15;
+  return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
 
 function fromPlan(p: FlattenPlan): Snap | null {
   const r = p.rating_kw;
   const n = Math.min(p.hours.length, p.naive_kw.length, p.planned_kw.length);
   if (!r || n < 8) return null;
-  const rows: (Pt & { i: number })[] = [];
-  for (let i = 0; i < n; i++) {
-    const off = offOf(p.hours[i]);
-    if (off <= W_HOURS + 0.01) rows.push({ i, off, naive: (p.naive_kw[i] / r) * 100, planned: (p.planned_kw[i] / r) * 100 });
-  }
-  rows.sort((a, b) => a.off - b.off);
-  const runs: Pt[][] = [];
-  let cur: Pt[] = [];
-  rows.forEach((row, k) => {
-    if (k > 0 && row.i !== rows[k - 1].i + 1) {
-      if (cur.length) runs.push(cur);
-      cur = [];
-    }
-    cur.push({ off: row.off, naive: row.naive, planned: row.planned });
-  });
-  if (cur.length) runs.push(cur);
-  if (!runs.some((run) => run.length > 1)) return null;
+  const step = 24 / 96;
+  const run: Pt[] = [];
+  for (let i = 0; i < n; i++) run.push({ off: i * step, naive: (p.naive_kw[i] / r) * 100, planned: (p.planned_kw[i] / r) * 100 });
   return {
     live: true,
-    runs,
+    start: p.hours[0],
+    hours: (n - 1) * step,
+    runs: [run],
     level: (p.level_kw / r) * 100,
     peakNaive: Math.round(p.peak_naive_pct),
     peakPlan: Math.round(p.peak_plan_pct),
@@ -84,11 +80,11 @@ function lerpAt(keys: [number, number][], h: number) {
 }
 function illustration(): Snap {
   const run: Pt[] = [];
-  for (let k = 0; k <= W_HOURS * 4; k++) {
-    const h = W_START + k / 4;
+  for (let k = 0; k <= IL_HOURS * 4; k++) {
+    const h = IL_START + k / 4;
     run.push({ off: k / 4, naive: lerpAt(IL_NAIVE, h), planned: lerpAt(IL_PLAN, h) });
   }
-  return { live: false, runs: [run], level: 72, peakNaive: 109, peakPlan: 72, houses: null, carsFull: true };
+  return { live: false, start: IL_START, hours: IL_HOURS, runs: [run], level: 72, peakNaive: 109, peakPlan: 72, houses: null, carsFull: true };
 }
 
 // Polygons of the band where a(t) > b(t), with exact crossings, as one svg path.
@@ -160,19 +156,21 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
     const all = snap.runs.flat();
     const hi = Math.max(100, ...all.map((p) => p.naive), ...all.map((p) => p.planned)) + 14;
     const lo = Math.min(0, ...all.map((p) => p.naive), ...all.map((p) => p.planned)) - 2;
-    const x = (off: number) => X0 + (off / W_HOURS) * (X1 - X0);
+    const H = snap.hours;
+    const x = (off: number) => X0 + (off / H) * (X1 - X0);
     const y = (v: number) => Y0 + ((hi - v) / (hi - lo)) * (Y1 - Y0);
     const line = (key: "naive" | "planned") =>
       snap.runs.map((run) => "M" + run.map((p) => `${x(p.off).toFixed(1)},${y(p[key]).toFixed(1)}`).join("L")).join("");
     // The evening peak of the street without Gridzilla.
     const peak = all.reduce((m, p) => (p.naive > m.naive ? p : m), all[0]);
     const peakX = x(peak.off);
+    // The peak Gridzilla eats: where the street without it draws more than the plan.
     const orange = snap.runs
-      .map((run) => band(run.map((p) => x(p.off)), run.map((p) => p.naive), run.map(() => snap.level), y, () => true))
+      .map((run) => band(run.map((p) => x(p.off)), run.map((p) => p.naive), run.map((p) => p.planned + 0.5), y, () => true))
       .join("");
-    // The night valley: where the plan draws more than the street would have (the cars charging later).
+    // The car charging moved into the night: where the plan draws more than the street would have.
     const green = snap.runs
-      .map((run) => band(run.map((p) => x(p.off)), run.map((p) => p.planned), run.map((p) => Math.max(p.naive, 0)), y, (cx) => cx > peakX))
+      .map((run) => band(run.map((p) => x(p.off)), run.map((p) => p.planned), run.map((p) => Math.max(p.naive, 0) + 0.5), y, () => true))
       .join("");
     const valueAt = (off: number, key: "naive" | "planned") => {
       let best = all[0];
@@ -183,28 +181,30 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
       const inside = all.filter((p) => p.off >= a && p.off <= b);
       return inside.length ? Math.max(...inside.map((p) => Math.max(p.naive, p.planned))) : 0;
     };
-    // "With Gridzilla" sits above the plan where it runs highest over the street (the start of the night valley).
-    let withOff = peak.off + 3;
-    let gap = -Infinity;
-    for (const p of all) {
-      if (p.off > peak.off + 1.5 && p.off < W_HOURS - 7 && p.planned - p.naive > gap) {
-        gap = p.planned - p.naive;
-        withOff = p.off;
-      }
-    }
-    const withSpan = 230 / ((X1 - X0) / W_HOURS);
-    const withY = y(maxIn(withOff - 0.25, withOff + withSpan)) - 22;
-    // "07:00, every car full": a dot on the plan at seven, the label right-aligned so it stays on the canvas.
-    const sevenOff = offOf(7);
+    const pxPerH = (X1 - X0) / H;
+    // "Without Gridzilla" over the hill; "With Gridzilla" just under the ink line at the same moment.
+    const peakLabelX = Math.min(Math.max(X0, peakX - 60), X1 - 420);
+    const withX = Math.min(Math.max(X0, peakX - 60), X1 - 260);
+    const withY = y(Math.min(...all.filter((p) => x(p.off) >= withX - 10 && x(p.off) <= withX + 190).map((p) => p.planned))) + 58;
+    // "07:00, every car full": a dot on the plan at seven when seven is on the chart, its label kept on the canvas.
+    const sevenOff = offOf(snap.start, 7);
+    const showSeven = snap.carsFull && sevenOff > 0.6 && sevenOff < H - 0.6;
     const sevenX = x(sevenOff);
     const sevenY = y(valueAt(sevenOff, "planned"));
-    const fullRight = Math.min(X1, sevenX + 70);
-    const fullSpan = 310 / ((X1 - X0) / W_HOURS);
-    const fullY = y(maxIn(offOf(7) - fullSpan + 1, offOf(7) + 1.2)) - 34;
-    const peakLabelX = Math.max(X0, peakX - 60);
+    const fullRight = Math.min(X1, Math.max(X0 + 330, sevenX + 70));
+    const fullSpan = 310 / pxPerH;
+    const fullY = y(maxIn(sevenOff - fullSpan + 1, sevenOff + 1.2)) - 34;
+    // Clock ticks every three hours, never on the very edges.
+    const ticks: { off: number; h: number }[] = [];
+    for (let h = Math.ceil(snap.start / 3) * 3; h < snap.start + H + 0.01; h += 3) {
+      const off = h - snap.start;
+      if (off > 0.7 && off < H - 0.7) ticks.push({ off, h: h % 24 });
+    }
+    const peakClock = (snap.start + peak.off) % 24;
+    const peakNote = peakClock >= 16 && peakClock < 21.5 ? `${hhmm(peakClock)}, the cars come home` : `${hhmm(peakClock)}, the peak`;
     return {
-      x, y, hi, lo, naive: line("naive"), planned: line("planned"), orange, green, peak, peakX, peakLabelX,
-      withX: x(withOff), withY, sevenX, sevenY, fullRight, fullY,
+      x, y, hi, lo, naive: line("naive"), planned: line("planned"), orange, green, peak, peakX, peakLabelX, peakNote,
+      withX, withY, showSeven, sevenX, sevenY, fullRight, fullY, ticks,
     };
   }, [snap]);
 
@@ -218,7 +218,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
 
   return (
     <>
-      <svg className="s4-chart" viewBox="0 0 1180 620" width={1180} height={620} aria-label="Load on the grid in percent of its limit, 15:30 to 08:30">
+      <svg className="s4-chart" viewBox="0 0 1180 620" width={1180} height={620} aria-label={`Load on the grid in percent of its limit, the next ${Math.round(snap.hours)} hours from ${hhmm(snap.start)}`}>
         <defs>
           <clipPath id={`s4r${uid}`}>
             <motion.rect x={0} y={0} height={620} initial={init({ width: X0 })} animate={{ width: 1180 }} transition={T(0.6, 2.6)} />
@@ -231,14 +231,13 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
         {/* Axes: the zero line and the clock, quiet. */}
         <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(0.1, 0.6)}>
           <line x1={X0} x2={X1} y1={zeroY} y2={zeroY} stroke={P.fill} strokeWidth={2} />
-          {TICKS.map((h) => {
-            const tx = g.x(offOf(h));
-            return (
-              <text key={h} className="s4-tick" x={tx} y={TICK_Y} textAnchor="middle">
-                {String(h).padStart(2, "0")}:00
+          <g data-src="axis">
+            {g.ticks.map((t) => (
+              <text key={t.off} className="s4-tick" x={g.x(t.off)} y={TICK_Y} textAnchor="middle">
+                {String(t.h).padStart(2, "0")}:00
               </text>
-            );
-          })}
+            ))}
+          </g>
         </motion.g>
 
         {/* The limit, red, with its name at the right end. */}
@@ -249,28 +248,22 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           </text>
         </motion.g>
 
-        {/* The peak building (orange) above the plan level, then eaten into the level. */}
-        <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(3.8, 0.5)}>
-          <motion.path
-            d={g.orange}
-            fill={P.orange}
-            fillOpacity={0.8}
-            style={{ originY: 1 }}
-            initial={init({ scaleY: 1 })}
-            animate={{ scaleY: 0 }}
-            transition={T(5.0, 1.2)}
-          />
-        </motion.g>
-
-        {/* The energy moved into the night (green), growing from the bottom as the peak is eaten. */}
+        {/* The peak Gridzilla eats (orange, stays), then the car charging moved into the night (green). */}
+        <motion.path
+          d={g.orange}
+          fill={P.orange}
+          fillOpacity={0.35}
+          initial={init({ opacity: 0 })}
+          animate={{ opacity: 1 }}
+          transition={T(3.6, 0.8)}
+        />
         <motion.path
           d={g.green}
           fill={P.green}
-          fillOpacity={0.5}
-          style={{ originY: 1 }}
-          initial={init({ scaleY: 0 })}
-          animate={{ scaleY: 1 }}
-          transition={T(5.0, 1.2)}
+          fillOpacity={0.35}
+          initial={init({ opacity: 0 })}
+          animate={{ opacity: 1 }}
+          transition={T(6.4, 0.8)}
         />
 
         {/* Without Gridzilla: tertiary dashed, its stretch over the limit red. Drawn left to right. */}
@@ -291,7 +284,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           strokeLinecap="round"
           initial={init({ pathLength: 0 })}
           animate={{ pathLength: 1 }}
-          transition={T(6.8, 1.8)}
+          transition={T(4.8, 1.8)}
         />
 
         {/* Direct labels. */}
@@ -300,17 +293,17 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
             Without Gridzilla
           </text>
           <text className="s4-note" x={g.peakLabelX} y={g.y(g.peak.naive) - 26}>
-            18:00, the cars come home
+            {g.peakNote}
           </text>
         </motion.g>
-        <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(8.0, 0.6)}>
+        <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(6.6, 0.6)}>
           <text className="s4-label" x={g.withX} y={g.withY}>
             With Gridzilla
           </text>
         </motion.g>
-        {snap.carsFull && (
-          <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(8.8, 0.6)}>
-            <circle cx={g.sevenX} cy={g.sevenY} r={11} fill={P.green} stroke="#ffffff" strokeWidth={4} />
+        {g.showSeven && (
+          <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(7.4, 0.6)}>
+            <circle cx={g.sevenX} cy={g.sevenY} r={11} fill={P.green} stroke="var(--p-bg)" strokeWidth={4} />
             <text className="s4-note" x={g.fullRight} y={g.fullY} textAnchor="end">
               07:00, every car full
             </text>
@@ -333,7 +326,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           </div>
           <p className="p-small p-secondary s4-num-label">without Gridzilla</p>
         </motion.div>
-        <motion.div initial={init({ opacity: 0, y: 24 })} animate={{ opacity: 1, y: 0 }} transition={T(7.6, 0.7)}>
+        <motion.div initial={init({ opacity: 0, y: 24 })} animate={{ opacity: 1, y: 0 }} transition={T(6.6, 0.7)}>
           <div
             className="p-display p-num p-ink"
             data-src={snap.live ? `${src}/peak_plan_pct` : "illustration"}
@@ -349,7 +342,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
       <motion.p className="p-small p-tertiary s4-foot" initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(0.4, 0.6)}>
         {snap.live && snap.houses != null ? (
           <>
-            Tonight's plan for Vienna:{" "}
+            The next 24 hours for Vienna:{" "}
             <span className="p-num" data-src={`${src}/houses`} data-val={snap.houses}>
               {snap.houses.toLocaleString("en-US")}
             </span>{" "}

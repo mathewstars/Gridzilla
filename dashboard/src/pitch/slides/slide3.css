@@ -106,7 +106,7 @@
   position: absolute;
   inset: 0;
   border-radius: var(--p-r);
-  background: var(--p-white);
+  background: var(--p-surface);
   box-shadow: var(--p-shadow), 0 18px 40px rgb(0 0 0 / 0.07);
   opacity: 0;
   transition: opacity 0.8s var(--p-ease);

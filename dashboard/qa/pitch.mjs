@@ -44,6 +44,8 @@ const STEPS = readSteps();
 const N = STEPS.length;
 const slides = arg("slides") ? String(arg("slides")).split(",").map(Number) : STEPS.map((_, i) => i + 1);
 const sep = base.includes("?") ? "&" : "?";
+// Both themes by default (dark is the product default); --themes dark or --themes light runs one.
+const themes = String(arg("themes", "dark,light")).split(",");
 
 // Copied from qa/layout.mjs (detect), verbatim: keep the two in step. Called here with oneScreen = false.
 function detect([oneScreen, W]) {
@@ -148,12 +150,12 @@ function onScreen() {
 const browser = await launch();
 
 // ------------------------------------------------------------------ G1: the run of show, key by key
-async function g1() {
+async function g1(theme) {
   const { ctx, page, errors } = await newPage(browser, "1920x1080");
   const trace = [];
   const seen = new Set();
   try {
-    await page.goto(base, { waitUntil: "load", timeout: 30000 });
+    await page.goto(`${base}${sep}theme=${theme}`, { waitUntil: "load", timeout: 30000 });
     await page.waitForTimeout(2500);
     let cur = (await page.evaluate(onScreen))[0];
     trace.push({ press: 0, slide: cur });
@@ -186,12 +188,12 @@ async function g1() {
 
 // ------------------------------------------------------------------ G3: layout matrix
 const results = [];
-async function cell(slide, step, size, phase) {
+async function cell(slide, step, size, phase, theme) {
   const [W] = size.split("x").map(Number);
   const { ctx, page, errors } = await newPage(browser, size);
-  const shot = `${out}/s${slide}-step${step}-${phase}-${size}.png`;
+  const shot = `${out}/${theme}-s${slide}-step${step}-${phase}-${size}.png`;
   try {
-    const url = `${base}${sep}slide=${slide}&step=${step}${phase === "end" ? "&freeze=end" : ""}`;
+    const url = `${base}${sep}theme=${theme}&slide=${slide}&step=${step}${phase === "end" ? "&freeze=end" : ""}`;
     await page.goto(url, { waitUntil: "load", timeout: 30000 });
     await page.waitForTimeout(phase === "start" ? 400 : slide === LIVE ? 8000 : 2500);
     const f = await page.evaluate(detect, [false, W]);
@@ -202,18 +204,23 @@ async function cell(slide, step, size, phase) {
     await page.screenshot({ path: shot });
     f.console = errors.slice();
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
-    results.push({ slide, step, size, phase, count, f, shot });
+    results.push({ slide, step, size, phase, theme, count, f, shot });
   } catch (e) {
-    results.push({ slide, step, size, phase, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
+    results.push({ slide, step, size, phase, theme, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
   } finally {
     await ctx.close();
   }
 }
 
-const g1res = only === "g3" ? { errors: [], trace: [], skipped: true } : await g1();
+let g1res = { errors: [], trace: [], skipped: true };
+if (only !== "g3") {
+  const runs = [];
+  for (const t of themes) runs.push({ theme: t, ...(await g1(t)) });
+  g1res = { errors: runs.flatMap((r) => r.errors.map((e) => `${r.theme}: ${e}`)), trace: runs[0].trace, traces: Object.fromEntries(runs.map((r) => [r.theme, r.trace.map((x) => x.slide).join(" ")])) };
+}
 if (only !== "g1") {
   const jobs = [];
-  for (const s of slides) for (let st = 0; st < (STEPS[s - 1] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) jobs.push(() => cell(s, st, size, ph));
+  for (const s of slides) for (let st = 0; st < (STEPS[s - 1] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) for (const t of themes) jobs.push(() => cell(s, st, size, ph, t));
   await pool(jobs, CONC);
 }
 await browser.close();
@@ -224,9 +231,9 @@ const byKind = {};
 results.forEach((r) => Object.entries(r.f).forEach(([k, v]) => v.length && (byKind[k] = (byKind[k] || 0) + v.length)));
 const bad = results
   .filter((r) => r.count)
-  .map((r) => ({ cell: `s${r.slide}/step${r.step}/${r.size}/${r.phase}`, shot: r.shot, ...Object.fromEntries(Object.entries(r.f).filter(([, v]) => v.length).map(([k, v]) => [k, v.slice(0, 4)])) }));
+  .map((r) => ({ cell: `${r.theme}/s${r.slide}/step${r.step}/${r.size}/${r.phase}`, shot: r.shot, ...Object.fromEntries(Object.entries(r.f).filter(([, v]) => v.length).map(([k, v]) => [k, v.slice(0, 4)])) }));
 const g3 = { cells: results.length, total, byKind, bad };
 const report = { base, sizes, steps: STEPS, g1: g1res, g3: { ...g3, shots: results.map((r) => r.shot).filter(Boolean) } };
 fs.writeFileSync(`${out}/report.json`, JSON.stringify(report, null, 1));
-console.log(JSON.stringify({ out, g1: { errors: g1res.errors, trace: g1res.trace.map((t) => t.slide).join(" ") }, g3: { cells: g3.cells, total, byKind, bad: bad.slice(0, 40) } }, null, 1));
+console.log(JSON.stringify({ out, g1: { errors: g1res.errors, traces: g1res.traces }, g3: { cells: g3.cells, total, byKind, bad: bad.slice(0, 40) } }, null, 1));
 process.exitCode = g1res.errors.length || total ? 1 : 0;

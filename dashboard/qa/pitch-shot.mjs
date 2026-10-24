@@ -16,6 +16,7 @@ const ats = String(arg("at", "0.3,end")).split(",");
 const sizes = String(arg("size", "1920x1080")).split(",");
 const out = String(arg("out", `/tmp/gzpitch/shots/s${slide}`));
 const base = String(arg("base", "http://localhost:5175/pitch.html"));
+const theme = String(arg("theme", "dark"));
 fs.mkdirSync(out, { recursive: true });
 
 const browser = await launch();
@@ -31,9 +32,9 @@ for (const size of sizes) {
     });
     page.on("pageerror", (e) => errors.push(`${size} ${at}: pageerror: ${String(e).slice(0, 200)}`));
     const freeze = at === "end" ? "&freeze=end" : "";
-    await page.goto(`${base}?slide=${slide}&step=${step}${freeze}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${base}?theme=${theme}&slide=${slide}&step=${step}${freeze}`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(at === "end" ? 2500 : Number(at) * 1000);
-    const file = `${out}/s${slide}-step${step}-${String(at).replace(".", "_")}-${size}.png`;
+    const file = `${out}/${theme}-s${slide}-step${step}-${String(at).replace(".", "_")}-${size}.png`;
     await page.screenshot({ path: file });
     shots.push(file);
     await ctx.close();
