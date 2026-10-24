@@ -431,7 +431,7 @@ function drawCharts() {
 
   const hist = d => H.devices[d] || H.devices[((HH[d] || {}).devices || [])[0]] || [];   // a household's curve comes from its meter-owning device
   const longest = devs.reduce((a, d) => hist(d).length > a.length ? hist(d) : a, []);
-  gridChart.data.labels = longest.map(p => p.ts.slice(11, 16));
+  gridChart.data.labels = longest.map(p => hhmm(p.h));
   gridChart.data.datasets = devs.map(d => ({label: d, data: hist(d).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
   gridChart.update();
   document.getElementById("devlegend").innerHTML = devs.map(d => `<span><i style="background:${SERIES[devOrder.indexOf(d) % 5]}"></i>${d}</span>`).join("") + `<span style="margin-left:auto">grid kW · + import · − export</span>`;
@@ -487,6 +487,7 @@ function drawSchem() {
 }
 
 // ---------- panels
+function rep1() { return (HH[devOrder[0]] || {}).represents || 1; }
 function drawKpis() {
   const root = S.aggregates["region:at"];
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
@@ -500,14 +501,14 @@ function drawKpis() {
   const hp = Object.values(HH).reduce((a, d) => a + ((d.telemetry || {}).hp_kw || 0) * (d.represents || 1), 0);
   const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   document.getElementById("kpis").innerHTML =
-    k(`${(root.kwh_available * 10).toFixed(0)} kWh`, "stored in program batteries (×10)") +
-    k(`${root.kw * 10} kW`, "inverter capacity in program (×10)") +
-    k(`${ev.toFixed(0)} kW`, "EV charging now, sheddable first (×10)", ev ? "warn" : "") +
-    k(`${hp.toFixed(0)} kW`, "heat pumps and boilers heating now (×10)", hp ? "warn" : "") +
-    k(`${worst}%`, `worst transformer · ${worstTf.replace("tf:", "")}`, worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
+    k(`${(root.kwh_available * rep1()).toFixed(0)} kWh`, "stored in program batteries") +
+    k(`${(root.kw * rep1()).toFixed(0)} kW`, "inverter capacity in program") +
+    k(`${ev.toFixed(0)} kW`, "EVs charging now", ev ? "warn" : "") +
+    k(`${hp.toFixed(0)} kW`, "heat pumps + boilers now", hp ? "warn" : "") +
+    k(`${worst}%`, `worst · ${worstTf.replace("tf:", "")}`, worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
     k(over, "transformers over rating", over ? "crit" : "ok") +
     k(active, "active signals", active ? "warn" : "") +
-    k(`${online}/${total}`, `households online · ${rep} houses represented`);
+    k(`${online}/${total}`, `households online · ${rep} houses`);
 }
 function drawSignals() {
   const now = Date.now();
@@ -535,7 +536,7 @@ function drawDevices() {
       <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
   }).join("");
 }
-function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `<div><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${l.msg}</div>`).join(""); }
+function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `<div title="${esc(l.msg)}"><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${esc(l.msg.length > 170 ? l.msg.slice(0, 170) + " …" : l.msg)}</div>`).join(""); }
 function drawTabs() {
   const feeder = feederOf(selNode);
   const feeders = Object.keys(S.tree).filter(n => n.startsWith("feeder:"));
