@@ -84,7 +84,8 @@ function detect([oneScreen, W]) {
       const inside = boxes.filter((b) => el.contains(b.el) && (b.r > r.right + 2 || b.l < r.left - 2 || b.b > r.bottom + 2 || b.t0 < r.top - 2));
       if (inside.length) F.clipped.push(`${label(el)}: "${inside[0].t}"`);
     }
-    if (el !== document.body && el !== document.documentElement && ((scrolls(ox) && overX) || (scrolls(oy) && overY))) F.innerScroll.push(label(el));
+    // a deliberate scroll area (the ops console columns, data-scroll) is fine; any other inner scroll hides content
+    if (el !== document.body && el !== document.documentElement && !el.dataset?.scroll && ((scrolls(ox) && overX) || (scrolls(oy) && overY))) F.innerScroll.push(label(el));
     if (cs.textOverflow === "ellipsis" && el.scrollWidth > cw + 1) F.cut.push(`${label(el)}: "${el.textContent.trim().slice(0, 40)}"`);
     if (cs.webkitLineClamp && cs.webkitLineClamp !== "none" && el.scrollHeight > ch + 1) F.cut.push(`${label(el)} (line-clamp)`);
   }

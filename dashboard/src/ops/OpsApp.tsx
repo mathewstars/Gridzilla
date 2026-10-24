@@ -53,9 +53,9 @@ function Console({ route }: { route: Route }) {
         <TopBar ops={ops} />
         {route === "ops" ? (
           <main className="ops-cols">
-            <section className="ops-col ops-col-city"><CityColumn ops={ops} /></section>
-            <section className="ops-col ops-col-feed"><FeedColumn ops={ops} /></section>
-            <section className="ops-col ops-col-ctl"><ControlColumn ops={ops} /></section>
+            <section className="ops-col ops-col-city" data-scroll="column"><CityColumn ops={ops} /></section>
+            <section className="ops-col ops-col-feed" data-scroll="column"><FeedColumn ops={ops} /></section>
+            <section className="ops-col ops-col-ctl" data-scroll="column"><ControlColumn ops={ops} /></section>
           </main>
         ) : (
           <main className="ops-view"><OtherView route={route} ops={ops} /></main>
