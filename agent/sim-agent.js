@@ -183,6 +183,11 @@ function step(h) {
     if (e.mode === "SUPPORT" || e.mode === "STRETCH") run = h.slab > -SPACE_OFFSET_K ? 0 : demand;
     else if (e.mode === "ABSORB" || e.mode === "PREPARE") run = h.slab < SPACE_OFFSET_K ? ht.kw : demand;
     else run = h.slab > 0.05 ? 0 : (h.slab < -0.05 ? ht.kw : demand);
+    // the diet plan's per-slot ceilings: battery first, car second, heat third. Shed the compressor only when the cap would still be
+    // broken with the car already throttled and the battery discharging; preheat the slab when PV would still exceed the export cap.
+    const dMaxNow = Math.min(cfg.kw, o.max_discharge_kw) * (h.soc <= o.min_soc ? 0 : 1), cMaxNow = Math.min(cfg.kw, o.max_charge_kw) * (h.soc >= 100 ? 0 : 1);
+    if (e.import_max_kw != null && run > 0 && h.slab > -SPACE_OFFSET_K && houseLoad + ev + hp + run - pv - dMaxNow > e.import_max_kw) run = 0;
+    if (e.export_max_kw != null && h.slab < SPACE_OFFSET_K && pv - (houseLoad + ev + hp + run) - cMaxNow > e.export_max_kw) run = ht.kw;
     h.slab = clamp(h.slab + (run - demand) / SLAB_KWH_EL_PER_K * dtH, -SPACE_OFFSET_K - 1, SPACE_OFFSET_K + 1);
     hp += run;
   });
