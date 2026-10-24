@@ -175,6 +175,10 @@ Modes on the dashboard: **Autonomous** (default when `GZ_LLM_URL` is set, or `GZ
 
 The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`); all autopilot and envelope times are grid minutes.
 
+## The pitch
+
+`docs/PRESENTATION.md`: the 12-minute run of show, the full script per slide, the demo clicks, the questions and answers, and the pre-flight checklist. Deck in `docs/Gridzilla-pitch.pptx`, jingle in `docs/Gridzilla-jingle.m4a`.
+
 ## Flattening: the monster's diet (SHAPE)
 
 Under the DeepSeek autopilot a deterministic planner (`platform/flatten.py`) flattens every street every day: a
