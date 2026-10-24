@@ -67,6 +67,13 @@ Where the regulator demands certified hardware, the Gridzilla signal terminates 
 
 Path C is the one a regulator will eventually mandate. Gridzilla is designed so that moving a device from Path B to Path C changes nothing in the signal.
 
+## The diet plan (SHAPE) is optional
+
+Event signals on `gridzilla/sig/<segment>` are the minimum. A device that can follow a per-slot curve also subscribes
+to `gridzilla/shape/<segment>` and keeps the plan beside the event signal, applying the tighter ceiling per slot. A
+device that cannot (a simple inverter with one feed-in limit and one grid setpoint) ignores the channel and still
+takes part in every event. Nothing on the plan needs a heartbeat; it expires on its own.
+
 ## EV chargers
 
 Chargers are the most elastic load in the house and the agent sheds them **before** it touches the battery. Any charger that supports OCPP 1.6J or 2.0.1, the go-e API, a Modbus profile (Wallbox, Alfen, ABL, KEBA), or EVCC can be throttled from 32 A down to the 6 A minimum or paused. Under ABSORB the car soaks the surplus at noon; under SUPPORT it is throttled first; under STRETCH it is off; under PREPARE it can be filled the night before together with the battery. Vehicle-to-home and vehicle-to-grid add a 60 kWh battery to the same signals, with one extra registry field: which segment the car is plugged into right now.
