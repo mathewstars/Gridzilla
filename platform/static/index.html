@@ -6,7 +6,6 @@
 <title>Gridzilla control</title>
 <script src="/static/vendor/chart.umd.js"></script>
 <style>
-  /* Dark-first operator board. Series colors: validated categorical palette (dark steps). Status colors are separate. */
   :root {
     color-scheme: dark;
     --bg:#15181c; --panel:#1d2127; --panel2:#232934; --fg:#e8e6e0; --muted:#a2a9b3; --line:#343b45;
@@ -16,28 +15,48 @@
     --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
-  header { display:flex; align-items:center; gap:18px; padding:10px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:5; }
+  html, body { height:100%; margin:0; overflow:hidden; }
+  body { background:var(--bg); color:var(--fg); font:13px/1.4 "IBM Plex Sans", system-ui, sans-serif; display:flex; flex-direction:column; }
+  header { flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:8px 18px; border-bottom:1px solid var(--line); background:var(--panel); }
   header h1 { font-size:18px; margin:0; color:var(--acc); letter-spacing:.06em; }
   header .sub { color:var(--muted); font-size:12px; }
-  header .clock { font-family:var(--mono); font-size:22px; margin-left:auto; font-variant-numeric:tabular-nums; }
-  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); font-family:var(--mono); }
+  header .clock { font-family:var(--mono); font-size:20px; margin-left:auto; font-variant-numeric:tabular-nums; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); font-family:var(--mono); white-space:nowrap; }
   .pill.ok { color:var(--ok); border-color:var(--ok); } .pill.bad { color:var(--crit); border-color:var(--crit); }
+  .views { display:flex; gap:4px; margin-left:12px; }
+  .views button { margin:0; padding:5px 14px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+  .views button.on { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
 
-  main { padding:14px 20px 40px; display:grid; gap:14px; grid-template-columns: 1.4fr 1fr; }
-  @media (max-width:1100px) { main { grid-template-columns:1fr; } }
-  .span2 { grid-column:1 / -1; }
-  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; min-width:0; }
-  h2 { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
-  h2 .hint { text-transform:none; letter-spacing:0; font-weight:400; }
+  main { flex:1 1 auto; min-height:0; padding:10px 18px 12px; display:grid; gap:10px; }
+  main[data-view="auto"]   { grid-template-columns: 1.05fr 1.25fr 0.9fr; grid-template-rows: auto minmax(0, 1fr) minmax(0, 0.62fr); }
+  main[data-view="manual"] { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); }
+  main[data-view="homes"]  { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+  main[data-view="auto"] section:not([data-tab="auto"]), main[data-view="manual"] section:not([data-tab="manual"]), main[data-view="homes"] section:not([data-tab="homes"]) { display:none; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px 12px; min-width:0; min-height:0; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
+  .span3 { grid-column:1 / -1; }
+  h2 { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:8px; flex:0 0 auto; }
+  h2 .hint { text-transform:none; letter-spacing:0; font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fill { flex:1 1 auto; min-height:0; }
+  .scroll { overflow:auto; }
 
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
-  .kpi { background:var(--panel2); border-radius:6px; padding:10px 12px; }
-  .kpi .v { font-family:var(--mono); font-size:24px; font-variant-numeric:tabular-nums; line-height:1.1; }
-  .kpi .l { color:var(--muted); font-size:11px; margin-top:2px; }
+  .kpis { display:grid; grid-template-columns:repeat(8, 1fr); gap:8px; }
+  .kpi { background:var(--panel2); border-radius:6px; padding:7px 10px; min-width:0; }
+  .kpi .v { font-family:var(--mono); font-size:20px; font-variant-numeric:tabular-nums; line-height:1.1; white-space:nowrap; }
+  .kpi .l { color:var(--muted); font-size:10.5px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .kpi.warn .v { color:var(--warn); } .kpi.crit .v { color:var(--crit); } .kpi.ok .v { color:var(--ok); }
 
-  .schem { width:100%; height:auto; display:block; font-family:var(--mono); }
+  /* city heat map: every transformer, grouped by substation */
+  .city { display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:10px; }
+  .city .sub { display:grid; grid-template-columns: 86px 1fr; gap:6px; align-items:center; }
+  .city .subname { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .city .subname.on { color:var(--acc); }
+  .city .cells { display:flex; gap:3px; flex-wrap:wrap; }
+  .city .cell { flex:1 1 0; min-width:44px; height:26px; border-radius:3px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer; color:#15181c; font-weight:600; line-height:1; border:2px solid transparent; }
+  .city .cell small { font-weight:400; font-size:8.5px; opacity:.85; overflow:hidden; white-space:nowrap; max-width:100%; }
+  .city .cell.sel { border-color:#fff; }
+  .city .cell.sig { box-shadow: inset 0 0 0 1px var(--acc); }
+
+  .schem { width:100%; height:100%; display:block; font-family:var(--mono); }
   .schem text { fill:var(--fg); font-size:11px; }
   .schem .muted { fill:var(--muted); }
   .schem .box { fill:var(--panel2); stroke:var(--line); }
@@ -45,52 +64,42 @@
   .schem .bar-bg { fill:#2a3039; }
   .schem .wire { stroke:var(--muted); stroke-width:1.5; fill:none; }
   .schem .house { stroke:var(--panel); stroke-width:1.5; }
+  .loop { height:auto; }
 
-  .charts { display:grid; grid-template-columns:1fr; gap:12px; }
-  .chartbox { position:relative; height:220px; }
-  .chartbox.tall { height:260px; }
-  .legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; color:var(--muted); margin-top:4px; }
-  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:5px; border-radius:2px; }
+  .chartbox { position:relative; flex:1 1 auto; min-height:0; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:10.5px; color:var(--muted); flex:0 0 auto; }
+  .legend i { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
 
-  label { display:block; font-size:11px; color:var(--muted); margin-top:8px; }
-  input, select, textarea { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:6px 8px; width:100%; }
+  label { display:block; font-size:11px; color:var(--muted); margin-top:6px; }
+  input, select, textarea { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:5px 8px; width:100%; }
   textarea { min-height:56px; resize:vertical; }
   .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  button { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:6px 12px; cursor:pointer; margin-top:10px; }
+  button { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:5px 11px; cursor:pointer; margin-top:6px; }
   button.primary { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
   button.danger { border-color:var(--crit); color:var(--crit); }
-  .modes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-  .modes button { margin:0; padding:5px 10px; font-size:12px; }
+  .modes { display:flex; flex-wrap:wrap; gap:6px; }
+  .modes button { margin:0; padding:4px 10px; font-size:12px; }
   .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
-  .err { color:var(--crit); font-size:12px; margin-top:6px; min-height:16px; }
-  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:8px 10px; margin-top:8px; font-size:12px; display:none; max-height:220px; overflow:auto; }
+  .err { color:var(--crit); font-size:12px; min-height:14px; flex:0 0 auto; }
+  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:6px 10px; font-size:12px; display:none; overflow:auto; }
 
   table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
-  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  th { color:var(--muted); font-weight:500; font-size:11px; }
+  th, td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; font-size:11px; position:sticky; top:0; background:var(--panel); }
   .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
   .st-applied{color:var(--ok)} .st-partial{color:var(--warn)} .st-refused{color:var(--crit)} .st-reverted{color:var(--muted)}
-  .sig { display:grid; grid-template-columns: 90px 150px 1fr 60px; gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line); font-family:var(--mono); font-size:12px; }
+  .sig { display:grid; grid-template-columns: 70px 1fr 54px; gap:8px; align-items:center; padding:5px 0; border-bottom:1px dashed var(--line); font-family:var(--mono); font-size:11px; }
   .sig .mode { color:var(--acc); font-weight:600; }
-  .bar { height:8px; background:#2a3039; border-radius:4px; overflow:hidden; }
+  .bar { height:6px; background:#2a3039; border-radius:4px; overflow:hidden; margin-top:3px; }
   .bar i { display:block; height:100%; background:var(--acc); }
-  .log { font-family:var(--mono); font-size:12px; max-height:260px; overflow:auto; }
-  .log div { padding:3px 0; border-bottom:1px dashed #2a3039; }
-  .log .k { color:var(--muted); display:inline-block; width:62px; }
-  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--crit)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:var(--s1)} .log .k-demo{color:var(--warn)}
-  .tabs { display:flex; gap:6px; }
-  .tabs button { margin:0; padding:3px 9px; font-size:11px; }
+  .log { font-family:var(--mono); font-size:11px; overflow:auto; }
+  .log div { padding:2px 0; border-bottom:1px dashed #2a3039; }
+  .log .k { color:var(--muted); display:inline-block; width:58px; }
+  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--crit)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:var(--s1)} .log .k-demo{color:var(--warn)} .log .k-autopilot{color:var(--s1)}
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; }
+  .tabs button { margin:0; padding:2px 8px; font-size:11px; }
   .tabs button.on { border-color:var(--acc); color:var(--acc); }
-  .views { display:flex; gap:4px; margin-left:18px; }
-  .views button { margin:0; padding:5px 14px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; border-radius:4px 4px 0 0; border-bottom:none; }
-  .views button.on { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
-  main[data-view="auto"] section:not([data-tab="auto"]), main[data-view="manual"] section:not([data-tab="manual"]), main[data-view="homes"] section:not([data-tab="homes"]) { display:none; }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .modes { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-  .tablewrap { max-height:620px; overflow:auto; }
-  select.feeder { width:auto; padding:3px 8px; font-size:12px; }
-  .schem text { font-size:11px; }
-  h2 .tabs { flex-wrap:wrap; }
+  select.feeder { width:auto; padding:2px 6px; font-size:11px; }
 </style>
 </head>
 <body>
@@ -105,13 +114,15 @@
 </header>
 
 <main data-view="auto">
-  <section class="span2" data-tab="auto">
-    <div class="kpis" id="kpis"></div>
-  </section>
+  <!-- row 1: KPI strip -->
+  <section class="span3" data-tab="auto" style="padding:8px 10px"><div class="kpis" id="kpis"></div></section>
 
+  <!-- row 2 -->
   <section data-tab="auto">
-    <h2>Grid schematic <span class="hint">click a transformer to select it</span></h2>
-    <svg id="schem" class="schem" viewBox="0 0 760 300" role="img" aria-label="Feeder schematic with transformer load bars and program houses"></svg>
+    <h2>City · 72 transformers <span class="hint" id="cityhint">load now · click to select</span></h2>
+    <div class="city scroll" id="city" style="flex:0 1 auto; max-height:46%"></div>
+    <h2 style="margin-top:4px">Selected feeder <span class="tabs" id="nodetabs"></span></h2>
+    <div class="fill"><svg id="schem" class="schem" viewBox="0 0 760 300" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Feeder schematic with transformer load bars and program houses"></svg></div>
   </section>
 
   <section data-tab="auto">
@@ -120,64 +131,50 @@
       <button data-ap="auto" onclick="setAp({mode:'auto'})">Autonomous</button>
       <button data-ap="propose" onclick="setAp({mode:'propose'})">Operator approves</button>
       <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
+      <span style="flex:1"></span>
+      <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button></span>
     </div>
-    <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses"></svg>
-    <div class="prop" id="apstatus" style="display:block"></div>
-    <h2 style="margin-top:12px">Decisions <span class="hint">newest first</span></h2>
-    <div class="log" id="decisions" style="max-height:210px"></div>
-    <h2 style="margin-top:12px">Scenario <span class="hint">scales the houses not in the program</span></h2>
-    <div class="modes" id="scenarios">
-      <button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button>
-      <button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening · load ×1.2</button>
-      <button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon · PV ×5</button>
-    </div>
-    <label>Standing warning for DeepSeek</label>
-    <div class="row"><input id="apctx" placeholder="Drone strike warning tonight, expect outages 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
+    <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses" style="flex:0 0 auto"></svg>
+    <div class="prop" id="apstatus" style="display:block; flex:0 0 auto; max-height:88px"></div>
+    <h2>Decisions <span class="hint">newest first · every 15 grid minutes</span></h2>
+    <div class="log fill" id="decisions"></div>
+    <div class="row" style="flex:0 0 auto"><input id="apctx" placeholder="Standing warning for DeepSeek, e.g. drone strike warning tonight 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
     <div class="err"></div>
   </section>
 
   <section data-tab="auto">
-    <h2>Envelope curve <span class="hint" id="envhint">per house, per 15-min slot</span></h2>
-    <div class="chartbox tall"><canvas id="envChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--acc)"></i>envelope ceiling per house</span><span><i style="background:var(--s1)"></i>measured, average program house</span><span style="margin-left:auto">kW · + import · − export</span></div>
+    <h2>Active signals <span class="hint" id="sighint"></span></h2>
+    <div class="scroll" id="signals" style="flex:0 1 auto; max-height:34%"></div>
+    <h2 style="margin-top:4px">Transformer load <span class="hint" id="loadhint"></span></h2>
+    <div class="chartbox"><canvas id="loadChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s1);opacity:.5"></i>forecast</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating</span></div>
   </section>
 
+  <!-- row 3 -->
   <section data-tab="auto">
-    <h2>Transformer load <span class="tabs" id="nodetabs"></span></h2>
-    <div class="chartbox tall"><canvas id="loadChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s1);opacity:.5"></i>forecast (dashed)</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating · reverse rating</span></div>
+    <h2>Envelope curve <span class="hint" id="envhint">per house, per 15-min slot</span></h2>
+    <div class="chartbox"><canvas id="envChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--acc)"></i>envelope ceiling per house</span><span><i style="background:var(--s1)"></i>measured, average program house</span></div>
   </section>
-
   <section data-tab="auto">
     <h2>Program households <span class="hint" id="rephint"></span></h2>
-    <div class="charts">
-      <div class="chartbox" style="height:150px"><canvas id="socChart"></canvas></div>
+    <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:8px; flex:1 1 auto; min-height:0">
+      <div class="chartbox"><canvas id="socChart"></canvas></div>
       <div class="chartbox"><canvas id="gridChart"></canvas></div>
     </div>
     <div class="legend" id="devlegend"></div>
   </section>
-
   <section data-tab="auto">
-    <h2>Active signals</h2>
-    <div id="signals"></div>
+    <h2>Log</h2>
+    <div class="log fill" id="log"></div>
   </section>
 
-  <section class="span2" data-tab="homes">
-    <h2>Households <span class="hint" id="homeshint">battery · EV · heat pump or boiler behind one meter</span></h2>
-    <div class="modes" style="margin-bottom:8px"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
-    <div class="tablewrap">
-    <table>
-      <thead><tr><th>device</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
-      <tbody id="devices"></tbody>
-    </table>
-    </div>
-  </section>
-
-  <section data-tab="manual">
+  <!-- manual tab -->
+  <section data-tab="manual" class="scroll">
     <h2>Compose signal <span class="hint">reference only · the autopilot does this on its own</span></h2>
     <label>Segment</label>
     <select id="segment"></select>
-    <div class="modes" id="modes"></div>
+    <div class="modes" id="modes" style="margin-top:6px"></div>
     <div class="row">
       <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
       <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
@@ -197,16 +194,15 @@
     </div>
     <label>Note to owners</label>
     <input id="note" placeholder="Transformer Atzgersdorf-1 near limit 17:00–19:00">
-    <button class="primary" onclick="send()">Sign and publish</button>
+    <div><button class="primary" onclick="send()">Sign and publish</button></div>
     <div class="err"></div>
   </section>
-
-  <section data-tab="manual">
+  <section data-tab="manual" class="scroll">
     <h2>Advisor <span class="hint">ask DeepSeek for one proposal · guard and operator decide</span></h2>
     <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
-    <button onclick="advise()">Propose a signal</button>
+    <div><button onclick="advise()">Propose a signal</button></div>
     <div class="prop" id="prop"></div>
-    <h2 style="margin-top:16px">Fail-safe demo <span class="hint">what the houses do when the DSO disappears or repeats itself</span></h2>
+    <h2 style="margin-top:12px">Fail-safe demo <span class="hint">what the houses do when the DSO disappears or repeats itself</span></h2>
     <div class="modes">
       <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
       <button onclick="demo('heartbeat/resume')">Resume</button>
@@ -215,9 +211,16 @@
     <div class="err"></div>
   </section>
 
-  <section class="span2" data-tab="auto">
-    <h2>Log</h2>
-    <div class="log" id="log"></div>
+  <!-- households tab -->
+  <section data-tab="homes">
+    <h2>Households <span class="hint" id="homeshint">battery · EV · heat pump or boiler behind one meter</span></h2>
+    <div class="modes"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
+    <div class="scroll fill">
+    <table>
+      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table>
+    </div>
   </section>
 </main>
 
@@ -451,7 +454,7 @@ function drawSchem() {
   let g = `<rect class="box ${selNode === sub ? "sel" : ""}" x="280" y="10" width="200" height="36" rx="4" onclick="selectNode('${sub}')" style="cursor:pointer"/>
     <text x="380" y="25" text-anchor="middle">${sub}</text><text x="380" y="39" text-anchor="middle" class="muted">110 / 22 kV · ${sa.total_kw != null ? sa.total_kw.toFixed(0) + " kW" : "–"}</text>
     <line class="wire" x1="380" y1="46" x2="380" y2="70"/><line class="wire" x1="${colW / 2}" y1="70" x2="${W - colW / 2}" y2="70"/>
-    <text x="${W / 2}" y="63" text-anchor="middle" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer;fill:${selNode === feeder ? css("--acc") : ""}">${feeder} · 22 kV · ${fa.total_kw != null ? fa.total_kw.toFixed(0) + " kW" : "–"} ${selNode === feeder ? "◀" : ""}</text>`;
+    <text x="${W / 2}" y="63" text-anchor="middle" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer;fill:${selNode === feeder ? css("--acc") : ""}">${feeder.split(":")[1]} · 22 kV · ${fa.total_kw != null ? fa.total_kw.toFixed(0) + " kW" : "–"}</text>`;
   tfs.forEach((tf, i) => {
     const x = colW * i + 20, w = colW - 40, a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct);
     const devs = devOrder.filter(d => HH[d].tf === tf);
@@ -479,7 +482,7 @@ function drawSchem() {
     });
 
   });
-  g += `<text x="20" y="292" class="muted" style="font-size:10px">● SoC % (° = tank temp) · orange = under signal · yellow = partial · red = refused · grey = owner · white ring = real device · EV car charging · HP heat pump/boiler on</text>`;
+  g += `<text x="20" y="292" class="muted" style="font-size:9.5px">SoC % · ° tank · orange under signal · yellow partial · red refused · grey owner · ring = real · EV / HP = drawing now</text>`;
   document.getElementById("schem").innerHTML = g;
 }
 
@@ -511,9 +514,9 @@ function drawSignals() {
   const rows = Object.entries(S.active).map(([n, s]) => {
     const a = Date.parse(s.valid_from), b = Date.parse(s.valid_to), p = Math.max(0, Math.min(1, (now - a) / (b - a)));
     const f = ALL.filter(k => s[k] != null).map(k => `${k.replace("_kw", "").replace("_max", "≤").replace("_min", "≥")}${s[k]}`).join(" ");
-    return `<div class="sig"><span class="mode">${s.mode}</span><span>${n}${s.cohort ? ` <span class="muted">[${s.cohort[0]}/${s.cohort[1]}]</span>` : ""}</span><span>${f} <span style="color:var(--muted)">· ${s.valid_from.slice(11, 16)}–${s.valid_to.slice(11, 16)} UTC</span><div class="bar"><i style="width:${p * 100}%"></i></div></span><span style="color:var(--muted)">seq ${s.seq}</span></div>`;
+    return `<div class="sig"><span class="mode">${s.mode}</span><span>${n.split(":")[1]}${s.cohort ? ` <span class="muted">[${s.cohort[0]}/${s.cohort[1]}]</span>` : ""} <span style="color:var(--muted)">${f} · ${s.valid_from.slice(11, 16)}–${s.valid_to.slice(11, 16)}</span><div class="bar"><i style="width:${p * 100}%"></i></div></span><span style="color:var(--muted)">seq ${s.seq}</span></div>`;
   });
-  document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted)">none · owners run their batteries as they like</div>`;
+  document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted);font-size:12px">none · owners run their batteries as they like</div>`;
 }
 function drawDevices() {
   const q = (document.getElementById("hsearch").value || "").toLowerCase();
@@ -542,8 +545,23 @@ function drawTabs() {
     `<select class="feeder" onchange="selectNode(this.value)">${feeders.map(n => `<option value="${n}" ${n === feeder ? "selected" : ""}>${n.split(":")[1]} · ${S.tree[n].parent.split(":")[1]}${pct(n)}</option>`).join("")}</select>` +
     tfs.map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}${pct(n)}</button>`).join("");
 }
+
+function drawCity() {
+  const subs = Object.keys(S.tree).filter(n => n.startsWith("sub:"));
+  document.getElementById("city").innerHTML = subs.map(sub => {
+    const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(sub));
+    return `<div class="sub"><span class="subname ${selNode === sub ? "on" : ""}" onclick="selectNode('${sub}')" title="${sub}">${sub.split(":")[1]}</span><div class="cells">` +
+      tfs.map(tf => { const a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct), bg = pct == null ? "#3a414a" : c;
+        return `<div class="cell ${tf === selNode ? "sel" : ""} ${a.active ? "sig" : ""}" style="background:${bg}" onclick="selectNode('${tf}')" title="${tf} · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW" : "–"} of ${S.tree[tf].rating_kw} kVA${a.active ? " · " + a.active : ""}"><span>${pct == null ? "–" : pct + "%"}</span><small>${tf.split(":")[1].replace(/-\d+$/, "")}</small></div>`; }).join("") + `</div></div>`;
+  }).join("");
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length, warn = tfs.filter(n => { const p = Math.abs(S.aggregates[n].load_pct || 0); return p >= 85 && p < 100; }).length;
+  document.getElementById("cityhint").textContent = `${tfs.length} transformers · ${over} over rating · ${warn} near · ${Object.keys(S.active).length} under signal`;
+  document.getElementById("sighint").textContent = `${Object.keys(S.active).length} active`;
+  document.getElementById("loadhint").textContent = selNode;
+}
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
-function drawAll() { if (!S) return; drawHints(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
+function drawAll() { if (!S) return; drawHints(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
 
 async function refresh() {
   try { [S, H] = await Promise.all([fetch("/api/state").then(r => r.json()), fetch("/api/history").then(r => r.json())]); } catch { return; }
