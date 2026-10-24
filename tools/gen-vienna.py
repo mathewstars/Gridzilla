@@ -13,14 +13,33 @@ random.seed(2026)
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # Vienna grid: 110/22 kV substations -> 22 kV feeders -> street transformers (district names)
-SUBS = {
-    "sub:wien-sued":  {"rating_kw": 40000, "feeders": {"feeder:liesing-3":   ["atzgersdorf", "mauer"],
-                                                        "feeder:favoriten-1": ["oberlaa", "rothneusiedl"]}},
-    "sub:wien-nord":  {"rating_kw": 40000, "feeders": {"feeder:floridsdorf-2": ["stammersdorf", "strebersdorf"],
-                                                        "feeder:donaustadt-4":  ["essling", "breitenlee"]}},
-    "sub:wien-west":  {"rating_kw": 40000, "feeders": {"feeder:penzing-1":     ["huetteldorf", "hadersdorf"],
-                                                        "feeder:hietzing-2":    ["speising", "lainz"]}},
+SUBS = {   # 110/22 kV substations with Wiener Netze names -> 22 kV feeders -> street transformers (district / Grätzl names)
+    "sub:wien-sued":      {"rating_kw": 63000, "feeders": {"feeder:liesing-3":   ["atzgersdorf", "mauer", "siebenhirten"],
+                                                            "feeder:favoriten-1": ["oberlaa", "rothneusiedl", "unterlaa"],
+                                                            "feeder:inzersdorf-2": ["inzersdorf", "erlaa", "vosendorf"]}},
+    "sub:wien-nord":      {"rating_kw": 63000, "feeders": {"feeder:floridsdorf-2": ["stammersdorf", "strebersdorf", "jedlesee"],
+                                                            "feeder:donaustadt-4":  ["essling", "breitenlee", "suessenbrunn"],
+                                                            "feeder:kagran-1":      ["kagran", "hirschstetten", "aspern"]}},
+    "sub:wien-west":      {"rating_kw": 63000, "feeders": {"feeder:penzing-1":   ["huetteldorf", "hadersdorf", "weidlingau"],
+                                                            "feeder:hietzing-2":  ["speising", "lainz", "ober-st-veit"],
+                                                            "feeder:ottakring-3": ["ottakring", "wilhelminenberg", "hernals"]}},
+    "sub:wien-ost":       {"rating_kw": 63000, "feeders": {"feeder:simmering-1": ["simmering", "kaiserebersdorf", "albern"],
+                                                            "feeder:schwechat-2": ["schwechat", "mannswoerth", "rannersdorf"],
+                                                            "feeder:lobau-3":     ["lobau", "muehlleiten", "gross-enzersdorf"]}},
+    "sub:kendlerstrasse": {"rating_kw": 63000, "feeders": {"feeder:rudolfsheim-1": ["rudolfsheim", "fuenfhaus", "schmelz"],
+                                                            "feeder:meidling-2":    ["meidling", "altmannsdorf", "hetzendorf"],
+                                                            "feeder:margareten-3":  ["margareten", "wieden", "mariahilf"]}},
+    "sub:wien-mitte":     {"rating_kw": 63000, "feeders": {"feeder:landstrasse-1": ["landstrasse", "erdberg", "st-marx"],
+                                                            "feeder:leopoldstadt-2": ["leopoldstadt", "prater", "stuwerviertel"],
+                                                            "feeder:innere-stadt-3": ["innere-stadt", "josefstadt", "alsergrund"]}},
+    "sub:bisamberg":      {"rating_kw": 63000, "feeders": {"feeder:korneuburg-1": ["korneuburg", "langenzersdorf", "bisamberg"],
+                                                            "feeder:gerasdorf-2":  ["gerasdorf", "seyring", "kapellerfeld"],
+                                                            "feeder:stockerau-3":  ["stockerau", "leobendorf", "spillern"]}},
+    "sub:schwarzenbergplatz": {"rating_kw": 63000, "feeders": {"feeder:doebling-1": ["doebling", "grinzing", "nussdorf"],
+                                                                "feeder:waehring-2": ["waehring", "gersthof", "poetzleinsdorf"],
+                                                                "feeder:brigittenau-3": ["brigittenau", "zwischenbruecken", "nordbahnhof"]}},
 }
+REPRESENTS = 30
 tree = {"region:at": {"parent": None}}
 devices, houses = [], []
 tf_index = 0
@@ -33,15 +52,15 @@ for sub, sd in SUBS.items():
             tf = f"tf:{name}-{tf_index}"
             rating = random.choice([250, 400, 400, 630])
             tree[tf] = {"parent": feeder, "rating_kw": rating, "reverse_kw": rating, "other_houses": random.randint(35, 90)}
-            n = 3 if rating == 250 else 4
+            n = random.choice([3, 4, 4, 5]) if rating >= 400 else 3
             for k in range(n):
                 hid = f"sim-{name}-{random.randint(10, 99)}"
                 while any(d["id"] == hid for d in devices): hid = f"sim-{name}-{random.randint(10, 99)}"
                 kw = random.choice([5, 5, 8, 10]); kwh = {5: 10, 8: 15, 10: 20}[kw] + random.choice([0, 5])
-                has_ev = random.random() < 0.5
-                heat = random.choices(["none", "heatpump", "boiler"], [0.35, 0.45, 0.20])[0]
+                combo = random.choices(["battery", "battery+ev", "battery+hp", "battery+boiler", "battery+ev+hp", "battery+ev+boiler"], [0.20, 0.20, 0.20, 0.10, 0.20, 0.10])[0]
+                has_ev = "ev" in combo; heat = "heatpump" if "hp" in combo else ("boiler" if "boiler" in combo else "none")
                 devices.append({"id": hid, "tf": tf, "vendor": random.choice(["sim", "goodwe", "huawei", "fronius", "sma"]),
-                                "kw": kw, "kwh": kwh, "feedin_max_kw": kw, "represents": 10,
+                                "kw": kw, "kwh": kwh, "feedin_max_kw": kw, "represents": REPRESENTS,
                                 **({"ev_kw": 11} if has_ev else {}), **({"heat": heat} if heat != "none" else {})})
                 h = {"id": hid, "kw": kw, "kwh": kwh, "feedin_max_kw": kw, "pv_kwp": random.choice([4, 6, 8, 10, 12]),
                      "soc": random.randint(25, 95), "start_hour": 16, "base_load_kw": round(random.uniform(0.3, 0.9), 1),
@@ -60,9 +79,9 @@ for sub, sd in SUBS.items():
 # the real plant and its heat pump stay on the first transformer (Blatnica demo plant on top)
 first_tf = next(t for t in tree if t.startswith("tf:"))
 real = [
-    {"id": "real-powerplant-blatnica", "tf": first_tf, "vendor": "victron", "kw": 10, "kwh": 15, "feedin_max_kw": 10, "represents": 10, "ev_kw": 11, "household": "blatnica",
+    {"id": "real-powerplant-blatnica", "tf": first_tf, "vendor": "victron", "kw": 10, "kwh": 15, "feedin_max_kw": 10, "represents": REPRESENTS, "ev_kw": 11, "household": "blatnica",
      "note": "the real Victron plant on VRM: Cerbo GX, MultiPlus-II, battery, EV Charging Station"},
-    {"id": "vicare-blatnica", "tf": first_tf, "vendor": "viessmann", "kw": 3, "kwh": 0, "feedin_max_kw": 0, "represents": 10, "heat": "heatpump", "household": "blatnica",
+    {"id": "vicare-blatnica", "tf": first_tf, "vendor": "viessmann", "kw": 3, "kwh": 0, "feedin_max_kw": 0, "represents": REPRESENTS, "heat": "heatpump", "household": "blatnica",
      "note": "the real Viessmann Vitocal at the same house, via ViCare"},
 ]
 registry = {
@@ -80,5 +99,5 @@ hdr = ("# Gridzilla registry: Vienna-scale grid tree and the devices in the prog
 (ROOT / "agent" / "houses.json").write_text(json.dumps(houses, indent=1) + "\n")
 n_tf = sum(1 for t in tree if t.startswith("tf:"))
 print(f"tree: {len(SUBS)} substations, {sum(len(s['feeders']) for s in SUBS.values())} feeders, {n_tf} transformers; "
-      f"{len(devices)} simulated households (+2 real) = {10 * (len(devices) + 2)} houses represented; "
+      f"{len(devices)} simulated households (+2 real) = {REPRESENTS * (len(devices) + 2)} houses represented; "
       f"EV: {sum(1 for d in devices if 'ev_kw' in d)}, heat pumps: {sum(1 for d in devices if d.get('heat') == 'heatpump')}, boilers: {sum(1 for d in devices if d.get('heat') == 'boiler')}")
