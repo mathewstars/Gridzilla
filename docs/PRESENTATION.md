@@ -6,20 +6,19 @@ Board: Presentation tab, chip VIENNA, "follow autopilot" on. Check the clock top
 
 Speaker roles are a suggestion: M = Mathew (story, demo), P = Peter (autopilot, guard, diet plan), MT = Matthew (weather, production).
 
-## Four and a half minutes
+## Four minutes
 
-Seven slides presented, eight in the appendix for questions. The jingle costs 30 seconds and earns them back. Ten seconds of slack at the end.
+Six slides presented, nine in the appendix. The appendix slides are hidden in the deck: the slideshow skips them, type the slide number and Enter to jump to one for a question. The trailer costs 30 seconds and earns them back. Ten seconds of slack at the end.
 
 | time | slide | speaker | beat |
 |---|---|---|---|
 | 0:00 | 1 Title | M | Trailer, 32 s, say nothing, then one line. |
 | 0:30 | 2 Problem | M | The storage exists, the signal does not. |
-| 0:55 | 3 The idea | M | One message, three everyday jobs, any box. A limit, never a command. |
-| 1:35 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
-| 2:15 | 5 Live demo | M + P | Board: Vienna curve, the AI's decision, Flattening tab, Blatnica, heartbeat. 75 s. |
-| 3:30 | 6 Real vs simulated | MT | Measured numbers, honest counterfactual. |
-| 3:55 | 7 Close | M | The ask. "It eats peaks for breakfast." Stop at 4:20. |
-| appendix | signals, household, autopilot, built, makers, production, old curve, security | | For questions. |
+| 0:50 | 3 The idea | M | One message, three everyday jobs, any box. A limit, never a command. |
+| 1:25 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
+| 1:55 | 5 Live demo | M + P | Board: Vienna curve, the AI's decision, Blatnica, heartbeat. 60 s. Flattening tab only if ahead. |
+| 2:55 | 7 Close | MT + M | Two sentences real vs simulated with tonight's numbers, then the ask. Stop at 3:50. |
+| appendix (hidden) | 6 real vs simulated, signals, household, autopilot, built, makers, production, old curve, security | | For questions. Slide 6 has the measured numbers. |
 
 ### Script
 
@@ -27,46 +26,42 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 
 > Now you probably wonder what the monster really is.
 
-**2. Problem (0:30 to 0:55).**
+**2. Problem (0:30 to 0:50).**
 
 > It is a grid signal that home batteries, cars and heat pumps follow. Europe's largest battery is in people's basements, and the grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
 
-**3. The idea (0:55 to 1:35).**
+**3. The idea (0:50 to 1:25).**
 
 > One message does the whole job. "This street, next three hours, take at most three kilowatts per house." Every house under it reads the same line: the Victron, the GoodWe, the Viessmann, the car charger. Each one sorts it out by itself: battery first, car second, hot water third. Same message at noon: "give at most two", and the sun goes into the batteries instead of the feeder. Same message after an outage: "be full by seven", and the street refills without a second blackout. The operator only ever sends a limit, never a command, which is why an operator can sign up for it tomorrow. An AI writes the message every fifteen minutes, thirty lines of rules check it, the platform signs it.
 
 The owner's veto, the two-minute revert and the meter accounting are Q&A material; they land better when someone asks.
 
-**4. The monster eats peaks (1:35 to 2:15).**
+**4. The monster eats peaks (1:25 to 1:55).**
 
 > Gridzilla eats peaks. Every street, every evening. At six the cars come home and the transformer would go to a hundred and ten percent. With Gridzilla it stays at seventy. The cars still charge, just not at dinner: plugged in at six, trickle through the evening, full by seven in the morning. The batteries eat the dinner spike, the noon sun charges them. Nobody at home notices. The operator never buys the bigger transformer. Planned every two hours from the real weather, by thirty lines of code, not by the AI.
 
 If asked how: "we pour the car charging into the night until it is flat, and let the batteries cut the dinner hill to the same level."
 
-**5. Live demo (2:15 to 3:30).** Alt-tab to the board. Talk while clicking, never wait for a page.
+**5. Live demo (1:55 to 2:55).** Alt-tab to the board. Talk while clicking, never wait for a page. Sixty seconds: four clicks, not five.
 
 1. Presentation tab, VIENNA chip:
    > Seventy-two transformers, two hundred seventy-two households, one of them real. Blue is with Gridzilla, grey is without, orange is the peak eaten.
 2. The four tiles:
    > What the AI saw, what it chose, the rule check, the signed message.
-3. Flattening tab, VIENNA, then one street:
-   > Tonight's plan, for the city and for one street. Cars full by seven.
-4. Presentation, pin Blatnica:
+3. Presentation, pin Blatnica:
    > The real plant, live: grid, battery, charger, heat pump. Last reply verified.
-5. Autopilot tab, pause heartbeat, wait for the red pill:
+4. Autopilot tab, pause heartbeat, wait for the red pill:
    > The operator goes dark. Every house goes back to normal. Nobody can hold your battery hostage.
 
-   Resume. Back to the deck. If behind, skip Blatnica and keep the heartbeat.
+   Resume. Back to the deck. If behind, skip Blatnica and keep the heartbeat. Only if ahead: Flattening tab, VIENNA, then one street: "Tonight's plan, for the city and for one street. Cars full by seven."
 
-**6. Real vs simulated (3:30 to 3:55).**
+**6. Real vs simulated, and the close (2:55 to 3:50).** Slide 7. Slide 6 with the full numbers is hidden; jump to it if asked.
 
-> Real: the whole path, a Victron plant and a Viessmann heat pump reacting to a signed message, the planning on the fleet. Simulated: the fleet, two thousand houses, same cars with and without, realistic charging. Measured tonight: one street thirty-one percent off its peak, Vienna with two thousand houses five megawatts off, a street where no car charged, zero.
-
-**7. Close (3:55 to 4:20).**
-
+> Real: a Victron plant and a Viessmann heat pump reacting to a signed message, the planning on the fleet. Simulated: two thousand houses, same cars with and without. Tonight: one street thirty-six percent off its peak, Vienna five megawatts.
+>
 > We need one street transformer to pilot on, this winter. Sign-up is two weeks, a second maker one week, we own the plant. After that: streets that keep their lights on from their own batteries when the line is gone. Gridzilla. It eats peaks for breakfast. Thank you.
 
-Stop. Questions. The appendix covers production, security, makers, the six signals.
+Stop at 3:50. Questions. The hidden appendix covers the numbers, production, security, makers, the six signals: slide number plus Enter.
 
 ---
 
@@ -147,7 +142,7 @@ Click the speaker icon the moment the slide is up. Thirty seconds of trailer. Do
 >
 > Real: the signal path, end to end. A signed message goes out over a public broker, a Victron plant and a Viessmann heat pump move, verified acks come back. The algorithm and the guard are real and run on the fleet every two hours.
 >
-> Modelled: the fleet. Two hundred seventy-one simulated households, each standing for eight real ones, two thousand program houses, half of them with a car. The counterfactual is honest: the same houses with no signal, a car charges on fifty-five percent of nights, arrivals spread over three hours, full power until full. Measured tonight: one street, Speising, five hundred seventy-four kilowatts down to three hundred ninety-eight, thirty-one percent. Vienna with two thousand enrolled houses, twenty-six point six megawatts down to twenty-one point seven, nineteen percent. A street where no car charged tonight: zero. The gap is the cars and the batteries, nothing else.
+> Modelled: the fleet. Two hundred seventy-one simulated households, each standing for eight real ones, two thousand program houses, half of them with a car. The counterfactual is honest: the same houses with no signal, a car charges on fifty-five percent of nights, arrivals spread over three hours, full power until full. Measured tonight, with the heat pumps shedding floor heating as well: one street, Atzgersdorf, five hundred eleven kilowatts down to three hundred twenty-five, thirty-six percent. Vienna with two thousand enrolled houses, thirty-one point two megawatts down to twenty-six point two, five megawatts, sixteen percent. A street where no car charged tonight: zero. The gap is the cars and the batteries, nothing else.
 
 ### 9. Live demo (6:00 to 9:15)
 
