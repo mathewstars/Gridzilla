@@ -134,7 +134,7 @@ export default function Slide4({ freeze, step }: SlideProps) {
     }
   }, [plan, snap]);
   useEffect(() => {
-    const t = window.setTimeout(() => setTimedOut(true), 2500);
+    const t = window.setTimeout(() => setTimedOut(true), 6000);
     return () => window.clearTimeout(t);
   }, []);
   useEffect(() => {

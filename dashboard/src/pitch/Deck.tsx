@@ -20,6 +20,7 @@ import Notes from "./shell/Notes";
 import Overview, { overviewLayout } from "./shell/Overview";
 import { useTheme } from "../ops/theme";
 import Backdrop from "./shell/Backdrop";
+import { useFlatten } from "../api";
 import "./deck.css";
 
 const W = 1920;
@@ -116,6 +117,8 @@ export default function Deck() {
   const trailer = useTrailer(!freeze, () => afterTrailer.current());
   const size = useWindowSize();
   const [theme, setTheme] = useTheme();
+  // Slide 4's live plan, fetched from the first frame (the poll is shared), so the curve is live the moment it comes on.
+  useFlatten(freeze ? null : "region:at");
   const cursorHidden = useIdleCursor(CURSOR_IDLE_MS);
 
   const setPos = useCallback((p: Pos) => {

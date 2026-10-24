@@ -71,7 +71,7 @@
 }
 .s4-hold {
   display: inline-grid;
-  justify-items: start;
+  justify-items: end;
 }
 .s4-hold > span {
   grid-area: 1 / 1;
