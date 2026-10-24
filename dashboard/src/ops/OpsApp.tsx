@@ -10,6 +10,10 @@ import FeedColumn from "./cols/FeedColumn";
 import ControlColumn from "./cols/ControlColumn";
 import OtherView from "./views/OtherView";
 import "./ops.css";
+import { applyTheme, initialTheme } from "./theme";
+
+// Theme before the first paint, so the console never flashes light.
+applyTheme(initialTheme());
 
 const ROUTES: Route[] = ["ops", "city", "autopilot", "manual", "households", "plant", "weather", "log", "present"];
 const routeOf = (): Route => {

@@ -18,7 +18,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { House } from "../../model";
 import { cohortOf } from "./cohort";
-import { P, loadTone } from "../../stage/palette";
+import { P, PX, loadTone } from "../../stage/palette";
 import { FLOW_EPS, flowSpeed, type StreetModel } from "./layout";
 import { lightAt, newLight } from "./sky";
 import type { HoverInfo } from "./Street3D";
@@ -138,7 +138,7 @@ const PANEL_DARK = new THREE.Color("#233049");
 const LOT_ON = "#a4e6b4"; // Apple green at about 45 % on the light ground: this home follows Gridzilla
 const LOT_RIM = P.green; // a solid green edge round it, so a follower reads from the back of the room
 const PANEL_LIT = new THREE.Color("#8fb0dd");
-const DOT_TAKE = new THREE.Color(P.ink); // power going into a house
+const DOT_TAKE = new THREE.Color(PX.ink); // power going into a house
 const DOT_GIVE = new THREE.Color(P.green); // clean power flowing back
 const HIDE = 1e-4;
 
@@ -726,7 +726,7 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
   const shown = useRef({ h: hour, c: cloud });
   const target = useMemo(() => new THREE.Object3D(), []);
   useEffect(() => {
-    scene.background = new THREE.Color(P.ground);
+    scene.background = new THREE.Color(PX.ground);
     scene.add(target);
     return () => {
       scene.remove(target);

@@ -35,6 +35,41 @@
   --shadow-card: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
+/* Dark theme (ops console default, captain): Apple/Linear dark. Flat near-black surfaces, depth from layering and a 1px
+   hairline, same status colours. Every component reads these variables, so both themes share all markup. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ground: #0b0b0f;
+  --color-card: #1d1d1f;
+  --color-ink: #f5f5f7;
+  --color-secondary: #a1a1a6;
+  --color-tertiary: #8e8e93;
+  --color-fill: #2a2a2e;
+  --color-fill-2: #232327;
+  --color-fill-press: #3a3a3e;
+  --color-fg: #f5f5f7;
+  --color-dim: #a1a1a6;
+  --color-faint: #8e8e93;
+  --color-signal: #f5f5f7;
+  --color-take: #f5f5f7;
+  --color-give: #a1a1a6;
+  --color-ok: #f5f5f7;
+  --color-warn: #a1a1a6;
+  --color-edge: #2a2a2e;
+  --color-deck: #1d1d1f;
+  --color-deck-2: #141418;
+  --color-deck-3: #2a2a2e;
+  --color-hairline: #2a2a2e;
+  --shadow-card: 0 0 0 1px #2a2a2e;
+}
+:root[data-theme="dark"] .btn-primary { color: #0b0b0f; background: #f5f5f7; }
+:root[data-theme="dark"] .btn-primary:hover { background: #e8e8ed; }
+:root[data-theme="dark"] .btn-primary:active { background: #d2d2d7; }
+:root[data-theme="dark"] .btn:active { background: #46464a; }
+:root[data-theme="dark"] .btn-white { background: #2a2a2e; }
+:root[data-theme="dark"] .btn-white:hover { background: #3a3a3e; }
+:root[data-theme="dark"] .btn:focus-visible { box-shadow: 0 0 0 3px #0b0b0f, 0 0 0 5px #f5f5f7; }
+
 :root {
   color-scheme: light;
   /* 16px at 1440 wide, ~22px at 2560: the Apple scale grows for the projector */
