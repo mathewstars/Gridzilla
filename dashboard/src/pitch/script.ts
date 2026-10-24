@@ -1,98 +1,76 @@
-// Presenter notes (N key): the lines from the run of show (firstmate data/gz-ui/pitch-script.md), one entry per slide.
-// The slides show only what belongs on a slide; the speaker says the rest.
+// Presenter notes (N key, off by default): one short line per build step, from the run of show (firstmate
+// data/gz-ui/pitch-script.md). The overlay shows only the current step's line; a key badge marks that another beat
+// follows on the same slide. The slides show only what belongs on a slide; the speaker says the rest.
 export interface Notes {
   who: string;
   time: string;
-  lines: string[];
-  /** What the next key press does on this slide, when it is not simply "next slide". */
-  keys?: string;
+  /** What to say on each build step of the slide, in order. */
+  steps: string[];
 }
 
+// Index = slide number: 0 the trailer, 1 title, 2 problem, 3 idea, 4 monster, 5 demo, 6 real vs simulated, 7 close.
 export const NOTES: Notes[] = [
   {
     who: "Matthew",
     time: "0:00, 30 s",
-    lines: [
-      "Before you walk up: press F for full screen and 2 for the cold evening, so the peak is already building.",
-      "Press Space: the trailer plays with its sound for 30 seconds. Say nothing.",
-      "At its last frame the deck cuts to the title by itself.",
-    ],
-    keys: "Space plays the trailer. A press while it plays skips to the title.",
+    steps: ["Before you walk up: F for full screen, 2 for the cold evening. Space plays the trailer; say nothing until the title."],
   },
+  { who: "Matthew", time: "0:30", steps: ["Flat: Now you probably wonder what the monster really is."] },
   {
     who: "Matthew",
-    time: "0:30, 2 s",
-    lines: ["Right after the cut, flat: Now you probably wonder what the monster really is."],
-  },
-  {
-    who: "Matthew",
-    time: "0:30, 25 s",
-    lines: [
-      "It is a grid signal that home batteries, cars and heat pumps follow.",
-      "Europe's largest battery is in people's basements. The grid can use none of it.",
-      "Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts.",
+    time: "0:30, 30 s",
+    steps: [
+      "Slowly: six in the evening, a street in Vienna. The transformer is at a hundred and ten percent. Nobody knows. The batteries are full. Nobody has asked them.",
+      "It is a grid signal that home batteries, cars and heat pumps follow. Slovakia: no signal. Germany: a dimmer on one device. Ukraine: three gigawatt hours idle.",
       "The storage exists. The signal does not.",
     ],
   },
   {
     who: "Matthew",
     time: "0:55, 40 s",
-    lines: [
-      "One message does the whole job.",
-      "\"This street, next three hours, take at most three kilowatts per house.\"",
-      "Every box under it reads the same line. The Victron, the GoodWe, the Viessmann, the car charger. Each one sorts it out by itself. Battery first, car second, hot water third.",
-      "(Right) Same message at noon: \"give at most two.\" The sun goes into the batteries instead of the feeder.",
-      "The operator only ever sends a limit. Never a command. The house decides. The owner can always say no.",
-      "(Right) Every fifteen minutes the AI reads the whole city. Seventy-two transformers, the weather, the plan, every house's reply.",
-      "It writes the message. Thirty lines of rules check it. The platform signs it. The houses reply, signed.",
+    steps: [
+      "One message does the whole job. Every box reads the same line and sorts it out by itself: battery first, car second, hot water third.",
+      "Same message at noon: give at most two. The sun goes into the batteries instead of the feeder.",
+      "The operator only ever sends a limit, never a command. The house decides. The owner can always say no.",
+      "Every fifteen minutes the AI reads the city and writes the message. Thirty lines of rules check it, the platform signs it, the houses reply, signed.",
     ],
-    keys: "Right: the same message at noon. Right: the closing line. Right: the loop. Next press goes to the peaks.",
   },
   {
     who: "Peter",
     time: "1:35, 40 s",
-    lines: [
-      "Gridzilla eats peaks. Every street, every evening.",
-      "At six the cars come home and the transformer would hit a hundred and ten percent. (Right) With Gridzilla it stays at seventy.",
-      "The cars still charge, just not at dinner. Plugged in at six, trickle through the evening, full by seven in the morning.",
-      "The batteries eat the dinner spike. The noon sun fills them again.",
-      "Nobody at home notices. The operator never buys the bigger transformer.",
-      "Planned every two hours from the real weather. Thirty lines of code, not the AI.",
+    steps: [
+      "Gridzilla eats peaks, every street, every evening. At six the cars come home and the transformer would hit a hundred and ten percent.",
+      "With Gridzilla it stays at seventy. The cars charge through the night, full by seven. Planned every two hours from the real weather, not by the AI.",
     ],
   },
   {
     who: "Matthew",
     time: "2:15, 75 s",
-    lines: [
-      "0-15 s, ring and big number: This is one street in Vienna, tonight, live. Without us this transformer goes past its limit. The number is what we are taking off it right now. The black line is with Gridzilla. Grey is without. Green is tonight's plan. The shaded part is the energy we moved.",
-      "15-30 s, the strip: All the homes on this street follow the plan. Zero kilowatts over any limit, so nobody gets cut off. Most of the city's transformers need no upgrade tonight. Any brand can join. It is an open profile, and every reply is signed.",
-      "30-45 s, the four AI steps: The AI saw the peak coming. It wrote the message in about a second. The rules checked it. The platform signed it and sent it. A person can take over at any time.",
-      "45-60 s, press 3: Same street at noon. Same kind of message, other direction. The solar goes into the batteries instead of back up the feeder.",
-      "60-75 s, Peter pauses the operator on the board: Now the operator goes dark. Every house goes back to normal within two minutes. Nobody can hold your battery hostage.",
-      "If behind: skip the noon step.",
+    steps: [
+      "This is one street in Vienna, tonight, live. Talk while it runs; never wait for the screen.",
+      "The curve: with Gridzilla against without, the limit, tonight's plan, the peak it eats.",
+      "The ring: how full this transformer is right now.",
+      "The AI saw the peak coming, wrote the message in about a second; the rules checked it, the platform signed and sent it.",
+      "A limit for a limited time: every message runs out by itself.",
+      "The whole city: colour is how close each transformer is to its limit. Most need no upgrade tonight.",
+      "What just happened: signed messages out, signed replies back. Any brand can join.",
+      "Peter pauses the operator on the board: every house is back to owner mode within two minutes.",
     ],
-    keys: "1-4 scenarios, the stage's own keys work. Left/Right still move slides.",
   },
   {
     who: "Dad",
     time: "3:30, 25 s",
-    lines: [
-      "Real: the whole path. A Victron plant and a Viessmann heat pump in Slovakia reacting to a signed message. The planning runs on the fleet.",
-      "Simulated: the fleet. Two thousand houses, the same cars with and without, realistic charging.",
-      "Measured: one street thirty-one percent off its peak. Vienna with two thousand houses, five megawatts off. A street where no car charged, zero.",
+    steps: [
+      "Real: our family home in Blatnica, a Victron plant and a Viessmann heat pump following a signed message. Simulated: two thousand houses, the same cars with and without. Thirty-one percent off one street, five megawatts off Vienna.",
     ],
   },
   {
     who: "Matthew",
     time: "3:55, 25 s",
-    lines: [
-      "We need one street transformer to pilot on. This winter.",
-      "Sign-up is two weeks. A second maker, one week. We own the plant.",
-      "After that: streets that keep their lights on from their own batteries when the line is gone.",
-      "(Right) So at six tomorrow, when the cars come home, the batteries answer before anyone notices.",
-      "(Right) Gridzilla. It eats peaks for breakfast. Thank you.",
-      "Stop at 4:20. Questions.",
+    steps: [
+      "We need one street transformer to pilot on. This winter. Sign-up two weeks, a second maker one week, we own the plant.",
+      "So at six tomorrow, when the cars come home, the batteries answer before anyone notices.",
+      "Gridzilla. It eats peaks for breakfast. Thank you. Stop at 4:20.",
     ],
-    keys: "Right: the six o'clock line. Right: the last line alone.",
   },
 ];
