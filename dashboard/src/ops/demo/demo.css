@@ -98,3 +98,14 @@
   .demo-hero-head { gap: 4px 20px; }
   .demo-where { margin-top: 2px; }
 }
+
+/* Standalone (the deck, or #/demo?bare=1): the demo fills the whole viewport, the hero takes the height that is left. */
+.demo-standalone { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--color-ground); }
+.demo-standalone > .demo { flex: 1 1 auto; }
+@media (min-width: 1240px) { .demo-standalone { height: 100vh; height: 100dvh; } .demo-standalone > .demo { height: auto; min-height: 0; } }
+
+/* the curve legend: one line where six keys fit, two even rows of three below that (never a ragged wrap) */
+.demo-curve .lc-legend { flex-wrap: nowrap; white-space: nowrap; }
+@media (max-width: 1599px) {
+  .demo-curve .lc-legend { display: grid !important; grid-template-columns: repeat(3, max-content); column-gap: 1.25em; }
+}

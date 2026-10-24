@@ -26,7 +26,8 @@ export default DemoView;
 
 function OwnData() {
   const ops = useOps();
-  return ops.s ? <Demo ops={ops} /> : <div className="demo-wait">Connecting to the grid.</div>;
+  // standalone (the pitch deck embeds DemoView full-bleed): it fills the viewport itself
+  return <div className="demo-standalone">{ops.s ? <Demo ops={ops} /> : <div className="demo-wait">Connecting to the grid.</div>}</div>;
 }
 
 /** Transformers by how interesting they are now: the autopilot's target first, then the highest forecast peak. */

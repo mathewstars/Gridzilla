@@ -769,7 +769,7 @@ export default function LiveCurve({
   const keyLim = (rating != null && showImp) || (reverse != null && showRev);
   const stageLegend = (
     <div
-      className="flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
+      className="lc-legend flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
       style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
     >
       {totalPts.length > 1 && <Key swatch={<Swatch color={lineC} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla" : "Load now"} />}
