@@ -77,11 +77,25 @@ function sentence(s: State, tf: string, plan: FlattenPlan | null): string {
   const peak = s.forecast_peak?.[tf];
   const sig = cellOf(s, tf, null).signal;
   if (plan) {
-    let i = 0;
-    plan.naive_kw.forEach((v, j) => (Math.abs(v) > Math.abs(plan.naive_kw[i]) ? (i = j) : 0));
-    const at = hhmm(plan.hours[i] ?? plan.start_h);
-    const moved = Math.round(plan.peak_naive_kw - plan.peak_plan_kw);
-    if (plan.peak_naive_pct >= 85 && moved > 0) return `Peak coming at ${at}: ${plan.peak_naive_pct} % of the limit. Gridzilla is moving ${moved} kW to keep ${name} at ${plan.peak_plan_pct} %.`;
+    // the plan runs 24 h from now in 15-minute slots and wraps past midnight: prefer the peak of the next 12 hours,
+    // and say "tomorrow" when the peak it talks about falls after midnight
+    const slots = plan.naive_kw.length;
+    const near = Math.min(slots, 48);
+    const peakIn = (n: number) => {
+      let i = 0;
+      for (let j = 0; j < n; j++) if (Math.abs(plan.naive_kw[j]) > Math.abs(plan.naive_kw[i])) i = j;
+      return i;
+    };
+    const lim = plan.rating_kw || 1;
+    let i = peakIn(near);
+    if (Math.abs(plan.naive_kw[i]) / lim < 0.85) i = peakIn(slots);
+    const naivePct = Math.round((100 * Math.abs(plan.naive_kw[i])) / lim);
+    const planPct = Math.round((100 * Math.abs(plan.planned_kw[i])) / lim);
+    const moved = Math.round(Math.abs(plan.naive_kw[i]) - Math.abs(plan.planned_kw[i]));
+    const hour = plan.hours[i] ?? plan.start_h;
+    const tomorrow = (s.sim_hour % 24) + i * 0.25 >= 24;
+    const when = `${tomorrow ? "tomorrow at " : "at "}${hhmm(hour)}`;
+    if (naivePct >= 85 && moved > 0) return `Peak coming ${when}: ${naivePct} % of the limit. Gridzilla is moving ${moved} kW to keep ${name} at ${planPct} %.`;
   }
   if (sig) return `Gridzilla is holding ${name} inside its limit until ${hhmm(s.sim_hour + (Date.parse(sig.valid_to) - Date.parse(s.now)) / 3_600_000 * (s.autopilot?.sim_x ?? 60))}.`;
   if (peak && Math.abs(peak.pct) >= 85) return `${name} is heading to ${Math.abs(peak.pct)} % at ${hhmm(peak.h)}. Gridzilla is watching.`;

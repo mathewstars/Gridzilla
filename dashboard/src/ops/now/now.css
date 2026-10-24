@@ -26,7 +26,7 @@
 .fstrip-all { font-size: max(13px, 0.8125rem); color: var(--color-secondary); text-decoration: none; }
 .fstrip-all:hover { color: var(--color-ink); }
 .fstrip-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.fstrip-row { display: grid; grid-template-columns: 3.5em minmax(0, 1fr); gap: 10px; font-size: max(13px, 0.8125rem); line-height: 1.35; color: var(--color-ink); }
+.fstrip-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px; font-size: max(13px, 0.8125rem); line-height: 1.35; color: var(--color-ink); }
 .fstrip-time { color: var(--color-tertiary); font-variant-numeric: tabular-nums; }
 .fstrip-text { min-width: 0; overflow-wrap: anywhere; }
 .fstrip-meta { color: var(--color-secondary); }
@@ -34,3 +34,5 @@
 .fstrip-row.tone-wait .fstrip-text > span:first-child { color: #ff9500; }
 .fstrip-quiet { color: var(--color-secondary); }
 .now-code { margin-left: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--color-tertiary); }
+
+.fstrip-day { color: var(--color-tertiary); }
