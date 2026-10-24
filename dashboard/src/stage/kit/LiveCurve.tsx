@@ -16,7 +16,7 @@
 //
 // Motion with purpose only: the time axis pans linearly with grid time, the newest segment of the line grows to each new
 // reading (no full redraw), the scale glides when the peak grows, the plan redraws when a new plan round lands.
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FlattenPlan, History, Signal, State } from "../../api";
 import { hhmm, loadPct, nice } from "../../model";
 import { signalMarks, unwrapForecast, unwrapHistory, niceStep, type HistPt } from "../../components/curve/series";
@@ -25,7 +25,7 @@ import Counter, { fmtNum } from "./Counter";
 import { smoothBand, smoothPath } from "./smooth";
 import { useTweens } from "./tween";
 import { placeLabels, textW, useBox, type LabelReq, type Rect } from "./layout";
-import { apex, plateauStart, signalWindow, slicePlan, unwrapPlan } from "./plan";
+import { apex, backflowDip, peakPct, plateauStart, signalWindow, slicePlan, unwrapPlan } from "./plan";
 
 type Variant = "hero" | "card";
 
@@ -93,8 +93,10 @@ const fwd24 = (from: number, to: number) => (((to - from) % 24) + 24) % 24;
 /** Stage history on the continuous clock: the platform keeps one reading per grid hour or so (steps of 0.97 to 1.3 h)
  *  and its day loop skips 00:00 to 02:00, so a gap up to 3 grid hours still belongs to the same run (the classic unwrap
  *  cut the past at every step over 1 h, which left the chart with a stub that changed length poll by poll). A reading
- *  repeated at the same grid minute (the clock waiting at the end of a day) keeps the newer one. Walks back `backH`. */
-function unwrapStage(history: History | null, node: string, tNow: number, nowH: number, backH: number): HistPt[] {
+ *  repeated at the same grid minute (the clock waiting at the end of a day) keeps the newer one. Walks back `backH`.
+ *  The run stops at the last discontinuity: a step back in grid time, a jump of more than 2 grid hours, or `cutT` (the
+ *  grid time the scenario on screen started), so readings from another scenario never join the line. */
+function unwrapStage(history: History | null, node: string, tNow: number, nowH: number, backH: number, cutT = -Infinity): HistPt[] {
   const raw = (node && history?.nodes?.[node]) || [];
   if (!raw.length) return [];
   const out: HistPt[] = [];
@@ -105,10 +107,11 @@ function unwrapStage(history: History | null, node: string, tNow: number, nowH: 
     const p = raw[i];
     if (i < raw.length - 1) {
       const dt = fwd24(p.h, raw[i + 1].h);
-      if (dt > 3) break;
+      if (dt > 2) break; // the last discontinuity: the grid hour went backwards (fwd wraps past 2) or jumped
       if (dt < 0.02) continue;
       t -= dt;
     }
+    if (t < cutT - 0.02) break; // recorded before the scenario on screen started
     out.push({ t, total: p.total_kw, program: p.program_kw, other: p.other_kw, base: p.baseline_kw ?? null });
     if (tNow - t > backH) break;
   }
@@ -126,6 +129,51 @@ function stageTicks(lo: number, hi: number, limits: number[]): number[] {
   const ok = cands.filter((v) => v <= m && limits.every((l) => Math.abs(Math.abs(l) - v) > Math.max(1, Math.abs(l) * 0.12)));
   const r = ok.length ? ok[0] : null;
   return r == null ? [0] : side >= 0 ? [0, r] : [-r, 0];
+}
+
+/** Straight segments through the readings (history is about one reading per grid hour: a spline would invent waves). */
+function linePath(pts: XYPt[], join = false): string {
+  return pts.map((p, i) => `${i || join ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
+}
+function lineBand(top: XYPt[], bottom: XYPt[]): string {
+  return top.length < 2 ? "" : linePath(top) + linePath([...bottom].reverse(), true) + "Z";
+}
+
+/** The top bar's grid clock (Stage.tsx useGridClock): s.sim_hour ticking at sim_x between polls, never stepping back a
+ *  few minutes, so the chart's "Now hh:mm" always reads the same minute as the bar. */
+function NowClock({ s }: { s: State }) {
+  const anchor = useRef<{ h: number; t: number; rate: number } | null>(null);
+  const shown = useRef<number | null>(null);
+  const [min, setMin] = useState<number | null>(null);
+  useEffect(() => {
+    if (!Number.isFinite(s.sim_hour)) return;
+    const prev = anchor.current;
+    const paused = prev != null && Math.abs(s.sim_hour - prev.h) < 1e-6;
+    anchor.current = { h: s.sim_hour, t: performance.now(), rate: paused ? 0 : s.autopilot?.sim_x || 1 };
+  }, [s]);
+  useEffect(() => {
+    const tick = () => {
+      const a = anchor.current;
+      if (!a) return;
+      const dt = Math.min(performance.now() - a.t, 8000);
+      const h = a.h + (dt / 3_600_000) * a.rate;
+      const m = ((Math.round(h * 60) % 1440) + 1440) % 1440;
+      const cur = shown.current;
+      if (cur != null) {
+        const back = (((cur - m) % 1440) + 1440) % 1440;
+        if (back > 0 && back <= 5) return;
+      }
+      if (m !== cur) {
+        shown.current = m;
+        setMin(m);
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, []);
+  const m = min ?? ((Math.round(s.sim_hour * 60) % 1440) + 1440) % 1440;
+  return <>{`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`}</>;
 }
 
 type Placed = Map<string, Rect>;
@@ -194,6 +242,7 @@ export default function LiveCurve({
   legend,
   minPlot,
   planSrc = "flatten",
+  onRev,
 }: {
   s: State;
   history: History | null;
@@ -220,6 +269,8 @@ export default function LiveCurve({
   minPlot?: string;
   /** window.__gz key the plan payload is kept under, for data-src (default "flatten"). */
   planSrc?: string;
+  /** Told whether the backflow limit is drawn (stage), so the card title names only what the plot shows. */
+  onRev?: (drawn: boolean) => void;
 }) {
   const hero = variant === "hero";
   const clock = useClock(s.sim_hour);
@@ -227,7 +278,7 @@ export default function LiveCurve({
   const sp0 = span ?? { past: hero ? 6 : 4, future: hero ? 2 : 1.5 };
   const sp = W > 0 && W < 480 && sp0.narrow ? sp0.narrow : sp0;
   const PAST = sp.past;
-  const FUTURE = sp.future;
+  const narrowOn = sp !== sp0;
   const tn = node ? s.tree[node] : undefined;
   const agg = node ? s.aggregates[node] : undefined;
   const rating = tn?.rating_kw ?? agg?.rating_kw ?? null;
@@ -238,13 +289,23 @@ export default function LiveCurve({
   const washC = stage ? P.orange : P.green;
   const legendAt = legend ?? (stage ? "above" : "below");
 
+  // A scenario key starts a new story: the past line starts at the switch, never joining the last scenario's readings.
+  const scen = s.scenario?.name ?? null;
+  const scenRef = useRef<{ name: string | null; t: number } | null>(null);
+  if (!scenRef.current) scenRef.current = { name: scen, t: -Infinity };
+  else if (scenRef.current.name !== scen) scenRef.current = { name: scen, t: clock.t };
+  else if (clock.snap && clock.n > 0 && Math.abs(scenRef.current.t - clock.t) > 0.01) scenRef.current = { name: scen, t: clock.t };
+  const cutT = scenRef.current.t;
   const hist = useMemo(
-    () => (stage ? unwrapStage(history, node, clock.t, s.sim_hour, PAST + 1.5) : unwrapHistory(history, node, clock.t, s.sim_hour)),
-    [stage, history, node, clock.t, s.sim_hour, PAST],
+    () => (stage ? unwrapStage(history, node, clock.t, s.sim_hour, PAST + 1.5, cutT) : unwrapHistory(history, node, clock.t, s.sim_hour)),
+    [stage, history, node, clock.t, s.sim_hour, PAST, cutT],
   );
   const usePlan = stage && !!plan;
   const fc = useMemo(() => (usePlan ? [] : unwrapForecast(s, node, clock.t)), [usePlan, s, node, clock.t]);
   const planPts = useMemo(() => (usePlan && plan ? unwrapPlan(plan, s.sim_hour, clock.t) : []), [usePlan, plan, s.sim_hour, clock.t]);
+  // Phones: the window runs on until the "without" hill is over (apex + 2 h), never cut mid-peak.
+  const apexAhead = narrowOn ? apex(slicePlan(planPts, clock.t, clock.t + (sp0.future ?? 18))) : null;
+  const FUTURE = narrowOn && apexAhead ? Math.min(sp0.future, Math.max(sp.future, apexAhead.t - clock.t + 2)) : sp.future;
   const marks = useMemo(() => signalMarks(s, node, clock.t), [s, node, clock.t]);
   const win = useMemo(() => (stage ? signalWindow(s, signal, clock.t) : null), [stage, s, signal, clock.t]);
   const last = hist[hist.length - 1];
@@ -268,6 +329,8 @@ export default function LiveCurve({
   const backflow = reverse != null && -vMin > Math.max(0, vMax);
   const showImp = stage ? !(backflow && vMax <= 0) : !backflow;
   const showRev = stage ? reverse != null && vMin < -0.5 * reverse : backflow;
+  /** The side of the limit that matters: export (-1) only while the backflow limit is drawn and it is the tighter one. */
+  const side = showRev && reverse != null && (-vMin / reverse > Math.max(vMax, 0) / (rating || 1) || !showImp) ? -1 : 1;
   const hiT = stage
     ? (showImp ? Math.max(lim, vMax) : Math.max(vMax, 0) + span_ * 0.08) * (showImp ? 1.08 : 1)
     : backflow
@@ -276,6 +339,11 @@ export default function LiveCurve({
   const loT = showRev
     ? Math.min(-(reverse as number) * 1.08, vMin - span_ * 0.08)
     : Math.min(0, vMin - span_ * (stage ? 0.06 : 0.05));
+
+  const revOn = stage && showRev;
+  useEffect(() => {
+    onRev?.(revOn);
+  }, [onRev, revOn]);
 
   // Head of the line: glides to the newest reading; a jump (restart, other transformer) lands at once.
   const headTo = last?.t ?? clock.t;
@@ -302,12 +370,13 @@ export default function LiveCurve({
   const k = rem / 16;
   const compact = W < 360 || H < 200;
   const fs = stage ? Math.max(13, rem * (compact ? 0.875 : 1)) : Math.max(12, Math.min(hero ? 30 : 15 * k, W / 44, H / 10));
-  const fsAxis = stage ? Math.max(12, rem * 0.875) : Math.max(11, fs * 0.86);
+  const fsAxis = stage ? Math.max(13, rem * (compact ? 0.875 : 1)) : Math.max(11, fs * 0.86);
   const lh = Math.ceil(fs * 1.3);
   const lhA = Math.ceil(fsAxis * 1.3);
-  const swTotal = stage ? Math.max(2.5, rem * 0.19) : hero ? Math.max(3, Math.min(6, W / 280)) : 3.25 * k;
-  const swBase = stage ? swTotal * 0.8 : hero ? swTotal * 0.85 : 2.5 * k;
-  const swLim = stage ? Math.max(1.5, rem * 0.1) : hero ? Math.max(2, swTotal * 0.6) : 2 * k;
+  // Stage: every weight in rem, so it grows with the root clamp on a projector (3 px at 16 px rem).
+  const swTotal = stage ? Math.max(2.5, rem * 0.1875) : hero ? Math.max(3, Math.min(6, W / 280)) : 3.25 * k;
+  const swBase = stage ? Math.max(2, rem * 0.15) : hero ? swTotal * 0.85 : 2.5 * k;
+  const swLim = stage ? Math.max(2, rem * 0.1875) : hero ? Math.max(2, swTotal * 0.6) : 2 * k;
   const halo = ground ?? P.card;
   const g = rem * 0.4;
 
@@ -359,10 +428,27 @@ export default function LiveCurve({
   const baseRun = !stage || realN > 1 ? shown.filter((p) => p.base != null) : [];
   const basePts = baseRun.map((p) => [x(p.t), y(p.base as number)] as XYPt);
   const shaving = (p: HistPt) => p.base != null && Math.abs(p.total) < Math.abs(p.base) && (Math.sign(p.base) === Math.sign(p.total) || Math.abs(p.total) <= 1);
-  const band = smoothBand(
-    baseRun.map((p) => [x(p.t), y(shaving(p) ? (p.base as number) : p.total)]),
-    baseRun.map((p) => [x(p.t), y(p.total)]),
-  );
+  // Stage: orange only where "without" is past "with" on the side of the limit that matters (the peak eaten); where the
+  // street takes more than it would have (charging moved, solar soaked up) a light green; the rest stays unfilled.
+  const eaten = (wo: number, w: number) => side * (wo - w) > 0.5 && side * wo > 0;
+  const moved = (wo: number, w: number) => side > 0 && w - wo > 0.5;
+  const band = stage
+    ? lineBand(
+        baseRun.map((p) => [x(p.t), y(eaten(p.base as number, p.total) ? (p.base as number) : p.total)] as XYPt),
+        baseRun.map((p) => [x(p.t), y(p.total)] as XYPt),
+      )
+    : smoothBand(
+        baseRun.map((p) => [x(p.t), y(shaving(p) ? (p.base as number) : p.total)]),
+        baseRun.map((p) => [x(p.t), y(p.total)]),
+      );
+  const bandMoved = stage
+    ? lineBand(
+        baseRun.map((p) => [x(p.t), y(moved(p.base as number, p.total) ? (p.base as number) : p.total)] as XYPt),
+        baseRun.map((p) => [x(p.t), y(p.total)] as XYPt),
+      )
+    : "";
+  const anyEaten = stage ? baseRun.some((p) => eaten(p.base as number, p.total)) : !!band;
+  const anyMoved = stage && baseRun.some((p) => moved(p.base as number, p.total) && (p.total - (p.base as number)) > 2);
   const fcPts = fc.filter((p) => p.t >= view - 0.05 && p.t <= tR + 0.3).map((p) => [x(p.t), y(p.total)] as XYPt);
   if (fcPts.length && headTot != null && last && view - head < 0.6) fcPts.unshift([x(head), y(headTot)]);
 
@@ -384,12 +470,20 @@ export default function LiveCurve({
   const planLine = drawn.map((p) => [x(p.t), y(p.planned)] as XYPt);
   // Only the peak eaten is shaded: where the plan holds the street below the "without" hill (or the solar backflow
   // under the "without" dip). Where the plan sits above it (car charging moved into the night) the band closes to 0.
-  const eatsPlan = (p: { naive: number; planned: number }) =>
-    Math.abs(p.planned) < Math.abs(p.naive) && (Math.sign(p.naive) === Math.sign(p.planned) || Math.abs(p.planned) <= 1);
-  const planBand = fut.length > 1 ? smoothBand(drawn.map((p) => [x(p.t), y(eatsPlan(p) ? p.naive : p.planned)] as XYPt), planLine) : "";
+  const planBand = fut.length > 1 ? smoothBand(drawn.map((p) => [x(p.t), y(eaten(p.naive, p.planned) ? p.naive : p.planned)] as XYPt), planLine) : "";
+  const planMoved = fut.length > 1 ? smoothBand(drawn.map((p) => [x(p.t), y(moved(p.naive, p.planned) ? p.naive : p.planned)] as XYPt), planLine) : "";
+  const planEats = drawn.some((p) => p.t <= tR && eaten(p.naive, p.planned));
+  const planMoves = drawn.some((p) => p.t <= tR && moved(p.naive, p.planned) && p.planned - p.naive > 2);
   const level = plan?.level_kw ?? null;
   const plateau = usePlan && level != null ? plateauStart(fut, level) : null;
   const top = usePlan ? apex(fut) : null;
+  // The backflow side binds (sunny noon): name the bottom of the "without" dip against the backflow limit.
+  const dip = usePlan && plan && side < 0 && reverse ? backflowDip(plan) : null;
+  const dipPt = dip ? planPts[dip.i] ?? null : null;
+  const revSrcOk = agg?.rating_kw != null || tn?.reverse_kw != null; // the backflow limit traces (revSrc is not "axis")
+  const dipOn = !!(dip && dipPt && dipPt.t >= view && dipPt.t <= tR && revSrcOk);
+  const dipPct = dip && reverse ? Math.round((-dip.kw / reverse) * 100) : null;
+  const dipTxt = dipPct != null ? `${fmtNum(dipPct)} %` : "";
   const topIsPeak = !!(top && plan && Math.abs(top.naive - plan.peak_naive_kw) < Math.max(1, plan.peak_naive_kw * 0.01) && top.naive > top.planned + 1);
 
   // Signals that went out, clustered (one per half hour); the newest one is named on the top row.
@@ -432,10 +526,10 @@ export default function LiveCurve({
   const limTxt = rating != null ? `${kwFmt(rating)} kW` : "";
   const revTxt = reverse != null ? `${kwFmt(reverse)} kW` : "";
   const planTxt = level != null ? `${kwFmt(level)} kW` : "";
-  const topTxt = plan ? `${fmtNum(plan.peak_naive_pct)} %` : "";
+  const topTxt = plan ? `${fmtNum(peakPct(plan))} %` : "";
   if (ready) {
     if (hasLine) dot(x(head), y(headTot as number), swTotal * 1.8);
-    for (const m of pins) {
+    for (const m of stage ? [] : pins) {
       const v = at(hist, m.t, "total");
       if (v != null) dot(x(m.t), y(v), swTotal * 1.6);
     }
@@ -523,6 +617,22 @@ export default function LiveCurve({
         const below = py + gapY;
         const above = py - gapY - lh;
         reqs.push({ id: "plan", w, h: lh, bounds: inPlot, spots: [{ x: px, y: below }, { x: mx, y: below }, { x: px - w, y: below }, { x: px, y: above }, { x: mx, y: above }, { x: px - w, y: above }] });
+      }
+      // Backflow without, under the bottom of the dip the plan lifts
+      if (dipOn && dip && dipPt) {
+        const ax = x(dipPt.t);
+        const ay = y(dip.kw);
+        [wPair("Backflow without Gridzilla ", dipTxt, fs), wPair("Backflow without ", dipTxt, fs)].forEach((w, i) => {
+          const gy = swBase / 2 + 3;
+          reqs.push({
+            id: i ? "dipS" : "dip",
+            group: "dip",
+            w,
+            h: lh,
+            bounds: inPlot,
+            spots: [{ x: ax - w / 2, y: ay + gy }, { x: ax + g, y: ay + gy }, { x: ax - g - w, y: ay + gy }, { x: ax + g * 1.5, y: ay - lh / 2 }, { x: ax - g * 1.5 - w, y: ay - lh / 2 }],
+          });
+        });
       }
       // Without, at the top of the hill the plan flattens
       if (top && topIsPeak) {
@@ -663,8 +773,9 @@ export default function LiveCurve({
       style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
     >
       {totalPts.length > 1 && <Key swatch={<Swatch color={lineC} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla" : "Load now"} />}
-      {(basePts.length > 1 || naivePts.length > 1) && <Key swatch={<Swatch color={P.tertiary} width={3} dashed />} label="Without" />}
-      {(!!band || !!planBand) && <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" />}
+      {(basePts.length > 1 || naivePts.length > 1) && <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without" />}
+      {((anyEaten && !!band) || (planEats && !!planBand)) && <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" />}
+      {(anyMoved || planMoves) && <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" />}
       {usePlan && level != null && planLine.length > 1 && <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" />}
       {keyLim && <Key swatch={<Swatch color={P.red} width={2.5} />} label="Limit" />}
       {win && winOn && !winLabelShown && (
@@ -757,14 +868,16 @@ export default function LiveCurve({
 
             <g clipPath={`url(#${clipId}-plot)`}>
               {/* the peak eaten: kept off in the past, planned away from Now on (flat fill, no gradient) */}
+              {bandMoved && <path d={bandMoved} fill={P.green} fillOpacity={0.18} />}
+              {planMoved && <path d={planMoved} fill={P.green} fillOpacity={0.18} />}
               {band && <path d={band} fill={washC} fillOpacity={washO} />}
               {planBand && <path d={planBand} fill={washC} fillOpacity={washO} />}
               {/* without Gridzilla: measured counterfactual, then the plan's hill, grey dashed (red is only the limit) */}
               {basePts.length > 1 && (
-                <path d={smoothPath(basePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={stage ? linePath(basePts) : smoothPath(basePts)} fill="none" stroke={stage ? P.secondary : P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
               )}
               {naivePts.length > 1 && (
-                <path d={smoothPath(naivePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={smoothPath(naivePts)} fill="none" stroke={stage ? P.secondary : P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
               )}
               {/* forecast ahead (only without a plan) */}
               {fcPts.length > 1 && (
@@ -775,14 +888,14 @@ export default function LiveCurve({
               {/* with Gridzilla; classic mode turns it red where it is over the limit, the stage keeps red for the limit */}
               {totalPts.length > 1 && (
                 <>
-                  <path d={smoothPath(totalPts)} fill="none" stroke={lineC} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={stage ? linePath(totalPts) : smoothPath(totalPts)} fill="none" stroke={lineC} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
                   {rating != null && !stage && (
                     <path d={smoothPath(totalPts)} fill="none" stroke={P.red} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#${clipId})`} />
                   )}
                 </>
               )}
               {/* where a signal went out */}
-              {(!stage || totalPts.length > 1) && pins.map((m) => {
+              {!stage && pins.map((m) => {
                 const v = at(hist, m.t, "total");
                 return v == null ? null : <circle key={m.key} cx={x(m.t)} cy={y(v)} r={swTotal * 1.25} fill={lineC} stroke={halo} strokeWidth={swTotal * 0.6} />;
               })}
@@ -807,7 +920,7 @@ export default function LiveCurve({
 
             {/* the gap at the head */}
             {yB != null && headBase != null && headTot != null && Math.abs(yB - y(headTot)) > swTotal * 2 && shaving({ t: head, total: headTot, base: headBase, program: 0, other: 0 }) && (
-              <line x1={endX} x2={endX} y1={yB} y2={y(headTot)} stroke={stage ? P.orange : P.green} strokeWidth={swTotal * 0.9} strokeLinecap="round" />
+              !stage && <line x1={endX} x2={endX} y1={yB} y2={y(headTot)} stroke={P.green} strokeWidth={swTotal * 0.9} strokeLinecap="round" />
             )}
 
             {/* the head of the line: a ring pulses each time a new reading lands */}
@@ -822,7 +935,7 @@ export default function LiveCurve({
             )}
 
             {/* now */}
-            <line x1={nowX} x2={nowX} y1={padT - fs * 0.4} y2={plotB} stroke={P.ink} strokeOpacity={stage ? 0.25 : 0.22} strokeWidth={stage ? 1 : 1.25 * k} />
+            <line x1={nowX} x2={nowX} y1={padT - fs * 0.4} y2={plotB} stroke={P.ink} strokeOpacity={stage ? 0.25 : 0.22} strokeWidth={stage ? 1.5 : 1.25 * k} />
 
             {/* the signal window bar under the hours: elapsed ink, remaining fill, a surface gap at Now */}
             {stage && winOn && winX && (() => {
@@ -839,9 +952,9 @@ export default function LiveCurve({
 
             {/* every label, already placed without overlap */}
             <g data-src="axis">
-              {yTicks.map((v, i) => label(`y${v}`, fsAxis, stage ? P.tertiary : P.secondary, tickTxt(v, unitOn(v, i, yTicks.length)), { weight: 400, halo: false }))}
-              {tTicks.map((t) => label(`t${t}`, fsAxis, stage ? P.tertiary : P.secondary, hhmm(t), { weight: 400, halo: false }))}
-              {label("now", fs, P.ink, <>Now <tspan fontWeight={400} fill={P.secondary}>{hhmm(clock.t)}</tspan></>) ?? label("nowS", fs, P.ink, "Now")}
+              {yTicks.map((v, i) => label(`y${v}`, fsAxis, P.secondary, tickTxt(v, unitOn(v, i, yTicks.length)), { weight: 400, halo: false }))}
+              {tTicks.map((t) => label(`t${t}`, fsAxis, P.secondary, hhmm(t), { weight: 400, halo: false }))}
+              {label("now", fs, P.ink, <>Now <tspan fontWeight={400} fill={P.secondary}><NowClock s={s} /></tspan></>) ?? label("nowS", fs, P.ink, "Now")}
               {latest && (label("sig", fs, P.ink, `Gridzilla acted ${hhmm(latest.t)}`) ?? label("sigS", fs, P.ink, `Acted ${hhmm(latest.t)}`))}
               {label("fc", fsAxis, P.tertiary, "Forecast", { weight: 400 })}
               {win && label("winS", fsAxis, P.secondary, `Until ${hhmm(win.t1)}`, { weight: 400, halo: false })}
@@ -853,6 +966,11 @@ export default function LiveCurve({
               (label("rev", fs, P.ink, pair("Backflow limit ", revTxt), { src: revSrc, val: reverse }) ?? label("revS", fs, P.ink, revTxt, { src: revSrc, val: reverse }))}
             {win && label("win", fsAxis, P.secondary, `Signal #${win.seq} until ${hhmm(win.t1)}`, { weight: 400, halo: false, src: `state/active/${win.key}/seq`, val: win.seq })}
             {level != null && label("plan", fs, P.ink, pair("The plan ", planTxt), { src: `${planSrc}/plan/level_kw`, val: level })}
+            {dip && dipPct != null && (() => {
+              const from = `0 - ${planSrc}/plan/naive_kw/${dip.i} / ${revSrc} * 100`;
+              const el = label("dip", fs, P.ink, pair("Backflow without Gridzilla ", dipTxt)) ?? label("dipS", fs, P.ink, pair("Backflow without ", dipTxt));
+              return el ? <g data-src="derived" data-from={from} data-val={String(dipPct)}>{el}</g> : null;
+            })()}
             {plan && (label("top", fs, P.ink, pair("Peak without Gridzilla ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }) ??
               label("topS", fs, P.ink, pair("Peak without ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }))}
             {label("wait", fs, P.secondary, tn ? `Waiting for the first readings from ${nice(node)}` : "Waiting for the grid to report a street transformer", { weight: 400 }) ??

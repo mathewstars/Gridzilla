@@ -54,6 +54,7 @@ function Num({
   src,
   from,
   scale,
+  snap,
 }: {
   value: number;
   unit?: string;
@@ -61,10 +62,12 @@ function Num({
   src: string;
   from?: string;
   scale?: number;
+  /** Land at once: a count whose partner sentence below names the same numbers must never be caught mid-glide. */
+  snap?: boolean;
 }) {
   return (
     <span className="gzF-num">
-      <Counter value={value} decimals={d} src={src} from={from} scale={scale} />
+      <Counter value={value} decimals={d} src={src} from={from} scale={scale} duration={snap ? 0 : undefined} />
       {unit && <span className="gzF-u">{unit}</span>}
     </span>
   );
@@ -328,8 +331,9 @@ function P3Curtail({ s, city }: { s: State; city: FlattenPlan | null }) {
   const W = power(o.withKw);
   const N = power(o.withoutKw);
   const room = city && city.batt_kwh_free > 0.5 ? power(city.batt_kwh_free) : null;
-  // One small line: what Gridzilla avoided right now, else the battery room kept for solar (generation not curtailed).
-  let line: ReactNode = "Without Gridzilla too, every street is inside its limit now";
+  // The counterfactual always shows (never a bare "0 kW over"); the city's free battery room only as a second line when
+  // nothing would be over without Gridzilla either. No curtailment claim: the API has no curtailment field (STORY gap 1).
+  let line: ReactNode = "Without Gridzilla, all inside too";
   if (o.withoutKw > 0.5)
     line = (
       <>
@@ -339,19 +343,24 @@ function P3Curtail({ s, city }: { s: State; city: FlattenPlan | null }) {
         {o.streets === 1 ? "street" : "streets"}
       </>
     );
-  else if (room)
-    line = (
-      <>
-        <Inline value={room.v} d={room.d} scale={room.scale} src={`${FC}/plan/batt_kwh_free`} />{" "}
-        {room.unit === "MW" ? "MWh" : "kWh"} battery room kept for solar
-      </>
-    );
+  const roomLine =
+    o.withoutKw <= 0.5 && room ? (
+      <span className="gzF-line">
+        <Inline value={room.v} d={room.d} scale={room.scale} src={`${FC}/plan/batt_kwh_free`} />{"\u00a0"}
+        {room.unit === "MW" ? "MWh" : "kWh"} battery room free for solar
+      </span>
+    ) : null;
   return (
     <Fact
       k="p3"
       value={<Num value={W.v} d={W.d} unit={W.unit} scale={W.scale} src="derived" from={tag(o.withTerms, "total_kw")} />}
-      label={o.withKw > 0.5 ? "still over a street limit" : "over a limit: nobody cut off"}
-      small={<span className="gzF-line">{line}</span>}
+      label={o.withKw > 0.5 ? "still over a street limit" : "over a street limit right now"}
+      small={
+        <>
+          <span className="gzF-line">{line}</span>
+          {roomLine}
+        </>
+      }
     />
   );
 }
@@ -378,14 +387,18 @@ function P4Expansion({ s, city }: { s: State; city: FlattenPlan | null }) {
       return (
         <Fact
           k="p4"
-          value={<Num value={saved} unit="transformers" src="derived" from={`count(${T}/*[peak_naive_pct > 100 and peak_plan_pct <= 100])`} />}
+          value={<Num snap value={saved} unit="transformers" src="derived" from={`count(${T}/*[peak_naive_pct > 100 and peak_plan_pct <= 100])`} />}
           label="need no upgrade tonight"
           small={
             <span className="gzF-line">
               {saved === over ? (
                 <>
-                  Without the plan <Inline value={over} src="derived" from={`count(${T}/*[peak_naive_pct > 100])`} /> of{" "}
-                  <Inline value={tfs.length} src={`${T}/length`} /> would pass their limit
+                  <span className="gzF-nw">
+                    <Inline value={over} src="derived" from={`count(${T}/*[peak_naive_pct > 100])`} />
+                    {"\u00a0of\u00a0"}
+                    <Inline value={tfs.length} src={`${T}/length`} />
+                  </span>{" "}
+                  would pass their limit without it
                 </>
               ) : still === 0 ? (
                 <>
@@ -405,9 +418,9 @@ function P4Expansion({ s, city }: { s: State; city: FlattenPlan | null }) {
         k="p4"
         value={
           <span className="gzF-pair">
-            <Num value={fits} src="derived" from={`count(${T}/*[peak_plan_pct <= 100])`} />
+            <Num snap value={fits} src="derived" from={`count(${T}/*[peak_plan_pct <= 100])`} />
             <span className="gzF-of">of</span>
-            <Num value={tfs.length} src={`${T}/length`} />
+            <Num snap value={tfs.length} src={`${T}/length`} />
           </span>
         }
         label="transformers fit their rating tonight"
@@ -462,15 +475,9 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
   const ageMin = nowMs != null && Number.isFinite(rx) ? (nowMs - rx) / 60_000 : null;
   const live = !!b && b.registered && !!b.telemetry && ageMin != null && ageMin < 5;
 
+  // Not registered or silent: the brands go tertiary and the plant is waiting, never a fake "it answered" (STAGE.md 3 P5).
   let plant: ReactNode;
-  if (!b || !b.registered || !b.telemetry)
-    plant = <span className="gzF-line">Blatnica's plant: not connected</span>;
-  else if (!live)
-    plant = (
-      <span className="gzF-line">
-        Blatnica heard <Time src={`${B}/telemetry/rx`}>{ageMin != null ? `${Math.round(ageMin)} min` : "a while"}</Time> ago
-      </span>
-    );
+  if (!live) plant = <span className="gzF-line gzF-wait">Blatnica: waiting for the plant</span>;
   else if (b.ack?.seq != null)
     plant = (
       <span className="gzF-line">
@@ -496,7 +503,7 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
     <Fact
       k="p5"
       value={
-        <span className="gzF-brands" data-src="deck" data-label="registry">
+        <span className={`gzF-brands${live ? "" : " gzF-idle"}`} data-src="deck" data-label="registry">
           Victron + Viessmann
         </span>
       }

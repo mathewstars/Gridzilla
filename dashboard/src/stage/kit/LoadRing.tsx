@@ -122,6 +122,13 @@ export default function LoadRing({
   const lap1 = Math.min(p, 100) / 100;
   const lap2 = Math.max(0, p - 100) / 100;
   const tone = loadTone(p);
+  // Round caps add half a stroke at each end: on a short sweep that turns the arc into a pill or a dot. So an arc gets
+  // round caps only when it is longer than the stroke is wide; shorter, it is a thin butt-capped sliver; under 1 px, none.
+  const cap = (len: number) => (len > sw ? "round" : "butt");
+  const len1 = lap1 * C;
+  const len2 = lap2 * C;
+  const woLen1 = (Math.min(wo, 100) / 100) * 2 * Math.PI * rOut;
+  const woLen2 = (Math.max(0, wo - 100) / 100) * 2 * Math.PI * rOut;
 
   // Tip of the second lap: where its shadow falls, a little ahead in the direction of travel.
   const a = lap2 * 2 * Math.PI;
@@ -146,20 +153,20 @@ export default function LoadRing({
           <>
             <circle cx={c} cy={c} r={rOut} fill="none" stroke={P.ink} strokeOpacity={0.07} strokeWidth={sw} />
             <g transform={`rotate(-90 ${c} ${c})`}>
-              {wo > 0.4 && (
+              {woLen1 >= 1 && (
                 <circle cx={c} cy={c} r={rOut} fill="none" stroke={loadTone(Math.min(wo, 99.9))} strokeOpacity={0.55} strokeWidth={sw}
-                  strokeLinecap="round" strokeDasharray={`${(Math.min(wo, 100) / 100) * 2 * Math.PI * rOut} ${2 * Math.PI * rOut}`} />
+                  strokeLinecap={cap(woLen1)} strokeDasharray={`${woLen1} ${2 * Math.PI * rOut}`} />
               )}
-              {wo > 100.4 && (
-                <circle cx={c} cy={c} r={rOut} fill="none" stroke={P.red} strokeWidth={sw} strokeLinecap="round"
-                  strokeDasharray={`${((wo - 100) / 100) * 2 * Math.PI * rOut} ${2 * Math.PI * rOut}`} />
+              {woLen2 >= 1 && (
+                <circle cx={c} cy={c} r={rOut} fill="none" stroke={P.red} strokeWidth={sw} strokeLinecap={cap(woLen2)}
+                  strokeDasharray={`${woLen2} ${2 * Math.PI * rOut}`} />
               )}
             </g>
           </>
         )}
         <circle cx={c} cy={c} r={r} fill="none" stroke={P.ink} strokeOpacity={0.07} strokeWidth={sw} />
         <g transform={`rotate(-90 ${c} ${c})`}>
-          {lap1 > 0.004 && (
+          {len1 >= 1 && (
             <circle
               cx={c}
               cy={c}
@@ -167,12 +174,12 @@ export default function LoadRing({
               fill="none"
               stroke={tone}
               strokeWidth={sw}
-              strokeLinecap="round"
-              strokeDasharray={`${lap1 * C} ${C}`}
+              strokeLinecap={cap(len1)}
+              strokeDasharray={`${len1} ${C}`}
             />
           )}
         </g>
-        {lap2 > 0.004 && (
+        {len2 >= 1 && (
           <>
             <circle
               cx={tipX + Math.cos(a) * ahead}
@@ -190,8 +197,8 @@ export default function LoadRing({
                 fill="none"
                 stroke={P.red}
                 strokeWidth={sw}
-                strokeLinecap="round"
-                strokeDasharray={`${lap2 * C} ${C}`}
+                strokeLinecap={cap(len2)}
+                strokeDasharray={`${len2} ${C}`}
               />
             </g>
           </>

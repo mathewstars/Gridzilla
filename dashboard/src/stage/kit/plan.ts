@@ -79,15 +79,44 @@ export function signalWindow(s: State, sig: Signal | null | undefined, tNow: num
   return { t0: toT(a), t1: toT(b), seq: sig.seq, key };
 }
 
-/** Plain card title for the curve, from the same story state as the headline (Hero.tsx): solar flowing back right now
- *  (with or without Gridzilla) names the backflow limit; otherwise the grid hour names what the plan is about. Never
- *  from the scenario key, so the title, the headline and the clock always agree. */
-export function curveTitle(node: string, simHour: number, story: { nowPct: number | null; basePct: number | null } | null): string {
+/** Plain card title for the curve, from what the plot shows: the backflow title only while the chart draws the backflow
+ *  limit (the "without" dip goes past half of it, STAGE.md 7.1); otherwise the grid hour names what the plan is about. */
+export function curveTitle(node: string, simHour: number, revDrawn: boolean): string {
   const name = nice(node) || "this street";
-  if (!story) return `${name} with and without Gridzilla`;
-  if ((story.nowPct ?? 0) < 0 || (story.basePct ?? 0) < 0) return `Keeping ${name}'s solar inside the backflow limit`;
+  if (revDrawn) return `Keeping ${name}'s solar inside the backflow limit`;
   const h = ((simHour % 24) + 24) % 24;
   if (h >= 15) return `Eating the evening peak on ${name}`;
   if (h < 6) return `Tonight's plan for ${name}`;
   return `Getting ${name} ready for the evening peak`;
+}
+
+// ---- One source for the plan's peak numbers: the chart, the plan card and the facts all round them the same way.
+
+/** Peak without Gridzilla, % of the limit (data-src flatten:<tf>/plan/peak_naive_pct). */
+export const peakPct = (plan: FlattenPlan) => Math.round(plan.peak_naive_pct);
+/** Peak with the plan, % of the limit (data-src flatten:<tf>/plan/peak_plan_pct). */
+export const planPct = (plan: FlattenPlan) => Math.round(plan.peak_plan_pct);
+
+/** The deepest backflow of the "without" curve: its slot index and kW (negative), null when it never flows back. */
+export function backflowDip(plan: FlattenPlan): { i: number; kw: number } | null {
+  let best: { i: number; kw: number } | null = null;
+  for (let i = 0; i < plan.naive_kw.length; i++) {
+    const v = plan.naive_kw[i];
+    if (v < 0 && (best == null || v < best.kw)) best = { i, kw: v };
+  }
+  return best;
+}
+
+/** Backflow without Gridzilla, % of the backflow limit (`reverseKw`, the transformer's reverse_kw or its rating). */
+export function backflowPct(plan: FlattenPlan, reverseKw: number | null | undefined): number | null {
+  const d = backflowDip(plan);
+  return d && reverseKw ? Math.round((-d.kw / reverseKw) * 100) : null;
+}
+
+/** True when the plan's binding peak is the backflow: the dip uses more of the backflow limit than the hill uses of the
+ *  import limit. Then the plan card and the chart talk about backflow, not the evening peak. */
+export function bindsExport(plan: FlattenPlan, reverseKw: number | null | undefined): boolean {
+  const d = backflowDip(plan);
+  if (!d || !reverseKw || !plan.rating_kw) return false;
+  return -d.kw / reverseKw > plan.peak_naive_kw / plan.rating_kw;
 }

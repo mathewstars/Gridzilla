@@ -134,11 +134,17 @@
   font-size: 0.875rem;
   color: #86868b;
 }
-/* P2's trust line (the deck's words): the owner-in-control fact itself, so ink, not grey. */
+/* P2's trust line (the deck's words): the same small-line token as every other fact (G4 r2). */
 .gzF-trust {
-  font-size: 0.9375rem;
-  line-height: 1.25;
-  color: #1d1d1f;
+  color: #6e6e73;
+}
+/* A number pair ("55 of 72") never breaks. */
+.gzF-nw {
+  white-space: nowrap;
+}
+/* Waiting for a source: tertiary, never a value. */
+.gzF-wait {
+  color: #86868b;
 }
 /* "16 just did": the live proof after the trust line, in the proof grey. */
 .gzF-proof {

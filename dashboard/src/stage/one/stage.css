@@ -117,6 +117,28 @@
   aspect-ratio: 16 / 10;
 }
 
+/* The bottom row's three card titles (AI, street, plan) share one size, leading and top inset, so they sit on one
+   baseline across the row. The street card runs edge to edge with its own padding; its top inset follows the other
+   cards' (--pad-y), which the one-screen windows cap by the height. */
+.gzS-ai .gzAi-title,
+.gzS-street .gzs-title,
+.gzS-plan .gzPlan-title {
+  font-size: clamp(1.0625rem, 0.9rem + 0.3vw, 1.5rem);
+  line-height: 1.14;
+  letter-spacing: 0.007em;
+}
+.gzS-street .gzs {
+  padding-top: var(--pad-y);
+}
+
+/* Below 1180 wide the page scrolls, so a height-capped chart minimum only makes the page grow when the window grows
+   (a full-page capture then ends inside the last row). The plot keeps the floor it has in every real window here. */
+@container stage (max-width: 1179px) {
+  .gzS-curve [style*="min-height"] {
+    min-height: 248px !important;
+  }
+}
+
 /* Phones: 44px bar with the name and the clock only. */
 @container stage (max-width: 599px) {
   .gzS-bar {

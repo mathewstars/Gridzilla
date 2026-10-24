@@ -135,7 +135,8 @@ const mat = {
 };
 
 const PANEL_DARK = new THREE.Color("#233049");
-const LOT_ON = "#c8ebd2"; // Apple green at about a quarter on the light ground: this home follows Gridzilla
+const LOT_ON = "#a4e6b4"; // Apple green at about 45 % on the light ground: this home follows Gridzilla
+const LOT_RIM = P.green; // a solid green edge round it, so a follower reads from the back of the room
 const PANEL_LIT = new THREE.Color("#8fb0dd");
 const DOT_TAKE = new THREE.Color(P.ink); // power going into a house
 const DOT_GIVE = new THREE.Color(P.green); // clean power flowing back
@@ -257,17 +258,17 @@ function useWires(lots: Lot[]) {
     const wires: Wire[] = [];
     const add = (id: string, c: THREE.QuadraticBezierCurve3, r: number) => wires.push({ id, curve: c, len: c.getLength(), r });
     const tfTap = new THREE.Vector3(TF_TAP, TF_TOP, TF_Z);
-    add("feed", sag(new THREE.Vector3(SUB_X + 1.3, 2.7, TF_Z), new THREE.Vector3(-TF_TAP, TF_TOP, TF_Z), 0.35), 0.26);
+    add("feed", sag(new THREE.Vector3(SUB_X + 1.3, 2.7, TF_Z), new THREE.Vector3(-TF_TAP, TF_TOP, TF_Z), 0.35), 0.36);
     const rows = Math.max(1, ...lots.map((l) => l.row + 1));
     let prev = tfTap;
     for (let r = 0; r < rows; r++) {
       const top = new THREE.Vector3(POLE_X, POLE_H, ROW0 - r * LOT);
-      add(`spine:${r}`, sag(prev, top, 0.3), 0.24);
+      add(`spine:${r}`, sag(prev, top, 0.3), 0.33);
       prev = top;
     }
     for (const l of lots) {
       const eave = new THREE.Vector3(l.x + l.face * (l.d / 2 + 0.05), l.eave, l.z + 0.4);
-      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.21);
+      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.29);
     }
     const geo = mergeGeometries(wires.map((w) => new THREE.TubeGeometry(w.curve, 20, w.id === "feed" ? 0.05 : 0.035, 5, false)));
     return { wires, geo };
@@ -442,15 +443,19 @@ const lotGeo = (() => {
   s.quadraticCurveTo(-a, -a, -a + r, -a);
   return new THREE.ShapeGeometry(s, 4).rotateX(-Math.PI / 2);
 })();
-const lotMat = new THREE.MeshBasicMaterial({ color: LOT_ON });
+const lotMat = new THREE.MeshBasicMaterial({ color: LOT_ON, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const rimMat = new THREE.MeshBasicMaterial({ color: LOT_RIM });
+const RIM = 0.55; // the green edge, world units on each side
 
 function FollowLots({ lots, follow, still }: { lots: Lot[]; follow: MutableRefObject<Map<string, Follow>>; still: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const rim = useRef<THREE.InstancedMesh>(null);
   const prog = useMemo(() => lots.filter((l) => l.house), [lots]);
   const shown = useRef(new Map<string, number>());
   useFrame((_, dtRaw) => {
-    const mesh = ref.current;
-    if (!mesh) return;
+    const mesh = ref.current,
+      edge = rim.current;
+    if (!mesh || !edge) return;
     const dt = Math.min(dtRaw, 0.05);
     const t = performance.now();
     prog.forEach((l, k) => {
@@ -465,13 +470,23 @@ function FollowLots({ lots, follow, still }: { lots: Lot[]; follow: MutableRefOb
       // the lot runs from the road edge to just behind the house
       const xi = l.side * (ROAD_W / 2 + 0.3);
       const xo = l.x + l.side * (l.d / 2 + 1.0);
-      mesh.setMatrixAt(k, mtx((xi + xo) / 2, LOT_Y, l.z, Math.abs(xo - xi) * sc, 1, (l.w + 1.2) * sc, 0, 0, 0, _m));
+      const lw = Math.abs(xo - xi),
+        ld = l.w + 1.2;
+      mesh.setMatrixAt(k, mtx((xi + xo) / 2, LOT_Y, l.z, lw * sc, 1, ld * sc, 0, 0, 0, _m));
+      const rs = sc > HIDE ? sc : HIDE;
+      edge.setMatrixAt(k, mtx((xi + xo) / 2, LOT_Y, l.z, (lw + 2 * RIM) * rs, 1, (ld + 2 * RIM) * rs, 0, 0, 0, _m));
     });
-    mesh.count = prog.length;
+    mesh.count = edge.count = prog.length;
     mesh.instanceMatrix.needsUpdate = true;
+    edge.instanceMatrix.needsUpdate = true;
   });
   if (!prog.length) return null;
-  return <instancedMesh key={prog.length} ref={ref} args={[lotGeo, lotMat, prog.length]} raycast={noRay} frustumCulled={false} />;
+  return (
+    <>
+      <instancedMesh key={`r${prog.length}`} ref={rim} args={[lotGeo, rimMat, prog.length]} raycast={noRay} frustumCulled={false} />
+      <instancedMesh key={prog.length} ref={ref} args={[lotGeo, lotMat, prog.length]} raycast={noRay} frustumCulled={false} />
+    </>
+  );
 }
 
 /** Counts rendered frames for the QA gate (G5 measures fps and the off-screen pause with it). */
@@ -562,7 +577,8 @@ function lightRoofs(t: THREE.Texture): THREE.Texture {
     const lum = 0.299 * r + 0.587 * gr + 0.114 * b;
     const cool = b >= r && Math.max(r, gr, b) - Math.min(r, gr, b) < 70; // the kit's slate and blue-grey family
     if (!cool || lum < 72) continue;
-    const v = 168 + lum * 0.33; // slate roof ~ #d2d2d7, walls ~ #e8e8ed to white
+    // dark slate (roofs) to a mid grey ~ #8e8e93, light blue-grey (walls) to near-white: houses stand off the white ground
+    const v = lum < 125 ? 100 + lum * 0.5 : 196 + lum * 0.24;
     px[i] = Math.min(255, v);
     px[i + 1] = Math.min(255, v);
     px[i + 2] = Math.min(255, v + 5);

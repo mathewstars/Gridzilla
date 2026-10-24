@@ -168,22 +168,23 @@ export interface Moment {
   part: DayPart;
   /** Solar is flowing back on the street on screen (with or without Gridzilla). */
   backflow: boolean;
-  /** The weather at this grid hour (platform weather.py grid_view). `word` is null when the scenario overrides the sky
-   *  (sunny noon in daylight), so the top bar never says "Cloudy" over a forced-sunny grid. */
+  /** The weather at this grid hour (platform weather.py grid_view). Under the strong-sun scenario in daylight `word` is
+   *  "Sunny", so the top bar never says "Cloudy" over a forced-sunny grid. */
   sky: { i: number; temp: number; word: string | null } | null;
   /** The headline may say "sun": solar is flowing back and the sky we show is not overcast. */
   sun: boolean;
-  /** The scenario in plain words, named as a scenario so it never reads as the time of day ("Cold evening scenario"
-   *  next to 11:18 is a setting, not a claim about the clock). */
+  /** The scenario in plain words, named by what it changes (cold, sun), never by a time of day the clock may not show. */
   scenario: string | null;
   /** The hero chart's title. */
   title: string;
 }
 
+// Named by what the platform scenario changes (it scales load and solar, it never moves the grid clock), so the label
+// never promises a time of day the clock does not show ("Cold evening" next to 07:33).
 const SCENARIO_LABEL: Record<string, string> = {
-  normal: "Normal day scenario",
-  "cold-evening": "Cold evening scenario",
-  "sunny-noon": "Sunny noon scenario",
+  normal: "Normal day",
+  "cold-evening": "Cold weather",
+  "sunny-noon": "Strong sun",
   "live-weather": "Live weather",
 };
 
@@ -208,7 +209,8 @@ export function momentOf(s: State, tf: string | null, w: Weather | null): Moment
     const g = gv[i];
     const word = g.cloud_pct >= 70 ? "Cloudy" : g.cloud_pct >= 30 ? "Partly cloudy" : g.sun_wm2 > 50 ? "Sunny" : "Clear";
     overcast = g.cloud_pct >= 70 && !forcedSun;
-    sky = { i, temp: g.temp_c, word: forcedSun && g.cloud_pct >= 30 ? null : word };
+    // Strong-sun scenario in daylight: the grid's sky is forced sunny, so say so instead of leaving a bare temperature.
+    sky = { i, temp: g.temp_c, word: forcedSun && g.cloud_pct >= 30 ? "Sunny" : word };
   }
   const n = (tf && nice(tf)) || "this street";
   const title = !tf
@@ -226,7 +228,7 @@ export function momentOf(s: State, tf: string | null, w: Weather | null): Moment
     backflow,
     sky,
     sun: backflow && !overcast && part !== "night",
-    scenario: name ? SCENARIO_LABEL[name] ?? `${name.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase())} scenario` : null,
+    scenario: name ? SCENARIO_LABEL[name] ?? name.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) : null,
     title,
   };
 }

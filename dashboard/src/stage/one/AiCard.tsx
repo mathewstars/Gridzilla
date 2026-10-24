@@ -59,7 +59,7 @@ function sees(
   if (rel) {
     const pct = +rel[2];
     const relSrc = s.autopilot?.release_pct === pct ? { src: "state/autopilot/release_pct", val: pct } : { src: trigSrc };
-    return { value: ["Peak has passed"], sub: [`${nice(rel[1])} under `, { t: String(pct), ...relSrc }, "\u00a0%"] };
+    return { value: ["Event over"], sub: ["forecast under\u00a0", { t: String(pct), ...relSrc }, "\u00a0%"] }; // the title names the node
   }
   const w = worstOf(trigger);
   if (w) {
@@ -127,7 +127,17 @@ interface Ctx {
   street: Street | null;
 }
 
-function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boolean; here: boolean } {
+/** What the card shows: the steps, plus the grid node the decision is about and its grid time (history decisions). */
+interface View {
+  steps: Step[];
+  key: string;
+  busy: boolean;
+  here: boolean;
+  seg?: string | null;
+  at?: Num | null;
+}
+
+function stepsFor(s: State, ctx: Ctx): View {
   const ap = s.autopilot;
   const on = (seg: string | null | undefined, hot?: string[] | null) => (!!seg && ctx.path.includes(seg)) || !!hot?.includes(ctx.tf);
   const mk = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null): Step[] =>
@@ -155,6 +165,7 @@ function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boole
       key: `busy-${ap.stage}-${ap.last_run}`,
       busy: true,
       here: on(ap.target?.node, ap.target?.hot),
+      seg: ap.target?.node ?? null,
       steps: mk(nodes, [
         [see.value, see.sub],
         [["AI plan"], [k === 1 ? "DeepSeek is thinking" : k > 1 ? "DeepSeek answered" : "next"]],
@@ -174,6 +185,7 @@ function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boole
       key: `pending-${pend.at ?? ""}`,
       busy: false,
       here: on(pend.segment),
+      seg: pend.segment ?? null,
       steps: mk(["done", "done", guardOk ? "done" : "refused", guardOk ? "human" : "waiting"], [
         [see.value, see.sub],
         [thinks(pend.latency_ms, `${base}/latency_ms`), planSub(pend.mode)],
@@ -214,7 +226,15 @@ function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boole
   const passed: [Part[], Part[] | null] = [["Guard passed"], capParts(d.fields, base, until) ?? ["every safety rule held"]];
   const reason = (t: string | null | undefined): Part[] | null => (t ? [{ t, src: `${base}/detail` }] : null);
   const nothing: [Part[], Part[] | null] = [["Nothing sent"], null];
-  const out = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null) => ({ key, busy: false, here, steps: mk(nodes, rows, seal) });
+  const at: Num | null = Number.isFinite(d.sim_h) ? { t: hhmm(d.sim_h), src: `${base}/sim_h` } : null;
+  const out = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null): View => ({
+    key,
+    busy: false,
+    here,
+    seg: d.segment,
+    at,
+    steps: mk(nodes, rows, seal),
+  });
 
   switch (d.verdict) {
     case "sent": {
@@ -224,7 +244,11 @@ function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boole
         const sub: Part[] = ended
           ? ["#", { t: String(ended[1].seq), src: `state/recent/${ended[0]}/seq`, val: ended[1].seq }, ", owners decide"]
           : ["owners decide again"];
-        return out(["done", "done", "done", "done"], [seeRow, think, passed, [["Signal ended"], sub]], d.seq);
+        // Say what was over: the solar surplus (an ABSORB ended) or the peak, not a generic past tense.
+        const was = ended?.[1].mode;
+        const over = was === "ABSORB" ? "Solar surplus over" : was ? "Peak over" : null;
+        const row: [Part[], Part[] | null] = over && see.value.length === 1 && see.value[0] === "Event over" ? [[over], see.sub] : seeRow;
+        return out(["done", "done", "done", "done"], [row, think, passed, [["Signal ended"], sub]], d.seq);
       }
       // "#1217 to 192 homes": the signed message and who got it (its end sits under Checks).
       const to = homes(s, d.segment, ctx);
@@ -410,7 +434,21 @@ export default function AiCard({ st }: { st: StoryState }) {
       <style>{CSS}</style>
       {view && ctx && (
         <p className="gzAi-title">
-          {view.here ? `The AI on ${nice(ctx.tf)}` : view.busy ? "The AI, busy elsewhere in the city" : "The AI, last decision elsewhere"}
+          {/* Name the node the decision is about: the street itself, or the substation above it, never the street's
+              name over a parent node's decision. A past decision carries its grid time. */}
+          {view.here
+            ? view.seg && view.seg !== ctx.tf && !view.seg.endsWith(`:${ctx.tf.split(":").pop()}`)
+              ? `The AI on ${nice(view.seg)}, above ${nice(ctx.tf)}`
+              : `The AI on ${nice(ctx.tf)}`
+            : view.busy
+              ? `The AI, busy${view.seg ? ` on ${nice(view.seg)}` : " elsewhere in the city"}`
+              : `The AI, last decision${view.seg ? ` on ${nice(view.seg)}` : " elsewhere"}`}
+          {view.at && !view.busy && (
+            <>
+              {", "}
+              <Parts parts={[view.at]} />
+            </>
+          )}
         </p>
       )}
       {view ? (

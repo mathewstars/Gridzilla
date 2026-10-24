@@ -1,5 +1,5 @@
 // The living street as a card (design/STAGE.md section 9): the transformer's street in 3D, seen from the side so it runs
-// left to right across the card's full width. The name and the "each house stands for 8" line sit above it, one plain
+// left to right across the card's full width. The name and the "N houses stand for M homes" line sit above it, one plain
 // line about the green lots and the dots below it; the camera frames the street in the band between them, so text
 // never sits on a house. Only data moves: no camera sway; lots turn green and pulse in cohort waves when real readings
 // show homes joining. The canvas keeps a still frame while off-screen and in a hidden tab, and draws again on new data.
@@ -52,8 +52,11 @@ export default function StreetCard({ st }: { st: StoryState }) {
   }, [tf]);
 
   const ready = !!s && !!tf && !!s.tree[tf];
-  const sum = s?.summary;
-  const per = sum && sum.households > 0 ? sum.houses / sum.households : null;
+  // The street draws a fixed sample of houses: the program's households on this transformer, neighbours fill the rest.
+  // Say how many of them stand for the homes P2 counts (same count, same source), not a per-house rule that the
+  // neighbours would break.
+  const street = st.story?.street ?? null;
+  const drawn = ready ? Object.values(s!.households ?? {}).filter((h) => h.tf === tf && h.telemetry).length : 0;
   const wave = ready ? cohortSignal(s!, tf) : null;
   const pct = ready ? s!.aggregates?.[tf]?.load_pct : null;
   const label = ready
@@ -70,11 +73,15 @@ export default function StreetCard({ st }: { st: StoryState }) {
         {!ready ? (
           <p className="gzs-sub gzs-wait">Waiting for the street</p>
         ) : (
-          per != null && (
+          street &&
+          drawn > 0 && (
             <p className="gzs-sub">
-              Each house stands for{" "}
-              <b data-src="derived" data-from="state/summary/houses / state/summary/households" data-val={per}>
-                {Math.round(per)}
+              <b data-src="derived" data-from={`count(state/households/*[tf = ${tf} and telemetry])`} data-val={drawn}>
+                {drawn}
+              </b>{" "}
+              {drawn === 1 ? "house stands" : "houses stand"} for{" "}
+              <b data-src="derived" data-from={street.homesFrom} data-val={street.homes}>
+                {street.homes}
               </b>{" "}
               homes
             </p>
@@ -93,7 +100,7 @@ export default function StreetCard({ st }: { st: StoryState }) {
               waves
             </>
           )}
-          . Dots are power on the wires.
+          , the rest are neighbours. Dots: power.
         </p>
       )}
     </div>

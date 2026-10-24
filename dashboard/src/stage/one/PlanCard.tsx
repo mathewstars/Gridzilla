@@ -37,13 +37,29 @@ const CSS = `
 .gzPlan-wait{margin:0;font-size:clamp(1.125rem,.9rem + .45vw,1.75rem);line-height:1.2;font-weight:600;color:${P.tertiary}}
 @container (min-width:24rem){
   .gzPlan{--gzP-b:1rem;--gzP-d:clamp(1.75rem,8.5cqi,3.25rem)}
-  .gzPlan-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gzPlan-facts{grid-template-columns:max-content minmax(0,1fr)}
 }
 /* The quiet footnote only where a wide card has the room; one screen at 1440x900 needs every line. */
 @container (max-width:33.99rem){
   .gzPlan-foot{display:none}
 }
 `;
+
+/** One rounding for every "% of the limit" figure (the chart's apex label reads the same Math.round). */
+const pct = (v: number) => String(Math.round(v));
+
+/** The noon side of the plan: the deepest backflow without and with the plan, as % of the backflow limit, with the slot
+ *  index of each minimum so G2 can trace it. Null when the "without" curve stays inside the backflow limit. */
+function backflow(naive: number[], planned: number[], reverse: number) {
+  if (!(reverse > 0) || !naive.length) return null;
+  let iN = 0;
+  for (let i = 1; i < naive.length; i++) if (naive[i] < naive[iN]) iN = i;
+  if (naive[iN] >= -reverse) return null;
+  let iP = 0;
+  for (let i = 1; i < planned.length; i++) if (planned[i] < planned[iP]) iP = i;
+  const planKw = planned.length ? Math.max(0, -planned[iP]) : 0;
+  return { naivePct: (-naive[iN] / reverse) * 100, planPct: (planKw / reverse) * 100, iN, iP: planKw > 0 ? iP : -1 };
+}
 
 /** Diet plan for tonight. Props: `st` from useStory (the street on stage is `st.tf`). */
 export default function PlanCard({ st }: { st: StoryState }) {
@@ -53,6 +69,11 @@ export default function PlanCard({ st }: { st: StoryState }) {
   const c = city.plan;
   const fs = `flatten:${st.tf}`;
   const fc = "flatten:region:at";
+  // Sunny noon: when solar pushing back past the backflow limit is the worse side, the pair names that side instead.
+  const tn = st.tf ? st.s?.tree?.[st.tf] : undefined;
+  const revSrc = tn?.reverse_kw != null ? `state/tree/${st.tf}/reverse_kw` : `${fs}/plan/rating_kw`;
+  const back = p ? backflow(p.naive_kw ?? [], p.planned_kw ?? [], tn?.reverse_kw ?? p.rating_kw) : null;
+  const showBack = !!p && !!back && back.naivePct > p.peak_naive_pct;
 
   return (
     <div className="gzPlan">
@@ -62,20 +83,56 @@ export default function PlanCard({ st }: { st: StoryState }) {
         <>
           <div className="gzPlan-facts">
             <div className="gzPlan-fact">
-              <div className="gzPlan-num" aria-label={`Tonight's peak: ${p.peak_naive_pct} % of the limit without the plan, ${p.peak_plan_pct} % with it`}>
-                <span style={{ color: loadTone(p.peak_naive_pct) }}>
-                  <Counter value={p.peak_naive_pct} src={`${fs}/plan/peak_naive_pct`} />
-                  <span className="gzPlan-unit">%</span>
-                </span>
-                <Arrow />
-                <span style={{ color: loadTone(p.peak_plan_pct) }}>
-                  <Counter value={p.peak_plan_pct} src={`${fs}/plan/peak_plan_pct`} />
-                  <span className="gzPlan-unit">%</span>
-                </span>
-              </div>
-              <p className="gzPlan-cap">
-                Peak without <Arrow /> with the plan
-              </p>
+              {showBack && back ? (
+                <>
+                  <div
+                    className="gzPlan-num"
+                    aria-label={`Backflow at noon: ${pct(back.naivePct)} % of the backflow limit without the plan, ${pct(back.planPct)} % with it`}
+                  >
+                    <span style={{ color: loadTone(back.naivePct) }}>
+                      <Counter
+                        value={back.naivePct}
+                        format={pct}
+                        duration={0}
+                        src="derived"
+                        from={`(0 - ${fs}/plan/naive_kw/${back.iN}) / ${revSrc} * 100`}
+                      />
+                      <span className="gzPlan-unit">%</span>
+                    </span>
+                    <Arrow />
+                    <span style={{ color: loadTone(back.planPct) }}>
+                      <Counter
+                        value={back.planPct}
+                        format={pct}
+                        duration={0}
+                        src="derived"
+                        from={back.iP >= 0 ? `(0 - ${fs}/plan/planned_kw/${back.iP}) / ${revSrc} * 100` : "0"}
+                      />
+                      <span className="gzPlan-unit">%</span>
+                    </span>
+                  </div>
+                  <p className="gzPlan-cap gzPlan-nw">
+                    Backflow without <Arrow /> with the plan
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="gzPlan-num" aria-label={`Tonight's peak: ${pct(p.peak_naive_pct)} % of the limit without the plan, ${pct(p.peak_plan_pct)} % with it`}>
+                    <span style={{ color: loadTone(p.peak_naive_pct) }}>
+                      <Counter value={p.peak_naive_pct} format={pct} duration={0} src={`${fs}/plan/peak_naive_pct`} />
+                      <span className="gzPlan-unit">%</span>
+                    </span>
+                    <Arrow />
+                    <span style={{ color: loadTone(p.peak_plan_pct) }}>
+                      <Counter value={p.peak_plan_pct} format={pct} duration={0} src={`${fs}/plan/peak_plan_pct`} />
+                      <span className="gzPlan-unit">%</span>
+                    </span>
+                  </div>
+                  <p className="gzPlan-cap gzPlan-nw">
+                    Peak without <Arrow /> with the plan
+                  </p>
+                </>
+              )}
             </div>
             {p.shifted_kwh >= 0.5 ? (
               <div className="gzPlan-fact">
