@@ -1,0 +1,60 @@
+/* The big curve (dad's Presentation chart): his colours and line weights, our theme and type. Dark is the default. */
+.bc { --bc-with: #0071e3; --bc-without: #86868b; --bc-eaten: #ff9500; --bc-limit: #ff3b30; --bc-plan: #248a3d;
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 10px; height: 100%; min-height: 0; color: var(--color-ink); }
+:root[data-theme="dark"] .bc { --bc-with: #0a84ff; --bc-without: #a1a1a6; --bc-eaten: #ff9f0a; --bc-limit: #ff453a; --bc-plan: #30d158; }
+
+.bc-head { display: flex; flex-wrap: wrap; align-items: baseline; flex: none; justify-content: space-between; gap: 4px 20px; }
+.bc-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; font-size: 1.0625rem; color: var(--color-secondary); }
+.bc-title h2 { margin: 0; font-size: 1.0625rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); }
+.bc-rating { font-variant-numeric: tabular-nums; }
+.bc-nums { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; }
+.bc-num { display: flex; align-items: baseline; gap: 8px; }
+.bc-num b { font-size: 1.5rem; line-height: 1; font-weight: 600; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+.bc-num span { font-size: 1rem; color: var(--color-secondary); }
+
+.bc-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: none; }
+.bc-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--color-fill);
+  background: var(--color-fill-2); color: var(--color-ink); font: inherit; font-size: 0.875rem; font-weight: 500; white-space: nowrap; cursor: pointer;
+  transition: background-color 0.2s var(--ease-apple), border-color 0.2s var(--ease-apple), transform 0.12s var(--ease-apple); }
+.bc-chip:hover { background: var(--color-fill); }
+.bc-chip:active { transform: scale(0.97); background: var(--color-fill-press); }
+.bc-chip:focus-visible { outline: 2px solid var(--bc-with); outline-offset: 2px; }
+.bc-chip.vienna { font-weight: 700; color: var(--bc-eaten); letter-spacing: 0.04em; }
+.bc-chip.sub { font-weight: 600; }
+.bc-chip.in { border-color: var(--color-secondary); }
+.bc-chip.on { border-color: var(--bc-eaten); box-shadow: inset 0 0 0 1px var(--bc-eaten); }
+.bc-chip.bc-plan.on { border-color: var(--bc-plan); box-shadow: inset 0 0 0 1px var(--bc-plan); color: var(--bc-plan); }
+.bc-tone { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.bc-sig { color: var(--bc-eaten); }
+
+.bc-plot { position: relative; flex: 1 1 auto; min-height: 260px; }
+@media (min-width: 1240px) and (min-height: 860px) { .bc-plot { min-height: 0; } }
+.bc-plot svg { position: absolute; inset: 0; display: block; overflow: visible; }
+.bc-wait { margin: 0; padding-top: 40px; text-align: center; font-size: 1rem; color: var(--color-secondary); }
+.bc-axis { font-size: 14px; fill: var(--color-secondary); font-variant-numeric: tabular-nums; }
+.bc-grid { stroke: var(--color-fill); stroke-width: 1; }
+.bc-with { fill: none; stroke: var(--bc-with); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.bc-with-fill { fill: var(--bc-with); opacity: 0.15; }
+.bc-without { fill: none; stroke: var(--bc-without); stroke-width: 2.5; stroke-dasharray: 6 4; stroke-linejoin: round; }
+.bc-eaten { fill: var(--bc-eaten); opacity: 0.4; }
+.bc-limit { stroke: var(--bc-limit); stroke-width: 2; stroke-dasharray: 6 4; }
+.bc-planline { fill: none; stroke: var(--bc-plan); stroke-width: 3; stroke-linejoin: round; }
+.bc-band { fill: var(--bc-eaten); opacity: 0.08; }
+.bc-hover line { stroke: var(--color-secondary); stroke-width: 1; }
+.bc-hover .dot-with { fill: var(--bc-with); stroke: var(--color-card); stroke-width: 2; }
+.bc-hover .dot-without { fill: var(--bc-without); stroke: var(--color-card); stroke-width: 2; }
+.bc-tip { position: absolute; pointer-events: none; padding: 8px 12px; border-radius: 12px; background: var(--color-card); box-shadow: 0 4px 24px rgb(0 0 0 / 0.25), 0 0 0 1px var(--color-fill);
+  font-size: 0.875rem; color: var(--color-secondary); display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.bc-tip b { color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.bc-tip-t { color: var(--color-ink); font-weight: 600; }
+.bc-tip i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+.bc-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; font-size: 0.875rem; color: var(--color-secondary); }
+.bc-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.bc-chips .bc-plan { margin-left: auto; color: var(--color-secondary); }
+.bc-legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; flex: none; }
+.sw-with { background: var(--bc-with); }
+.sw-without { background: var(--bc-without); }
+.sw-eaten { background: var(--bc-eaten); }
+.sw-limit { background: var(--bc-limit); }
+.sw-plan { background: var(--bc-plan); }

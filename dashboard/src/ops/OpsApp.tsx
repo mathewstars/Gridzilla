@@ -59,7 +59,7 @@ function Console({ route }: { route: Route }) {
         {route === "demo" ? (
           <main className="ops-demo"><DemoView ops={ops} /></main>
         ) : route === "ops" ? (
-          <main className="ops-op2"><OperationsView ops={ops} /></main>
+          <main className="ops-op2" data-scroll="page"><OperationsView ops={ops} /></main>
         ) : route === "plan" ? (
           <main className="ops-view"><PlanView ops={ops} /></main>
         ) : (
