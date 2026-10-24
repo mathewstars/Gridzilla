@@ -12,12 +12,12 @@ import Slide7 from "./Slide7";
 export const SLIDES: SlideDef[] = [
   { id: "trailer", title: "Trailer", at: 0, steps: 1, Component: Slide0, fullBleed: true },
   { id: "title", title: "Gridzilla", at: 30, steps: 1, Component: Slide1, bg: "hero" },
-  { id: "problem", title: "The problem", at: 32, steps: 2, Component: Slide2, bg: "calm" },
+  { id: "problem", title: "The problem", at: 32, steps: 3, Component: Slide2, bg: "calm", bgSteps: ["none", "calm", "calm"] },
   { id: "idea", title: "The idea", at: 55, steps: 4, Component: Slide3, bg: "calm" },
   { id: "peaks", title: "The monster eats peaks", at: 95, steps: 2, Component: Slide4 },
   { id: "demo", title: "Live demo", at: 135, steps: 8, Component: Slide5, fullBleed: true, keepMounted: true, tour: true },
   { id: "real", title: "Real and simulated", at: 210, steps: 1, Component: Slide6, bg: "calm" },
-  { id: "close", title: "The ask", at: 235, steps: 2, Component: Slide7, bg: "hero" },
+  { id: "close", title: "The ask", at: 235, steps: 3, Component: Slide7, bg: "hero" },
 ];
 
 /** The hard stop, seconds. */

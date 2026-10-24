@@ -249,8 +249,8 @@ export default function Slide6({ freeze }: SlideProps) {
     <div className="p-slide s6" data-slide="6">
       <section className="p-tile s6-tile">
         <header className="s6-head">
-          <h2 className="p-head">Real</h2>
-          <p className="p-small p-secondary s6-say">A Victron plant and a Viessmann heat pump in Blatnica, Slovakia, follow a signed message.</p>
+          {/* Two lines of heading; the plant tiles and the footnote say the rest (real, Victron + Viessmann). */}
+          <h2 className="p-head">Our family home in Blatnica</h2>
         </header>
         <RealHero s={data} nowMs={nowMs} loading={!data && !error} />
         <div className="s6-row s6-path">
@@ -282,7 +282,7 @@ export default function Slide6({ freeze }: SlideProps) {
 
       <section className="p-tile s6-tile">
         <header className="s6-head">
-          <h2 className="p-head">Simulated</h2>
+          <h2 className="p-head">A simulated Vienna</h2>
           <p className="p-small p-secondary s6-say">Two thousand houses, the same cars with and without Gridzilla, realistic charging.</p>
         </header>
         <HeatGrid s={data} wave={wave} />

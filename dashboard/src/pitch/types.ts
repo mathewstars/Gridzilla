@@ -36,6 +36,8 @@ export interface SlideDef {
   keepMounted?: boolean;
   /** Background behind the slide (default "none"). */
   bg?: BgKind;
+  /** Background per build step, when it changes inside the slide (slide 2's story step is near-black). */
+  bgSteps?: BgKind[];
   /** Steps 1..n are a walkthrough (slide 5): Esc skips the rest of it instead of opening the overview. */
   tour?: boolean;
 }

@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from "react";
 import { animate, useReducedMotion } from "motion/react";
 import {
   BatteryCharging,
-  BatteryHigh,
   ChargingStation,
   CheckCircle,
   SealCheck,
@@ -30,22 +29,24 @@ const MSG = [
 
 interface Box {
   maker: string;
+  /** A small line under the maker: the same box from other makers. */
+  also?: string;
   device: string;
   Icon: Icon;
   acts: [string, string];
 }
 
 const BOXES: Box[] = [
-  { maker: "Victron", device: "Battery", Icon: BatteryCharging, acts: ["Battery covers the house", "Battery soaks up the sun"] },
-  { maker: "GoodWe", device: "Battery", Icon: BatteryHigh, acts: ["Battery covers the house", "Battery soaks up the sun"] },
+  { maker: "Victron", also: "or GoodWe, any brand", device: "Battery", Icon: BatteryCharging, acts: ["Battery covers the house", "Battery soaks up the sun"] },
   { maker: "Viessmann", device: "Heat pump", Icon: Thermometer, acts: ["Hot water waits until later", "Hot water heats from the sun"] },
   { maker: "Car charger", device: "Any brand", Icon: ChargingStation, acts: ["Car charges after dinner", "Car charges from the sun"] },
 ];
 
 // Geometry in canvas px (matches slide3.css).
-const BOX_W = 390;
-const BOX_GAP = 40;
-const boxLeft = (i: number) => 120 + i * (BOX_W + BOX_GAP);
+// Three boxes, centred under the card: 3 x 480 + 2 x 60 = 1560 px, so 180 px each side.
+const BOX_W = 480;
+const BOX_GAP = 60;
+const boxLeft = (i: number) => (1920 - (BOXES.length * BOX_W + (BOXES.length - 1) * BOX_GAP)) / 2 + i * (BOX_W + BOX_GAP);
 const ORIGIN = { x: 960, y: 352 };
 const WIRE_END = 472;
 const wirePath = (i: number) => {
@@ -75,7 +76,7 @@ interface View {
 }
 
 const finalView = (step: number): View =>
-  step >= 1 ? { in: true, header: 1, lit: 4, noon: 4, foot: step >= 2 ? 2 : 1 } : { in: true, header: 0, lit: 4, noon: 0, foot: 1 };
+  step >= 1 ? { in: true, header: 1, lit: 3, noon: 3, foot: step >= 2 ? 2 : 1 } : { in: true, header: 0, lit: 3, noon: 0, foot: 1 };
 const finalTyped = (): Typed => ({ base: MSG[0], n: MSG[0].length, typing: false });
 
 // The loop ring, canvas px: five stations clockwise from the top.
@@ -181,7 +182,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
       setSwap(s >= 1);
       setLoop({ on: s >= 3, lit: s >= 3 ? 5 : 0 });
       setLap(s >= 3 ? 1 : 0);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOXES.length; i++) {
         setWire(i, 1);
         setDot(i, null);
       }
@@ -191,7 +192,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
     if (s === 0) {
       setView({ in: false, header: 0, lit: 0, noon: 0, foot: 0 });
       setTyped({ base: MSG[0], n: 0, typing: false });
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOXES.length; i++) {
         setWire(i, 0);
         setDot(i, null);
       }
@@ -207,7 +208,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
       setTyped(finalTyped());
       setSwap(false);
       setLoop({ on: false, lit: 0 });
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOXES.length; i++) {
         setWire(i, 1);
         setDot(i, null);
       }
@@ -223,7 +224,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
       setSwap(true);
       setLoop({ on: false, lit: 0 });
       setLap(0);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOXES.length; i++) {
         setWire(i, 1);
         setDot(i, null);
       }
@@ -332,6 +333,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
                   <CheckCircle className="s3-box-check" size={46} weight="fill" />
                 </div>
                 <div className="s3-box-maker p-title">{b.maker}</div>
+                {b.also && <div className="s3-box-also p-small p-secondary">{b.also}</div>}
                 <div className="s3-box-acts p-body">
                   <div className={`s3-box-act${lit && !noon ? " is-on" : ""}`}>{b.acts[0]}</div>
                   <div className={`s3-box-act${noon ? " is-on" : ""}`}>{b.acts[1]}</div>

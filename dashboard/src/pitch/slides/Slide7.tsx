@@ -1,4 +1,5 @@
 // Slide 7, the close (3:55, 25 s, Matthew). Two steps.
+// Step 1 (Right): "So at six tomorrow, when the cars come home, the batteries answer before anyone notices."
 // Step 0: the ask in one sentence, alone and centred on the hero background (sign-up, second maker and the vision are
 // spoken, PITCH.md notes). Step 1 (Right): it leaves in 0.4 s and "It eats peaks for breakfast." stands alone.
 // No 21st.dev component: the slide is pure type on the pitch tokens.
@@ -13,11 +14,14 @@ const EASE = [0.25, 0.1, 0.3, 1] as const;
 const ASK_LINE = { what: "One street transformer to pilot on.", when: "This winter." };
 
 const CLOSER = ["It eats peaks", "for breakfast."];
+/** Step 1: the line before the punchline (script). */
+const BEFORE = "So at six tomorrow, when the cars come home, the batteries answer before anyone notices.";
 
 export default function Slide7({ step, freeze }: SlideProps) {
   const reduce = useReducedMotion();
   const still = freeze === "end" || !!reduce;
-  const closing = step >= 1;
+  const closing = step >= 2;
+  const before = step === 1;
 
   const ask = (
     <motion.div
@@ -36,6 +40,23 @@ export default function Slide7({ step, freeze }: SlideProps) {
       >
         {ASK_LINE.what} <span className="p-secondary">{ASK_LINE.when}</span>
       </motion.h1>
+    </motion.div>
+  );
+
+  const answer = (
+    <motion.div
+      key="before"
+      className="s7-layer s7-ask"
+      exit={still ? undefined : { opacity: 0, transition: { duration: 0.4, ease: EASE } }}
+    >
+      <motion.p
+        className="s7-ask-line p-head"
+        initial={still ? false : { opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.9, ease: EASE, delay: 0.1 }}
+      >
+        {BEFORE}
+      </motion.p>
     </motion.div>
   );
 
@@ -66,8 +87,8 @@ export default function Slide7({ step, freeze }: SlideProps) {
   );
 
   return (
-    <div className="p-slide" data-slide="7" data-step={closing ? 1 : 0}>
-      {still ? (closing ? close : ask) : <AnimatePresence mode="wait">{closing ? close : ask}</AnimatePresence>}
+    <div className="p-slide" data-slide="7" data-step={step}>
+      {still ? (closing ? close : before ? answer : ask) : <AnimatePresence mode="wait">{closing ? close : before ? answer : ask}</AnimatePresence>}
     </div>
   );
 }

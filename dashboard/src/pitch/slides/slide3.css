@@ -89,7 +89,7 @@
 .s3-box {
   position: absolute;
   top: 464px;
-  width: 390px;
+  width: 480px;
   height: 292px;
   z-index: 2;
 }
@@ -330,4 +330,10 @@
 /* Clash Display is wide: the signed message is set a step smaller so it keeps its two lines inside the card. */
 .s3 .s3-msg.p-head {
   font-size: 62px;
+}
+
+/* The battery box names the other makers in one small line under Victron. */
+.s3-box-also {
+  margin-top: 2px;
+  white-space: nowrap;
 }

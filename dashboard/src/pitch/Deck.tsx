@@ -20,7 +20,7 @@ import Notes from "./shell/Notes";
 import Overview, { overviewLayout } from "./shell/Overview";
 import { useTheme } from "../ops/theme";
 import Backdrop from "./shell/Backdrop";
-import { useFlatten } from "../api";
+import { useFlatten, useGridState } from "../api";
 import "./deck.css";
 
 const W = 1920;
@@ -118,7 +118,9 @@ export default function Deck() {
   const size = useWindowSize();
   const [theme, setTheme] = useTheme();
   // Slide 4's live plan, fetched from the first frame (the poll is shared), so the curve is live the moment it comes on.
-  useFlatten(freeze ? null : "region:at");
+  useFlatten("region:at");
+  // Slides 3 (the loop) and 6 (the plant, the heat grid) read the same light state poll: warm it from the first frame too.
+  useGridState("", "");
   const cursorHidden = useIdleCursor(CURSOR_IDLE_MS);
 
   const setPos = useCallback((p: Pos) => {
@@ -288,7 +290,7 @@ export default function Deck() {
 
   return (
     <div className={`p-deck${cursorHidden ? " p-nocursor" : ""}`} data-slide-current={pos.i}>
-      <Backdrop kind={SLIDES[pos.i].bg ?? "none"} theme={theme} freeze={!!freeze} />
+      <Backdrop kind={SLIDES[pos.i].bgSteps?.[pos.step] ?? SLIDES[pos.i].bg ?? "none"} theme={theme} freeze={!!freeze} />
       {SLIDES.map((d, i) => {
         // Full-bleed slides (the trailer, the live demo) live outside the scaled canvas; the demo stays mounted.
         if (!d.fullBleed) return null;

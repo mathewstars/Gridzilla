@@ -89,9 +89,10 @@ export const NOTES: Notes[] = [
       "We need one street transformer to pilot on. This winter.",
       "Sign-up is two weeks. A second maker, one week. We own the plant.",
       "After that: streets that keep their lights on from their own batteries when the line is gone.",
+      "(Right) So at six tomorrow, when the cars come home, the batteries answer before anyone notices.",
       "(Right) Gridzilla. It eats peaks for breakfast. Thank you.",
       "Stop at 4:20. Questions.",
     ],
-    keys: "Right shows the last line alone.",
+    keys: "Right: the six o'clock line. Right: the last line alone.",
   },
 ];
