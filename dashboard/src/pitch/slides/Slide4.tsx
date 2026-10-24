@@ -294,10 +294,11 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
 
         {/* Direct labels. */}
         <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(tPeak, 0.6)}>
-          <text className="s4-label" x={g.peakLabelX} y={g.y(g.peak.naive) - 66}>
+          {/* Above whichever is higher, the peak or the limit line, so the label never sits on the line. */}
+          <text className="s4-label" x={g.peakLabelX} y={Math.min(g.y(g.peak.naive), limitY) - 70}>
             Without Gridzilla
           </text>
-          <text className="s4-note" data-src="axis" x={g.peakLabelX} y={g.y(g.peak.naive) - 26}>
+          <text className="s4-note" data-src="axis" x={g.peakLabelX} y={Math.min(g.y(g.peak.naive), limitY) - 30}>
             {g.peakNote}
           </text>
         </motion.g>
