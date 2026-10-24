@@ -14,7 +14,7 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 |---|---|---|---|
 | 0:00 | 1 Title | M | Jingle, 30 s, say nothing, then one line. |
 | 0:30 | 2 Problem | M | The storage exists, the signal does not. |
-| 0:55 | 3 The idea | M | One signed message. Owner wins. Meter pays. |
+| 0:55 | 3 The idea | M | The operator asks, the house decides, the owner can always say no. |
 | 1:35 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
 | 2:15 | 5 Live demo | M + P | Board: Vienna curve, the AI's decision, Flattening tab, Blatnica, heartbeat. 75 s. |
 | 3:30 | 6 Real vs simulated | MT | Measured numbers, honest counterfactual. |
@@ -33,7 +33,7 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 
 **3. The idea (0:55 to 1:35).**
 
-> One signed message. The operator says: this street, next three hours, take at most three kilowatts per house. Never "discharge now", never a setting. The house decides how: battery first, car second, hot water third. The owner's limits always win. If the operator goes silent, every house is back to normal in two minutes. The meter checks it, the meter pays it. An AI proposes every fifteen minutes, thirty lines of rules decide, the platform signs.
+> One signed message. The operator says: this street, next three hours, take at most three kilowatts per house. Never "discharge now", never a setting. The house decides how: battery first, car second, hot water third. The owner can always say no. If the operator goes silent, every house is back to normal in two minutes. The smart meter sees whether the house kept the limit, and that is what gets paid. An AI proposes every fifteen minutes, thirty lines of rules decide, the platform signs.
 
 **4. The monster eats peaks (1:35 to 2:15).**
 
