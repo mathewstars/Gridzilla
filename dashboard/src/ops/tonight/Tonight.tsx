@@ -63,7 +63,8 @@ export default function Tonight({ ops, compact }: { ops: Ops; compact?: boolean 
         tip="Tonight's diet plan for the whole city: the highest load without Gridzilla minus the highest load with it." />
     ),
     nowOff != null && (
-      <Stat key="now" value={<Pw from={`${A}/baseline_kw - ${A}/total_kw`} kw={nowOff} />} label="kept off the grid right now" note={<><Pw src={`${A}/baseline_kw`} kw={agg!.baseline_kw!} /> without Gridzilla, <Pw src={`${A}/total_kw`} kw={agg!.total_kw!} /> with</>}
+      <Stat key="now" value={nowOff >= 0 ? <Pw from={`${A}/baseline_kw - ${A}/total_kw`} kw={nowOff} /> : <Pw from={`${A}/total_kw - ${A}/baseline_kw`} kw={-nowOff} />}
+        label={nowOff >= 0 ? "kept off the grid right now" : "added right now: charging moved into the night"} note={<><Pw src={`${A}/baseline_kw`} kw={agg!.baseline_kw!} /> without Gridzilla, <Pw src={`${A}/total_kw`} kw={agg!.total_kw!} /> with</>}
         tip="City-wide, this minute: what the same houses would draw without Gridzilla minus what they draw now." />
     ),
     plan && wouldPass > 0 && (
