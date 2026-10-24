@@ -85,7 +85,7 @@ export default function Sidebar({ route, ops }: { route: Route; ops: Ops }) {
         <List size={16} weight="bold" /> {open ? "Close" : "Menu"}
       </button>
       <LayoutGroup id="sb">
-        <div className="sb-nav" id="sb-nav">
+        <div className="sb-nav" id="sb-nav" data-scroll="nav">
           {SECTIONS.map((sec) => (
             <div key={sec.label} style={{ display: "contents" }}>
               <div className="sb-sec">{sec.label}</div>

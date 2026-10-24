@@ -15,3 +15,7 @@
 @media (max-width: 760px) {
   .ops { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Projector floor (firstmate): nothing under 12 px, and 13 px for what a judge must read: the city tile numbers, the feed
+   lines and their times, the active signal rows. */
+.ops .cg-pct, .ops .feed-time, .ops .feed-head, .ops .feed .nw, .ops .cp-sig, .ops .cp-sig .cp-sub { font-size: max(13px, 0.8125rem); }

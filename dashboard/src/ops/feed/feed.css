@@ -29,13 +29,13 @@
 .feed-live { width: 7px; height: 7px; border-radius: 50%; background: var(--feed-green); flex: none; }
 .feed-live.is-dark { background: var(--color-tertiary); }
 .feed-badge {
-  font-size: 0.6875rem; font-weight: 600; line-height: 1; padding: 4px 7px; border-radius: 980px; white-space: nowrap;
+  font-size: max(12px, 0.6875rem); font-weight: 600; line-height: 1; padding: 4px 7px; border-radius: 980px; white-space: nowrap;
   color: var(--feed-orange); background: color-mix(in srgb, var(--feed-orange) 14%, transparent);
 }
 .feed-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; min-width: 0; }
 .feed-stats > div { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 .feed-stats dd { margin: 0; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
-.feed-stats dt { color: var(--color-tertiary); font-size: 0.75rem; }
+.feed-stats dt { color: var(--color-tertiary); font-size: max(12px, 0.75rem); }
 .feed-stats .tone-bad-text dd, .feed-stats .tone-bad-text dt { color: var(--feed-red); }
 
 /* rows */
@@ -55,7 +55,7 @@
 .feed-line:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
 .feed-row.is-open > .feed-line { background: var(--color-fill-2); }
 .feed-time {
-  padding-top: 1px; color: var(--color-tertiary); font-size: 0.75rem; line-height: 1.35rem;
+  padding-top: 1px; color: var(--color-tertiary); font-size: max(12px, 0.75rem); line-height: 1.35rem;
   font-family: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
@@ -67,10 +67,10 @@
 .feed-head { color: var(--color-ink); font-weight: 500; overflow-wrap: anywhere; }
 .feed-mode { font-weight: 600; }
 .feed-code {
-  margin-left: 4px; font-size: 0.625rem; font-weight: 600; letter-spacing: 0.04em; color: var(--color-tertiary);
+  margin-left: 4px; font-size: max(12px, 0.625rem); font-weight: 600; letter-spacing: 0.04em; color: var(--color-tertiary);
   font-family: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace; vertical-align: 1px;
 }
-.feed-meta { display: block; color: var(--color-secondary); font-size: 0.75rem; line-height: 1.1rem; }
+.feed-meta { display: block; color: var(--color-secondary); font-size: max(12px, 0.75rem); line-height: 1.1rem; }
 .feed-meta > span.nw { white-space: nowrap; }
 .feed-meta > span:not(:last-child)::after { content: "\00a0\00a0·\00a0"; color: var(--color-tertiary); }
 .feed-chev { margin-top: 7px; color: var(--color-tertiary); opacity: 0; transition: opacity 100ms linear; }
@@ -93,19 +93,19 @@
 .feed-detail { padding: 4px 16px 12px calc(16px + 2.6rem + 10px + 20px + 10px); background: var(--color-fill-2); }
 .feed-detail dl { display: grid; gap: 7px; margin: 0; }
 .feed-detail dl > div { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
-.feed-detail dt { color: var(--color-tertiary); font-size: 0.6875rem; line-height: 1rem; font-weight: 500; }
-.feed-detail dd { margin: 0; color: var(--color-ink); font-size: 0.75rem; line-height: 1.1rem; overflow-wrap: anywhere; }
+.feed-detail dt { color: var(--color-tertiary); font-size: max(12px, 0.6875rem); line-height: 1rem; font-weight: 500; }
+.feed-detail dd { margin: 0; color: var(--color-ink); font-size: max(12px, 0.75rem); line-height: 1.1rem; overflow-wrap: anywhere; }
 .feed-detail .tone-bad-text dd { color: var(--feed-red); }
 .feed-env { margin-top: 10px; }
-.feed-env-label { color: var(--color-tertiary); font-size: 0.6875rem; margin-bottom: 4px; }
+.feed-env-label { color: var(--color-tertiary); font-size: max(12px, 0.6875rem); margin-bottom: 4px; }
 .feed-env-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .feed-env-svg { flex: none; color: var(--color-ink); background: var(--color-card); border-radius: 6px; box-shadow: inset 0 0 0 1px var(--color-fill); }
-.feed-env-nums { display: flex; flex-direction: column; color: var(--color-secondary); font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
+.feed-env-nums { display: flex; flex-direction: column; color: var(--color-secondary); font-size: max(12px, 0.6875rem); font-variant-numeric: tabular-nums; }
 
 .feed-empty { padding: 24px 16px; color: var(--color-tertiary); font-size: 0.8125rem; }
 .feed-more {
   margin: 4px 16px 14px; align-self: flex-start; padding: 6px 12px; border: 0; border-radius: 980px; cursor: pointer;
-  font: inherit; font-size: 0.75rem; font-weight: 500; color: var(--color-ink); background: var(--color-fill);
+  font: inherit; font-size: max(12px, 0.75rem); font-weight: 500; color: var(--color-ink); background: var(--color-fill);
   transition: background-color 100ms linear;
 }
 .feed-more:hover { background: var(--color-fill-press); }
