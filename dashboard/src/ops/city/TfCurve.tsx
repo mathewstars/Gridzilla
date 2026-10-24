@@ -5,6 +5,7 @@ import { nice } from "../../model";
 import { loadTone, P } from "../../stage/palette";
 import LiveCurve from "../../stage/kit/LiveCurve";
 import { cellOf } from "./cityData";
+import { tip } from "../views/fmt";
 
 export default function TfCurve({ s, history, tf, plan }: { s: State; history: History | null; tf: string; plan: Flatten | null }) {
   const c = cellOf(s, tf, null);
@@ -22,16 +23,16 @@ export default function TfCurve({ s, history, tf, plan }: { s: State; history: H
           <span className="cc-where">{nice(feeder)} feeder · {nice(sub)}</span>
         </div>
         <dl className="cc-stats num">
-          <div>
-            <dt>{back ? "pushing back" : "live"}</dt>
+          <div {...tip(back ? "Power this street pushes back into the grid right now (rooftop solar), in kilowatts" : "Power this street draws through its transformer right now, in kilowatts")}>
+            <dt>{back ? "pushing back now" : "live now"}</dt>
             <dd>{c.kw == null ? "–" : `${Math.round(Math.abs(c.kw))} kW`}</dd>
           </div>
-          <div>
-            <dt>of limit</dt>
+          <div {...tip(`How close the transformer is to its limit: ${c.pct == null ? "no reading yet" : `${back ? "exporting" : "taking"} ${p} %`}; over 100 % it overheats`)}>
+            <dt>{back ? "exporting, of its limit" : "of its limit"}</dt>
             <dd style={{ color: loadTone(c.pct) === P.green ? undefined : loadTone(c.pct) }}>{c.pct == null ? "–" : `${p} %`}</dd>
           </div>
-          <div>
-            <dt>limit</dt>
+          <div {...tip("The most power this transformer may carry in this direction before it overheats")}>
+            <dt>its limit</dt>
             <dd>{c.limit == null ? "–" : `${Math.round(c.limit)} kW`}</dd>
           </div>
         </dl>

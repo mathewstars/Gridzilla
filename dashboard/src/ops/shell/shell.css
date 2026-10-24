@@ -153,6 +153,7 @@
 .tb-clock b { font-size: 1.0625rem; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .tb-sep { width: 1px; height: 20px; background: var(--sh-line); flex: none; }
 .tb-spacer { flex: 1; min-width: 0; }
+.tb-icons { display: inline-flex; align-items: center; gap: 0; flex: none; }
 
 /* segmented control (Apple: grey track, raised thumb) */
 .seg { position: relative; display: inline-flex; padding: 2px; border-radius: 9px; background: var(--sh-track); flex: none; }
@@ -217,7 +218,9 @@
 
 /* captions disappear first, then the weather words, so the bar stays one line from 1240 */
 @media (max-width: 1599.98px) { .tb-cap-opt { display: none; } }
-@media (max-width: 1365.98px) { .tb-wx-place { display: none; } }
+@media (max-width: 1599.98px) { .tb-wx-place { display: none; } }
+/* below 1366 the weather chip goes (the Weather page has it), so the help and theme icons stay on the one line */
+@media (min-width: 761px) and (max-width: 1365.98px) { .tb-wx { display: none; } }
 @media (max-width: 1439.98px) {
   .tb { gap: 8px 10px; padding: 8px 10px; }
   .tb-sep { display: none; }
@@ -303,3 +306,10 @@
   .vw > * { flex: none; }
   .vw-scroll { overflow-x: visible; }
 }
+/* One-sentence explanation on tap (phones, tablets): see TapTip in TopBar.tsx. */
+.taptip {
+  position: fixed; z-index: 90; max-width: min(300px, calc(100vw - 16px)); transform: translate(-50%, -100%);
+  padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.35; color: var(--color-ink);
+  background: var(--color-card); box-shadow: 0 0 0 1px var(--color-fill), 0 8px 24px rgb(0 0 0 / 0.18); pointer-events: none;
+}
+.taptip.is-below { transform: translate(-50%, 0); }

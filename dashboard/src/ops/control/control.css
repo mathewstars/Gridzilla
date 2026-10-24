@@ -161,3 +161,4 @@ input.cp-input[type="number"]::-webkit-inner-spin-button, input.cp-input[type="n
 }
 
 .cp-sig-top .cp-wrap { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.cp-title-code { margin-left: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--color-tertiary); }

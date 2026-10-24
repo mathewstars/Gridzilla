@@ -8,6 +8,7 @@ import type { Flatten, State } from "../../api";
 import { hhmm, MODE_WORDS, nice } from "../../model";
 import { loadTone, P } from "../../stage/palette";
 import { cityGroups, type TfCell } from "./cityData";
+import { tip as hint } from "../views/fmt";
 
 const fmtKw = (kw: number | null) => (kw == null ? "no reading" : `${Math.abs(kw) >= 100 ? Math.round(kw) : kw.toFixed(1)} kW`);
 
@@ -16,6 +17,10 @@ function tint(pct: number | null) {
   const amt = p >= 100 ? 30 : p >= 85 ? 24 : 14;
   return `color-mix(in srgb, ${loadTone(pct)} ${amt}%, var(--color-card))`;
 }
+
+/** "Mauer 2 street transformer: taking 42 % of what it can carry" (the tile's one sentence). */
+export const tileSentence = (id: string, pct: number | null) =>
+  `${nice(id)} street transformer: ${pct == null ? "no load reading right now" : pct < 0 ? `pushing ${Math.abs(pct)} % of what it can take back to the grid` : `taking ${Math.abs(pct)} % of what it can carry`}`;
 
 /** "taking 46 % of its limit" / "exporting 22 % of its limit" (negative load = the street pushes solar back). */
 const loadWords = (pct: number | null) => (pct == null ? "no load reading" : `${pct < 0 ? "exporting" : "taking"} ${Math.abs(pct)} % of its limit`);
@@ -48,11 +53,11 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
       <header className="cg-head">
         <h2 className="cg-title">Live city</h2>
         <div className="cg-counts num">
-          <span>{all.length} transformers</span>
-          <span style={{ color: over ? P.red : undefined }}>{over} over</span>
-          <span style={{ color: near ? P.orange : undefined }}>{near} near the limit</span>
-          <span>{signalled} under a signal</span>
-          <span>diet plan on {dieting} feeders</span>
+          <span {...hint("Every street transformer in the simulated Vienna grid, one tile each")}>{all.length} transformers</span>
+          <span style={{ color: over ? P.red : undefined }} {...hint("Transformers carrying more than their limit right now, in either direction")}>{over} over their limit</span>
+          <span style={{ color: near ? P.orange : undefined }} {...hint("Transformers at 85 % of their limit or more, but not over it")}>{near} near the limit</span>
+          <span {...hint("Transformers whose houses are following a grid signal right now")}>{signalled} under a signal</span>
+          <span {...hint("Feeders (one cable from the substation) whose houses follow a 24-hour plan that trims the evening peak")}>diet plan on {dieting} feeders</span>
         </div>
       </header>
 
@@ -61,8 +66,12 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
           <div className="cg-sub" role="row" key={g.id}>
             <div className="cg-subname">
               <span className="cg-subtitle">{nice(g.id)}</span>
-              <span className="cg-submax num" style={{ color: g.worst >= 100 ? P.red : g.worst >= 85 ? P.orange : undefined }}>
-                max {g.worst} %
+              <span
+                className="cg-submax num"
+                style={{ color: g.worst >= 100 ? P.red : g.worst >= 85 ? P.orange : undefined }}
+                {...hint(`${nice(g.id)} substation: its busiest transformer is at ${g.worst} % of its limit`)}
+              >
+                busiest {g.worst} %
               </span>
             </div>
             {g.feeders.map((f) => (
@@ -108,6 +117,7 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
       </div>
 
       <footer className="cg-legend">
+        <span><b className="cg-legnum">42</b>= % of its limit, − = sending solar back</span>
         <span><i className="cg-sw" style={{ background: P.green }} />inside the limit</span>
         <span><i className="cg-sw" style={{ background: P.orange }} />85 % and up</span>
         <span><i className="cg-sw" style={{ background: P.red }} />over, either direction</span>
@@ -127,6 +137,7 @@ function Tooltip({ tip, s }: { tip: Tip; s: State }) {
   return (
     <div className={`cg-tip${tip.below ? " is-below" : ""}`} style={{ left: tip.x, top: tip.y }} role="tooltip">
       <div className="cg-tip-name">{nice(c.id)}</div>
+      <div className="cg-tip-row">{tileSentence(c.id, c.pct)}.</div>
       <div className="cg-tip-row num">
         {back ? "Pushing back " : "Drawing "}
         {fmtKw(c.kw == null ? null : Math.abs(c.kw))}

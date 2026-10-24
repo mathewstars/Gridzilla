@@ -33,3 +33,4 @@
 .fstrip-row.tone-bad { color: #ff3b30; }
 .fstrip-row.tone-wait .fstrip-text > span:first-child { color: #ff9500; }
 .fstrip-quiet { color: var(--color-secondary); }
+.now-code { margin-left: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--color-tertiary); }

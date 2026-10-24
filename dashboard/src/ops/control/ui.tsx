@@ -2,6 +2,7 @@
 // "Segmented Control" with a sliding thumb), one action runner that turns every POST into a plain-English result line,
 // and a one-second clock for countdowns. Colours come only from the theme tokens, so light and dark both work.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { READ_ONLY, READ_ONLY_TEXT } from "../../api";
 
 export type Tone = "primary" | "secondary" | "danger" | "quiet";
 
@@ -10,7 +11,8 @@ export function Btn({ tone = "secondary", busy, disabled, onClick, children, tit
 }) {
   const cls = ["btn", "cp-btn", tone === "primary" ? "btn-primary" : tone === "danger" ? "btn-danger" : tone === "quiet" ? "cp-btn-quiet" : "", small ? "cp-btn-sm" : "", wide ? "cp-btn-wide" : ""].join(" ");
   return (
-    <button type="button" className={cls} disabled={disabled || busy} aria-busy={busy || undefined} onClick={onClick} title={title}>
+    // live mode (?api=): every action button is off and says why
+    <button type="button" className={cls} disabled={disabled || busy || READ_ONLY} aria-busy={busy || undefined} onClick={onClick} title={READ_ONLY ? READ_ONLY_TEXT : title}>
       {busy && <span className="cp-spin" aria-hidden />}
       <span>{children}</span>
     </button>
@@ -89,11 +91,15 @@ export function clock(ms: number) {
   return h ? `${h}:${p(m)}:${p(s)}` : `${m}:${p(s)}`;
 }
 
-export function Card({ title, aside, children, className = "" }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
+/** title in plain words; code = the technical name, shown small beside it. */
+export function Card({ title, code, aside, children, className = "" }: { title: string; code?: string; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={`panel cp-card ${className}`}>
       <header className="cp-head">
-        <h3 className="cp-title">{title}</h3>
+        <h3 className="cp-title">
+          {title}
+          {code && <span className="cp-title-code">{code}</span>}
+        </h3>
         {aside && <div className="cp-aside">{aside}</div>}
       </header>
       {children}
@@ -111,11 +117,11 @@ export function Spark({ curve, w = 120, h = 28 }: { curve: number[] | null | und
     d += `${i ? "L" : "M"}${(i * step).toFixed(1)},${y.toFixed(1)} L${((i + 1) * step).toFixed(1)},${y.toFixed(1)} `;
   });
   return (
-    <span className="cp-spark">
+    <span className="cp-spark" title="The most power each house may take per time slot, in kilowatts" data-tip="The most power each house may take per time slot, in kilowatts">
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
         <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" />
       </svg>
-      <span className="cp-mono">{mn}–{mx} kW</span>
+      <span className="cp-mono">limit {mn}–{mx} kW</span>
     </span>
   );
 }

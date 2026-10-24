@@ -3,11 +3,13 @@
 // says why in plain words. One line from 1240 wide (captions drop first, shell.css), wraps cleanly on phones.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { Cloud, CloudSun, Moon, PenNib, Sun, Warning, X } from "@phosphor-icons/react";
-import { post } from "../../api";
+import { createPortal } from "react-dom";
+import { Cloud, CloudSun, Moon, PenNib, Question, Sun, Warning, X } from "@phosphor-icons/react";
+import { post, READ_ONLY, READ_ONLY_TEXT } from "../../api";
 import type { Ops } from "../useOps";
 import { useTheme } from "../theme";
-import { clock } from "../views/fmt";
+import { clock, tip } from "../views/fmt";
+import { useFeed } from "../feed/events";
 import "./shell.css";
 
 const SCENARIOS = [
@@ -45,9 +47,9 @@ function Segmented({ id, opts, value, wait, onPick, label }: { id: string; opts:
               type="button"
               role="radio"
               aria-checked={on}
-              title={o.hint}
+              title={READ_ONLY ? READ_ONLY_TEXT : o.hint}
               className={`seg-btn${wait === o.v ? " is-wait" : ""}`}
-              disabled={!!wait}
+              disabled={!!wait || READ_ONLY}
               onClick={() => !on && onPick(o.v)}
             >
               {on && <motion.span layoutId={`${id}-thumb`} className="seg-thumb" transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 600, damping: 42, mass: 0.6 }} />}
@@ -70,6 +72,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
   const [busy, setBusy] = useState<keyof Want | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const errTimer = useRef(0);
+  const feed = useFeed(ops.s, ops.history);
 
   const scenario = want.scenario ?? s?.scenario?.name ?? "normal";
   const mode = want.mode ?? s?.autopilot?.mode ?? "off";
@@ -123,12 +126,20 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
   const warns = wx.data?.warnings ?? [];
   const worstWarn = warns.find((w) => w.level === "red") ?? warns.find((w) => w.level === "orange") ?? warns[0];
   const place = (wx.data?.location?.name as string | undefined) ?? "Vienna";
-  const signed = s.seq ?? 0;
+  // Signed TODAY (grid day), from what the page sees: autopilot decisions sent plus signed log lines and signals. When
+  // the platform's short log does not reach back to midnight the label says from when it counts.
+  const signed = feed?.signals ?? 0;
+  const since = feed?.since ?? null;
+  const signedWord = since == null ? "signed today" : `signed today since ${clock(since)}`;
+  const signedTip =
+    since == null
+      ? `Signals the platform signed and sent to houses today (grid day, from 00:00), not counting diet plan updates.`
+      : `Signals signed today since ${clock(since)} grid time: the platform only shares its newest log lines, so earlier ones today are not visible here.`;
   const WxIcon = now && (now.cloud_pct ?? 0) > 60 ? Cloud : CloudSun;
 
   return (
     <header className={`tb${compact ? " is-compact" : ""}`}>
-      <div className="tb-clock" title="Grid time: the simulated city runs faster than the wall clock">
+      <div className="tb-clock" {...tip(`Grid time ${clock(s.sim_hour)}: the simulated city's clock, which runs faster than the wall clock`)}>
         <span className="tb-cap">Grid</span>
         <b data-src="state.sim_hour">{clock(s.sim_hour)}</b>
       </div>
@@ -167,24 +178,24 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
         <button
           type="button"
           className={`tbtn ${paused ? "is-green" : "is-red"}`}
-          disabled={busy === "paused"}
+          disabled={busy === "paused" || READ_ONLY}
           onClick={() => act("paused", !paused, paused ? "heartbeat/resume" : "heartbeat/pause", undefined, paused ? "Heartbeat not resumed" : "Heartbeat not paused")}
-          title={paused ? "Resume the heartbeat: houses follow the grid again" : "Pause the heartbeat to show the fail-safe: houses drop back to owner mode"}
+          title={READ_ONLY ? READ_ONLY_TEXT : paused ? "Resume the heartbeat: houses follow the grid again" : "Pause the heartbeat to show the fail-safe: houses drop back to owner mode"}
         >
           {paused ? "Resume" : "Pause"}
         </button>
       </Chip>
       {!compact && (
-        <Chip title="Signals signed by the platform since it started (sequence number of the last one)">
+        <Chip title={signedTip}>
           <PenNib size={14} weight="bold" />
-          <span data-src="state.seq">{signed.toLocaleString("en-US")}</span>
-          <span className="t">signed</span>
+          <span data-src="feed.signals">{signed.toLocaleString("en-US")}</span>
+          <span className="t">{signedWord}</span>
         </Chip>
       )}
       {compact ? null : wx.available && now ? (
-        <Chip title={wx.data?.summary ?? `Weather in ${place}`}>
+        <Chip className="tb-wx" title={`${place} now: ${Math.round(now.temp_c)} °C outside${wx.data?.summary ? `, ${wx.data.summary}` : ""}`}>
           <WxIcon size={15} weight="bold" />
-          <span>{Math.round(now.temp_c)}°C</span>
+          <span>{Math.round(now.temp_c)} °C</span>
           <span className="t tb-wx-place">{place}</span>
           {worstWarn && (
             <span title={worstWarn.title} style={{ display: "inline-flex", color: worstWarn.level === "red" ? "var(--sh-red)" : "var(--sh-orange)" }}>
@@ -193,7 +204,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
           )}
         </Chip>
       ) : (
-        <Chip title="The weather service is not answering; the city keeps running on its last scenario">
+        <Chip className="tb-wx" title="The weather service is not answering; the city keeps running on its last scenario">
           <Cloud size={15} />
           <span className="t">{wx.checking ? "Weather…" : "Weather offline"}</span>
         </Chip>
@@ -206,6 +217,16 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
         </div>
       )}
       <span className="tb-spacer" />
+      <span className="tb-icons">
+      <button
+        type="button"
+        className="ibtn"
+        aria-label="What is on this screen?"
+        title="What is on this screen? (key ?)"
+        onClick={() => window.dispatchEvent(new CustomEvent("gz-help"))}
+      >
+        <Question size={16} weight="bold" />
+      </button>
       <button
         type="button"
         className="ibtn"
@@ -215,13 +236,50 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
       >
         {theme === "dark" ? <Sun size={16} weight="bold" /> : <Moon size={16} weight="bold" />}
       </button>
+      </span>
+      <TapTip />
     </header>
+  );
+}
+
+/** Phones and tablets have no hover: a tap on anything carrying data-tip shows its one-sentence explanation in a small
+ *  bubble above (or below) it for a few seconds. Mouse users get the same sentence from the title attribute. */
+function TapTip() {
+  const [t, setT] = useState<{ text: string; x: number; y: number; below: boolean } | null>(null);
+  useEffect(() => {
+    let timer = 0;
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") return;
+      const el = (e.target as HTMLElement | null)?.closest?.("[data-tip]") as HTMLElement | null;
+      window.clearTimeout(timer);
+      if (!el) return setT(null);
+      const r = el.getBoundingClientRect();
+      const below = r.top < 90;
+      const half = Math.min(150, window.innerWidth / 2 - 8);
+      setT({ text: el.dataset.tip ?? "", x: Math.max(half + 8, Math.min(window.innerWidth - half - 8, r.left + r.width / 2)), y: below ? r.bottom + 6 : r.top - 6, below });
+      timer = window.setTimeout(() => setT(null), 4500);
+    };
+    const hide = () => setT(null);
+    document.addEventListener("pointerup", onUp, true);
+    window.addEventListener("scroll", hide, true);
+    return () => {
+      document.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("scroll", hide, true);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  if (!t || !t.text) return null;
+  return createPortal(
+    <div className={`taptip${t.below ? " is-below" : ""}`} role="tooltip" style={{ left: t.x, top: t.y }}>
+      {t.text}
+    </div>,
+    document.body,
   );
 }
 
 function Chip({ className = "", title, children }: { className?: string; title?: string; children: ReactNode }) {
   return (
-    <div className={`chip ${className}`} title={title}>
+    <div className={`chip ${className}`} title={title} data-tip={title}>
       {children}
     </div>
   );

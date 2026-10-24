@@ -6,6 +6,7 @@ import { post, type Mode, type Proposal, type Signal, type State } from "../../a
 import { hhmm, pathOf } from "../../model";
 import type { Ops } from "../useOps";
 import { Btn, Card, Result, Seg, Spark, clock, useAction, useNow } from "./ui";
+import { tip } from "../views/fmt";
 import {
   ALL_FIELDS, FIELD, LEVEL_LABEL, MODES, MODE_FIELDS, MODE_LABEL, defaultDuration, fieldLine, homesUnder, kindWord, levelOf, segName, signalFields,
   type Field, type Level,
@@ -28,7 +29,7 @@ function worstUnder(s: State, n: string) {
 export default function SignalCard({ ops }: { ops: Ops }) {
   const s = ops.s as State;
   return (
-    <Card title="Signals" aside={<span className="cp-sub cp-mono">{Object.keys(s.active).length} active · last #{s.seq}</span>}>
+    <Card title="Signals" aside={<span className="cp-sub cp-mono" {...tip("How many signals run now, and the number of the last message the platform signed")}>{Object.keys(s.active).length} running · last signed #{s.seq}</span>}>
       <ActiveList ops={ops} />
       <div className="cp-divider" />
       <Composer ops={ops} />
@@ -59,11 +60,12 @@ export function ActiveList({ ops }: { ops: Ops }) {
         const frac = Math.max(0, Math.min(1, (now - a) / (b - a)));
         const env = sig.envelope ? sig.envelope.import_max_kw ?? sig.envelope.export_max_kw : null;
         return (
-          <div className="cp-sig" key={n}>
+          <div className="cp-sig" key={n} {...tip(`${MODE_LABEL[sig.mode] ?? sig.mode} on ${segName(n)}: the houses under it follow this signal until its time runs out; Release hands them back early`)}>
             <div className="cp-sig-top">
-              <span className="cp-code cp-code-solid">{sig.mode}</span>
-              <span className="cp-strong cp-wrap" title={n}>{segName(n)}</span>
-              {sig.cohort && <span className="cp-sub">wave {sig.cohort[0] + 1}/{sig.cohort[1]}</span>}
+              <span className="cp-strong">{MODE_LABEL[sig.mode] ?? sig.mode}</span>
+              <span className="cp-code">{sig.mode}</span>
+              <span className="cp-sub cp-wrap">on {segName(n)}</span>
+              {sig.cohort && <span className="cp-sub">wave {sig.cohort[0] + 1} of {sig.cohort[1]}</span>}
               <span className="cp-grow" />
               <span className="cp-mono cp-count" title={`${sig.valid_from.slice(11, 16)}–${sig.valid_to.slice(11, 16)} UTC`}>
                 {pending ? `starts in ${clock(a - now)}` : `${clock(b - now)} left`}
@@ -72,7 +74,7 @@ export function ActiveList({ ops }: { ops: Ops }) {
             <div className="cp-bar" aria-hidden><i style={{ width: `${frac * 100}%` }} /></div>
             <div className="cp-sig-bot">
               <span className="cp-sub cp-wrap">
-                #{sig.seq} · {fieldLine(signalFields(sig)) || MODE_LABEL[sig.mode]}
+                signed #{sig.seq} · {fieldLine(signalFields(sig)) || MODE_LABEL[sig.mode]}
                 {env ? ` · ${env.length} time slots` : ""}
               </span>
               {env && <Spark curve={env} w={64} h={18} />}
@@ -199,7 +201,7 @@ export function Composer({ ops }: { ops: Ops }) {
             <option key={n} value={n}>{segName(n)}{n === followed ? " (selected in the city)" : ""}</option>
           ))}
         </select>
-        <span className="cp-sub cp-mono">{segment} · {homesUnder(s, segment)} homes</span>
+        <span className="cp-sub cp-mono">{segment} · {homesUnder(s, segment)} homes under it</span>
       </div>
 
       <div className="cp-field">

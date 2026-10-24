@@ -5,6 +5,7 @@ import { post, type Mode, type State } from "../../api";
 import { hhmm } from "../../model";
 import type { Ops } from "../useOps";
 import { Btn, Card, Result, Spark, clock, useAction, useNow } from "./ui";
+import { tip } from "../views/fmt";
 import { MODE_LABEL, fieldLine, homesUnder, kindWord, segName } from "./modes";
 
 const STAGE: Record<string, string> = { sense: "reading the forecast", deepseek: "asking the AI", guard: "checking the policy guard", send: "signing and sending" };
@@ -50,8 +51,9 @@ export default function AiCard({ ops }: { ops: Ops }) {
   return (
     <Card
       title="Autopilot"
+      code="AI"
       aside={
-        <span className={`cp-chip ${ap.mode === "off" ? "" : "is-on"}`}>
+        <span className={`cp-chip ${ap.mode === "off" ? "" : "is-on"}`} {...tip(ap.mode === "off" ? "Autopilot off: the AI only watches, nothing is sent by it" : ap.mode === "auto" ? "Autopilot on Auto: the AI signs and sends signals by itself, within the guard's limits" : "Autopilot on Propose: the AI proposes each signal and waits for your yes")}>
           <span className="cp-dot" aria-hidden />
           {modeWord}
         </span>
@@ -66,13 +68,13 @@ export default function AiCard({ ops }: { ops: Ops }) {
           <div className="cp-prop-main">
             <span className="cp-strong">{MODE_LABEL[p.mode as Mode] ?? p.mode}</span>
             <span className="cp-code">{p.mode}</span>
-            <span className="cp-sub">on {segName(p.segment)} · {p.duration_min} grid min</span>
+            <span className="cp-sub">on {segName(p.segment)} · for {p.duration_min} grid min</span>
           </div>
           {fieldLine(p.fields) && <div className="cp-sub">{fieldLine(p.fields)}</div>}
           {p.rationale && <p className="cp-why">{p.rationale}</p>}
           {env && (
             <div className="cp-row-between cp-sub">
-              <span>Envelope, {env.length} slots</span>
+              <span {...tip("The allowed box (envelope): the most power each house may take in each time slot while the signal runs")}>Allowed box <span className="cp-code">envelope</span>, {env.length} time slots</span>
               <Spark curve={env} />
             </div>
           )}
@@ -93,26 +95,26 @@ export default function AiCard({ ops }: { ops: Ops }) {
           {t ? (
             <>
               <span className="cp-strong">{segName(t.node)}</span> <span className="cp-sub">{kindWord(t.node)}</span>
-              <div className="cp-sub">
-                {t.hot.length} of {t.under} transformers past {ap.trigger_pct} % · worst {segName(t.worst)}{" "}
-                <span className={Math.abs(t.worst_pct) >= 100 ? "cp-red" : ""}>{t.worst_pct > 0 ? "+" : ""}{t.worst_pct} %</span> at {hhmm(t.worst_at_h)}
+              <div className="cp-sub" {...tip(`The AI is watching ${segName(t.node)}: ${t.hot.length} of its ${t.under} transformers are forecast past ${ap.trigger_pct} % of their limit`)}>
+                {t.hot.length} of {t.under} transformers forecast past {ap.trigger_pct} % of their limit · worst {segName(t.worst)}{" "}
+                <span className={Math.abs(t.worst_pct) >= 100 ? "cp-red" : ""}>{t.worst_pct < 0 ? "exporting " : ""}{Math.abs(t.worst_pct)} % of its limit</span> at {hhmm(t.worst_at_h)}
               </div>
             </>
           ) : (
-            <span className="cp-sub">Every transformer inside {ap.trigger_pct} % for the next {ap.horizon_min} grid min</span>
+            <span className="cp-sub">Every transformer stays under {ap.trigger_pct} % of its limit for the next {ap.horizon_min} grid min</span>
           )}
         </dd>
         <dt>Next look</dt>
         <dd className="cp-mono">
           {ap.mode === "off" ? <span className="cp-sub">paused while off</span> : ap.busy ? <span>now, {STAGE[ap.stage] ?? "thinking"}</span> : due == null ? "soon" : due > 0 ? `in ${clock(due)}` : "any second"}
-          <span className="cp-sub"> · every {ap.interval_s} s</span>
+          <span className="cp-sub"> · looks every {ap.interval_s} s</span>
         </dd>
         <dt>Last call</dt>
         <dd>
           {last ? (
             <span className={last.verdict === "refused" || last.verdict === "error" ? "cp-red" : ""}>
               {last.mode ? `${last.mode} on ${segName(last.segment)}` : "no signal"} · {VERDICT[last.verdict] ?? last.verdict}
-              {last.seq ? ` · #${last.seq}` : ""}
+              {last.seq ? ` · signed #${last.seq}` : ""}
             </span>
           ) : (
             <span className="cp-sub">none yet</span>

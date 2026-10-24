@@ -366,13 +366,21 @@ export function useFeed(s: State | null, hist?: History | null) {
     const today = Math.floor((clock(nowT) ?? 0) / 24);
     const isToday = (e: FeedEvent) => Math.floor((clock(e.t) ?? -24) / 24) === today;
     const signals = rows.filter((e) => isToday(e) && (e.decision?.verdict === "sent" || e.id.startsWith("sig|"))).length;
+    // How far back this page can see: the platform only ships its newest log lines and recent signals, so the daily
+    // count is only complete when the oldest event held reaches back before today's grid midnight.
+    let oldest: number | null = null;
+    for (const e of all) {
+      const h = clock(e.t); // unwrapped grid hours (e.gridH is only the hour of day)
+      if (h != null && (oldest == null || h < oldest)) oldest = h;
+    }
+    const since = oldest == null || Math.floor(oldest / 24) < today ? null : oldest; // null = the whole grid day is seen
     const refusals = rows.filter((e) => isToday(e) && e.tone === "bad").length;
     const r = s.summary?.households ? s.summary.houses / s.summary.households : 1;
     const act = Object.keys(s.active ?? {});
     const top = act.filter((n) => !act.some((m) => m !== n && under(s, n, m)));
     const following = Math.round(top.reduce((a, n) => a + (s.aggregates[n]?.applied ?? 0), 0) * r);
     const waiting = !!s.autopilot?.pending;
-    return { rows, signals, refusals, following, waiting, dark: s.hb_paused };
+    return { rows, signals, since, refusals, following, waiting, dark: s.hb_paused };
   }, [s, hist]);
 }
 
@@ -404,4 +412,35 @@ export function details(e: FeedRowData) {
     if (d.detail && d.verdict !== "error" && d.verdict !== "sent") out.push({ k: "Platform said", v: d.detail });
   } else if (e.raw && !/^ack(r|stale)\|/.test(e.id)) out.push({ k: e.id.startsWith("sig|") && !e.raw.startsWith("seq ") ? "Message to houses" : "Platform log", v: e.raw });
   return out;
+}
+
+/** One plain-English sentence on what a feed line means (hover and tap). */
+export function explain(e: FeedEvent): string {
+  const d = e.decision;
+  if (d) {
+    switch (d.verdict) {
+      case "sent": return "The AI picked this signal, the safety guard checked it, and the platform signed it and sent it to the houses.";
+      case "refused": return "The safety guard blocked the AI's signal, so nothing reached the houses.";
+      case "held": return "The autopilot held this signal back on purpose, so nothing reached the houses.";
+      case "pending": return e.tone === "wait" ? "The AI proposes this signal and waits for you to approve or reject it." : "The AI asked the operator to approve this signal.";
+      case "rejected": return "The operator turned this proposal down, so nothing was sent.";
+      case "expired": return "Nobody approved this proposal in time, so it lapsed and nothing was sent.";
+      case "error": return "The AI advisor did not answer, so the autopilot made no decision this round.";
+      default: return "The AI checked the forecast: every transformer stays inside its limit, so it did nothing.";
+    }
+  }
+  if (e.id.startsWith("sig|")) return "The platform signed this message with its key and sent it to every house under that part of the grid.";
+  if (e.id.startsWith("end|")) return "This signal stopped; the houses under it went back to their owners' own settings.";
+  if (e.id.startsWith("ackstale|")) return "Houses refused an old copy of a signal: proof that a replayed message cannot trick them.";
+  if (e.id.startsWith("ackr|")) return "These houses checked the signal against their own rules and said no.";
+  if (/goes out in/.test(String(e.head[1] ?? ""))) return "The signal goes out to the houses in groups, so the street's load does not jump all at once.";
+  switch (e.actor) {
+    case "house": return "The real house in Blatnica answered a signal, like every simulated home does.";
+    case "plan": return "The diet plan is a 24-hour schedule per street that moves car charging and battery use away from the evening peak.";
+    case "scenario": return "The simulated weather and demand changed, so the whole city now uses power differently.";
+    case "dark": return "The platform stopped its heartbeat, so every house stopped trusting signals and runs on its owner's settings.";
+    case "system": return "The link to the message server that carries signals to the houses dropped; it reconnects on its own.";
+    case "ai": return e.tone === "bad" ? "The AI's advice did not pass, so nothing was sent." : "The AI advisor's suggestion, before the autopilot decided what to do.";
+    default: return e.tone === "bad" ? "The safety guard blocked this signal, so nothing reached the houses." : "Something the operator did from this console.";
+  }
 }

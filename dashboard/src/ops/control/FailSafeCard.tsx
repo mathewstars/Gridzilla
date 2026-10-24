@@ -3,6 +3,7 @@
 import { post, type State } from "../../api";
 import type { Ops } from "../useOps";
 import { Btn, Card, Result, useAction } from "./ui";
+import { tip } from "../views/fmt";
 
 export default function FailSafeCard({ ops }: { ops: Ops }) {
   const s = ops.s as State;
@@ -23,9 +24,10 @@ export default function FailSafeCard({ ops }: { ops: Ops }) {
   return (
     <Card
       title="Fail-safe"
+      code="heartbeat"
       className={paused ? "cp-card-alert" : ""}
       aside={
-        <span className={`cp-chip ${paused ? "is-err" : "is-on"}`}>
+        <span className={`cp-chip ${paused ? "is-err" : "is-on"}`} {...tip(paused ? "The platform's signed heartbeat is stopped, so houses ignore signals and run on their owners' settings" : `The platform sends a signed "I am alive" message every ${hbS} s; without it houses go back to owner mode`)}>
           <span className="cp-dot" aria-hidden />
           {paused ? "Heartbeat stopped" : `Heartbeat every ${hbS} s`}
         </span>
@@ -42,7 +44,7 @@ export default function FailSafeCard({ ops }: { ops: Ops }) {
         ) : (
           <Btn tone="danger" busy={act.busy === "pause"} disabled={!!act.busy} onClick={() => go("pause")}>Pause heartbeat</Btn>
         )}
-        <span className="cp-sub">{paused ? "Resume brings the platform back." : `${homes} homes listen to it.`}</span>
+        <span className="cp-sub">{paused ? "Resume brings the platform back." : `${homes} homes listen for it.`}</span>
       </div>
       <Result out={act.out} />
     </Card>

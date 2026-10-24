@@ -75,3 +75,4 @@
 .cs { padding: 12px; }
 .cs-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin-bottom: 8px; }
 .cs-box { position: relative; width: 100%; max-width: calc(240px * 16 / 9); aspect-ratio: 16 / 9; max-height: 240px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: var(--color-ground); }
+.cg-legnum { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }

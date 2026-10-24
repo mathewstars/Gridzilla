@@ -43,3 +43,6 @@ export function signalOver(s: State, node: string): Signal | null {
 }
 
 export const minsLeft = (to: string) => Math.max(0, Math.round((+new Date(to) - Date.now()) / 60000));
+
+/** One plain-English sentence on hover (title) and on tap on phones (data-tip, shown by the top bar's TapTip). */
+export const tip = (t: string) => ({ title: t, "data-tip": t });

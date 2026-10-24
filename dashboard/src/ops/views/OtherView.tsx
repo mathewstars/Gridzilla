@@ -35,8 +35,8 @@ function Head({ title, desc, children }: { title: string; desc: string; children
     </div>
   );
 }
-const Stat = ({ k, v, tone }: { k: string; v: ReactNode; tone?: string }) => (
-  <span className="chip">
+const Stat = ({ k, v, tone, hint }: { k: string; v: ReactNode; tone?: string; hint?: string }) => (
+  <span className="chip" title={hint} data-tip={hint}>
     {tone && <span className="chip-dot" style={{ background: tone }} />}
     <span className="t">{k}</span>
     <span>{v}</span>
@@ -122,19 +122,19 @@ function City({ ops }: { ops: Ops }) {
     { key: "tf", label: "Transformer", cell: (r) => <b style={{ fontWeight: 600 }}>{nice(r.tf)}</b>, sort: (r) => r.tf },
     { key: "feeder", label: "Feeder", cell: (r) => <span className="mut">{nice(r.feeder)}</span>, sort: (r) => r.feeder },
     { key: "sub", label: "Substation", cell: (r) => <span className="mut">{nice(r.sub)}</span>, sort: (r) => r.sub },
-    { key: "pct", label: "Load", right: true, cell: (r) => <Load pct={r.pct} />, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
-    { key: "kw", label: "kW now", right: true, cell: (r) => kw(r.kw), sort: (r) => r.kw },
-    { key: "rating", label: "Limit kW", right: true, cell: (r) => <span className="mut">{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
-    { key: "peak", label: "Peak ahead", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}>{r.peak.pct} % <span className="dim">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
+    { key: "pct", label: "Load, % of limit", right: true, cell: (r) => <Load pct={r.pct} />, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
+    { key: "kw", label: "Power now, kW", right: true, cell: (r) => kw(r.kw), sort: (r) => r.kw },
+    { key: "rating", label: "Limit, kW", right: true, cell: (r) => <span className="mut">{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
+    { key: "peak", label: "Peak ahead, % of limit", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}>{r.peak.pct} % <span className="dim">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
     { key: "sig", label: "Active signal", className: "nw", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
   ];
   return (
     <div className="vw">
       <Head title="City" desc="Every transformer in the city, live. Click a row to open it in Operations.">
-        <Stat k="Transformers" v={rows.length} />
-        <Stat k="Over limit" v={over} tone={over ? "var(--sh-red)" : "var(--sh-green)"} />
-        <Stat k="Near limit" v={near} tone={near ? "var(--sh-orange)" : "var(--sh-green)"} />
-        <Stat k="Signals active" v={Object.keys(s.active).length} />
+        <Stat k="Transformers" v={rows.length} hint="Every street transformer in the simulated Vienna grid" />
+        <Stat k="Over limit" v={over} hint="Transformers carrying more than their limit right now, in either direction" tone={over ? "var(--sh-red)" : "var(--sh-green)"} />
+        <Stat k="Near limit" v={near} hint="Transformers at 85 % of their limit or more" tone={near ? "var(--sh-orange)" : "var(--sh-green)"} />
+        <Stat k="Signals running" v={Object.keys(s.active).length} hint="Signals the grid operator has running right now; each ends on its own" />
       </Head>
       <Card>
         <Table rows={rows} cols={cols} rowKey={(r) => r.tf} onRow={(r) => open(ops, r.tf)} initial={{ key: "pct", dir: -1 }} />
@@ -152,7 +152,7 @@ function Autopilot({ ops }: { ops: Ops }) {
     { key: "trigger", label: "What it saw", className: "wrap", cell: (d) => <span className="mut">{d.trigger ?? "–"}</span> },
     { key: "mode", label: "Decision", className: "nw", cell: (d) => <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={d.mode} />{d.segment && <span className="dim">{nice(d.segment)}</span>}</span>, sort: (d) => d.mode },
     { key: "verdict", label: "Outcome", className: "nw", cell: (d) => { const [t, l] = VERDICT[d.verdict] ?? ["", d.verdict]; return <span title={d.detail || undefined}><span className={`tag ${t}`}>{l}</span>{d.seq != null && <span className="dim"> #{d.seq}</span>}</span>; }, sort: (d) => d.verdict },
-    { key: "lat", label: "Took", right: true, className: "nw", cell: (d) => (d.latency_ms != null ? `${(d.latency_ms / 1000).toFixed(1)} s` : <span className="dim">–</span>), sort: (d) => d.latency_ms },
+    { key: "lat", label: "AI answered in", right: true, className: "nw", cell: (d) => (d.latency_ms != null ? `${(d.latency_ms / 1000).toFixed(1)} s` : <span className="dim">–</span>), sort: (d) => d.latency_ms },
     { key: "why", label: "Why", className: "wrap", cell: (d) => <span>{d.rationale ?? d.detail ?? "–"}{d.verdict !== "sent" && d.detail && d.rationale ? <span className="dim"> · {d.detail}</span> : null}</span> },
   ];
   const sent = hist.filter((d) => d.verdict === "sent").length;
@@ -162,13 +162,13 @@ function Autopilot({ ops }: { ops: Ops }) {
         <Stat k="Mode" v={ap?.mode === "auto" ? "Auto" : ap?.mode === "propose" ? "Propose" : "Off"} tone={ap?.mode === "auto" ? "var(--sh-green)" : ap?.mode === "propose" ? "var(--sh-blue)" : undefined} />
         <Stat k="Brain" v={ops.s!.llm ? "AI" : "Rules"} />
         <Stat k="Now" v={ap?.busy ? `working (${ap.stage})` : "idle"} />
-        <Stat k="Sent" v={`${sent} of ${hist.length}`} />
+        <Stat k="Sent" v={`${sent} of the last ${hist.length} decisions`} hint="How many of the AI's recent decisions became a signed signal" />
         {ap?.pending && <Stat k="Waiting" v="1 proposal" tone="var(--sh-orange)" />}
       </Head>
       {ap?.context && (
         <Card title="Operator note for the AI"><div style={{ padding: "10px 14px", fontSize: "0.8125rem" }}>{ap.context}</div></Card>
       )}
-      <Card title="Decisions, newest first" right={<span className="t-caption">last {hist.length}</span>}>
+      <Card title="Decisions, newest first" right={<span className="t-caption">last {hist.length} decisions</span>}>
         <Table rows={hist} cols={cols} rowKey={(d) => `${d.at}-${d.seq ?? ""}-${d.mode ?? ""}`} empty={<><b>No decisions yet</b>The AI is asked when a transformer is forecast past {ap?.trigger_pct ?? "–"} %.</>} />
       </Card>
     </div>
@@ -178,12 +178,12 @@ function Autopilot({ ops }: { ops: Ops }) {
 // ------------------------------------------------------------------ Manual
 function signalCols(): Col<Signal>[] {
   return [
-    { key: "seq", label: "Signal", className: "nw", cell: (g) => <b style={{ fontWeight: 600 }}>#{g.seq}</b>, sort: (g) => g.seq },
+    { key: "seq", label: "Signed #", className: "nw", cell: (g) => <b style={{ fontWeight: 600 }}>#{g.seq}</b>, sort: (g) => g.seq },
     { key: "seg", label: "Where", className: "nw", cell: (g) => nice(g.segment), sort: (g) => g.segment },
     { key: "mode", label: "Mode", className: "nw", cell: (g) => <ModeTag mode={g.mode} />, sort: (g) => g.mode },
     { key: "lim", label: "Limits", className: "nw", cell: (g) => <span className="mut">{limits(g)}</span> },
     { key: "win", label: "Window", className: "nw", cell: (g) => <span className="mut">{wall(g.valid_from, false)} – {wall(g.valid_to, false)}</span>, sort: (g) => g.valid_from },
-    { key: "left", label: "Left", right: true, className: "nw", cell: (g) => (g.valid_to ? `${minsLeft(g.valid_to)} min` : "–"), sort: (g) => g.valid_to },
+    { key: "left", label: "Time left", right: true, className: "nw", cell: (g) => (g.valid_to ? `${minsLeft(g.valid_to)} min` : "–"), sort: (g) => g.valid_to },
     { key: "note", label: "Note", className: "wrap", cell: (g) => <span className="mut">{g.note || "–"}</span> },
   ];
 }
@@ -218,7 +218,7 @@ function Manual({ ops }: { ops: Ops }) {
           </a>
         </div>
       </Card>
-      <Card title="Active signals" right={<span className="t-caption">{act.length} active</span>}>
+      <Card title="Active signals" right={<span className="t-caption">{act.length} running now</span>}>
         <Table rows={act} cols={signalCols()} rowKey={(g) => String(g.seq)} initial={{ key: "seq", dir: -1 }} empty={<><b>No signal is active</b>Every house runs on its owner's settings.</>} />
       </Card>
       {recent.length > 0 && (
@@ -247,10 +247,10 @@ function Households({ ops }: { ops: Ops }) {
   const cols: Col<Household>[] = [
     { key: "id", label: "House", className: "nw", cell: (h) => <span><b style={{ fontWeight: 600 }}>{h.real ? "Blatnica (real)" : nice(h.id.replace(/^sim-/, ""))}</b>{h.represents > 1 && <span className="dim"> ×{h.represents}</span>}</span>, sort: (h) => h.id },
     { key: "tf", label: "Transformer", className: "nw", cell: (h) => <span className="mut">{nice(h.tf)}</span>, sort: (h) => h.tf },
-    { key: "soc", label: "Battery", right: true, cell: (h) => (h.telemetry?.soc != null ? `${Math.round(h.telemetry.soc)} %` : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
-    { key: "grid", label: "Grid kW", right: true, cell: (h) => kw(h.telemetry?.grid_kw), sort: (h) => h.telemetry?.grid_kw },
-    { key: "ev", label: "EV kW", right: true, cell: (h) => kw(h.telemetry?.ev_kw), sort: (h) => h.telemetry?.ev_kw },
-    { key: "hp", label: "Heat pump kW", right: true, cell: (h) => kw(h.telemetry?.hp_kw), sort: (h) => h.telemetry?.hp_kw },
+    { key: "soc", label: "Battery, % full", right: true, cell: (h) => (h.telemetry?.soc != null ? `${Math.round(h.telemetry.soc)} %` : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
+    { key: "grid", label: "From grid, kW", right: true, cell: (h) => kw(h.telemetry?.grid_kw), sort: (h) => h.telemetry?.grid_kw },
+    { key: "ev", label: "Car charging, kW", right: true, cell: (h) => kw(h.telemetry?.ev_kw), sort: (h) => h.telemetry?.ev_kw },
+    { key: "hp", label: "Heat pump, kW", right: true, cell: (h) => kw(h.telemetry?.hp_kw), sort: (h) => h.telemetry?.hp_kw },
     { key: "mode", label: "Mode", className: "nw", cell: (h) => (h.telemetry ? <span className={`tag ${h.telemetry.mode === "owner" ? "" : "b"}`}>{h.telemetry.mode === "owner" ? "Owner" : h.telemetry.mode}</span> : <span className="tag">offline</span>), sort: (h) => h.telemetry?.mode },
     { key: "ack", label: "Last reply", className: "nw", cell: (h) => (h.ack ? <span title={h.ack.reason ?? undefined}><span className={`tag ${h.ack.status === "applied" ? "g" : h.ack.status === "refused" ? "r" : "o"}`}>{h.ack.status}</span>{h.ack.seq != null && <span className="dim"> #{h.ack.seq}</span>}{h.ack.reason && <span className="dim"> · {h.ack.reason}</span>}</span> : <span className="dim">–</span>), sort: (h) => h.ack?.seq },
     { key: "sig", label: "Signature checked", className: "nw", cell: (h) => (h.ack?.verified ? <span className="tag g">Checked</span> : h.ack ? <span className="tag">Not checked</span> : <span className="dim">–</span>), sort: (h) => (h.ack?.verified ? 1 : 0) },
@@ -258,8 +258,8 @@ function Households({ ops }: { ops: Ops }) {
   return (
     <div className="vw">
       <Head title="Households" desc="Every home in the programme: what its battery, car and heat pump do now and how it answered the last signal.">
-        <Stat k="Homes" v={total} />
-        <Stat k="Reporting" v={online} tone={online ? "var(--sh-green)" : undefined} />
+        <Stat k="Homes" v={total} hint="Simulated homes in the programme (each can stand for several real houses)" />
+        <Stat k="Reporting" v={online} hint="Homes that sent a reading recently" tone={online ? "var(--sh-green)" : undefined} />
         {ops.s!.summary && <Stat k="Houses represented" v={ops.s!.summary.houses.toLocaleString("en-US")} />}
       </Head>
       <Card
@@ -322,10 +322,10 @@ function Plant({ ops }: { ops: Ops }) {
             rowKey={(p) => p.ts}
             cols={[
               { key: "t", label: "Grid time", cell: (p) => clock(p.h) },
-              { key: "soc", label: "Battery", right: true, cell: (p) => (p.soc != null ? `${Math.round(p.soc)} %` : "–") },
-              { key: "g", label: "Grid kW", right: true, cell: (p) => kw(p.grid_kw) },
+              { key: "soc", label: "Battery, % full", right: true, cell: (p) => (p.soc != null ? `${Math.round(p.soc)} %` : "–") },
+              { key: "g", label: "From grid, kW", right: true, cell: (p) => kw(p.grid_kw) },
               { key: "m", label: "Mode", cell: (p) => <span className="mut">{p.mode ?? "–"}</span> },
-              { key: "c", label: "Import cap kW", right: true, cell: (p) => kw(p.imp_cap) },
+              { key: "c", label: "Import limit, kW", right: true, cell: (p) => kw(p.imp_cap) },
             ]}
           />
         </Card>
@@ -350,13 +350,13 @@ function WeatherView({ ops }: { ops: Ops }) {
   const warns = d.warnings ?? [];
   const cols: Col<WeatherHour>[] = [
     { key: "h", label: "Hour", cell: (w) => (w.hour != null ? `${String(w.hour).padStart(2, "0")}:00` : w.time?.slice(11, 16) ?? "–") },
-    { key: "t", label: "Temp °C", right: true, cell: (w) => w.temp_c.toFixed(1) },
-    { key: "f", label: "Feels °C", right: true, cell: (w) => <span className="mut">{w.feels_c != null ? w.feels_c.toFixed(1) : "–"}</span> },
-    { key: "c", label: "Cloud", right: true, cell: (w) => (w.cloud_pct != null ? `${Math.round(w.cloud_pct)} %` : "–") },
-    { key: "s", label: "Sun W/m²", right: true, cell: (w) => (w.sun_wm2 != null ? Math.round(w.sun_wm2) : "–") },
-    { key: "w", label: "Wind km/h", right: true, cell: (w) => (w.wind_kmh != null ? Math.round(w.wind_kmh) : "–") },
-    { key: "g", label: "Gusts km/h", right: true, cell: (w) => <span className="mut">{w.gust_kmh != null ? Math.round(w.gust_kmh) : "–"}</span> },
-    { key: "p", label: "Rain mm", right: true, cell: (w) => (w.precip_mm != null ? w.precip_mm.toFixed(1) : "–") },
+    { key: "t", label: "Temperature, °C", right: true, cell: (w) => w.temp_c.toFixed(1) },
+    { key: "f", label: "Feels like, °C", right: true, cell: (w) => <span className="mut">{w.feels_c != null ? w.feels_c.toFixed(1) : "–"}</span> },
+    { key: "c", label: "Cloud cover, %", right: true, cell: (w) => (w.cloud_pct != null ? `${Math.round(w.cloud_pct)} %` : "–") },
+    { key: "s", label: "Sunshine, W/m²", right: true, cell: (w) => (w.sun_wm2 != null ? Math.round(w.sun_wm2) : "–") },
+    { key: "w", label: "Wind, km/h", right: true, cell: (w) => (w.wind_kmh != null ? Math.round(w.wind_kmh) : "–") },
+    { key: "g", label: "Gusts, km/h", right: true, cell: (w) => <span className="mut">{w.gust_kmh != null ? Math.round(w.gust_kmh) : "–"}</span> },
+    { key: "p", label: "Rain, mm", right: true, cell: (w) => (w.precip_mm != null ? w.precip_mm.toFixed(1) : "–") },
   ];
   return (
     <div className="vw">
@@ -366,7 +366,7 @@ function WeatherView({ ops }: { ops: Ops }) {
         <Stat k="Updated" v={wall(d.fetched_at, false)} tone={d.stale ? "var(--sh-orange)" : "var(--sh-green)"} />
         {wx.sample && <Stat k="Source" v="sample" tone="var(--sh-orange)" />}
       </Head>
-      <Card title="Warnings" right={<span className="t-caption">{warns.length || "none"}</span>}>
+      <Card title="Warnings" right={<span className="t-caption">{warns.length ? `${warns.length} active` : "none"}</span>}>
         {warns.length ? (
           <div style={{ display: "flex", flexDirection: "column" }}>
             {warns.map((w, i) => (
@@ -404,7 +404,7 @@ function Log({ ops }: { ops: Ops }) {
   return (
     <div className="vw">
       <Head title="Log" desc="Everything the platform did, newest first: signals signed, houses answering, autopilot steps and demo switches.">
-        <Stat k="Entries" v={log.length} />
+        <Stat k="Newest log lines shown" v={log.length} />
       </Head>
       <Card
         title="Platform log"

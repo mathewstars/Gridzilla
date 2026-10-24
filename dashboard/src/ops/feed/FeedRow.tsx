@@ -5,7 +5,7 @@ import { Fragment, memo } from "react";
 import { motion } from "motion/react";
 import { Broadcast, CloudSun, House, Lightning, Moon, Sparkle, Stack, User, Warning } from "@phosphor-icons/react";
 import { MODE_WORDS, hhmm, nice } from "../../model";
-import { details, type Actor, type FeedRowData } from "./events";
+import { details, explain, type Actor, type FeedRowData } from "./events";
 import type { Envelope } from "../../api";
 
 const ICON: Record<Actor, typeof Sparkle> = {
@@ -50,8 +50,8 @@ function FeedRow({ e, open, onToggle }: { e: FeedRowData; open: boolean; onToggl
       transition={{ duration: 0.25, ease: [0, 0, 0.5, 1] }}
       data-feed-id={e.id}
     >
-      <button type="button" className="feed-line" onClick={onToggle} aria-expanded={open}>
-        <time className="feed-time" title={`Grid time ${e.time}, real ${new Date(e.t).toLocaleTimeString("en-GB")}`}>
+      <button type="button" className="feed-line" onClick={onToggle} aria-expanded={open} title={explain(e)} data-tip={explain(e)}>
+        <time className="feed-time" aria-label={`Grid time ${e.time}, real ${new Date(e.t).toLocaleTimeString("en-GB")}`}>
           {e.time}
         </time>
         <span className="feed-icon" title={WHO[e.actor]} aria-hidden>
@@ -123,7 +123,7 @@ function EnvSpark({ env }: { env: Envelope }) {
   return (
     <div className="feed-env">
       <div className="feed-env-label">
-        Limit per house, {n} slots of {env.slot_sim_min} min, {hhmm(env.start_sim_h)} to {end}
+        Allowed box per house <span className="feed-code">envelope</span>: {n} time slots of {env.slot_sim_min} min, {hhmm(env.start_sim_h)} to {end}
       </div>
       <div className="feed-env-row">
         <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="feed-env-svg" role="img" aria-label="Per-slot limit per house">
