@@ -8,6 +8,7 @@ import TopBar from "./shell/TopBar";
 import CityColumn from "./cols/CityColumn";
 import NowPanel from "./now/NowPanel";
 import DemoView from "./demo/DemoView";
+import HelpOverlay from "./help/HelpOverlay";
 import FeedStrip from "./now/FeedStrip";
 import OtherView from "./views/OtherView";
 import "./ops.css";
@@ -68,6 +69,7 @@ function Console({ route }: { route: Route }) {
           <main className="ops-view"><OtherView route={route} ops={ops} /></main>
         )}
       </div>
+      <HelpOverlay route={route} />
     </div>
   );
 }

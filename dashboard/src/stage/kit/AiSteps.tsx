@@ -263,7 +263,7 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
               </motion.p>
             </div>
             {st.sub && state !== "waiting" && (
-              <p className="mt-1 min-w-0 break-words font-semibold" style={{ color: "#3a3a3c", fontSize: "var(--gz-s)", lineHeight: 1.25 }}>
+              <p className="mt-1 min-w-0 break-words font-semibold" style={{ color: P.secondary, fontSize: "var(--gz-s)", lineHeight: 1.25 }}>
                 {st.sub}
               </p>
             )}

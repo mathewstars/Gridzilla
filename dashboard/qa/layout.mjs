@@ -14,7 +14,8 @@ const dev = !!arg("dev", false);
 const out = String(arg("out", "/tmp/gzqa/layout"));
 fs.mkdirSync(out, { recursive: true });
 const themes = String(arg("theme", "")).split(",").filter(Boolean); // ops console: dark,light (empty = page default)
-const url = (p, theme) => stageUrl(dev, p) + (theme ? `?theme=${theme}` : "");
+const hash = String(arg("hash", "")); // e.g. /demo for the ops console's demo mode
+const url = (p, theme) => stageUrl(dev, p) + (theme ? `?theme=${theme}` : "") + (hash ? `#${hash}` : "");
 const API = "http://localhost:8081/api";
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
 

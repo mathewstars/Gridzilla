@@ -93,8 +93,6 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
   const c = cellOf(s, tf, null);
   const plan = ops.plan && ops.plan.enabled && ops.plan.plan && ops.plan.plan.tf === tf ? ops.plan.plan : null;
   const feeder = s.tree[tf]?.parent ?? "";
-  const base = s.aggregates[tf]?.baseline_kw;
-  const withoutPct = base != null && c.limit ? Math.round((100 * base) / c.limit) : null;
   const ready = !!(ops.history?.nodes && tf in ops.history.nodes);
   return (
     <section className="panel demo-hero">
@@ -114,7 +112,7 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           )}
         </div>
         <div className="demo-ring" style={{ color: loadTone(c.pct) }}>
-          <LoadRing pct={c.pct} withoutPct={withoutPct} size={260} label="With Gridzilla" />
+          <LoadRing pct={c.pct} size={400} />
         </div>
       </div>
     </section>
@@ -132,9 +130,9 @@ function NowCard({ ops }: { ops: Ops }) {
       return d === "approve" ? "Approved: signed and sent." : "Rejected: nothing was sent.";
     });
   return (
-    <section className="panel demo-now">
+    <section className="panel demo-now" data-scroll="panel">
       <h2 className="demo-h2">Now</h2>
-      <AiSteps s={s} weather={ops.weather} variant="stack" />
+      <AiSteps s={s} weather={ops.weather} variant="row" />
       {p && (
         <div className="demo-pending">
           <p className="demo-pending-q">The AI asks: {p.mode} on {nice(p.segment)}. Send it?</p>
