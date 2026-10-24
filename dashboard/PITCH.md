@@ -4,19 +4,18 @@ Dad's 30 s trailer, then seven slides, for the Energy Bridge hackathon in Vienna
 `/Users/matthewstafurik/firstmate/data/gz-ui/pitch-script.md` (notes copied into `src/pitch/script.ts`).
 Dad's deck numbers (checked): `docs/Gridzilla-pitch.pdf`, `docs/PRESENTATION.md` on main (copied into `src/pitch/facts.ts`).
 
-## Handoff (state at 19:35, 24 Oct)
+## Handoff (state at 20:10, 24 Oct)
 
-1. Branch fm/gz-pitch, rebased on fm/gz-ui 64b87ce; dev server `npm run pitch:dev` (5175), preview `npm run pitch:preview` (4175).
-2. Deck = slide 0 trailer + slides 1-7 (`src/pitch/slides/index.ts`); every beat is a Right press; nothing auto-dims.
-   Story arc: slide 2 opens on the six o'clock street (story step), slide 6 "Our family home in Blatnica", slide 7 the six o'clock line, then the punchline.
-3. Slide 5 embeds `DemoView` (src/ops/demo, stage worker's) + `Tour5.tsx` walkthrough (steps 1-7, Esc skips).
-4. Background: Paper Shaders Mesh Gradient (21st.dev @paper-design, `bg/mesh-gradient.tsx`) via `shell/Backdrop.tsx`.
+1. Branch fm/gz-pitch, rebased on fm/gz-ui 517e3b2; dev `npm run pitch:dev` (5175), prod preview `npm run pitch:preview` (4175).
+2. Slide 0 trailer, then 1 title, 2 problem (story, facts, closing line), 3 idea (evening, noon, closing, AI loop), 4 peaks (without, with), 5 demo (DemoView + 7-step spotlight), 6 Blatnica vs simulated Vienna, 7 close (ask, six o'clock line, punchline).
+3. Every beat is a Right press; nothing dims or moves on by itself, except the trailer's hard cut into the title.
+4. Background: Paper Shaders Mesh Gradient (21st.dev @paper-design) via `shell/Backdrop.tsx`; per-step via `bgSteps` in `slides/index.ts`.
 5. Fonts: Clash Display + General Sans in `public/pitch/fonts`; slide 5 keeps the console's own type (`slide5.css`).
-6. Read-only live mode: `src/pitch/liveMode.ts` (`?api=<base>` or `?api=proxy` + `GZ_API`); POSTs refused in the page.
-7. Gates: `qa/pitch.mjs` (G1+G3, both themes), `qa/pitch-truth.mjs` (G2), `qa/pitch-motion.mjs` (G5), `qa/pitch-pdf.mjs`.
-8. Last results: G1 0 errors, G3 0/252 cells, G2 clean except DemoView's untagged numbers (not ours), G5 ~60 fps.
-9. Open: final art-director read of every capture; DemoView fills only ~70 % of 1920x1080 and its legend wraps (stage worker).
-10. Trailer is copied at build time (`qa/pitch-trailer.mjs`), never committed; do not commit platform/static/new/pitch/trailer.mp4.
+6. Read-only live mode `src/pitch/liveMode.ts`: `GZ_API=<live url> npm run pitch:dev` + `?api=proxy`; every POST refused in the page.
+7. Notes (N) are off by default, one beat per step (`script.ts`); presenter keys in "Presenter keys" below.
+8. Gates: `qa/pitch.mjs` (G1+G3 both themes), `qa/pitch-truth.mjs` (G2), `qa/pitch-motion.mjs` (G5), `qa/pitch-pdf.mjs` (PDF after a build).
+9. Last results: G1 0 errors; G3 0/276 cells (3 sizes) and 0/184 after the last rebase; G2 clean except DemoView's untagged numbers; G5 60 fps on 17 steps.
+10. Before the pitch: press 2 (cold evening) so slide 4's evening really crosses the limit; DemoView fills ~70 % of 1920x1080 (stage worker).
 
 ## Run
 
