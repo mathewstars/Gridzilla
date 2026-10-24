@@ -117,9 +117,30 @@ state = {
     "support_count": {},   # f"{node}:{sim day}" -> n
 }
 LOG = collections.deque(maxlen=300)
-HIST_N = 400
+HIST_N = 1440                  # 2 h of 5 s samples per node (curves survive a restart: see HIST_FILE)
+DEV_HIST_N = 400
 NODE_HIST = {n: collections.deque(maxlen=HIST_N) for n in TREE}
-DEV_HIST = {d: collections.deque(maxlen=HIST_N) for d in DEVICES}
+DEV_HIST = {d: collections.deque(maxlen=DEV_HIST_N) for d in DEVICES}
+HIST_FILE = HERE / "history.json"
+try:
+    _h = json.loads(HIST_FILE.read_text())
+    for n, pts in _h.get("nodes", {}).items():
+        if n in NODE_HIST: NODE_HIST[n].extend(pts[-HIST_N:])
+    for d, pts in _h.get("devices", {}).items():
+        if d in DEV_HIST: DEV_HIST[d].extend(pts[-DEV_HIST_N:])
+    print(f"[history] restored {sum(len(v) for v in NODE_HIST.values())} node samples from {HIST_FILE.name}", flush=True)
+except FileNotFoundError:
+    pass
+except Exception as _e:
+    print("[history] restore failed:", _e, flush=True)
+
+
+def save_history():
+    tmp = HIST_FILE.with_suffix(".tmp")
+    with _lock:
+        tmp.write_text(json.dumps({"nodes": {n: list(v) for n, v in NODE_HIST.items()},
+                                   "devices": {d: list(v) for d, v in DEV_HIST.items() if d in ("real-powerplant-blatnica", "vicare-blatnica")}}))
+    tmp.replace(HIST_FILE)
 
 
 def sim_hour():
@@ -172,9 +193,12 @@ def sample_history():
 
 
 def sampler_loop():
+    i = 0
     while True:
         try:
             sample_history()
+            i += 1
+            if i % 12 == 0: save_history()        # every minute
         except Exception as e:
             print("[sampler]", e)
         time.sleep(5)

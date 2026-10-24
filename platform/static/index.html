@@ -649,7 +649,12 @@ function storyNode() {
   return sent.segment;   // the curve of whatever DeepSeek addressed: transformer, feeder, substation or the whole city
 }
 function drawStory() {
-  const ap = S.autopilot || {history: []}, last = ap.history[0], sent = ap.history.find(d => d.verdict === "sent");
+  const ap = S.autopilot || {history: []};
+  const node0 = storyNode();
+  const related = d => d.segment && (pathOf(node0).includes(d.segment) || pathOf(d.segment).includes(node0));
+  const scoped = ap.history.filter(related);
+  const dh = scoped.length ? scoped : ap.history, scopedLabel = scoped.length ? "" : " (city-wide, nothing for this node yet)";
+  const last = dh[0], sent = dh.find(d => d.verdict === "sent");
   const w = typeof worstForecast === "function" ? worstForecast() : null;
   const node = storyNode(), a = S.aggregates[node], tree = S.tree[node];
   // steps
@@ -665,7 +670,7 @@ function drawStory() {
     ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
   document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
     `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
-  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger)}</span>` : ""}` : "";
+  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}${scopedLabel}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger)}</span>` : ""}` : "";
   // curve with vs without
   const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw || Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(node)).reduce((a, n) => a + S.tree[n].rating_kw, 0);
   if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [
@@ -721,7 +726,8 @@ function drawStory() {
   document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}'); storyPin('selected')">${pct == null ? "–" : pct}</div>`; }).join("");
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${S.summary.online} households live`;
-  document.getElementById("ticker").innerHTML = ap.history.slice(0, 5).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
+  document.querySelector("#ticker").previousElementSibling.querySelector(".hint").textContent = scoped.length ? `decisions for ${node0.split(":")[1]} and its grid` : "latest decisions, city-wide";
+  document.getElementById("ticker").innerHTML = dh.slice(0, 5).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
 }
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
 function drawAll() { if (!S) return; drawHints(); drawStory(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
