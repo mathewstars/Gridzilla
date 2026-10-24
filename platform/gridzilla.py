@@ -777,7 +777,8 @@ def households():
         h["registered"] = h["registered"] and d["id"] in state["pubkeys"]
         t = state["telemetry"].get(d["id"]); a = state["acks"].get(d["id"])
         if t:
-            m = h["telemetry"] or {"soc": None, "grid_kw": 0.0, "ev_kw": 0.0, "hp_kw": 0.0, "dhw_c": None, "dhw_set_c": None, "mode": "owner", "rx": t.get("rx")}
+            m = h["telemetry"] or {"soc": None, "grid_kw": 0.0, "ev_kw": 0.0, "hp_kw": 0.0, "dhw_c": None, "dhw_set_c": None, "boiler_c": None,
+                                   "heat": None, "ev": 0, "mode": "owner", "rx": t.get("rx")}
             if d.get("kwh"):                                   # the battery device is the meter owner
                 m["soc"] = t.get("soc"); m["grid_kw"] = t.get("grid_kw") or 0.0
             elif m["soc"] is None and t.get("soc") not in (None, 0):
@@ -785,6 +786,10 @@ def households():
             m["ev_kw"] += t.get("ev_kw") or 0.0
             m["hp_kw"] += t.get("hp_kw") or (t.get("grid_kw") if not d.get("kwh") else 0) or 0.0   # a heating-only device reports its draw as grid_kw
             if t.get("dhw_c") is not None: m["dhw_c"], m["dhw_set_c"] = t.get("dhw_c"), t.get("dhw_set_c")
+            if t.get("boiler_c") is not None: m["boiler_c"] = t.get("boiler_c")
+            kinds = [k for k in (m["heat"], t.get("heat") or ("heatpump" if d.get("heat") == "heatpump" and not d.get("kwh") else None)) if k]
+            m["heat"] = "+".join(dict.fromkeys("+".join(kinds).split("+"))) if kinds else None
+            m["ev"] = max(m["ev"], t.get("ev") or (d.get("ev_kw") or 0))
             if t.get("mode") and t["mode"] != "owner": m["mode"] = t["mode"]
             m["rx"] = max(m["rx"] or "", t.get("rx") or "")
             h["telemetry"] = m
