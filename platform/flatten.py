@@ -69,7 +69,8 @@ def plan_tf(tf, info, h0, other_kw, houses, ev_houses, pv_x, batt_kwh_usable, ba
     hours = [h0 + k * DT for k in range(SLOTS)]
     other = [other_kw(h) for h in hours]
     base = [houses * program_base_kw(h) for h in hours]
-    pv = [houses * pv_kwp * 0.7 * sun(h) * pv_x for h in hours]
+    pvx = pv_x if callable(pv_x) else (lambda h: pv_x)
+    pv = [houses * pv_kwp * 0.7 * sun(h) * pvx(h) for h in hours]
     unc = [o + b - p + bias_kw for o, b, p in zip(other, base, pv)]            # nobody controls this part; bias = what the last plan missed
     ev_mask = [in_window(h, EV_PLUG_H, EV_UNPLUG_H) for h in hours]
     e_ev = ev_houses * EV_KWH_DAY

@@ -153,7 +153,7 @@ def sim_hour():
 
 
 # Demo scenario: scales the houses NOT in the program. load_x > 1 = cold evening, pv_x > 1 = sunny noon.
-SCENARIO = {"name": "normal", "load_x": 1.0, "pv_x": 1.0}
+SCENARIO = {"name": os.environ.get("GZ_SCENARIO", "live-weather"), "load_x": 1.0, "pv_x": 1.0}   # the simulated city follows today's real Vienna weather unless told otherwise
 SCENARIOS = {"normal": (1.0, 1.0), "cold-evening": (1.2, 1.0), "sunny-noon": (1.0, 5.0),
              "live-weather": (1.0, 1.0)}   # live-weather: per-hour factors from the real forecast (weather.py)
 SIM_X = float(os.environ.get("GZ_SIM_X", "60"))   # simulated seconds per real second; sim-agent default is 1 sim minute per second
@@ -162,6 +162,15 @@ SIM_X = float(os.environ.get("GZ_SIM_X", "60"))   # simulated seconds per real s
 def sim_day():
     """Day counter in simulated time, so per-day policy limits scale with the simulation speed."""
     return int(time.time() * SIM_X // 86400)
+
+
+def factors_at(hour):
+    """(load_x, pv_x) for grid hour `hour`: the real forecast under live-weather, else the scenario's constants."""
+    if SCENARIO["name"] == "live-weather":
+        f = weather.factors_at(hour)
+        if f:
+            return f
+    return SCENARIO["load_x"], SCENARIO["pv_x"]
 
 
 def other_profile_kw(hour):
@@ -173,9 +182,7 @@ def other_profile_kw(hour):
     evening = 2.9 * math.exp(-((hour - 19) / 2.2) ** 2)      # heat pumps, cooking, a few uncontrolled EV chargers
     sun = max(0.0, math.sin((hour - 6) / 12 * math.pi))
     pv = -2.2 * sun * 0.5          # half of them have PV, exporting at noon
-    load_x, pv_x = SCENARIO["load_x"], SCENARIO["pv_x"]
-    if SCENARIO["name"] == "live-weather":
-        load_x, pv_x = weather.factors_at(hour) or (load_x, pv_x)
+    load_x, pv_x = factors_at(hour)
     return (base + morning + evening) * load_x + pv * pv_x
 
 
@@ -217,12 +224,14 @@ if STATE_FILE.exists():
         state["seq"] = saved.get("seq", 0)
         state["pubkeys"] = saved.get("pubkeys", {})
         state["recent"] = saved.get("recent", {})
+        if saved.get("scenario") in SCENARIOS:
+            SCENARIO["name"] = saved["scenario"]; SCENARIO["load_x"], SCENARIO["pv_x"] = SCENARIOS[saved["scenario"]]
     except Exception:
         pass
 
 
 def persist():
-    STATE_FILE.write_text(json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"], "recent": state.get("recent", {})}))
+    STATE_FILE.write_text(json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"], "recent": state.get("recent", {}), "scenario": SCENARIO["name"]}))
 
 
 def log(kind, msg, **extra):
@@ -288,7 +297,8 @@ def heartbeat_loop():
     while True:
         with _lock:
             state["hb_seq"] += 1
-            doc = {"seq": state["hb_seq"], "ts": iso(now())}
+            lx, px = factors_at(sim_hour())
+            doc = {"seq": state["hb_seq"], "ts": iso(now()), "wx": {"load_x": round(lx, 3), "pv_x": round(px, 3), "scenario": SCENARIO["name"]}}
         if not HB_PAUSED.is_set():
             mq.publish("gridzilla/hb", envelope(doc), qos=0)
         time.sleep(POLICY["heartbeat_s"])
@@ -529,7 +539,7 @@ def fleet_under(tf):
 def flatten_plan(node=None):
     """Plans per transformer (fresh), aggregated for a feeder, substation or the city when node is given."""
     h0 = sim_hour()
-    pv_x = SCENARIO["pv_x"] if SCENARIO["name"] != "live-weather" else 1.0
+    pv_x = lambda h: factors_at(h)[1]            # the real solar forecast shapes the export level and the valley
     plans = {}
     for tf in [t for t in TREE if t.startswith("tf:")]:
         houses, ev, usable, free = fleet_under(tf)
@@ -1178,6 +1188,7 @@ def set_scenario(name: str):
         raise HTTPException(400, f"scenario must be one of {sorted(SCENARIOS)}")
     SCENARIO["name"], (SCENARIO["load_x"], SCENARIO["pv_x"]) = name, SCENARIOS[name]
     log("demo", f"scenario {name}: other houses load x{SCENARIO['load_x']}, PV x{SCENARIO['pv_x']}")
+    persist()
     return SCENARIO
 
 

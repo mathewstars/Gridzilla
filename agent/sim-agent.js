@@ -85,9 +85,10 @@ function profiles(h) {
   const base = h.cfg.base_load_kw ?? 0.6;
   const evening = hour >= 17 && hour <= 21 ? (h.cfg.peak_load_kw ?? 3.5) : 0;
   const morning = hour >= 6 && hour <= 8 ? 1.5 : 0;
-  const load = base + evening + morning;
+  const wx = h.wx || {};                                        // real Vienna weather from the platform: cold evening = more heating, clouds = less PV
+  const load = base + (evening + morning) * (wx.load_x ?? 1);
   const sun = Math.max(0, Math.sin(((hour - 6) / 12) * Math.PI));
-  const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
+  const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7 * (wx.pv_x ?? 1);
   const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
   const [pa, pb] = ev.plugged || [17, 7];
   // realistic coincidence, the same in the measured and the counterfactual curve: a car charges on about 55 % of nights
@@ -330,7 +331,7 @@ function onSignal(h, env, platformPub) {
         const hb = verifyEnvelope(env, platformPub); if (!hb) return;
         const age = (Date.now() - Date.parse(hb.ts)) / 1000;
         if (!(hb.seq > (h.lastHbSeq || 0)) || age > 90 || age < -30) return;   // replayed or stale heartbeat
-        h.lastHbSeq = hb.seq; h.lastHb = Date.now(); return;
+        h.lastHbSeq = hb.seq; h.lastHb = Date.now(); if (hb.wx) h.wx = hb.wx; return;   // weather factors ride on the heartbeat
       }
       onSignal(h, env, platformPub);
     });
