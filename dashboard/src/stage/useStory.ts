@@ -98,18 +98,19 @@ export function storyOf(s: State, tf: string): Story {
   return { phase, gapKw, peakPct, limitKw, actedAt, nowPct, basePct, signal, shaped };
 }
 
-/** Every transformer by how much of a story it tells right now. Covered transformers with a real with-vs-without gap
- *  come first (largest gap wins, a "would have gone over, did not" case wins outright); then the worst peak. Exported
- *  so a stage can show the runner-up. */
+/** Every transformer by how much of a story it tells right now. The worst peak wins: the higher of tonight's forecast
+ *  peak, the load without Gridzilla and the load now (either direction). A "would have gone over, did not" case and the
+ *  autopilot's own worst transformer get a bonus, a small solar backflow never beats an evening peak. Exported so a
+ *  stage can show the runner-up. */
 export function rankTfs(s: State) {
+  const worst = s.autopilot?.target?.worst ?? null;
   return allTfs(s)
     .map((tf) => {
       const st = storyOf(s, tf);
-      const gapPct = st.limitKw ? (100 * st.gapKw) / st.limitKw : 0;
+      const fc = abs(s.forecast_peak?.[tf]?.pct);
       const saved = abs(st.basePct) >= 100 && abs(st.nowPct) < 100;
-      const covered = (st.signal || st.shaped) && gapPct > 5;
-      // Ties lean to the transformer that would sit closest to its limit without Gridzilla.
-      const score = covered ? 1000 + gapPct + abs(st.basePct) / 2 + (saved ? 100 : 0) : Math.max(abs(st.peakPct), abs(st.nowPct));
+      const covered = !!(st.signal || st.shaped) && st.gapKw > Math.max(1, st.limitKw * 0.03);
+      const score = Math.max(fc, abs(st.basePct), abs(st.nowPct)) + (saved ? 40 : 0) + (tf === worst ? 25 : 0) + (covered ? 10 : 0);
       return { tf, score };
     })
     .sort((a, b) => b.score - a.score);

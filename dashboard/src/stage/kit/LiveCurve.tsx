@@ -135,10 +135,14 @@ export default function LiveCurve({
   ];
   const vMax = vals.length ? Math.max(...vals) : 0;
   const vMin = vals.length ? Math.min(...vals) : 0;
+  // Only the limit in the flow direction: solar backflow when the street pushes back more than it draws.
   const lim = rating ?? Math.max(10, vMax);
-  const showRev = reverse != null && vMin < -0.05 * reverse;
-  const hiT = Math.max(lim * 1.12, vMax * 1.08);
-  const loT = showRev ? Math.min(-(reverse as number) * 1.12, vMin * 1.08) : Math.min(0, vMin * 1.1);
+  const backflow = reverse != null && -vMin > Math.max(0, vMax);
+  const showRev = backflow;
+  const showImp = !backflow;
+  const span = Math.max(vMax, 0) - Math.min(vMin, 0) || 1;
+  const hiT = backflow ? Math.max(vMax, 0) + span * 0.08 : Math.max(lim * 1.08, vMax + span * 0.08);
+  const loT = backflow ? Math.min(-(reverse as number) * 1.08, vMin - span * 0.08) : Math.min(0, vMin - span * 0.05);
 
   // Head of the line: glides to the newest reading; a jump (restart, other transformer) lands at once.
   const headTo = last?.t ?? clock.t;
@@ -160,14 +164,24 @@ export default function LiveCurve({
   const pct = loadPct(s, node, kw);
   const over = pct != null && Math.abs(pct) >= 100;
 
+  // 4 px at 1440 wide, about 6 px at 2560.
+  const vw = typeof window === "undefined" ? 1440 : window.innerWidth;
+  const swTotal = hero ? Math.max(3.5, 4 + ((vw - 1440) * 2) / 1120) : 3.25 * (rem / 16);
+  const swBase = hero ? swTotal * 0.85 : 2.5 * (rem / 16);
+  const fs = hero ? Math.max(18, Math.min(30, vw / 72)) : 0.8125 * rem;
+  const fsAxis = hero ? Math.max(16, Math.min(26, vw / 80)) : 0.75 * rem;
+
   // ---- geometry (px)
   const k = rem / 16;
   const halo = ground ?? P.card;
   const padT = rem * 2.4;
-  const padB = rem * 2.1;
+  const padB = rem * 2.9;
   const padL = rem * 0.25;
-  const padR = rem * (hero ? 4.2 : 3.6);
-  const tL = view - PAST;
+  const padR = hero ? fsAxis * 4 : rem * 3.6;
+  // The window starts where the history starts (at most PAST hours back), so the curve fills the width.
+  const firstT = hist.length ? hist[0].t : view - PAST;
+  const past = Math.min(PAST, Math.max(2, view - firstT + 0.25));
+  const tL = view - past;
   const tR = view + FUTURE;
   const pw = Math.max(1, W - padL - padR);
   const ph = Math.max(1, H - padT - padB);
@@ -193,10 +207,6 @@ export default function LiveCurve({
   if (fcPts.length && headTot != null && last && view - head < 0.6) fcPts.unshift([x(head), y(headTot)]);
 
   // Stroke weights scale with the projector.
-  const swTotal = (hero ? 4.5 : 3.25) * k;
-  const swBase = (hero ? 3.25 : 2.5) * k;
-  const fs = (hero ? 1.0625 : 0.8125) * rem;
-  const fsAxis = (hero ? 0.875 : 0.75) * rem;
 
   // Signals that went out, clustered (one per half hour); the newest one is named on the axis.
   const seen: number[] = [];
@@ -211,9 +221,9 @@ export default function LiveCurve({
   const yStep = niceStep(hi - lo, hero ? 4 : 3);
   const yTicks: number[] = [];
   for (let v = Math.ceil(lo / yStep) * yStep; v <= hi; v += yStep) yTicks.push(Math.round(v * 1000) / 1000);
-  const tStep = pw / (PAST + FUTURE) > rem * 4.5 ? 1 : 2;
+  const tStep = pw / (past + FUTURE) > fsAxis * 4.5 ? 1 : 2;
   const tTicks: number[] = [];
-  for (let t = Math.ceil(tL / tStep) * tStep; t <= tR; t += tStep) tTicks.push(t);
+  for (let t = Math.ceil(tL / tStep) * tStep; t <= tR; t += tStep) if (x(t) > padL + fsAxis * 1.6 && x(t) < padL + pw - fsAxis * 1.6) tTicks.push(t);
 
   const nowX = x(view);
   const endX = shown.length ? x(shown[shown.length - 1].t) : nowX;
@@ -278,7 +288,7 @@ export default function LiveCurve({
               </clipPath>
               {rating != null && (
                 <clipPath id={clipId}>
-                  <rect x={padL} y={0} width={pw} height={Math.max(0, y(rating))} />
+                  {showImp && <rect x={padL} y={0} width={pw} height={Math.max(0, y(rating))} />}
                   {showRev && <rect x={padL} y={y(-(reverse as number))} width={pw} height={Math.max(0, H - y(-(reverse as number)))} />}
                 </clipPath>
               )}
@@ -288,21 +298,21 @@ export default function LiveCurve({
             {yTicks.map((v) => (
               <g key={`y${v}`}>
                 <line x1={padL} x2={padL + pw} y1={y(v)} y2={y(v)} stroke={P.ink} strokeOpacity={v === 0 ? 0.16 : 0.06} strokeWidth={1} />
-                <text x={padL + pw + rem * 0.6} y={y(v)} dy="0.35em" fontSize={fsAxis} fill={P.tertiary} style={{ fontVariantNumeric: "tabular-nums" }}>
+                <text x={padL + pw + rem * 0.6} y={y(v)} dy="0.35em" fontSize={fsAxis} fill={P.secondary} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {kwFmt(v)}
                   {v === yTicks[yTicks.length - 1] ? " kW" : ""}
                 </text>
               </g>
             ))}
             {tTicks.map((t) => (
-              <text key={`t${t}`} x={x(t)} y={H - padB + rem * 1.35} textAnchor="middle" fontSize={fsAxis} fill={P.tertiary} style={{ fontVariantNumeric: "tabular-nums" }}>
+              <text key={`t${t}`} x={x(t)} y={H - padB + fsAxis * 1.6} textAnchor="middle" fontSize={fsAxis} fill={P.secondary} style={{ fontVariantNumeric: "tabular-nums" }}>
                 {hhmm(t)}
               </text>
             ))}
 
             <g clipPath={`url(#${clipId}-plot)`}>
               {/* the gap Gridzilla keeps off the street */}
-              {band && <path d={band} fill={P.green} fillOpacity={0.2} />}
+              {band && <path d={band} fill={P.green} fillOpacity={0.38} />}
               {/* without Gridzilla */}
               {basePts.length > 1 && (
                 <path d={smoothPath(basePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
@@ -314,7 +324,7 @@ export default function LiveCurve({
               {/* with Gridzilla, red only where it really is over the limit */}
               {totalPts.length > 1 && (
                 <>
-                  <path d={smoothPath(totalPts)} fill="none" stroke={P.ink} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={smoothPath(totalPts)} fill="none" stroke={P.blue} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
                   {rating != null && (
                     <path d={smoothPath(totalPts)} fill="none" stroke={P.red} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#${clipId})`} />
                   )}
@@ -324,26 +334,37 @@ export default function LiveCurve({
               {pins.map((m) => {
                 const v = at(hist, m.t, "total");
                 return v == null ? null : (
-                  <circle key={m.key} cx={x(m.t)} cy={y(v)} r={swTotal * 1.25} fill={P.ink} stroke="#fff" strokeWidth={swTotal * 0.6} />
+                  <circle key={m.key} cx={x(m.t)} cy={y(v)} r={swTotal * 1.25} fill={P.blue} stroke="#fff" strokeWidth={swTotal * 0.6} />
                 );
               })}
             </g>
 
-            {/* the limit, both directions */}
-            {rating != null && (
+            {/* the limit in the flow direction, named at the right end above the line */}
+            {rating != null && showImp && (
               <g>
-                <line x1={padL} x2={padL + pw} y1={y(rating)} y2={y(rating)} stroke={P.red} strokeWidth={(hero ? 2.5 : 2) * k} />
-                <text x={padL + rem * 0.3} y={y(rating) - rem * 0.5} fontSize={fs} fontWeight={600} fill={P.red}>
+                <line x1={padL} x2={padL + pw} y1={y(rating)} y2={y(rating)} stroke={P.red} strokeWidth={hero ? 3 : 2 * k} />
+                <text x={padL + rem * 0.3} y={y(rating) - fs * 0.45} fontSize={fs} fontWeight={600} fill={P.red} stroke={halo} strokeWidth={rem * 0.3} paintOrder="stroke">
                   Limit {kwFmt(rating)} kW
                 </text>
-                {showRev && (
-                  <>
-                    <line x1={padL} x2={padL + pw} y1={y(-(reverse as number))} y2={y(-(reverse as number))} stroke={P.red} strokeWidth={(hero ? 2.5 : 2) * k} />
-                    <text x={padL + rem * 0.3} y={y(-(reverse as number)) + rem * 1.3} fontSize={fs} fontWeight={600} fill={P.red}>
-                      Limit {kwFmt(reverse as number)} kW flowing back
-                    </text>
-                  </>
-                )}
+              </g>
+            )}
+            {showRev && (
+              <g>
+                <line x1={padL} x2={padL + pw} y1={y(-(reverse as number))} y2={y(-(reverse as number))} stroke={P.red} strokeWidth={hero ? 3 : 2 * k} />
+                <text x={padL + rem * 0.3} y={y(-(reverse as number)) - fs * 0.45} fontSize={fs} fontWeight={600} fill={P.red} stroke={halo} strokeWidth={rem * 0.3} paintOrder="stroke">
+                  Limit {kwFmt(reverse as number)} kW flowing back
+                </text>
+              </g>
+            )}
+
+            {/* the head of the line: a ring pulses each time a new reading lands */}
+            {headTot != null && shown.length > 1 && (
+              <g>
+                <circle key={`pulse-${last?.t ?? 0}`} cx={x(head)} cy={y(headTot)} r={swTotal * 1.4} fill="none" stroke={P.blue} strokeWidth={swTotal * 0.5}>
+                  <animate attributeName="r" from={swTotal * 1.4} to={swTotal * 5} dur="1.4s" repeatCount="1" fill="freeze" />
+                  <animate attributeName="stroke-opacity" from="0.6" to="0" dur="1.4s" repeatCount="1" fill="freeze" />
+                </circle>
+                <circle cx={x(head)} cy={y(headTot)} r={swTotal * 1.4} fill={P.blue} stroke={halo} strokeWidth={swTotal * 0.5} />
               </g>
             )}
 
@@ -394,11 +415,11 @@ export default function LiveCurve({
                   )}
                   {apart && yB != null ? (
                     <>
-                      {lab("Without Gridzilla", yB + (baseAbove ? -fs * 0.6 : fs * 0.6), P.secondary)}
-                      {lab("With Gridzilla", yT + (baseAbove ? fs * 0.9 : -fs * 0.9), P.ink)}
+                      {lab("Without Gridzilla", yB + (baseAbove ? -fs * 0.6 - swBase : fs * 0.6 + swBase), P.secondary)}
+                      {lab("With Gridzilla", yT + (baseAbove ? fs * 0.9 + swTotal : -fs * 0.9 - swTotal), P.blue)}
                     </>
                   ) : (
-                    lab(hasBase ? "With Gridzilla" : "Load", yT - fs * 0.9, P.ink)
+                    lab(hasBase ? "With Gridzilla" : "Load", yT - fs * 0.9 - swTotal, P.blue)
                   )}
                 </g>
               );

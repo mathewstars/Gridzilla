@@ -4,8 +4,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { Decision, Proposal, State, WeatherFeed } from "../../api";
-import { headline, outcome, plainTrigger } from "../../model";
-import { boxLine, cleanText, modePlain, modeTitle, plainReason, sentences, weatherLine } from "../../components/brain/plain";
+import { hhmm, nice, outcome } from "../../model";
+import { boxLine, modeTitle, plainReason } from "../../components/brain/plain";
 import { P } from "../palette";
 
 type StepState = "done" | "active" | "waiting";
@@ -24,8 +24,7 @@ const NAMES = ["Sees", "Thinks", "Checks", "Acts"];
 const STAGE_INDEX: Record<string, number> = { sense: 0, deepseek: 1, guard: 2, send: 3 };
 const EASE = [0, 0, 0.5, 1] as const;
 
-const first = (t: string | null | undefined, ids: string[]) => sentences(cleanText(t, ids))[0] ?? "";
-const secs = (ms: number | null | undefined) => (ms ? `answered in ${(ms / 1000).toFixed(1)} s` : null);
+const secs = (ms: number | null | undefined) => (ms ? `DeepSeek ${(ms / 1000).toFixed(1)} s` : "DeepSeek");
 
 /** Homes a signal reached and how many obeyed: from the houses' signed acks when they are on screen, else from the
  *  segment's aggregate (each simulated household stands for several real homes). */
@@ -40,14 +39,27 @@ function reach(s: State, d: Decision) {
 
 const n = (v: number) => v.toLocaleString("en-US");
 
+/** "Sees" in STORY short form: the worst transformer's % and when, read from the autopilot's own trigger line. */
+function seen(s: State, trigger: string | null | undefined, node?: string | null): [string, string | null] {
+  const m = trigger?.match(/worst (\S+) (\d+) % at ([\d.]+)h/);
+  if (m) return [`${m[2]} % at ${hhmm(parseFloat(m[3]))}`, nice(m[1])];
+  const tg = s.autopilot?.target;
+  if (tg?.worst) return [`${Math.round(tg.worst_pct)} % at ${hhmm(tg.worst_at_h)}`, nice(tg.worst)];
+  const tfCount = Object.keys(s.tree).filter((x) => x.startsWith("tf:")).length;
+  return [`${n(tfCount)} streets`, node ? nice(node) : "watched every 15 minutes"];
+}
+
+/** "Acts" in short form: at most N kW until HH:MM. */
+function actLine(d: { fields?: Record<string, number | null> | null; sim_h?: number; duration_min?: number | null; segment?: string | null }) {
+  const f = d.fields ?? {};
+  const cap = f.import_max_kw ?? f.export_max_kw ?? null;
+  const until = d.sim_h != null && d.duration_min ? ` until ${hhmm(d.sim_h + d.duration_min / 60)}` : "";
+  return cap != null ? `at most ${n(cap)} kW${until}` : d.segment ? nice(d.segment) : null;
+}
+
 function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string } {
+  void weather;
   const ap = s.autopilot;
-  const ids = Object.keys(s.tree);
-  const homes = headline(s).houses;
-  const tfCount = ids.filter((x) => x.startsWith("tf:")).length;
-  const sees = (t: string | null | undefined) =>
-    cleanText(plainTrigger(t), ids) || `Watching ${homes ? n(homes) + " homes on " : ""}${tfCount} transformers`;
-  const wx = weatherLine(weather);
   const mk = (state: StepState[], lines: [string, string | null | undefined, Tone?][], seal: number | null = null): Step[] =>
     lines.map(([line, sub, tone], i) => ({ name: NAMES[i], state: state[i], line, sub, tone, seal: i === 3 ? seal : null }));
 
@@ -55,9 +67,9 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
     return {
       key: "off",
       steps: mk(["waiting", "waiting", "waiting", "waiting"], [
-        ["Autopilot is off", wx],
-        ["DeepSeek is resting", null],
-        ["Safety rules stand by", null],
+        ["Autopilot off", "a person is in charge"],
+        ["Resting", null],
+        ["Standing by", null],
         ["Nothing sent", null],
       ]),
     };
@@ -66,13 +78,14 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
   if (ap.busy && ap.stage in STAGE_INDEX) {
     const k = STAGE_INDEX[ap.stage];
     const st = NAMES.map((_, i) => (i < k ? "done" : i === k ? "active" : "waiting")) as StepState[];
+    const [v, where] = seen(s, ap.last_trigger);
     return {
       key: `busy-${ap.stage}-${ap.last_run}`,
       steps: mk(st, [
-        [sees(ap.last_trigger), wx],
-        k > 1 ? ["DeepSeek answered", null] : k === 1 ? ["Asking DeepSeek for a plan", "Grid state, forecast and weather"] : ["DeepSeek is next", null],
-        k > 2 ? ["Allowed: inside every safety rule", null, "green"] : k === 2 ? ["Checking every safety rule", null] : ["Safety rules next", null],
-        k === 3 ? ["Signing and sending", "Ed25519 signature, sent over MQTT"] : ["Nothing sent yet", null],
+        [v, where],
+        k >= 1 ? ["DeepSeek", k === 1 ? "thinking" : "answered"] : ["DeepSeek", "next"],
+        k > 2 ? ["Guard passed", null, "green"] : k === 2 ? ["Checking", "safety rules"] : ["Guard", "next"],
+        k === 3 ? ["Signing", "Ed25519, over MQTT"] : ["Nothing yet", null],
       ]),
     };
   }
@@ -81,38 +94,29 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
   const pend: Proposal | null = ap.pending;
   if (pend && !pend.error) {
     const guardOk = !pend.guard;
+    const [v, where] = seen(s, pend.situation ?? ap.last_trigger, pend.segment);
     return {
       key: `pending-${pend.at ?? ""}`,
       steps: mk(["done", "done", "done", guardOk ? "active" : "waiting"], [
-        [sees(pend.situation ?? ap.last_trigger), wx],
-        [first(pend.rationale, ids) || modeTitle(pend.mode), [modeTitle(pend.mode), secs(pend.latency_ms)].filter(Boolean).join(", ")],
-        guardOk
-          ? ["Allowed: inside every safety rule", boxLine(pend.envelope, pend.fields), "green"]
-          : [`Refused: ${plainReason(pend.guard, pend.mode)}`, null, "red"],
-        guardOk ? ["Waiting for a human OK", modePlain(pend.mode)] : ["Nothing sent", null],
+        [v, where],
+        [secs(pend.latency_ms), modeTitle(pend.mode)],
+        guardOk ? ["Guard passed", boxLine(pend.envelope, pend.fields), "green"] : ["Guard refused", plainReason(pend.guard, pend.mode), "red"],
+        guardOk ? ["Waiting", "for a human OK"] : ["Nothing sent", null],
       ]),
     };
   }
 
   const d = ap.history?.[0];
-  if (!d)
-    return {
-      key: "watch",
-      steps: mk(["active", "waiting", "waiting", "waiting"], [
-        [sees(ap.last_trigger), wx],
-        ["DeepSeek is next", null],
-        ["Safety rules next", null],
-        ["Nothing sent yet", null],
-      ]),
-    };
+  if (!d) {
+    const [v, where] = seen(s, ap.last_trigger);
+    return { key: "watch", steps: mk(["active", "waiting", "waiting", "waiting"], [[v, where], ["DeepSeek", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
+  }
 
   const key = `d-${d.at}-${d.verdict}`;
-  const seeLine: [string, string | null | undefined] = [sees(d.trigger), wx];
-  const think: [string, string | null | undefined] = [
-    first(d.rationale, ids) || modeTitle(d.mode) || "DeepSeek proposed a plan",
-    [modeTitle(d.mode), secs(d.latency_ms)].filter(Boolean).join(", ") || null,
-  ];
-  const allowed: [string, string | null | undefined, Tone] = ["Allowed: inside every safety rule", boxLine(d.envelope, d.fields), "green"];
+  const [v, where] = seen(s, d.trigger, d.segment);
+  const seeLine: [string, string | null] = [v, where];
+  const think: [string, string | null | undefined] = [secs(d.latency_ms), modeTitle(d.mode) || null];
+  const allowed: [string, string | null | undefined, Tone] = ["Guard passed", "inside every safety rule", "green"];
   switch (d.verdict) {
     case "sent": {
       const r = reach(s, d);
@@ -120,52 +124,27 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
         key,
         steps: mk(
           ["done", "done", "done", "done"],
-          [
-            seeLine,
-            think,
-            allowed,
-            [
-              r ? `Signed and sent to ${n(r.homes)} homes` : "Signed and sent",
-              r ? `${n(r.obeyed)} of ${n(r.homes)} obeyed` : null,
-            ],
-          ],
+          [seeLine, think, allowed, [d.seq != null ? `#${d.seq} signed` : "Signed", [actLine(d), r ? `${n(r.homes)} homes` : null].filter(Boolean).join(", ") || null]],
           d.seq,
         ),
       };
     }
     case "refused":
-      return {
-        key,
-        steps: mk(["done", "done", "done", "waiting"], [seeLine, think, [`Refused: ${plainReason(d.detail, d.mode)}`, null, "red"], ["Nothing sent", null]]),
-      };
+      return { key, steps: mk(["done", "done", "done", "waiting"], [seeLine, think, ["Guard refused", plainReason(d.detail, d.mode), "red"], ["Nothing sent", null]]) };
     case "held":
-      return {
-        key,
-        steps: mk(["done", "done", "done", "waiting"], [seeLine, think, [`Held back: ${plainReason(d.detail, d.mode)}`, null], ["Nothing sent", null]]),
-      };
+      return { key, steps: mk(["done", "done", "done", "waiting"], [seeLine, think, ["Held back", plainReason(d.detail, d.mode), "red"], ["Nothing sent", null]]) };
     case "none":
-      return {
-        key,
-        steps: mk(["done", "done", "waiting", "waiting"], [
-          seeLine,
-          ["No action needed", first(d.rationale, ids) || secs(d.latency_ms)],
-          ["Nothing to check", null],
-          ["Nothing sent", null],
-        ]),
-      };
+      return { key, steps: mk(["done", "done", "waiting", "waiting"], [seeLine, [secs(d.latency_ms), "no action needed"], ["Nothing to check", null], ["Nothing sent", null]]) };
     case "error":
-      return {
-        key,
-        steps: mk(["done", "done", "waiting", "waiting"], [seeLine, ["DeepSeek did not answer in time", null], ["Nothing to check", null], ["Nothing sent", null]]),
-      };
+      return { key, steps: mk(["done", "done", "waiting", "waiting"], [seeLine, ["DeepSeek", "no answer in time"], ["Nothing to check", null], ["Nothing sent", null]]) };
     case "pending":
-      return { key, steps: mk(["done", "done", "done", "active"], [seeLine, think, allowed, ["Waiting for a human OK", modePlain(d.mode)]]) };
+      return { key, steps: mk(["done", "done", "done", "active"], [seeLine, think, allowed, ["Waiting", "for a human OK"]]) };
     case "rejected":
-      return { key, steps: mk(["done", "done", "done", "done"], [seeLine, think, allowed, ["A person said no", "Nothing was sent"]]) };
+      return { key, steps: mk(["done", "done", "done", "done"], [seeLine, think, allowed, ["Declined", "a person said no"]]) };
     case "expired":
-      return { key, steps: mk(["done", "done", "done", "waiting"], [seeLine, think, allowed, ["Nobody approved it in time", "Nothing was sent"]]) };
+      return { key, steps: mk(["done", "done", "done", "waiting"], [seeLine, think, allowed, ["Expired", "nobody approved in time"]]) };
   }
-  return { key, steps: mk(["done", "waiting", "waiting", "waiting"], [seeLine, ["DeepSeek is next", null], ["Safety rules next", null], ["Nothing sent yet", null]]) };
+  return { key, steps: mk(["done", "waiting", "waiting", "waiting"], [seeLine, ["DeepSeek", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
 }
 
 /** Small check seal that draws itself when a new signed message goes out. */
@@ -239,30 +218,27 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
         // While a replay runs, steps not yet reached wait; the one being revealed is active.
         const state: StepState = i < shown ? st.state : i === shown && st.state !== "waiting" ? "active" : "waiting";
         const nameColor = state === "active" ? P.blue : state === "done" ? P.ink : P.tertiary;
-        const bar = state === "active" ? P.blue : state === "done" ? P.ink : P.fill;
-        const lineColor = state === "waiting" ? P.tertiary : st.tone && state === "done" ? TONE[st.tone] : P.ink;
+        const dot = state === "active" ? P.blue : state === "done" ? (st.tone === "red" ? P.red : P.green) : P.fill;
+        const lineColor = state === "waiting" ? P.tertiary : st.tone && state === "done" ? TONE[st.tone] : state === "active" ? P.blue : P.ink;
         return (
           <li key={NAMES[i]} className="min-w-0">
-            <div className="h-[3px] w-full rounded-full" style={{ background: bar, transition: "background 0.3s cubic-bezier(0,0,0.5,1)" }} />
-            <div
-              className="mt-4 font-semibold"
-              style={{ color: nameColor, fontSize: row ? "1.0625rem" : "1rem", letterSpacing: "-0.01em", transition: "color 0.3s cubic-bezier(0,0,0.5,1)" }}
-            >
+            <div className="flex items-center gap-2 font-semibold" style={{ color: nameColor, fontSize: "clamp(1.125rem, 1.3vw, 1.875rem)", transition: "color 0.3s cubic-bezier(0,0,0.5,1)" }}>
+              <span className="inline-block shrink-0 rounded-full" style={{ width: "0.55em", height: "0.55em", background: dot, transition: "background 0.3s cubic-bezier(0,0,0.5,1)" }} />
               {st.name}
             </div>
-            <div className="mt-2 flex items-start gap-3">
+            <div className="mt-1 flex items-center gap-3">
               {i === 3 && st.seal != null && state === "done" && <Seal seq={st.seal} play={st.seal === freshSeq} />}
               <motion.p
                 key={st.line}
                 initial={{ opacity: 0.4 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, ease: EASE }}
-                className="min-w-0 break-words font-semibold"
+                className="min-w-0 break-words font-semibold [text-wrap:balance]"
                 style={{
                   color: lineColor,
-                  fontSize: row ? "clamp(1.125rem, 1.45vw, 1.75rem)" : "clamp(1.25rem, 1.7vw, 2rem)",
-                  lineHeight: 1.18,
-                  letterSpacing: "-0.015em",
+                  fontSize: row ? "clamp(1.5rem, 1.9vw, 2.75rem)" : "clamp(1.5rem, 2vw, 2.5rem)",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
                   fontVariantNumeric: "tabular-nums",
                   transition: "color 0.3s cubic-bezier(0,0,0.5,1)",
                 }}
@@ -271,7 +247,7 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
               </motion.p>
             </div>
             {st.sub && state !== "waiting" && (
-              <p className="mt-2 break-words" style={{ color: P.secondary, fontSize: row ? "clamp(0.9375rem, 1vw, 1.125rem)" : "1.0625rem", lineHeight: 1.35 }}>
+              <p className="mt-1 break-words font-semibold" style={{ color: "#3a3a3c", fontSize: "clamp(1.125rem, 1.25vw, 1.75rem)", lineHeight: 1.25 }}>
                 {st.sub}
               </p>
             )}

@@ -368,7 +368,6 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
       {im(blade, box, mat.blade, hp.length * 2)}
       {im(car, box, mat.carBody, prog.length)}
       {im(glass, box, mat.carGlass, prog.length)}
-      {im(marker, ball, mat.marker, prog.length, false)}
     </>
   );
 }
