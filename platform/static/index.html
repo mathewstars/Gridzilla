@@ -725,7 +725,7 @@ function drawStory() {
   const hr = S.sim_hour, tod = hr < 5 ? "night" : hr < 9 ? "morning ramp" : hr < 16 ? "midday, PV" : hr < 22 ? "evening peak" : "late evening";
   const f = sig => ALL.filter(k => sig[k] != null).map(k => `${k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ")}${sig[k]} kW`).join(", ");
   const sigTxt = act ? `<b style="color:var(--acc)">${act[1].mode} active</b> on ${act[0].split(":")[1]} · seq ${act[1].seq} · ${f(act[1])} · until ${act[1].valid_to.slice(11, 16)}`
-    : recent ? `<span style="color:var(--muted)">no active signal · last: <b>${recent[1].mode}</b> seq ${recent[1].seq} on ${recent[0].split(":")[1]} · ${f(recent[1])} · ${recent[1].valid_from.slice(11, 16)}–${(recent[1].ended_at || recent[1].valid_to).slice(11, 16)} · ${recent[1].ended || "running"}</span>`
+    : recent ? `<span style="color:var(--muted)">no active signal · last: <b>${recent[1].mode}</b> seq ${recent[1].seq} on ${recent[0].split(":")[1]} · ${f(recent[1])} · ${recent[1].valid_from.slice(11, 16)}–${(recent[1].ended_at || recent[1].valid_to).slice(11, 16)} · ${recent[1].ended || "active now, below this node"}</span>`
     : `<span style="color:var(--muted)">no signal has touched this node yet</span>`;
   document.getElementById("storydelta").innerHTML = `<span class="delta">${lastp && lastp.baseline_kw != null ? `${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ` : ""}${a.load_pct != null ? a.load_pct + "% of rating" : rating && lastp ? Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""} · ${hhmm(hr)} ${tod}</span><br>${sigTxt}`;
   // real plant
