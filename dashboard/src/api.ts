@@ -367,7 +367,7 @@ function normalize(raw: State, tree: Record<string, TreeNode> | null): State {
       const id = meterDevice(h);
       s.devices[id] = {
         id, tf: h.tf, vendor: h.real ? "real" : "sim", kw: h.kw, kwh: h.kwh, feedin_max_kw: 0, represents: h.represents,
-        household: h.id, path: h.path, registered: h.registered,
+        household: h.id.startsWith("sim-") ? undefined : h.id, path: h.path, registered: h.registered,
         telemetry: h.telemetry as unknown as Telemetry | null,
         ack: h.ack ? ({ device: id, rx: undefined, ...h.ack } as Ack) : null,
       };

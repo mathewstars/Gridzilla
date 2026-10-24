@@ -17,14 +17,17 @@ function scaled(v: number, base: string) {
 const fmt = (x: { v: number; d: number; unit: string }) =>
   `${x.v.toLocaleString("en-US", { minimumFractionDigits: x.d, maximumFractionDigits: x.d })} ${x.unit}`;
 
-/** Battery capacity online: each simulated device stands for `represents` real houses. */
-function capacity(s: State) {
-  let cap = 0;
+/** Average state of charge, capacity weighted. The trimmed payload ships only the households on screen, which stand in
+ *  for the city here (the city-wide stored energy itself comes from the server's totals). */
+function avgSocOf(s: State) {
+  let cap = 0,
+    stored = 0;
   Object.values(s.devices).forEach((d) => {
-    if (!d.telemetry || d.kwh <= 0) return;
+    if (!d.telemetry || d.kwh <= 0 || d.telemetry.soc == null) return;
     cap += d.kwh * (d.represents ?? 1);
+    stored += (d.kwh * (d.represents ?? 1) * d.telemetry.soc) / 100;
   });
-  return cap;
+  return cap > 0 ? stored / cap : 0;
 }
 
 function Stat({ label, value, foot, badge }: { label: string; value: ReactNode; foot: ReactNode; badge?: ReactNode }) {
@@ -45,9 +48,8 @@ const unitCls = "text-[1.5rem] font-semibold tracking-[-0.01em] text-secondary";
 
 export default function Headline({ s }: { s: State }) {
   const h = headline(s);
-  const cap = capacity(s);
   const e = scaled(h.kwh, "Wh");
-  const avgSoc = cap > 0 ? h.kwh / cap : 0;
+  const avgSoc = avgSocOf(s);
   const pct = h.worst ? h.worstPct : null;
   const over = isOver(pct);
   const nothing = h.online === 0;

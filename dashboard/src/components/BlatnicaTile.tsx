@@ -60,7 +60,7 @@ export default function BlatnicaTile({ s, history }: { s: State; history: Histor
       </div>
       {t ? (
         <>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3 @md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 @sm:grid-cols-4">
             <Stat value={f(t.grid_kw, 1)} unit="kW" label={t.grid_kw > 0.05 ? "Taking from the street" : t.grid_kw < -0.05 ? "Sending to the street" : "Balanced with the street"} />
             <Stat value={f(t.soc, 0)} unit="%" label="Home battery full" />
             <Stat value={f(t.ev_kw, 1)} unit="kW" label={t.ev_kw > 0.05 ? "Car charging" : "Car charger idle"} />
