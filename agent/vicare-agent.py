@@ -210,8 +210,9 @@ def on_connect(c, u, f, rc, p=None):
 mq.on_connect, mq.on_message = on_connect, on_message
 mq.reconnect_delay_set(2, 30); mq.connect_async(BROKER.hostname, BROKER.port or 1883, keepalive=30); mq.loop_start()
 
+POLL_S = int(os.environ.get("VICARE_POLL_S", "90"))   # Viessmann allows ~1450 calls a day: 90 s keeps us under 1000
 while True:
-    time.sleep(10)
+    time.sleep(POLL_S)
     t = read()
     mq.publish(f"gridzilla/state/{DEVICE}", json.dumps({"soc": 0, "grid_kw": round(NOMINAL_KW if t.get("active") else 0.0, 2), "dhw_c": t.get("dhw_c"), "dhw_set_c": t.get("dhw_set_c"),
                                                         "dhw_mode": t.get("dhw_mode"), "outside_c": t.get("outside_c"), "mode": effective["mode"] if effective else "owner", "ts": iso(now())}))
