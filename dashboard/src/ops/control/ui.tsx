@@ -121,7 +121,7 @@ export function Spark({ curve, w = 120, h = 28 }: { curve: number[] | null | und
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
         <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" />
       </svg>
-      <span className="cp-mono">limit {mn}–{mx} kW</span>
+      <span className="cp-mono" data-src="axis">limit {mn}–{mx} kW</span>
     </span>
   );
 }

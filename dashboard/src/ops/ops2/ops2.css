@@ -1,0 +1,14 @@
+/* Operations layout (readability pass): few, big panels. One screen from 1440x900; scrolls on shorter windows; stacks on phones. */
+.op2 { display: grid; gap: 12px; padding: 12px; min-width: 0; grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "tonight" "curve" "tiles" "side" "feed" "dots"; }
+.op2 > * { min-width: 0; }
+.op2-tonight { grid-area: tonight; } .op2-curve { grid-area: curve; } .op2-tiles { grid-area: tiles; }
+.op2-feed { grid-area: feed; } .op2-side { grid-area: side; display: flex; flex-direction: column; gap: 12px; } .op2-dots { grid-area: dots; }
+@media (min-width: 1240px) {
+  .op2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas: "tonight tonight" "curve tiles" "feed side" "dots dots"; }
+}
+/* the curve is the main thing: it always gets real height; the view scrolls when the window is short */
+.op2-curve { min-height: clamp(380px, 52vh, 640px); display: flex; flex-direction: column; }
+.op2-curve > * { flex: 1 1 auto; }

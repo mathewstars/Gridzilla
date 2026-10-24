@@ -26,7 +26,8 @@ Every element that shows a live number carries where it came from:
   Value may be a number, `true`/`false`/`null`, another field of the same child (`rating_kw`), or a string.
   Example: `count(state/aggregates/tf:*[total_kw != null and abs(total_kw) <= rating_kw])`.
 - `data-src="deck" data-label="measured in Blatnica"`: a static fact from the pitch deck, labelled on screen.
-- `data-src="axis"`: chart ticks and scaffolding.
+- `data-src="axis"`: chart ticks, clock times and scaffolding.
+- `data-src="page" data-label="..."`: a count this page keeps itself (today's signals seen in the feed); no single API field holds it, so it must say so.
 - `data-src="sample"`: fixture values, allowed only with `?weather=sample` / `?plant=sample`.
 
 The 3D scene counts rendered frames on `window.__gz3d.frames` (in `useFrame`) so G5 can prove it pauses off-screen.

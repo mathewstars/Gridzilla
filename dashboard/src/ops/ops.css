@@ -6,16 +6,19 @@
 .ops-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .ops-col > * { flex-shrink: 0; } /* cards keep their height; the column scrolls */
 .ops-view { padding: 12px; min-width: 0; }
-.ops-demo { min-width: 0; min-height: 0; }
+.ops-demo, .ops-op2 { min-width: 0; min-height: 0; }
+@media (min-width: 1240px) { .ops-op2 { overflow-y: auto; } }
 .ops-splash { display: grid; place-content: center; gap: 6px; min-height: 100vh; text-align: center; }
 @media (min-width: 1240px) {
   .ops { height: 100vh; }
   .ops-main { min-height: 0; }
-  .ops-cols { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
+  .ops-cols { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+  .ops-tonight { grid-column: 1 / -1; }
   .ops-col { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 }
 @media (max-width: 760px) {
-  .ops { grid-template-columns: minmax(0, 1fr); }
+  /* the bar keeps its own height on short views; the view takes the rest of the screen */
+  .ops { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
 }
 
 /* Projector floor (firstmate): nothing under 12 px, and 13 px for what a judge must read: the city tile numbers, the feed

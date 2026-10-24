@@ -229,7 +229,7 @@ export default function AiSteps({ s, weather, variant = "row" }: { s: State | nu
   return (
     <div className="gz-steps" data-stack={row ? undefined : ""}>
     <style>{CSS}</style>
-    <ol aria-label="What the AI does">
+    <ol aria-label="What the AI does" data-src="state/autopilot">
       {view.steps.map((st, i) => {
         // While a replay runs, steps not yet reached wait; the one being revealed is active.
         const state: StepState = i < shown ? st.state : i === shown && st.state !== "waiting" ? "active" : "waiting";

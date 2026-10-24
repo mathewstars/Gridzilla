@@ -1,0 +1,83 @@
+/* Diet plan view (dad's Flattening tab, our theme). Head + node chooser, six number tiles, then the chart (left, wide)
+   beside "how it works" and the transformer list. One screen from 1240 wide; stacked on phones. Theme tokens only. */
+.pl { --pl-nobody: #8e8e93; gap: 12px; }
+:root[data-theme="dark"] .pl { --pl-nobody: #6e6e73; }
+.pl-head { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pl-titles { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.pl-title { margin: 0; font-size: max(24px, 1.5rem); font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--color-ink); }
+.pl-desc { margin: 0; font-size: max(16px, 1rem); color: var(--color-secondary); line-height: 1.4; }
+.pl-desc b { color: #ff9500; font-weight: 600; }
+
+/* chooser: one labelled row per level, chips like the top bar's segmented buttons */
+.pl-chooser { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.pl-rowlabel { width: 7.5rem; flex: none; font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-tertiary); }
+.pl-chip {
+  height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--color-fill); color: var(--color-ink);
+  font: inherit; font-size: max(15px, 0.9375rem); font-weight: 500; letter-spacing: -0.01em; cursor: pointer; white-space: nowrap;
+  transition: background-color 100ms linear, color 100ms linear, transform 100ms linear;
+}
+.pl-chip:hover { background: var(--color-fill-press); }
+.pl-chip:active { transform: scale(0.97); }
+.pl-chip:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+.pl-chip.is-city { font-weight: 700; }
+.pl-chip.is-on { background: var(--color-ink); color: var(--color-card); }
+
+.pl-wait { padding: 28px 20px; font-size: max(16px, 1rem); color: var(--color-secondary); }
+
+/* tiles */
+.pl-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 760px) { .pl-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1240px) { .pl-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.pl-tile { padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-tile-t { font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-secondary); line-height: 1.25; }
+.pl-tile-v { font-size: max(24px, 1.75rem); font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; color: var(--color-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl-tile-d { font-size: max(14px, 0.875rem); color: var(--color-secondary); line-height: 1.3; overflow-wrap: anywhere; }
+
+/* chart + side */
+.pl-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.pl-chart { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-width: 0; }
+.pl-chart-head { display: flex; flex-direction: column; gap: 2px; }
+.pl-h2 { margin: 0; font-size: max(17px, 1.0625rem); font-weight: 600; color: var(--color-ink); line-height: 1.3; }
+.pl-delta { margin: 0; font-size: max(16px, 1rem); color: #ff9500; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pl-plot { position: relative; height: 22rem; min-height: 14rem; min-width: 0; }
+.pl-plot svg { position: absolute; inset: 0; display: block; }
+.pl-axis text { font-size: 14px; fill: var(--color-secondary); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.pl-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: max(14px, 0.875rem); color: var(--color-secondary); line-height: 1.35; }
+.pl-legend li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.pl-key { flex: none; display: inline-block; width: 18px; height: 0; border-top: 3px solid var(--k); }
+.pl-key.is-dash { border-top-style: dashed; }
+.pl-key.is-box { height: 10px; border: 0; border-radius: 3px; background: var(--k); opacity: 0.7; }
+
+.pl-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+.pl-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pl-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: max(16px, 1rem); line-height: 1.38; color: var(--color-ink); }
+.pl-steps b { font-weight: 600; }
+.pl-steps b > span {
+  display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; margin-right: 4px; border-radius: 50%;
+  background: var(--color-fill); font-size: 0.875em; font-variant-numeric: tabular-nums;
+}
+.pl-sub { margin: 0; font-size: max(15px, 0.9375rem); color: var(--color-secondary); }
+.pl-tfs {
+  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 2px 16px;
+  font-size: max(15px, 0.9375rem); font-variant-numeric: tabular-nums;
+}
+.pl-tfs li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--color-fill); min-width: 0; }
+.pl-tf-n { color: var(--color-ink); min-width: 0; overflow-wrap: anywhere; }
+.pl-tf-v { color: var(--color-secondary); white-space: nowrap; }
+.pl-arrow { color: var(--color-tertiary); }
+
+@media (min-width: 1240px) {
+  .pl.vw > .pl-main { flex: 1 1 auto; min-height: 30rem; }
+  .pl-main { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .pl-chart { min-height: 0; }
+  .pl-plot { flex: 1 1 auto; height: auto; }
+  .pl-side { min-height: 0; }
+  .pl-tfcard { flex: 1 1 auto; min-height: 0; }
+}
+@media (min-width: 1240px) {
+  .pl-tfcard .pl-tfs { flex: 1 1 auto; min-height: 6rem; overflow-y: auto; scrollbar-width: thin; align-content: start; padding-right: 4px; }
+}
+.pl-side > .pl-card:not(.pl-tfcard) { flex: none; }
+.pl-tfs { grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); }
+.pl-tf-n { overflow-wrap: normal; }

@@ -1,0 +1,40 @@
+/* FourTiles: dad's four decision tiles as big cards, 2x2. Body >= 16 px, numbers >= 24 px, theme tokens only. */
+.ft { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; height: 100%; }
+.ft-head { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+.ft-title { margin: 0; font-size: max(18px, 1.1875rem); line-height: 1.2; font-weight: 600; letter-spacing: 0.005em; }
+.ft-count { display: flex; align-items: baseline; gap: 8px; padding: 2px 14px; border-radius: 980px; background: var(--color-fill-2); }
+.ft-count-l { font-size: max(16px, 0.9375rem); color: var(--color-secondary); white-space: nowrap; }
+.ft-count-v { font-size: max(24px, 1.5rem); line-height: 1.15; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ft-unit { font-size: max(16px, 1rem); font-weight: 500; color: var(--color-secondary); }
+
+.ft-grid { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 10px; min-height: 0; }
+.ft-tile { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 10px 14px; border-radius: 14px; background: var(--color-fill-2);
+  box-shadow: inset 0 0 0 1px transparent; transition: box-shadow 200ms var(--ease-apple), background-color 200ms var(--ease-apple); }
+.ft-tile.is-now { background: var(--color-card); box-shadow: inset 0 0 0 2px var(--color-ink); }
+.ft-label { display: flex; align-items: center; gap: 8px; font-size: max(16px, 0.9375rem); font-weight: 600; color: var(--color-secondary); }
+.ft-n { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; flex: none; border-radius: 50%; font-size: 0.8em; color: var(--color-ink); background: var(--color-fill-press); }
+.ft-tile.is-now .ft-n { color: var(--color-card); background: var(--color-ink); }
+.ft-live { margin-left: auto; font-size: max(13px, 0.8125rem); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-ink); white-space: nowrap; }
+.ft-value { min-width: 0; }
+.ft-big { font-size: max(26px, 1.75rem); line-height: 1.12; font-weight: 600; letter-spacing: -0.012em; font-variant-numeric: tabular-nums; color: var(--color-ink); }
+.ft-big.ft-words { font-size: max(24px, 1.5rem); }
+.ft-tile.is-bad .ft-big { color: var(--color-crit); }
+.ft-text { font-size: max(16px, 1rem); line-height: 1.38; color: var(--color-secondary); overflow-wrap: anywhere; }
+.ft-strong { color: var(--color-ink); font-weight: 500; }
+.ft-why { margin: 2px 0 0; color: var(--color-ink); }
+.ft-acks { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.ft-red { color: var(--color-crit); }
+
+/* One screen (definite row height): each tile sizes to its grid cell and drops its detail lines when the cell is short,
+   so nothing spills over the next tile. Elsewhere the tiles grow with their text. */
+@media (min-width: 1240px) and (min-height: 860px) {
+  .ft-tile { container: ft / size; }
+}
+@container ft (max-height: 200px) { .ft-why { display: none; } }
+@container ft (max-height: 150px) { .ft-detail { display: none; } }
+@container ft (max-height: 118px) { .ft-text { display: none; } .ft-big.ft-words { font-size: max(20px, 1.25rem); white-space: nowrap; } }
+
+@media (max-width: 640px) {
+  .ft { padding: 14px; }
+  .ft-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+}
