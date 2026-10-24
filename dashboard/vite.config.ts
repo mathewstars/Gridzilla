@@ -12,6 +12,8 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
+      // A "Keynote stage" at index.html, B "Apple Home energy" at b.html: two directions, one data layer.
+      input: { index: "index.html", b: "b.html" },
       output: { manualChunks: { three: ["three", "@react-three/fiber", "@react-three/drei"], charts: ["recharts"] } },
     },
   },
