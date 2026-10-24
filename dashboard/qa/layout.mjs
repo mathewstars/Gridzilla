@@ -13,7 +13,8 @@ const statesMode = arg("states", arg("quick") ? "quick" : "full");
 const dev = !!arg("dev", false);
 const out = String(arg("out", "/tmp/gzqa/layout"));
 fs.mkdirSync(out, { recursive: true });
-const url = (p) => stageUrl(dev, p);
+const themes = String(arg("theme", "")).split(",").filter(Boolean); // ops console: dark,light (empty = page default)
+const url = (p, theme) => stageUrl(dev, p) + (theme ? `?theme=${theme}` : "");
 const API = "http://localhost:8081/api";
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
 
@@ -109,7 +110,7 @@ async function setScenario(name) {
 
 const browser = await launch();
 const results = [];
-async function cell(state, p, size) {
+async function cell(state, p, size, theme = "") {
   const [W, H] = size.split("x").map(Number);
   const phone = W < 500;
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone });
@@ -118,11 +119,11 @@ async function cell(state, p, size) {
   page.on("console", (m) => { if (m.type() === "error" && !/favicon/.test(m.text())) errors.push(m.text().slice(0, 160)); });
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
   try {
-    await page.goto(url(p), { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(url(p, theme), { waitUntil: "domcontentloaded", timeout: 30000 });
     await ready(page, state === "live" ? 20000 : 4000);
     const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
     f.console = errors;
-    const shot = `${out}/${state}-${p}-${size}.png`;
+    const shot = `${out}/${state}-${p}${theme ? "-" + theme : ""}-${size}.png`;
     // Grow the window to the whole page so below-the-fold parts (the 3D street pauses off-screen) render for the capture.
     const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
     if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }
@@ -139,7 +140,7 @@ async function cell(state, p, size) {
       }
     }
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
-    results.push({ state, page: p, size, count, f, shot });
+    results.push({ state: theme ? `${state}/${theme}` : state, page: p, size, count, f, shot });
   } catch (e) {
     results.push({ state, page: p, size, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
   } finally {
@@ -151,7 +152,7 @@ const startScenario = (await (await fetch(`${API}/state?tree=0`).catch(() => nul
 const CONC = 5;
 for (const st of STATES) {
   if (!["now", "live"].includes(st)) await setScenario(st);
-  const jobs = pages.flatMap((p) => sizes.map((s) => () => cell(st, p, s)));
+  const jobs = pages.flatMap((p) => (themes.length ? themes : [""]).flatMap((th) => sizes.map((s) => () => cell(st, p, s, th))));
   const run = async () => { while (jobs.length) await jobs.shift()(); };
   await Promise.all(Array.from({ length: CONC }, run));
 }
