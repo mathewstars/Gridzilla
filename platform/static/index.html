@@ -163,8 +163,9 @@
     section[data-tab="homes"] { overflow-x:auto; }
     h2 { flex-wrap:wrap; }
     h2 .hint { white-space:normal; }
-    .fill { flex:none; }
+    .fill { flex:none; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .schem { height:auto; }
+    #schem { min-width:600px; }   /* the feeder schematic keeps readable labels and scrolls sideways */
     .chartbox { flex:none; height:220px; min-height:220px; }
     .city, #signals, #apstatus, #rationale { max-height:none !important; }
     .kpis { grid-template-columns:repeat(2, 1fr); }
