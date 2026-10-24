@@ -285,6 +285,9 @@ def guard(segment, mode, fields, duration_min, envelope=None):
             return "envelope needs slot_s > 0 and at most 96 slots"
         if (imp and mode != "SUPPORT") or (exp and mode != "ABSORB"):
             return "import curve belongs to SUPPORT, export curve to ABSORB"
+        for c in (envelope.get("by_tf") or {}).values():
+            if len(c) > 96 or (mode == "SUPPORT" and any(v < POLICY["max_import_cap_floor_kw"] for v in c)) or any(v < 0 for v in c):
+                return "per-transformer envelope out of policy"
         if any(v < POLICY["max_import_cap_floor_kw"] for v in imp):
             return f"envelope import cap below policy floor {POLICY['max_import_cap_floor_kw']} kW"
         if any(v < 0 for v in exp):
@@ -421,9 +424,14 @@ def compute_envelope(node, mode, duration_sim_min, start_in_sim_min=0.0):
         cap = min(caps) if caps else 15.0
         lo = POLICY["max_import_cap_floor_kw"] if mode == "SUPPORT" else 0.0
         curve.append(round(min(15.0, max(lo, cap)), 1))
-    return {"slot_s": round(ENV_SLOT_SIM_MIN * 60 / SIM_X, 3), "slot_sim_min": ENV_SLOT_SIM_MIN, "start_sim_h": round(h0 % 24, 2),
-            "import_max_kw": curve if mode == "SUPPORT" else None,
-            "export_max_kw": curve if mode == "ABSORB" else None}
+    env = {"slot_s": round(ENV_SLOT_SIM_MIN * 60 / SIM_X, 3), "slot_sim_min": ENV_SLOT_SIM_MIN, "start_sim_h": round(h0 % 24, 2),
+           "import_max_kw": curve if mode == "SUPPORT" else None,
+           "export_max_kw": curve if mode == "ABSORB" else None}
+    under = tfs_under(node)
+    if len(under) > 1:        # one curve per street transformer: each house follows its own transformer's headroom
+        env["by_tf"] = {t: compute_envelope(t, mode, duration_sim_min, start_in_sim_min)["import_max_kw" if mode == "SUPPORT" else "export_max_kw"]
+                        for t in under if program_houses(t)}
+    return env
 
 
 # ---------------------------------------------------------------- LLM advisor (DeepSeek, OpenAI-compatible)
@@ -445,6 +453,8 @@ Use the forecast: act BEFORE the transformer reaches its rating, size duration_m
 All times (duration_min, start_in_min) are in grid minutes; the grid clock is sim_hour.
 Policy: window max 240 grid minutes (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per grid day.
 Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}
+When the grid state lists allowed_segments, the segment MUST be one of them: the target covers every hot transformer at once,
+a listed transformer alone only helps that street. Prefer the target unless you have a reason.
 If no signal is needed right now, answer {"mode": "NONE", "rationale": "..."}."""
 
 
@@ -474,17 +484,34 @@ def real_window(segment, mode, sim_dur):
     return max(real_min(sim_dur), floor)
 
 
-def ask_llm(situation: str):
+def focus_context(focus):
+    """Only the part of the grid the decision is about: the target, its transformers, their forecast and batteries."""
+    node = focus["node"]
+    ag = aggregates()
+    tfs = {}
+    for t in tfs_under(node):
+        devs = [d for d in devices_under(t) if d.get("kwh", 0) > 0 and d["id"] in state["telemetry"]]
+        socs = [state["telemetry"][d["id"]].get("soc") for d in devs if state["telemetry"][d["id"]].get("soc") is not None]
+        h = AP["hotspots"].get(t, {})
+        tfs[t] = {"rating_kw": TREE[t]["rating_kw"], "load_pct_now": ag[t]["load_pct"], "forecast_peak_pct": h.get("pct"),
+                  "peak_at_h": h.get("at_h"), "program_houses": program_houses(t), "avg_battery_soc": round(sum(socs) / len(socs)) if socs else None,
+                  "forecast_kw_next_3h": [p["total_kw"] for p in forecast(t)][::2]}
+    return {"sim_hour": round(sim_hour(), 2), "target": node, "path": path_of(node), "allowed_segments": focus["choices"],
+            "transformers": tfs, "active_signals_overlapping": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to") if s.get(k) is not None}
+                                                                for n, s in state["active"].items() if overlaps(n, node)}}
+
+
+def ask_llm(situation: str, focus=None):
     if not LLM_URL:
         raise HTTPException(503, "GZ_LLM_URL not set")
-    ag = aggregates()
-    ctx = {"sim_hour": round(sim_hour(), 2), "tree": {n: {**TREE[n], **ag[n]} for n in TREE},
-           "forecast_total_kw_next_3h": {t: [p["total_kw"] for p in forecast(t)][::2] for t in TREE if t.startswith("tf:")},
-           "devices": [{"id": d["id"], "tf": d["tf"], "kw": d["kw"], "kwh": d["kwh"], "represents": d.get("represents", 1),
-                        "soc": (state["telemetry"].get(d["id"]) or {}).get("soc")} for d in DEVICES.values()],
-           "active_signals": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to", *ALL_FIELDS) if s.get(k) is not None}
-                              for n, s in state["active"].items()},
-           "support_sent_today": {k.rsplit(":", 1)[0]: v for k, v in state["support_count"].items() if k.endswith(f":{sim_day()}")}}
+    if focus:
+        ctx = focus_context(focus)
+    else:
+        ag = aggregates()
+        hot = sorted(AP["hotspots"].items(), key=lambda kv: -abs(kv[1]["pct"]))[:8]
+        ctx = {"sim_hour": round(sim_hour(), 2), "hottest_transformers": {t: {"forecast_peak_pct": h["pct"], "feeder": h["feeder"], "sub": h["sub"]} for t, h in hot},
+               "substations": {n: {"load_pct_now": ag[n]["load_pct"]} for n in TREE if n.startswith("sub:")},
+               "active_signals": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to") if s.get(k) is not None} for n, s in state["active"].items()}}
     body = {"model": LLM_MODEL, "temperature": 0.2, "max_tokens": 1500,
             "messages": [{"role": "system", "content": ADVISOR_SYSTEM},
                          {"role": "user", "content": f"Grid state:\n{json.dumps(ctx)}\n\nSituation: {situation}"}]}
@@ -511,7 +538,9 @@ def ask_llm(situation: str):
     grid_limit = POLICY["max_stretch_window_min"] if mode == "STRETCH" else POLICY["max_window_min"]
     if seg in TREE and mode in ("ABSORB", "SUPPORT") and sim_dur > 0:
         proposal["envelope"] = compute_envelope(seg, mode, sim_dur, float(proposal.get("start_in_min") or 0))
-    if not (0 < sim_dur <= grid_limit):        # the policy window is in grid minutes, check it before converting
+    if focus and seg not in focus["choices"]:
+        proposal["guard"] = f"segment {seg} is not one of the allowed segments {focus['choices']}"
+    elif not (0 < sim_dur <= grid_limit):        # the policy window is in grid minutes, check it before converting
         proposal["guard"] = f"window must be 0..{grid_limit} grid minutes for {mode}"
     else:
         proposal["guard"] = guard(seg, mode, proposal.get("fields") or {},
@@ -528,13 +557,13 @@ def ask_llm(situation: str):
 # All autopilot times are grid (sim) minutes.
 AP = {"mode": os.environ.get("GZ_AUTOPILOT", "auto" if LLM_URL else "off"), "context": "", "context_seen": "",
       "last_run": None, "last_trigger": None, "last_result": None, "pending": None, "busy": False, "stage": "idle",
-      "sent": collections.deque(maxlen=50), "history": collections.deque(maxlen=20)}
+      "sent": collections.deque(maxlen=200), "history": collections.deque(maxlen=20), "hotspots": {}, "target": None}
 AP_INTERVAL_S = POLICY.get("autopilot_interval_s", 10)
 AP_TRIGGER_PCT = POLICY.get("autopilot_trigger_pct", 85)     # forecast |load| at or above this within the horizon asks for a signal
 AP_RELEASE_PCT = POLICY.get("autopilot_release_pct", 60)     # every transformer under an active signal below this asks for a release
 AP_HORIZON_MIN = POLICY.get("autopilot_horizon_min", 90)     # look-ahead, grid minutes
 AP_COOLDOWN_MIN = POLICY.get("autopilot_cooldown_min", 30)   # grid minutes
-AP_MAX_PER_DAY = POLICY.get("autopilot_max_per_day", 12)     # per grid day
+AP_MAX_PER_DAY = POLICY.get("autopilot_max_per_day", 48)     # per grid day
 
 
 def prune_expired():
@@ -554,24 +583,67 @@ def grid_age_min(at):
     return (now() - at).total_seconds() * SIM_X / 60
 
 
-def autopilot_trigger():
-    """Return a situation sentence if something deserves DeepSeek's attention, else None."""
-    ag = aggregates()
-    tfs = [n for n in TREE if n.startswith("tf:")]
+def hotspots():
+    """Forecast peak per street transformer over the autopilot horizon: the map the planner and the board work from."""
     steps = int(AP_HORIZON_MIN / ENV_SLOT_SIM_MIN) + 1
-    hot = []
-    for tf in tfs:
-        if covered(tf):
-            continue
+    out = {}
+    for tf in (n for n in TREE if n.startswith("tf:")):
         rating, rev = TREE[tf]["rating_kw"], TREE[tf].get("reverse_kw", TREE[tf]["rating_kw"])
         fc = forecast(tf)[:steps]
         worst = max(fc, key=lambda p: abs(p["total_kw"]) / (rating if p["total_kw"] >= 0 else rev))
-        pct = round(100 * worst["total_kw"] / (rating if worst["total_kw"] >= 0 else rev))
-        if abs(pct) >= AP_TRIGGER_PCT:
-            hot.append(f"{tf} now {ag[tf]['load_pct']} %, forecast {pct} % at {worst['h']:.2f}h "
-                       f"({'reverse flow, PV surplus' if pct < 0 else 'import, load peak'})")
-    if hot:
-        return "Congestion forecast within " + str(AP_HORIZON_MIN) + " grid minutes, no signal active there: " + "; ".join(hot) + "."
+        lim = rating if worst["total_kw"] >= 0 else rev
+        out[tf] = {"pct": round(100 * worst["total_kw"] / lim), "at_h": worst["h"], "kw": worst["total_kw"],
+                   "excess_kw": round(max(0.0, abs(worst["total_kw"]) - AP_TRIGGER_PCT / 100 * lim), 1),
+                   "feeder": TREE[tf]["parent"], "sub": TREE[TREE[tf]["parent"]]["parent"], "covered": covered(tf)}
+    return out
+
+
+def plan_target(hs):
+    """Pick ONE target for this cycle: the node that covers the most forecast overload that no signal handles yet.
+    A feeder is chosen when two or more of its transformers run hot in the same direction, a substation when two or more
+    of its feeders do; otherwise the single worst transformer. Returns None when nothing is hot."""
+    hot = {tf: h for tf, h in hs.items() if abs(h["pct"]) >= AP_TRIGGER_PCT and not h["covered"]}
+    if not hot:
+        return None
+    by_dir = {}
+    for tf, h in hot.items():
+        by_dir.setdefault("import" if h["pct"] > 0 else "export", {})[tf] = h
+    direction, group = max(by_dir.items(), key=lambda kv: sum(h["excess_kw"] for h in kv[1].values()))
+    feeders, subs = {}, {}
+    for tf, h in group.items():
+        feeders.setdefault(h["feeder"], []).append(tf)
+    for f, tfs in feeders.items():
+        if len(tfs) >= 2:
+            subs.setdefault(TREE[f]["parent"], []).append(f)
+    cands = []
+    for s, fs in subs.items():
+        if len(fs) >= 2:
+            cands.append((s, [t for f in fs for t in feeders[f]]))
+    for f, tfs in feeders.items():
+        if len(tfs) >= 2 and not any(f in subs.get(s, []) and len(subs[s]) >= 2 for s in subs):
+            cands.append((f, tfs))
+    for tf in group:
+        if len(feeders[group[tf]["feeder"]]) < 2:
+            cands.append((tf, [tf]))
+    node, tfs = max(cands, key=lambda c: sum(group[t]["excess_kw"] for t in c[1]))
+    worst = max(tfs, key=lambda t: abs(group[t]["pct"]))
+    choices = [node] + ([] if node.startswith("tf:") else sorted(tfs, key=lambda t: -abs(group[t]["pct"]))[:4])
+    return {"node": node, "dir": direction, "hot": sorted(tfs, key=lambda t: -abs(group[t]["pct"])), "worst": worst,
+            "worst_pct": group[worst]["pct"], "worst_at_h": group[worst]["at_h"], "under": len(tfs_under(node)),
+            "excess_kw": round(sum(group[t]["excess_kw"] for t in tfs), 1), "choices": choices,
+            "others": len(hot) - len(tfs)}
+
+
+def autopilot_trigger():
+    """Return (situation sentence, focus) if something deserves DeepSeek's attention, else (None, None)."""
+    hs = hotspots()
+    AP["hotspots"] = hs
+    t = plan_target(hs)
+    if t:
+        what = "load peak, houses import" if t["dir"] == "import" else "PV surplus, reverse flow"
+        return (f"{t['node']}: {len(t['hot'])} of {t['under']} transformers forecast past {AP_TRIGGER_PCT} % within {AP_HORIZON_MIN} grid "
+                f"minutes ({what}); worst {t['worst']} {t['worst_pct']} % at {t['worst_at_h']:.2f}h, {t['excess_kw']:.0f} kW over.", t)
+    steps = int(AP_HORIZON_MIN / ENV_SLOT_SIM_MIN) + 1
     for node, sig in state["active"].items():
         mine = next((s for s in AP["sent"] if s["seq"] == sig["seq"]), None)   # never second-guess an operator's own signal
         if not mine or grid_age_min(mine["at"]) < AP_COOLDOWN_MIN:
@@ -580,10 +652,11 @@ def autopilot_trigger():
                 max(abs(p["total_kw"]) for p in forecast(tf)[:steps]) < AP_RELEASE_PCT / 100 * TREE[tf]["rating_kw"]
                 for tf in tfs_under(node)):
             return (f"{sig['mode']} seq {sig['seq']} on {node} is active but every transformer under it is forecast below "
-                    f"{AP_RELEASE_PCT} % for the next {AP_HORIZON_MIN} grid minutes. Release it if the event is over.")
+                    f"{AP_RELEASE_PCT} % for the next {AP_HORIZON_MIN} grid minutes. Release it if the event is over.",
+                    {"node": node, "choices": [node], "release": True})
     if AP["context"] and AP["context"] != AP["context_seen"]:
-        return "Operator warning: " + AP["context"]
-    return None
+        return "Operator note: " + AP["context"], None
+    return None, None
 
 
 def overlaps(a, b):
@@ -638,7 +711,9 @@ def record(p, verdict, detail="", seq=None):
     AP["history"].appendleft({"at": iso(now()), "sim_h": round(sim_hour(), 2), "trigger": p.get("situation"),
                               "mode": p.get("mode"), "segment": p.get("segment"), "rationale": p.get("rationale"),
                               "fields": p.get("fields"), "duration_min": p.get("duration_min"), "envelope": p.get("envelope"),
-                              "latency_ms": p.get("latency_ms"), "verdict": verdict, "detail": detail, "seq": seq})
+                              "latency_ms": p.get("latency_ms"), "verdict": verdict, "detail": detail, "seq": seq,
+                              "target": (p.get("focus") or {}).get("node"), "hot": (p.get("focus") or {}).get("hot"),
+                              "worst_pct": (p.get("focus") or {}).get("worst_pct")})
 
 
 def autopilot_step():
@@ -650,19 +725,20 @@ def autopilot_step():
         record(p, "expired")
     prune_expired()
     AP["stage"] = "sense"
-    situation = autopilot_trigger()
+    situation, focus = autopilot_trigger()
+    AP["target"] = focus if focus and not focus.get("release") else None
     if not situation or AP["pending"]:
         AP["stage"] = "idle"
         return
     AP["last_trigger"] = situation
-    if situation.startswith("Operator warning"):
+    if situation.startswith("Operator note"):
         AP["context_seen"] = AP["context"]
     elif AP["context"]:
         situation += " Standing operator warning: " + AP["context"]
     log("autopilot", f"trigger: {situation}")
     AP["stage"] = "deepseek"
-    p = ask_llm(situation)
-    p["situation"], p["at"] = situation, iso(now())
+    p = ask_llm(situation, focus)
+    p["situation"], p["at"], p["focus"] = situation, iso(now()), focus
     AP["last_result"] = p
     AP["stage"] = "guard"
     if p.get("mode") == "NONE":
@@ -710,7 +786,7 @@ def autopilot_loop():
 
 
 def autopilot_public():
-    return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy", "stage")} | {
+    return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy", "stage", "target", "hotspots")} | {
         "history": list(AP["history"]), "trigger_pct": AP_TRIGGER_PCT, "release_pct": AP_RELEASE_PCT,
         "horizon_min": AP_HORIZON_MIN, "cooldown_min": AP_COOLDOWN_MIN, "max_per_day": AP_MAX_PER_DAY,
         "interval_s": AP_INTERVAL_S, "sim_x": SIM_X}
@@ -830,7 +906,7 @@ def advise(a: Advise):
 
 class Autopilot(BaseModel):
     mode: Optional[str] = None       # off | propose | auto
-    context: Optional[str] = None    # standing operator warning, e.g. "drone strike warning tonight"
+    context: Optional[str] = None    # standing operator note, e.g. "heat wave tomorrow, high evening load"
 
 
 @app.post("/api/autopilot")

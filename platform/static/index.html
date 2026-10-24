@@ -82,6 +82,14 @@
   .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
   .err { color:var(--crit); font-size:12px; min-height:14px; flex:0 0 auto; }
   .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:6px 10px; font-size:12px; display:none; overflow:auto; }
+  .city .cell.tgt { animation:pulse 1.2s ease-in-out infinite; border-color:#fff; }
+  @keyframes pulse { 50% { filter:brightness(1.35); } }
+  .target { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; align-items:baseline; }
+  .target .big { font-family:var(--mono); font-size:16px; font-weight:600; color:var(--acc); grid-column:1 / -1; }
+  .chips span { display:inline-block; font-family:var(--mono); font-size:11px; border:1px solid var(--line); border-radius:10px; padding:0 7px; margin:2px 3px 0 0; }
+  .dcard { display:grid; grid-template-columns:52px 1fr 120px; gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line); font-family:"IBM Plex Sans", system-ui, sans-serif; font-size:12px; }
+  .dcard .why { color:var(--muted); font-size:11.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .dcard .t { font-family:var(--mono); color:var(--muted); font-size:11px; }
 
   table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
   th, td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
@@ -135,10 +143,10 @@
       <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button></span>
     </div>
     <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses" style="flex:0 0 auto"></svg>
-    <div class="prop" id="apstatus" style="display:block; flex:0 0 auto; max-height:88px"></div>
+    <div class="prop" id="apstatus" style="display:block; flex:0 0 auto; max-height:132px"></div>
     <h2>Decisions <span class="hint">newest first · every 15 grid minutes</span></h2>
     <div class="log fill" id="decisions"></div>
-    <div class="row" style="flex:0 0 auto"><input id="apctx" placeholder="Standing warning for DeepSeek, e.g. drone strike warning tonight 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
+    <div class="row" style="flex:0 0 auto"><input id="apctx" placeholder="Operator note for DeepSeek, e.g. heat wave tomorrow, high evening load 17:00–21:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set note</button></div>
     <div class="err"></div>
   </section>
 
@@ -300,7 +308,7 @@ function drawLoop() {
   const part = under.filter(d => d.ack.seq === lastSent.seq && d.ack.status === "partial").length;
   const rev = under.filter(d => d.ack.status === "reverted").length;
   const live = ap.mode === "off" ? null : (ap.busy ? ap.stage : null);
-  const trig = !ap.last_trigger ? "quiet" : ap.last_trigger.startsWith("Operator") ? "operator warning" : ap.last_trigger.startsWith("Congestion") ? "congestion ahead" : "release check";
+  const trig = ap.target ? `congestion ${ap.target.hot.length} hot` : !ap.last_trigger ? "quiet" : ap.last_trigger.startsWith("Operator") ? "operator note" : ap.last_trigger.includes("Release it") ? "release check" : "quiet";
   const seg = n => n ? n.split(":")[1] : "";
   const stages = [   // id, title, headline, detail, footnote
     ["sense", "SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? seg(w.tf) : "", `forecast ${ap.horizon_min} min`],
@@ -333,11 +341,38 @@ function drawDecisions() {
   const hs = S.autopilot.history;
   document.getElementById("decisions").innerHTML = hs.map(d => {
     const c = css(VERDICT[d.verdict] || "--fg"), env = d.envelope ? (d.envelope.import_max_kw || d.envelope.export_max_kw) : null;
-    return `<div><span class="k" style="width:44px">${hhmm(d.sim_h)}</span><span class="pill" style="color:${c};border-color:${c}">${esc(d.verdict)}</span> ` +
-      (d.mode ? `<b>${esc(d.mode)}</b> → ${esc(d.segment || "")}${d.duration_min ? ` · ${esc(d.duration_min)} min` : ""}${env ? ` · envelope ${env.length} slots` : ""}${d.seq ? ` · seq ${d.seq}` : ""}` : "") +
-      (d.latency_ms ? ` <span style="color:var(--muted)">${(d.latency_ms / 1000).toFixed(1)} s</span>` : "") +
-      `<br><span style="color:var(--muted)">${esc(d.rationale || d.trigger || "")}${d.detail ? " · " + esc(d.detail) : ""}</span></div>`;
+    const nTf = d.envelope && d.envelope.by_tf ? Object.keys(d.envelope.by_tf).length : (env ? 1 : 0);
+    return `<div class="dcard"><div><div class="t">${hhmm(d.sim_h)}</div><span class="pill" style="color:${c};border-color:${c}">${esc(d.verdict)}</span></div>` +
+      `<div>${d.mode ? `<b style="color:var(--acc)">${esc(d.mode)}</b> → <b>${esc(d.segment || "")}</b>` : `<b>${esc(d.verdict === "none" ? "no signal" : d.verdict)}</b>`}` +
+      `${d.hot ? ` <span class="t">· ${d.hot.length} hot</span>` : ""}${d.duration_min ? ` <span class="t">· ${esc(d.duration_min)} min</span>` : ""}${d.seq ? ` <span class="t">· seq ${d.seq}</span>` : ""}` +
+      `${d.latency_ms ? ` <span class="t">· DeepSeek ${(d.latency_ms / 1000).toFixed(1)} s</span>` : ""}` +
+      `<div class="why">${esc(d.rationale || d.trigger || "")}${d.detail ? " · " + esc(d.detail) : ""}</div></div>` +
+      `<div>${spark(env)}${nTf > 1 ? `<div class="t" style="text-align:right">${nTf} transformer curves</div>` : ""}</div></div>`;
   }).join("") || `<div style="color:var(--muted)">no decisions yet · DeepSeek is asked when a transformer is forecast past ±${S.autopilot.trigger_pct} %</div>`;
+}
+const short = n => String(n || "").split(":").pop();
+function spark(curve, w = 120, h = 34) {
+  if (!curve || !curve.length) return "";
+  const mx = Math.max(...curve, 1), step = w / curve.length;
+  let d = "";
+  curve.forEach((v, i) => { const y = h - 3 - (v / mx) * (h - 8); d += `${i ? "L" : "M"}${(i * step).toFixed(1)},${y.toFixed(1)} L${((i + 1) * step).toFixed(1)},${y.toFixed(1)} `; });
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${css("--acc")}" stroke-width="2"/><text x="${w}" y="9" text-anchor="end" style="font-size:9px;fill:${css("--muted")}">${Math.min(...curve)}–${mx} kW</text></svg>`;
+}
+function drawTarget() {
+  const ap = S.autopilot, t = ap.target, p = ap.pending, r = ap.last_result;
+  let h;
+  if (t) h = `<div class="target"><div class="big">${esc(t.node)}</div>
+      <span style="color:var(--muted)">why</span><span>${t.hot.length} of ${t.under} transformers forecast past ${ap.trigger_pct} % · worst <b>${esc(short(t.worst))}</b> ${t.worst_pct > 0 ? "+" : ""}${t.worst_pct} % at ${hhmm(t.worst_at_h)} · ${t.excess_kw.toFixed(0)} kW over</span>
+      <span style="color:var(--muted)">covers</span><span class="chips">${t.hot.map(x => `<span>${esc(short(x))}</span>`).join("")}</span>
+      <span style="color:var(--muted)">DeepSeek may pick</span><span class="chips">${t.choices.map(x => `<span>${esc(x)}</span>`).join("")}</span>
+      ${t.others ? `<span style="color:var(--muted)">next</span><span>${t.others} more hot transformers queued for the next cycles</span>` : ""}</div>`;
+  else h = Object.keys(ap.hotspots || {}).length && !Object.values(ap.hotspots).some(x => Math.abs(x.pct) >= ap.trigger_pct && !x.covered)
+      ? `<span style="color:var(--ok)">Every transformer is inside ${ap.trigger_pct} % or already under a signal for the next ${ap.horizon_min} grid minutes.</span>`
+      : `<span style="color:var(--muted)">${ap.mode === "off" ? "Autopilot off." : "Watching the forecast."}</span>`;
+  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> · ${esc(p.duration_min)} min · ${esc(JSON.stringify(p.fields || {}))}<br>${esc(p.rationale)}` +
+    `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
+  else if (r && r.error) h += `<br><span style="color:var(--crit)">DeepSeek error: ${esc(r.error)}</span>`;
+  document.getElementById("apstatus").innerHTML = h;
 }
 function drawAutopilot() {
   const ap = S.autopilot; if (!ap) return;
@@ -345,14 +380,7 @@ function drawAutopilot() {
   document.querySelectorAll("#scenarios button").forEach(b => b.classList.toggle("on", S.scenario && b.dataset.sc === S.scenario.name));
   const ctx = document.getElementById("apctx"); if (document.activeElement !== ctx) ctx.value = ap.context || "";
   document.getElementById("aphint").textContent = `every ${ap.interval_s} s · looks ${ap.horizon_min} grid min ahead · ${ap.cooldown_min} min cooldown · max ${ap.max_per_day}/grid day`;
-  const p = ap.pending, r = ap.last_result;
-  const trig = ap.last_trigger || "";
-  const short = trig.length > 260 ? trig.slice(0, 260).replace(/[^;]*$/, "") + ` … <a href="#" onclick="this.parentElement.querySelector('.full').style.display='block';this.style.display='none';return false" style="color:var(--s1)">${(trig.match(/tf:/g) || []).length} transformers, show all</a><span class="full" style="display:none">${esc(trig)}</span>` : esc(trig);
-  let h = trig ? `<span style="color:var(--muted)">last trigger:</span> ${short}` : `<span style="color:var(--muted)">Watching the forecast. Nothing to do yet.</span>`;
-  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> · ${esc(p.duration_min)} min<br>${esc(p.rationale)}` +
-    `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
-  else if (r && r.error) h += `<br><span style="color:var(--crit)">DeepSeek error: ${esc(r.error)}</span>`;
-  document.getElementById("apstatus").innerHTML = h;
+  drawTarget();
   drawLoop(); drawDecisions();
 }
 
@@ -554,7 +582,8 @@ function drawCity() {
     const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(sub));
     return `<div class="sub"><span class="subname ${selNode === sub ? "on" : ""}" onclick="selectNode('${sub}')" title="${sub}">${sub.split(":")[1]}</span><div class="cells">` +
       tfs.map(tf => { const a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct), bg = pct == null ? "#3a414a" : c;
-        return `<div class="cell ${tf === selNode ? "sel" : ""} ${a.active ? "sig" : ""}" style="background:${bg}" onclick="selectNode('${tf}')" title="${tf} · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW" : "–"} of ${S.tree[tf].rating_kw} kVA${a.active ? " · " + a.active : ""}"><span>${pct == null ? "–" : pct + "%"}</span><small>${tf.split(":")[1].replace(/-\d+$/, "")}</small></div>`; }).join("") + `</div></div>`;
+        const fc = (S.autopilot.hotspots || {})[tf], tgt = S.autopilot.target && S.autopilot.target.hot.includes(tf);
+        return `<div class="cell ${tf === selNode ? "sel" : ""} ${a.active ? "sig" : ""} ${tgt ? "tgt" : ""}" style="background:${bg}" onclick="selectNode('${tf}')" title="${tf} · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW" : "–"} of ${S.tree[tf].rating_kw} kVA${fc ? ` · forecast peak ${fc.pct} % at ${hhmm(fc.at_h)}` : ""}${a.active ? " · " + a.active : ""}${tgt ? " · DeepSeek's current target" : ""}"><span>${pct == null ? "–" : pct + "%"}</span><small>${tf.split(":")[1].replace(/-\d+$/, "")}</small></div>`; }).join("") + `</div></div>`;
   }).join("");
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length, warn = tfs.filter(n => { const p = Math.abs(S.aggregates[n].load_pct || 0); return p >= 85 && p < 100; }).length;

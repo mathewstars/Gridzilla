@@ -105,7 +105,8 @@ function currentLimits(h) {
   const i = clamp(Math.floor((Date.now() - Date.parse(h.signal.valid_from)) / 1000 / env.slot_s), 0, Infinity);
   const pick = a => (Array.isArray(a) && a.length ? a[Math.min(i, a.length - 1)] : null);
   const out = { ...e, slot: i };
-  const imp = pick(env.import_max_kw), exp = pick(env.export_max_kw);
+  const mine = env.by_tf && env.by_tf[h.cfg.path[h.cfg.path.length - 1]];   // per-transformer curve beats the segment-wide one
+  const imp = pick(mine && env.import_max_kw ? mine : env.import_max_kw), exp = pick(mine && env.export_max_kw ? mine : env.export_max_kw);
   if (imp != null) out.import_max_kw = imp;
   if (exp != null) out.export_max_kw = Math.min(exp, h.cfg.feedin_max_kw);
   return out;
