@@ -189,3 +189,11 @@
 .s2.s2-still .s2-punch {
   transition: none;
 }
+
+/* Clash Display is wide: the one-line headline and the closing line are set a step smaller so both keep the margins. */
+.s2 .s2-head.p-head {
+  font-size: 62px;
+}
+.s2 .s2-punch.p-head-xl {
+  font-size: 82px;
+}

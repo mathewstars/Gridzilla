@@ -277,7 +277,7 @@ export default function Slide6({ freeze }: SlideProps) {
             />
           ))}
         </div>
-        <p className="p-small p-tertiary s6-foot">The whole path is real. The planning runs on the fleet.</p>
+        <p className="p-small p-tertiary s6-foot">Real end to end. The planning runs on the fleet.</p>
       </section>
 
       <section className="p-tile s6-tile">

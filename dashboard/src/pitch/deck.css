@@ -13,7 +13,7 @@ body {
   background: var(--p-bg);
   overflow: hidden;
   color: var(--p-ink);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Inter", system-ui, sans-serif;
+  font-family: var(--p-font-text);
   -webkit-font-smoothing: antialiased;
 }
 /* The pointer hides after 2 s without movement. */

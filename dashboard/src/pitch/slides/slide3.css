@@ -326,3 +326,8 @@
 .s3.s3-still .s3-swap > span {
   transition: none;
 }
+
+/* Clash Display is wide: the signed message is set a step smaller so it keeps its two lines inside the card. */
+.s3 .s3-msg.p-head {
+  font-size: 62px;
+}

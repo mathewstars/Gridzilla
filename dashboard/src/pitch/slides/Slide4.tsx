@@ -376,7 +376,12 @@ function Morph({ from, to, live, still, go, src }: { from: number; to: number; l
         data-val={withG ? to : from}
         aria-label={`${withG ? to : from} %`}
       >
-        <span ref={num}>{withG ? to : from}</span>
+        {/* Clash has proportional digits: two hidden copies hold the wider of the two numbers, so the % never moves. */}
+        <span className="s4-hold">
+          <span aria-hidden className="s4-ghost">{from}</span>
+          <span aria-hidden className="s4-ghost">{to}</span>
+          <span ref={num}>{withG ? to : from}</span>
+        </span>
         <span className="p-unit">%</span>
       </div>
       <p className="p-small p-secondary s4-num-label">{withG ? "with Gridzilla, tonight's plan" : "without Gridzilla"}</p>

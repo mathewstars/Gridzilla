@@ -14,8 +14,9 @@
   margin: 0;
   font-size: 220px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-family: var(--p-font-display);
   white-space: nowrap;
   color: var(--p-ink);
 }

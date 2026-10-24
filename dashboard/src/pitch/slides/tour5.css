@@ -28,7 +28,7 @@
   box-shadow:
     0 0 0 1px #2a2a2e,
     0 12px 32px rgb(0 0 0 / 0.3);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Inter", system-ui, sans-serif;
+  font-family: "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .t5-text {
