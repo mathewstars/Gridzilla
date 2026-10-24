@@ -127,6 +127,17 @@ async function cell(state, p, size) {
     const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
     if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }
     await page.screenshot({ path: shot });
+    // The 3D street must show something in every cell: a blank canvas compresses to almost nothing.
+    const cv = page.locator("canvas").first();
+    if (await cv.count()) {
+      const box = await cv.boundingBox();
+      if (box && box.width > 120 && box.height > 80) {
+        const png = await cv.screenshot().catch(() => null);
+        const bytesPerPx = png ? png.length / (box.width * box.height) : 0;
+        if (process.env.GZ_QA_DEBUG) console.error("canvas", size, png && png.length, bytesPerPx.toFixed(3));
+        if (!png || bytesPerPx < 0.04) f.blank3d = [`street canvas looks blank (${png ? png.length : 0} bytes for ${Math.round(box.width)}x${Math.round(box.height)})`];
+      }
+    }
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
     results.push({ state, page: p, size, count, f, shot });
   } catch (e) {
