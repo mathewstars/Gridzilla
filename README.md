@@ -166,6 +166,10 @@ docs/plan-saturday.md    who does what on the build day, demo script, cut order
 docs/Challenge-*.docx    the original challenge text
 ```
 
-## The advisor
+## DeepSeek autopilot and envelope curves
 
-A local DeepSeek (any OpenAI-compatible endpoint) can **propose** a signal from a situation in plain words and the live grid state. It never sends anything. The deterministic policy guard checks the proposal and a human operator approves it; only then does the platform sign. AI proposes, guard disposes.
+The platform runs the grid on its own. Every 10 s it forecasts each street transformer 90 grid minutes ahead. When one is forecast past ±85 % of its rating, or the operator sets a standing warning, it asks DeepSeek (any OpenAI-compatible endpoint, via the LLM gateway) for one signal or none. For `ABSORB` and `SUPPORT` the platform attaches a **dynamic operating envelope**: a per-house import or export ceiling for every 15-minute slot, computed from the forecast headroom of each transformer (see `protocol/PROTOCOL.md`, *Envelope curves*). The deterministic policy guard checks the result. If it passes, it is signed and sent with no human in the loop, within the autopilot's own brakes: a 30-minute cooldown per segment and at most 12 signals per grid day. It never releases a signal an operator sent by hand.
+
+Modes on the dashboard: **Autonomous** (default when `GZ_LLM_URL` is set, or `GZ_AUTOPILOT=auto`), **Operator approves** (one click per decision), **Off**. The dashboard shows the control loop live (sense → trigger → DeepSeek → guard → sign → houses), every decision with DeepSeek's rationale, and the envelope curve against the measured power of the program houses. Two demo scenarios scale the houses outside the program: *cold evening* (load ×1.2) and *sunny noon* (PV ×5).
+
+The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`); all autopilot and envelope times are grid minutes.

@@ -63,6 +63,7 @@ See `signal.schema.json`. Fields:
 | `target_soc` | number or null | Percent to reach by `valid_to` (`PREPARE`). |
 | `max_soc_by` | number or null | Percent to be at or **below** by `valid_from` (`ABSORB`): make room for the midday surplus by running the morning load from the battery. |
 | `ramp_s` | [min, max] | Device picks a random ramp in this range. |
+| `envelope` | object or absent | Per-slot ceilings for `ABSORB` / `SUPPORT`, see *Envelope curves* below. |
 | `cohort` | [k, n] or null | Address only the devices whose `sha256(device_id) mod n == k`. Lets the platform stagger a segment: cohort [0,2] exports in the morning and charges at noon, cohort [1,2] the reverse, so the transformer never sees everyone at once and nobody is curtailed. No registry change needed; the device checks itself. |
 | `note` | string | Operator text, shown to the owner. |
 
@@ -76,6 +77,22 @@ Which fields each mode may carry (the policy guard refuses anything else):
 | `STRETCH` | `discharge_max_kw` | Street is dark; ration to last until `valid_to` (= expected restoration). **Implies `export_max_kw = 0`**: the agent locks export so nothing can backfeed into a line under repair. Anti-islanding already prevents it; the signal says it anyway. |
 | `RECOVER` | `charge_max_kw` | After restoration: staggered recharge. |
 | `RELEASE` | none | End of event. |
+
+## Envelope curves
+
+An `ABSORB` or `SUPPORT` may carry an `envelope`: a **dynamic operating envelope**, one ceiling per 15-minute slot instead of one flat number for the whole window.
+
+```json
+"envelope": {"slot_s": 900, "import_max_kw": [3.1, 2.6, 2.2, 2.0, 2.4, 3.0], "export_max_kw": null}
+```
+
+- `SUPPORT` carries `import_max_kw`, `ABSORB` carries `export_max_kw`. Values are per house, at the connection point.
+- Slot `i` covers `valid_from + i * slot_s`. After the last slot the last value holds until `valid_to`.
+- The platform computes the curve from forecast transformer headroom: 90 % of the rating minus the forecast load of the houses not in the program, shared over the program houses. For a feeder or substation the tightest transformer wins.
+- The flat `import_max_kw` / `export_max_kw` in the same signal is set to the tightest slot, so a device that cannot follow a curve stays safe. The Cerbo flow uses the flat value until it learns the curve.
+- The merge rule applies per slot: an export slot is never above the owner's `feedin_max_kw`.
+- The guard refuses an envelope on any other mode, more than 96 slots, or an import slot below the policy floor.
+- In the simulation the grid clock runs 60 times faster (`GZ_SIM_X`), so a 15-minute slot is 15 real seconds and `slot_s` is 15. On a real grid `slot_s` is 900, which matches the smart meter's settlement interval.
 
 ## Heartbeat
 

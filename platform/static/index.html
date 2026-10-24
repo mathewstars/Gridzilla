@@ -104,52 +104,43 @@
   </section>
 
   <section>
-    <h2>Compose signal <span class="hint" id="target"></span></h2>
-    <select id="segment"></select>
-    <div class="modes" id="modes"></div>
-    <div class="row">
-      <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
-      <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
-      <div id="f-export_max_kw"><label>export_max_kw · cap export</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
-      <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
-      <div id="f-discharge_max_kw"><label>discharge_max_kw · ration</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
-      <div id="f-target_soc"><label>target_soc % · fill by deadline</label><input id="target_soc" type="number" step="5" value="100"></div>
-      <div id="f-max_soc_by"><label>max_soc_by % · make room</label><input id="max_soc_by" type="number" step="5" value="40"></div>
-    </div>
-    <div class="row">
-      <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
-      <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
-    </div>
-    <div class="row">
-      <div><label>Cohort k (blank = everyone)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
-      <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
-    </div>
-    <label>Note to owners</label>
-    <input id="note" placeholder="Transformer Atzgersdorf-1 near limit 17:00–19:00">
-    <button class="primary" onclick="send()">Sign and publish</button>
-    <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
-    <button onclick="demo('heartbeat/resume')">Resume</button>
-    <button onclick="replay()">Replay last</button>
-    <div class="err" id="err"></div>
-    <h2 style="margin-top:14px">Advisor <span class="hint">proposes · guard and operator decide</span></h2>
-    <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
-    <button onclick="advise()">Propose a signal</button>
-    <div class="prop" id="prop"></div>
-    <h2 style="margin-top:14px">Autopilot <span class="hint" id="aphint">watches the transformers · asks DeepSeek when one runs hot</span></h2>
+    <h2>DeepSeek control <span class="hint" id="aphint"></span></h2>
     <div class="modes" id="apmodes">
+      <button data-ap="auto" onclick="setAp({mode:'auto'})">Autonomous</button>
+      <button data-ap="propose" onclick="setAp({mode:'propose'})">Operator approves</button>
       <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
-      <button data-ap="propose" onclick="setAp({mode:'propose'})">Propose · operator approves</button>
-      <button data-ap="auto" onclick="setAp({mode:'auto'})">Auto · guard decides</button>
     </div>
-    <label>Standing warning (asked once when it changes, then added to every trigger)</label>
-    <div class="row"><input id="apctx" placeholder="Drone strike warning tonight, expect outages 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
+    <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses"></svg>
     <div class="prop" id="apstatus" style="display:block"></div>
+    <h2 style="margin-top:12px">Decisions <span class="hint">newest first</span></h2>
+    <div class="log" id="decisions" style="max-height:210px"></div>
+    <h2 style="margin-top:12px">Scenario <span class="hint">scales the houses not in the program</span></h2>
+    <div class="modes" id="scenarios">
+      <button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button>
+      <button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening · load ×1.2</button>
+      <button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon · PV ×5</button>
+    </div>
+    <label>Standing warning for DeepSeek</label>
+    <div class="row"><input id="apctx" placeholder="Drone strike warning tonight, expect outages 22:00–06:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set warning</button></div>
+    <label>Fail-safe demo</label>
+    <div class="modes">
+      <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
+      <button onclick="demo('heartbeat/resume')">Resume</button>
+      <button onclick="replay()">Replay last signal</button>
+    </div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section>
+    <h2>Envelope curve <span class="hint" id="envhint">per house, per 15-min slot</span></h2>
+    <div class="chartbox tall"><canvas id="envChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--acc)"></i>envelope ceiling per house</span><span><i style="background:var(--s1)"></i>measured, average program house</span><span style="margin-left:auto">kW · + import · − export</span></div>
   </section>
 
   <section>
     <h2>Transformer load <span class="tabs" id="nodetabs"></span></h2>
     <div class="chartbox tall"><canvas id="loadChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating</span></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s1);opacity:.5"></i>forecast (dashed)</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating · reverse rating</span></div>
   </section>
 
   <section>
@@ -181,82 +172,128 @@
 </main>
 
 <script>
-const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
-const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw","max_soc_by"],
-  SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
 const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc","max_soc_by"];
 const SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181"];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-let mode = "SUPPORT", S = null, H = null, selNode = "tf:atzgersdorf-1", lastSeq = null, devOrder = [];
-
-// ---------- compose
-function setMode(m) {
-  mode = m;
-  document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.textContent === m));
-  ALL.forEach(f => document.getElementById("f-" + f).style.display = MODE_FIELDS[m].includes(f) ? "" : "none");
-  document.getElementById("duration_min").value = m === "STRETCH" ? 720 : (m === "PREPARE" ? 240 : 120);
-}
-document.getElementById("modes").innerHTML = MODES.map(m => `<button onclick="setMode('${m}')">${m}</button>`).join("");
-setMode(mode);
+let S = null, H = null, selNode = "tf:atzgersdorf-1", devOrder = [];
 
 async function api(path, body) {
   const r = await fetch("/api/" + path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {method:"POST"});
   const j = await r.json(); if (!r.ok) throw new Error(j.detail || r.statusText); return j;
 }
-async function send() {
-  const body = {segment: document.getElementById("segment").value, mode,
-    duration_min: +document.getElementById("duration_min").value, start_in_min: +document.getElementById("start_in_min").value,
-    note: document.getElementById("note").value};
-  const ck = document.getElementById("cohort_k").value, cn = document.getElementById("cohort_n").value;
-  if (ck !== "" && cn !== "") body.cohort = [+ck, +cn];
-  MODE_FIELDS[mode].forEach(f => body[f] = +document.getElementById(f).value);
-  document.getElementById("err").textContent = "";
-  try { const d = await api("signal", body); lastSeq = d.seq; } catch (e) { document.getElementById("err").textContent = "Guard refused: " + e.message; }
-  refresh();
+const err = m => document.getElementById("err").textContent = m || "";
+async function demo(p) { err(); try { await api(p); } catch (e) { err(e.message); } refresh(); }
+async function replay() {
+  const seqs = Object.values(S.active || {}).map(s => s.seq);
+  if (!seqs.length) return err("no active signal to replay");
+  err(); try { await api("replay/" + Math.max(...seqs)); } catch (e) { err(e.message); }
 }
-async function demo(p) { try { await api(p); } catch (e) { document.getElementById("err").textContent = e.message; } refresh(); }
-async function replay() { if (lastSeq == null) return; try { await api("replay/" + lastSeq); } catch (e) { document.getElementById("err").textContent = e.message; } }
-async function advise() {
-  const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
-  try {
-    const p = await api("advise", {situation: document.getElementById("situation").value});
-    if (p.mode === "NONE") { box.innerHTML = `<b>No signal needed</b><br>${esc(p.rationale || "")}`; return; }
-    box.innerHTML = `<b>${p.mode} → ${p.segment}</b> ${JSON.stringify(p.fields)} · ${p.duration_min} min<br>${p.rationale || ""}<br>` +
-      (p.guard ? `<span style="color:var(--crit)">guard: ${p.guard}</span>` : `<span style="color:var(--ok)">guard ok</span>`) +
-      `<br><button onclick='fill(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Load into form</button>`;
-  } catch (e) { box.textContent = "advisor error: " + e.message; }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
+async function setAp(body) { err(); try { await api("autopilot", body); } catch (e) { err("autopilot: " + e.message); } refresh(); }
+async function decideAp(d) { err(); try { await api("autopilot/" + d); } catch (e) { err(e.message); } refresh(); }
+function selectNode(n) { selNode = n; drawAll(); }
+function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
+
+// ---------- DeepSeek control loop
+const VERDICT = {sent: "--ok", held: "--warn", refused: "--crit", error: "--crit", none: "--muted", pending: "--s1", rejected: "--muted", expired: "--muted"};
+function worstForecast() {
+  const ap = S.autopilot, steps = Math.floor(ap.horizon_min / 15) + 1;
+  let best = null;
+  Object.keys(S.tree).filter(n => n.startsWith("tf:")).forEach(tf => (S.forecast[tf] || []).slice(0, steps).forEach(p => {
+    const lim = p.total_kw >= 0 ? S.tree[tf].rating_kw : (S.tree[tf].reverse_kw || S.tree[tf].rating_kw), pct = Math.round(100 * p.total_kw / lim);
+    if (!best || Math.abs(pct) > Math.abs(best.pct)) best = {tf, pct, h: p.h};
+  }));
+  return best;
 }
-const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
-async function setAp(body) {
-  try { await api("autopilot", body); } catch (e) { document.getElementById("apstatus").textContent = "autopilot: " + e.message; }
-  refresh();
+function drawLoop() {
+  const ap = S.autopilot, last = ap.history[0], w = worstForecast();
+  const lastSent = ap.history.find(d => d.verdict === "sent");
+  const under = lastSent ? Object.values(S.devices).filter(d => d.path.includes(lastSent.segment) && d.ack) : [];
+  const ok = under.filter(d => d.ack.seq === lastSent.seq && d.ack.status === "applied").length;
+  const part = under.filter(d => d.ack.seq === lastSent.seq && d.ack.status === "partial").length;
+  const rev = under.filter(d => d.ack.status === "reverted").length;
+  const live = ap.mode === "off" ? null : (ap.busy ? ap.stage : null);
+  const trig = !ap.last_trigger ? "quiet" : ap.last_trigger.startsWith("Operator") ? "operator warning" : ap.last_trigger.startsWith("Congestion") ? "congestion ahead" : "release check";
+  const seg = n => n ? n.split(":")[1] : "";
+  const stages = [   // id, title, headline, detail, footnote
+    ["sense", "SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? seg(w.tf) : "", `forecast ${ap.horizon_min} min`],
+    ["trigger", "TRIGGER", trig.split(" ")[0], trig.split(" ").slice(1).join(" "), `at ±${ap.trigger_pct} %`],
+    ["deepseek", "DEEPSEEK", last && last.mode ? last.mode : "–", last ? seg(last.segment) : "", last && last.latency_ms ? `${(last.latency_ms / 1000).toFixed(1)} s` : "V4 Flash"],
+    ["guard", "GUARD", last ? last.verdict : "–", last && last.detail ? last.detail.split(":")[0] : "", "policy limits"],
+    ["send", "SIGN + PUBLISH", lastSent ? `seq ${lastSent.seq}` : "–", lastSent && lastSent.envelope ? `${(lastSent.envelope.import_max_kw || lastSent.envelope.export_max_kw).length}-slot curve` : "", "Ed25519 · MQTT"],
+    ["houses", "HOUSES", !lastSent ? "–" : ok + part ? `${ok} ok` : rev ? "ended" : "waiting", !lastSent ? "" : ok + part ? `${part} partial` : rev ? `${rev} reverted` : "", "follow envelope"]];
+  const bw = 112, gap = 17.6, y = 34, bh = 92;
+  let g = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${css("--muted")}"/></marker></defs>`;
+  stages.forEach(([id, title, val, detail, sub], i) => {
+    const x = i * (bw + gap), on = live === id || (live === "sense" && id === "trigger");
+    const vc = id === "guard" && last ? css(VERDICT[last.verdict] || "--fg") : css("--fg");
+    g += `<rect class="box" x="${x}" y="${y}" width="${bw}" height="${bh}" rx="6" style="${on ? `stroke:${css("--acc")};stroke-width:2.5;fill:${css("--acc-soft")}` : id === "deepseek" ? `stroke:${css("--s1")}` : ""}"/>
+      <text x="${x + bw / 2}" y="${y + 18}" text-anchor="middle" style="font-size:10px;letter-spacing:.08em;fill:${id === "deepseek" ? css("--s1") : css("--muted")}">${title}</text>
+      <text x="${x + bw / 2}" y="${y + 42}" text-anchor="middle" style="font-size:15px;font-weight:600;fill:${vc}">${esc(val)}</text>
+      <text x="${x + bw / 2}" y="${y + 60}" text-anchor="middle" style="font-size:11px">${esc(detail.slice(0, 16))}</text>
+      <text x="${x + bw / 2}" y="${y + 80}" text-anchor="middle" class="muted" style="font-size:10px">${esc(sub)}</text>`;
+    if (i < stages.length - 1) g += `<line x1="${x + bw + 2}" y1="${y + bh / 2}" x2="${x + bw + gap - 2}" y2="${y + bh / 2}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#arr)"/>`;
+  });
+  const xe = 5 * (bw + gap) + bw / 2, ye = y + bh;
+  const banner = ap.mode === "auto" ? "● AUTONOMOUS · no human in the loop, the guard is the brake" : ap.mode === "off" ? "○ OFF" : "● OPERATOR APPROVES every DeepSeek decision";
+  const bc = ap.mode === "auto" ? css("--ok") : ap.mode === "off" ? css("--muted") : css("--warn");
+  g += `<path d="M${xe},${ye} L${xe},${ye + 34} L${bw / 2},${ye + 34} L${bw / 2},${ye + 4}" fill="none" stroke="${css("--muted")}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    <text x="380" y="${ye + 28}" text-anchor="middle" class="muted" style="font-size:10px">smart meter · signed acks · telemetry every 10 s</text>
+    <text x="0" y="16" style="font-size:11px;fill:${bc}">${banner}${ap.busy ? "  ·  thinking…" : ""}</text>`;
+  document.getElementById("loop").innerHTML = g;
 }
-async function decideAp(d) { try { await api("autopilot/" + d); } catch (e) { document.getElementById("apstatus").textContent = e.message; } refresh(); }
+function drawDecisions() {
+  const hs = S.autopilot.history;
+  document.getElementById("decisions").innerHTML = hs.map(d => {
+    const c = css(VERDICT[d.verdict] || "--fg"), env = d.envelope ? (d.envelope.import_max_kw || d.envelope.export_max_kw) : null;
+    return `<div><span class="k" style="width:44px">${hhmm(d.sim_h)}</span><span class="pill" style="color:${c};border-color:${c}">${esc(d.verdict)}</span> ` +
+      (d.mode ? `<b>${esc(d.mode)}</b> → ${esc(d.segment || "")}${d.duration_min ? ` · ${esc(d.duration_min)} min` : ""}${env ? ` · envelope ${env.length} slots` : ""}${d.seq ? ` · seq ${d.seq}` : ""}` : "") +
+      (d.latency_ms ? ` <span style="color:var(--muted)">${(d.latency_ms / 1000).toFixed(1)} s</span>` : "") +
+      `<br><span style="color:var(--muted)">${esc(d.rationale || d.trigger || "")}${d.detail ? " · " + esc(d.detail) : ""}</span></div>`;
+  }).join("") || `<div style="color:var(--muted)">no decisions yet · DeepSeek is asked when a transformer is forecast past ±${S.autopilot.trigger_pct} %</div>`;
+}
 function drawAutopilot() {
   const ap = S.autopilot; if (!ap) return;
   document.querySelectorAll("#apmodes button").forEach(b => b.classList.toggle("on", b.dataset.ap === ap.mode));
+  document.querySelectorAll("#scenarios button").forEach(b => b.classList.toggle("on", S.scenario && b.dataset.sc === S.scenario.name));
   const ctx = document.getElementById("apctx"); if (document.activeElement !== ctx) ctx.value = ap.context || "";
-  document.getElementById("aphint").textContent = `checks every ${ap.interval_s} s · triggers at ±${ap.trigger_pct} % · releases below ${ap.release_pct} % · ${ap.max_per_hour}/h, ${ap.cooldown_min} min cooldown`;
-  const r = ap.last_result, p = ap.pending;
-  let h = ap.mode === "off" ? "Off. Nothing is asked or sent." : (ap.busy ? "Asking DeepSeek…" : `Watching. Last check ${ap.last_run ? ap.last_run.slice(11, 19) : "–"} UTC.`);
-  if (ap.last_trigger) h += `<br><span class="muted">trigger: ${esc(ap.last_trigger)}</span>`;
-  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> ${esc(JSON.stringify(p.fields || {}))} · ${esc(p.duration_min)} min<br>${esc(p.rationale || "")}` +
+  document.getElementById("aphint").textContent = `every ${ap.interval_s} s · looks ${ap.horizon_min} grid min ahead · ${ap.cooldown_min} min cooldown · max ${ap.max_per_day}/grid day`;
+  const p = ap.pending, r = ap.last_result;
+  let h = ap.last_trigger ? `<span style="color:var(--muted)">last trigger:</span> ${esc(ap.last_trigger)}` : `<span style="color:var(--muted)">Watching the forecast. Nothing to do yet.</span>`;
+  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> · ${esc(p.duration_min)} min<br>${esc(p.rationale)}` +
     `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
-  else if (r && r.error) h += `<br><span style="color:var(--crit)">advisor error: ${esc(r.error)}</span>`;
-  else if (r && r.mode === "NONE") h += `<br>DeepSeek: no signal needed. ${esc(r.rationale || "")}`;
-  else if (r) h += `<br>Last: <b>${esc(r.mode)} → ${esc(r.segment)}</b> ${esc(r.rationale || "")}<br>` +
-    (r.guard ? `<span style="color:var(--crit)">not sent: ${esc(r.guard)}</span>` : `<span style="color:var(--ok)">guard ok</span>`);
+  else if (r && r.error) h += `<br><span style="color:var(--crit)">DeepSeek error: ${esc(r.error)}</span>`;
   document.getElementById("apstatus").innerHTML = h;
+  drawLoop(); drawDecisions();
 }
-function fill(p) {
-  selectNode(p.segment); setMode(p.mode);
-  Object.entries(p.fields || {}).forEach(([k, v]) => { const el = document.getElementById(k); if (el && v != null) el.value = v; });
-  document.getElementById("duration_min").value = p.duration_min || 120;
-  document.getElementById("start_in_min").value = p.start_in_min || 0;
-  document.getElementById("note").value = p.note || "";
+
+// ---------- envelope curve
+function activeEnvelope() {
+  const path = pathOf(selNode);
+  for (const n of [...path].reverse()) { const s = S.active[n]; if (s && s.envelope) return {sig: s, node: n, live: true}; }
+  const d = S.autopilot.history.find(d => d.envelope && path.includes(d.segment));
+  return d ? {sig: {mode: d.mode, seq: d.seq, envelope: d.envelope, valid_from: d.at}, node: d.segment, live: false} : null;
 }
-function selectNode(n) { selNode = n; document.getElementById("segment").value = n; document.getElementById("target").textContent = "→ " + n; drawAll(); }
-document.getElementById("segment").addEventListener("change", e => selectNode(e.target.value));
+function drawEnvelope() {
+  const a = activeEnvelope(), hint = document.getElementById("envhint");
+  if (!a) {
+    envChart.data.labels = []; envChart.data.datasets.forEach(ds => ds.data = []); envChart.update();
+    hint.textContent = "no envelope yet · DeepSeek's ABSORB/SUPPORT signals carry one"; return;
+  }
+  const e = a.sig.envelope, imp = e.import_max_kw, curve = imp || e.export_max_kw, sign = imp ? 1 : -1;
+  const t0 = Date.parse(a.sig.valid_from), slotMs = e.slot_s * 1000;
+  envChart.data.labels = curve.map((_, k) => hhmm((e.start_sim_h ?? 0) + k * e.slot_sim_min / 60));
+  envChart.data.datasets[0].label = imp ? "import ceiling" : "export ceiling";
+  envChart.data.datasets[0].data = curve.map(v => sign * v);
+  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode) && S.devices[d].telemetry);
+  envChart.data.datasets[1].data = curve.map((_, k) => {
+    const lo = t0 + k * slotMs, hi = lo + slotMs, vals = [];
+    devs.forEach(d => (H.devices[d] || []).forEach(p => { const t = Date.parse(p.ts); if (t >= lo && t < hi && p.grid_kw != null) vals.push(p.grid_kw); }));
+    return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : null;
+  });
+  envChart.update();
+  hint.textContent = `${a.sig.mode} seq ${a.sig.seq ?? "–"} on ${a.node} · ${curve.length} × ${e.slot_sim_min} min · ${a.live ? "active" : "last, ended"}`;
+}
 
 // ---------- charts
 Chart.defaults.color = css("--muted"); Chart.defaults.borderColor = css("--line"); Chart.defaults.font.family = "IBM Plex Sans, system-ui, sans-serif"; Chart.defaults.font.size = 11;
@@ -270,7 +307,12 @@ const baseOpts = (ySuffix, extra = {}) => ({
 const loadChart = new Chart(document.getElementById("loadChart"), {type: "line", data: {labels: [], datasets: [
   {label: "total load", data: [], borderColor: SERIES[0], backgroundColor: SERIES[0] + "22", fill: "origin"},
   {label: "program houses", data: [], borderColor: SERIES[1]},
-  {label: "rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5}]}, options: baseOpts(" kW")});
+  {label: "rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5},
+  {label: "forecast", data: [], borderColor: SERIES[0], borderDash: [3, 3], borderWidth: 1.5},
+  {label: "reverse rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5}]}, options: baseOpts(" kW")});
+const envChart = new Chart(document.getElementById("envChart"), {type: "line", data: {labels: [], datasets: [
+  {label: "ceiling", data: [], borderColor: css("--acc"), backgroundColor: css("--acc") + "22", stepped: "before", fill: "origin", borderWidth: 2.5},
+  {label: "measured", data: [], borderColor: SERIES[0], stepped: "before", spanGaps: false}]}, options: baseOpts(" kW")});
 const socChart = new Chart(document.getElementById("socChart"), {type: "bar", data: {labels: [], datasets: [{label: "SoC", data: [], backgroundColor: [], borderRadius: 4, borderSkipped: "start", barThickness: 14}]},
   options: {...baseOpts("%"), indexAxis: "y", scales: {x: {min: 0, max: 100, grid: {color: "#2a3039"}, ticks: {callback: v => v + "%"}}, y: {grid: {display: false}, ticks: {font: {family: css("--mono")}}}},
     plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => ` SoC ${c.parsed.x.toFixed(0)}%`}}}}});
@@ -280,13 +322,17 @@ function hhmm(h) { const m = Math.round(h * 60); return `${String(Math.floor(m /
 
 function drawCharts() {
   if (!H || !S) return;
-  const nh = H.nodes[selNode] || [], rating = S.tree[selNode].rating_kw;
-  loadChart.data.labels = nh.map(p => hhmm(p.h));
-  loadChart.data.datasets[0].data = nh.map(p => p.total_kw);
-  loadChart.data.datasets[1].data = nh.map(p => p.program_kw);
-  loadChart.data.datasets[2].data = nh.map(() => rating);
+  const nh = H.nodes[selNode] || [], rating = S.tree[selNode].rating_kw, rev = S.tree[selNode].reverse_kw;
+  const fc = (S.forecast[selNode] || []).slice(1), pad = a => a.concat(fc.map(() => null));
+  loadChart.data.labels = nh.map(p => hhmm(p.h)).concat(fc.map(p => hhmm(p.h)));
+  loadChart.data.datasets[0].data = pad(nh.map(p => p.total_kw));
+  loadChart.data.datasets[1].data = pad(nh.map(p => p.program_kw));
+  loadChart.data.datasets[2].data = loadChart.data.labels.map(() => rating);
+  loadChart.data.datasets[3].data = nh.map((p, i) => i === nh.length - 1 ? p.total_kw : null).concat(fc.map(p => p.total_kw));
+  loadChart.data.datasets[4].data = rev ? loadChart.data.labels.map(() => -rev) : [];
   loadChart.options.scales.y.suggestedMax = rating ? rating * 1.15 : undefined;
   loadChart.update();
+  drawEnvelope();
 
   const devs = devOrder.filter(d => S.devices[d].path.includes(selNode)).slice(0, 12);
   socChart.data.labels = devs.map(d => S.devices[d].telemetry ? d : d + " (offline)");
@@ -413,9 +459,9 @@ async function refresh() {
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
-  document.getElementById("llmpill").textContent = S.llm ? "advisor: DeepSeek local" : "advisor off";
-  const sel = document.getElementById("segment");
-  if (!sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; document.getElementById("target").textContent = "→ " + selNode; }
+  const lp = document.getElementById("llmpill"), ap = S.autopilot || {};
+  lp.textContent = !S.llm ? "DeepSeek off" : ap.mode === "auto" ? "DeepSeek · autonomous" : ap.mode === "propose" ? "DeepSeek · operator approves" : "DeepSeek · paused";
+  lp.className = "pill " + (S.llm && ap.mode === "auto" ? "ok" : "");
   drawAll();
 }
 refresh(); setInterval(refresh, 3000);

@@ -112,6 +112,19 @@
       "minimum": 0,
       "maximum": 100
     },
+    "envelope": {
+      "description": "Dynamic operating envelope: per-slot ceilings at the connection point that replace the flat import_max_kw (SUPPORT) or export_max_kw (ABSORB) while the signal runs. Slot i covers valid_from + i*slot_s; after the last slot the last value holds.",
+      "type": "object",
+      "required": ["slot_s"],
+      "additionalProperties": false,
+      "properties": {
+        "slot_s": { "type": "number", "exclusiveMinimum": 0 },
+        "slot_sim_min": { "type": "number" },
+        "start_sim_h": { "type": "number" },
+        "import_max_kw": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0 }, "maxItems": 96 },
+        "export_max_kw": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0 }, "maxItems": 96 }
+      }
+    },
     "cohort": {
       "type": [
         "array",

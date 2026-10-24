@@ -93,29 +93,44 @@ function profiles(h) {
   return { load, pv, evMax: plugged ? ev.kw : 0 };
 }
 
+// Envelope curve: per-slot ceilings that replace the flat import/export caps while the signal runs.
+// Slot i covers [valid_from + i*slot_s, +slot_s); after the last slot the last value holds. Export never above the owner's feed-in limit.
+function currentLimits(h) {
+  const e = h.effective;
+  if (!e) return {};
+  const env = h.signal && h.signal.envelope;
+  if (!env) return { ...e };
+  const i = clamp(Math.floor((Date.now() - Date.parse(h.signal.valid_from)) / 1000 / env.slot_s), 0, Infinity);
+  const pick = a => (Array.isArray(a) && a.length ? a[Math.min(i, a.length - 1)] : null);
+  const out = { ...e, slot: i };
+  const imp = pick(env.import_max_kw), exp = pick(env.export_max_kw);
+  if (imp != null) out.import_max_kw = imp;
+  if (exp != null) out.export_max_kw = Math.min(exp, h.cfg.feedin_max_kw);
+  return out;
+}
+
 function step(h) {
   const { cfg } = h;
   const o = cfg.owner;
-  const e = h.effective || {};
+  const e = currentLimits(h);                    // effective limits with the current envelope slot applied
   const { load: houseLoad, pv, evMax } = profiles(h);
   const dtH = SPEED / 60;
   // EV charger: the most elastic load. Owner mode charges at full power when plugged in.
   // Under an import cap it is throttled before the battery is touched; under an export cap it soaks the surplus.
   let ev = evMax;
-  if (h.effective && h.effective.import_max_kw != null && ev > 0) {
+  if (e.import_max_kw != null && ev > 0) {
     const without = houseLoad - pv;                                        // import with no EV and no battery
-    ev = clamp(h.effective.import_max_kw - Math.max(0, without), 0, evMax);  // keep the cap with the charger alone if possible
+    ev = clamp(e.import_max_kw - Math.max(0, without), 0, evMax);  // keep the cap with the charger alone if possible
     if (ev < 1.4) ev = 0;                                                    // below 6 A single phase the car stops anyway
   }
-  if (h.effective && h.effective.export_max_kw != null && evMax > 0 && pv - houseLoad > h.effective.export_max_kw)
-    ev = Math.min(evMax, pv - houseLoad - h.effective.export_max_kw);        // ABSORB: put the surplus into the car
-  if (h.effective && h.effective.mode === "STRETCH") ev = 0;                  // street dark: no car charging
+  if (e.export_max_kw != null && evMax > 0 && pv - houseLoad > e.export_max_kw)
+    ev = Math.min(evMax, pv - houseLoad - e.export_max_kw);        // ABSORB: put the surplus into the car
+  if (e.mode === "STRETCH") ev = 0;                  // street dark: no car charging
   // Heat pump / boiler: a hot-water tank that cools and gets reheated; the agent moves its setpoint like the ViCare agent does.
   let hp = 0;
   const ht = cfg.heat;
   if (ht) {
     if (h.dhw_c == null) { h.dhw_c = ht.dhw_set_c; h.dhw_set_c = ht.dhw_set_c; h.heating = false; }
-    const e = h.effective || {};
     const target = e.mode === "ABSORB" || e.mode === "PREPARE" ? ht.boost_c : (e.mode === "SUPPORT" || e.mode === "STRETCH" ? ht.floor_c : ht.dhw_set_c);
     h.dhw_set_c = target;
     const hour = (h.simMinutes / 60) % 24;
@@ -177,7 +192,7 @@ function step(h) {
   const spending = e.export_min_kw != null || e.import_max_kw != null;
   if (spending && h.soc <= o.min_soc && !h.reportedMinSoc) {
     h.reportedMinSoc = true;
-    if (e.export_min_kw != null) e.export_min_kw = 0;
+    if (e.export_min_kw != null) { e.export_min_kw = 0; h.effective.export_min_kw = 0; }
     ack(h, h.signal ? h.signal.seq : null, "partial", "min_soc");
   }
   if (!spending) h.reportedMinSoc = false;
@@ -285,6 +300,7 @@ function onSignal(h, env, platformPub) {
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2),
-      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, heat: cfg.heat ? cfg.heat.type : null, mode: h.effective ? h.effective.mode : "owner", sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
+      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, heat: cfg.heat ? cfg.heat.type : null, mode: h.effective ? h.effective.mode : "owner",
+      imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
 })();

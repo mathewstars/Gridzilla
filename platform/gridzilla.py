@@ -114,7 +114,7 @@ state = {
     "acks": {},            # device -> last ack (parsed) + verified flag
     "telemetry": {},       # device -> {soc, grid_kw, ts}
     "pubkeys": {},         # device -> pem
-    "support_count": {},   # f"{node}:{date}" -> n
+    "support_count": {},   # f"{node}:{sim day}" -> n
 }
 LOG = collections.deque(maxlen=300)
 HIST_N = 400
@@ -127,15 +127,27 @@ def sim_hour():
     return max(hs) if hs else now().hour + now().minute / 60
 
 
+# Demo scenario: scales the houses NOT in the program. load_x > 1 = cold evening, pv_x > 1 = sunny noon.
+SCENARIO = {"name": "normal", "load_x": 1.0, "pv_x": 1.0}
+SCENARIOS = {"normal": (1.0, 1.0), "cold-evening": (1.2, 1.0), "sunny-noon": (1.0, 5.0)}
+SIM_X = float(os.environ.get("GZ_SIM_X", "60"))   # simulated seconds per real second; sim-agent default is 1 sim minute per second
+
+
+def sim_day():
+    """Day counter in simulated time, so per-day policy limits scale with the simulation speed."""
+    return int(time.time() * SIM_X // 86400)
+
+
 def other_profile_kw(hour):
     """kW per house not in the program: morning bump, midday PV export, evening peak."""
     import math
+    hour %= 24
     base = 0.5
     morning = 1.0 * math.exp(-((hour - 7) / 1.0) ** 2)
     evening = 2.9 * math.exp(-((hour - 19) / 2.2) ** 2)      # heat pumps, cooking, a few uncontrolled EV chargers
     sun = max(0.0, math.sin((hour - 6) / 12 * math.pi))
     pv = -2.2 * sun * 0.5          # half of them have PV, exporting at noon
-    return base + morning + evening + pv
+    return (base + morning + evening) * SCENARIO["load_x"] + pv * SCENARIO["pv_x"]
 
 
 def sample_history():
@@ -155,7 +167,7 @@ def sample_history():
             t = state["telemetry"].get(d)
             if t:
                 DEV_HIST[d].append({"ts": iso(now()), "h": round(h, 2), "soc": t.get("soc"), "grid_kw": t.get("grid_kw"),
-                                    "mode": t.get("mode")})
+                                    "mode": t.get("mode"), "imp_cap": t.get("imp_cap_kw"), "exp_cap": t.get("exp_cap_kw")})
 
 
 def sampler_loop():
@@ -252,7 +264,7 @@ HB_PAUSED = threading.Event()
 
 
 # ---------------------------------------------------------------- policy guard
-def guard(segment, mode, fields, duration_min):
+def guard(segment, mode, fields, duration_min, envelope=None):
     if segment not in TREE:
         return f"unknown segment {segment}"
     if mode not in MODE_FIELDS:
@@ -262,10 +274,22 @@ def guard(segment, mode, fields, duration_min):
     if extra:
         return f"{mode} may not carry {sorted(extra)}"
     limit = POLICY["max_stretch_window_min"] if mode == "STRETCH" else POLICY["max_window_min"]
-    if not (1 <= duration_min <= limit):
-        return f"window must be 1..{limit} min for {mode}"
+    if not (0 < duration_min <= limit):
+        return f"window must be 0..{limit} min for {mode}"
+    if envelope is not None:
+        if mode not in ("ABSORB", "SUPPORT"):
+            return "only ABSORB and SUPPORT may carry an envelope"
+        imp, exp = envelope.get("import_max_kw") or [], envelope.get("export_max_kw") or []
+        if not (0 < envelope.get("slot_s", 0)) or len(imp) > 96 or len(exp) > 96:
+            return "envelope needs slot_s > 0 and at most 96 slots"
+        if (imp and mode != "SUPPORT") or (exp and mode != "ABSORB"):
+            return "import curve belongs to SUPPORT, export curve to ABSORB"
+        if any(v < POLICY["max_import_cap_floor_kw"] for v in imp):
+            return f"envelope import cap below policy floor {POLICY['max_import_cap_floor_kw']} kW"
+        if any(v < 0 for v in exp):
+            return "envelope export cap below 0"
     if mode == "SUPPORT":
-        key = f"{segment}:{now().date()}"
+        key = f"{segment}:{sim_day()}"
         if state["support_count"].get(key, 0) >= POLICY["max_support_per_node_per_day"]:
             return f"SUPPORT already sent {POLICY['max_support_per_node_per_day']}x today for {segment}"
         em = fields.get("export_min_kw")
@@ -288,10 +312,10 @@ def devices_under(node):
 
 
 # ---------------------------------------------------------------- compose and send
-def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None):
+def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None, curve=None):
     if cohort is not None and not (len(cohort) == 2 and 0 <= cohort[0] < cohort[1] <= 16):
         raise HTTPException(400, "cohort must be [k, n] with k < n <= 16")
-    err = guard(segment, mode, fields, duration_min)
+    err = guard(segment, mode, fields, duration_min, curve)
     if err:
         log("guard", f"REFUSED {mode} for {segment}: {err}")
         raise HTTPException(400, err)
@@ -305,17 +329,20 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
             **{k: fields.get(k) for k in ALL_FIELDS},
             "ramp_s": POLICY["ramp_s"], "note": note or "", "cohort": cohort,
         }
+        if curve is not None:
+            doc["envelope"] = curve
         if mode == "RELEASE":
             state["active"].pop(segment, None)
         else:
             state["active"][segment] = doc
         if mode == "SUPPORT":
-            key = f"{segment}:{now().date()}"
+            key = f"{segment}:{sim_day()}"
             state["support_count"][key] = state["support_count"].get(key, 0) + 1
         persist()
     mq.publish(f"gridzilla/sig/{segment}", envelope(doc), qos=1)
     log("signal", f"seq {seq} {mode} -> {segment}" + (f" cohort {cohort[0]}/{cohort[1]} " if cohort else " ") + " ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
-        + f" for {duration_min} min", seq=seq, mode=mode, segment=segment)
+        + f" for {duration_min:g} min" + (f" with a {len(curve.get('import_max_kw') or curve.get('export_max_kw') or [])}-slot envelope" if curve else ""),
+        seq=seq, mode=mode, segment=segment)
     return doc
 
 
@@ -345,19 +372,76 @@ def aggregates():
     return out
 
 
+# ---------------------------------------------------------------- forecast and envelopes
+ENV_SLOT_SIM_MIN = 15          # one envelope slot = 15 grid minutes, the settlement interval of the meter
+ENV_MARGIN = 0.9               # plan to 90 % of the transformer rating, keep 10 % for forecast error
+
+
+def tfs_under(node):
+    return [t for t in TREE if t.startswith("tf:") and node in path_of(t)]
+
+
+def program_houses(tf):
+    """Connection points in the program behind tf that are online: battery devices only. A controllable load such as
+    vicare-blatnica sits behind a house that is already counted, so it shares that house's envelope."""
+    return sum(d.get("represents", 1) for d in devices_under(tf) if d["id"] in state["telemetry"] and d.get("kwh", 0) > 0)
+
+
+def forecast(node, hours=3.0, step_min=ENV_SLOT_SIM_MIN):
+    """Transformer load ahead, assuming program houses keep their current net power."""
+    h0, out = sim_hour(), []
+    for k in range(int(hours * 60 / step_min) + 1):
+        h = h0 + k * step_min / 60
+        other = sum(TREE[t].get("other_houses", 0) * other_profile_kw(h) for t in tfs_under(node))
+        prog = (NODE_HIST[node][-1]["program_kw"] if NODE_HIST[node] else 0.0)
+        out.append({"h": round(h % 24, 2), "other_kw": round(other, 1), "total_kw": round(other + prog, 1)})
+    return out
+
+
+def compute_envelope(node, mode, duration_sim_min):
+    """Dynamic operating envelope: per-house import (SUPPORT) or export (ABSORB) ceiling per 15-min slot,
+    from forecast headroom = 90 % of the transformer rating minus the load of the houses not in the program,
+    shared over the program houses. For a feeder or substation the tightest transformer under it wins."""
+    n = max(1, min(96, round(duration_sim_min / ENV_SLOT_SIM_MIN)))
+    h0, curve = sim_hour(), []
+    for k in range(n):
+        h = h0 + k * ENV_SLOT_SIM_MIN / 60
+        caps = []
+        for t in tfs_under(node):
+            houses = program_houses(t)
+            if not houses:
+                continue
+            other = TREE[t].get("other_houses", 0) * other_profile_kw(h)
+            if mode == "SUPPORT":
+                caps.append((ENV_MARGIN * TREE[t]["rating_kw"] - other) / houses)
+            else:
+                caps.append((ENV_MARGIN * TREE[t].get("reverse_kw", TREE[t]["rating_kw"]) + other) / houses)
+        cap = min(caps) if caps else 15.0
+        lo = POLICY["max_import_cap_floor_kw"] if mode == "SUPPORT" else 0.0
+        curve.append(round(min(15.0, max(lo, cap)), 1))
+    return {"slot_s": round(ENV_SLOT_SIM_MIN * 60 / SIM_X, 3), "slot_sim_min": ENV_SLOT_SIM_MIN, "start_sim_h": round(h0 % 24, 2),
+            "import_max_kw": curve if mode == "SUPPORT" else None,
+            "export_max_kw": curve if mode == "ABSORB" else None}
+
+
 # ---------------------------------------------------------------- LLM advisor (DeepSeek, OpenAI-compatible)
-ADVISOR_SYSTEM = """You are the operator assistant of Gridzilla, a DSO platform that sends bounded signals to home batteries.
-You PROPOSE one signal. You never send it. A deterministic policy guard and a human operator decide.
+ADVISOR_SYSTEM = """You are the control brain of Gridzilla, a DSO platform that sends bounded signals to home batteries.
+You choose one signal or none. A deterministic policy guard checks it; if it passes, the platform signs and sends it without a human.
 Signal modes and allowed fields:
 - PREPARE: target_soc (50-100), charge_max_kw. Fill batteries gently before a forecast event or outage window.
-- ABSORB: export_max_kw, charge_max_kw. PV surplus: cap export, allow charging.
-- SUPPORT: import_max_kw ("take N kW only"), export_min_kw ("give at least N kW"). Peak or deficit while the grid is up.
+- ABSORB: export_max_kw, charge_max_kw. PV surplus / reverse flow: cap export, batteries and EVs soak it up.
+- SUPPORT: import_max_kw ("take N kW only"), export_min_kw ("give at least N kW"). Load peak or deficit while the grid is up.
 - STRETCH: discharge_max_kw. Street is dead; ration batteries until expected restoration (duration = expected restoration).
 - RECOVER: charge_max_kw. After restoration, staggered recharge.
-- RELEASE: end the event.
+- RELEASE: end the event on that segment.
+For ABSORB and SUPPORT the platform attaches a dynamic operating envelope: a per-house ceiling for every 15-minute slot,
+computed from the forecast headroom of each transformer. Your flat import_max_kw / export_max_kw is the fallback for devices
+that cannot follow a curve, so choose it as the tightest value you expect to need.
 Rules: signals are limits at the grid connection point, never setpoints. Pick the segment at the level where the constraint is:
 a street transformer only helps itself; a feeder or substation constraint can be served by every battery under it.
-Policy: window max 240 min (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per day.
+Use the forecast: act BEFORE the transformer reaches its rating, size duration_min to cover the forecast congestion.
+All times (duration_min, start_in_min) are in grid minutes; the grid clock is sim_hour.
+Policy: window max 240 grid minutes (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per grid day.
 Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}
 If no signal is needed right now, answer {"mode": "NONE", "rationale": "..."}."""
 
@@ -366,106 +450,159 @@ class Advise(BaseModel):
     situation: str
 
 
+def real_min(sim_min):
+    return sim_min / SIM_X
+
+
 def ask_llm(situation: str):
     if not LLM_URL:
         raise HTTPException(503, "GZ_LLM_URL not set")
-    ctx = {"time_utc": iso(now()), "sim_hour": round(sim_hour(), 2), "tree": {n: {**TREE[n], **aggregates()[n]} for n in TREE},
-           "trend_total_kw": {n: [p["total_kw"] for p in list(NODE_HIST[n])[-12::3]] for n in TREE if n.startswith("tf:")},
-           "devices": [{"id": d["id"], "tf": d["tf"], "kw": d["kw"], "kwh": d["kwh"],
+    ag = aggregates()
+    ctx = {"sim_hour": round(sim_hour(), 2), "tree": {n: {**TREE[n], **ag[n]} for n in TREE},
+           "forecast_total_kw_next_3h": {t: [p["total_kw"] for p in forecast(t)][::2] for t in TREE if t.startswith("tf:")},
+           "devices": [{"id": d["id"], "tf": d["tf"], "kw": d["kw"], "kwh": d["kwh"], "represents": d.get("represents", 1),
                         "soc": (state["telemetry"].get(d["id"]) or {}).get("soc")} for d in DEVICES.values()],
-           "active_signals": state["active"]}
+           "active_signals": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to", *ALL_FIELDS) if s.get(k) is not None}
+                              for n, s in state["active"].items()},
+           "support_sent_today": {k.rsplit(":", 1)[0]: v for k, v in state["support_count"].items() if k.endswith(f":{sim_day()}")}}
     body = {"model": LLM_MODEL, "temperature": 0.2, "max_tokens": 1500,
             "messages": [{"role": "system", "content": ADVISOR_SYSTEM},
                          {"role": "user", "content": f"Grid state:\n{json.dumps(ctx)}\n\nSituation: {situation}"}]}
     req = urllib.request.Request(f"{LLM_URL.rstrip('/')}/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json", "X-Session-Id": "gridzilla-advisor",
                                           "Authorization": f"Bearer {os.environ.get('GZ_LLM_KEY', 'none')}"})
+    t0 = time.time()
     with urllib.request.urlopen(req, timeout=120) as r:
         text = json.loads(r.read())["choices"][0]["message"]["content"]
+    latency = round((time.time() - t0) * 1000)
     text = text.strip().strip("`")
     if text.startswith("json"):
         text = text[4:]
     start, end = text.find("{"), text.rfind("}")
     proposal = json.loads(text[start:end + 1])
+    proposal["latency_ms"] = latency
     if proposal.get("mode") == "NONE":
         proposal["guard"] = None
-        log("advisor", f"no signal needed: {proposal.get('rationale', '')}")
+        log("advisor", f"no signal needed ({latency} ms): {proposal.get('rationale', '')}")
         return proposal
-    if proposal.get("mode") == "RELEASE":
-        proposal["duration_min"] = max(1, int(proposal.get("duration_min") or 1))
+    sim_dur = float(proposal.get("duration_min") or (ENV_SLOT_SIM_MIN if proposal.get("mode") == "RELEASE" else 0))
+    proposal["duration_min"] = sim_dur
+    if proposal.get("mode") in ("ABSORB", "SUPPORT") and proposal.get("segment") in TREE and sim_dur > 0:
+        proposal["envelope"] = compute_envelope(proposal["segment"], proposal["mode"], sim_dur)
     proposal["guard"] = guard(proposal.get("segment"), proposal.get("mode"), proposal.get("fields") or {},
-                              int(proposal.get("duration_min") or 0))
-    log("advisor", f"proposed {proposal.get('mode')} -> {proposal.get('segment')}: {proposal.get('rationale', '')}"
-        + (f" | GUARD: {proposal['guard']}" if proposal["guard"] else " | guard ok"))
+                              real_min(sim_dur), proposal.get("envelope"))
+    log("advisor", f"proposed {proposal.get('mode')} -> {proposal.get('segment')} for {sim_dur:g} grid min ({latency} ms): "
+        f"{proposal.get('rationale', '')}" + (f" | GUARD: {proposal['guard']}" if proposal["guard"] else " | guard ok"))
     return proposal
 
 
 # ---------------------------------------------------------------- autopilot
-# Deterministic triggers decide WHEN to ask DeepSeek; DeepSeek decides WHAT to propose; the guard decides whether it is allowed.
-# mode "propose": the proposal waits for one click from the operator. mode "auto": a guard-approved proposal is sent at once,
-# within its own limits (cooldown per segment, max signals per hour). "off": nothing runs.
-AP = {"mode": "off", "context": "", "context_seen": "", "last_run": None, "last_trigger": None,
-      "last_result": None, "pending": None, "sent": collections.deque(maxlen=50), "busy": False}
-AP_INTERVAL_S = POLICY.get("autopilot_interval_s", 20)
-AP_TRIGGER_PCT = POLICY.get("autopilot_trigger_pct", 85)     # |transformer load| at or above this asks for a signal
+# Deterministic triggers decide WHEN to ask DeepSeek; DeepSeek decides WHAT; the guard decides whether it is allowed.
+# "auto" (default when an LLM is configured): a guard-approved decision is signed and sent at once, within the autopilot's
+# own limits (cooldown per segment, max signals per grid day). "propose": it waits for one click. "off": nothing runs.
+# All autopilot times are grid (sim) minutes.
+AP = {"mode": os.environ.get("GZ_AUTOPILOT", "auto" if LLM_URL else "off"), "context": "", "context_seen": "",
+      "last_run": None, "last_trigger": None, "last_result": None, "pending": None, "busy": False, "stage": "idle",
+      "sent": collections.deque(maxlen=50), "history": collections.deque(maxlen=20)}
+AP_INTERVAL_S = POLICY.get("autopilot_interval_s", 10)
+AP_TRIGGER_PCT = POLICY.get("autopilot_trigger_pct", 85)     # forecast |load| at or above this within the horizon asks for a signal
 AP_RELEASE_PCT = POLICY.get("autopilot_release_pct", 60)     # every transformer under an active signal below this asks for a release
-AP_COOLDOWN_MIN = POLICY.get("autopilot_cooldown_min", 10)
-AP_MAX_PER_HOUR = POLICY.get("autopilot_max_per_hour", 6)
+AP_HORIZON_MIN = POLICY.get("autopilot_horizon_min", 90)     # look-ahead, grid minutes
+AP_COOLDOWN_MIN = POLICY.get("autopilot_cooldown_min", 30)   # grid minutes
+AP_MAX_PER_DAY = POLICY.get("autopilot_max_per_day", 12)     # per grid day
+
+
+def prune_expired():
+    """Signals past valid_to are over on the devices (they revert on their own); drop them so the node is free again."""
+    t = iso(now())
+    with _lock:
+        for n in [n for n, s in state["active"].items() if s["valid_to"] <= t]:
+            log("signal", f"seq {state['active'][n]['seq']} {state['active'][n]['mode']} on {n} ended (window over)")
+            state["active"].pop(n)
 
 
 def covered(tf):
     return any(n in path_of(tf) for n in state["active"])
 
 
+def grid_age_min(at):
+    return (now() - at).total_seconds() * SIM_X / 60
+
+
 def autopilot_trigger():
-    """Return a situation sentence if something deserves the advisor's attention, else None."""
+    """Return a situation sentence if something deserves DeepSeek's attention, else None."""
     ag = aggregates()
     tfs = [n for n in TREE if n.startswith("tf:")]
-    hot = [f"{tf} at {ag[tf]['load_pct']} % ({'reverse flow, PV surplus' if ag[tf]['load_pct'] < 0 else 'import, load peak'})"
-           for tf in tfs if ag[tf]["load_pct"] is not None and abs(ag[tf]["load_pct"]) >= AP_TRIGGER_PCT and not covered(tf)]
+    steps = int(AP_HORIZON_MIN / ENV_SLOT_SIM_MIN) + 1
+    hot = []
+    for tf in tfs:
+        if covered(tf):
+            continue
+        rating, rev = TREE[tf]["rating_kw"], TREE[tf].get("reverse_kw", TREE[tf]["rating_kw"])
+        fc = forecast(tf)[:steps]
+        worst = max(fc, key=lambda p: abs(p["total_kw"]) / (rating if p["total_kw"] >= 0 else rev))
+        pct = round(100 * worst["total_kw"] / (rating if worst["total_kw"] >= 0 else rev))
+        if abs(pct) >= AP_TRIGGER_PCT:
+            hot.append(f"{tf} now {ag[tf]['load_pct']} %, forecast {pct} % at {worst['h']:.2f}h "
+                       f"({'reverse flow, PV surplus' if pct < 0 else 'import, load peak'})")
     if hot:
-        return "Congestion now, no signal active there: " + "; ".join(hot) + "."
+        return "Congestion forecast within " + str(AP_HORIZON_MIN) + " grid minutes, no signal active there: " + "; ".join(hot) + "."
     for node, sig in state["active"].items():
         mine = next((s for s in AP["sent"] if s["seq"] == sig["seq"]), None)   # never second-guess an operator's own signal
-        if not mine or (now() - mine["at"]).total_seconds() < AP_COOLDOWN_MIN * 60:
+        if not mine or grid_age_min(mine["at"]) < AP_COOLDOWN_MIN:
             continue
-        under = [tf for tf in tfs if node in path_of(tf)]
-        if sig["mode"] in ("ABSORB", "SUPPORT") and under and all(
-                ag[tf]["load_pct"] is not None and abs(ag[tf]["load_pct"]) < AP_RELEASE_PCT for tf in under):
-            return f"{sig['mode']} seq {sig['seq']} on {node} is active but every transformer under it is below {AP_RELEASE_PCT} %. Release it if the event is over."
+        if sig["mode"] in ("ABSORB", "SUPPORT") and all(
+                max(abs(p["total_kw"]) for p in forecast(tf)[:steps]) < AP_RELEASE_PCT / 100 * TREE[tf]["rating_kw"]
+                for tf in tfs_under(node)):
+            return (f"{sig['mode']} seq {sig['seq']} on {node} is active but every transformer under it is forecast below "
+                    f"{AP_RELEASE_PCT} % for the next {AP_HORIZON_MIN} grid minutes. Release it if the event is over.")
     if AP["context"] and AP["context"] != AP["context_seen"]:
         return "Operator warning: " + AP["context"]
     return None
 
 
 def autopilot_allowed(segment):
-    t = now()
-    recent = [s for s in AP["sent"] if (t - s["at"]).total_seconds() < 3600]
-    if len(recent) >= AP_MAX_PER_HOUR:
-        return f"autopilot limit {AP_MAX_PER_HOUR} signals per hour reached"
+    recent = [s for s in AP["sent"] if grid_age_min(s["at"]) < 24 * 60]
+    if len(recent) >= AP_MAX_PER_DAY:
+        return f"autopilot limit {AP_MAX_PER_DAY} signals per grid day reached"
     last = next((s for s in reversed(AP["sent"]) if s["segment"] == segment), None)
-    if last and (t - last["at"]).total_seconds() < AP_COOLDOWN_MIN * 60:
-        return f"cooldown: autopilot signalled {segment} less than {AP_COOLDOWN_MIN} min ago"
+    if last and grid_age_min(last["at"]) < AP_COOLDOWN_MIN:
+        return f"cooldown: autopilot signalled {segment} less than {AP_COOLDOWN_MIN} grid minutes ago"
     return None
 
 
 def send_proposal(p, by):
     fields = {k: (p.get("fields") or {}).get(k) for k in ALL_FIELDS}
-    note = p.get("note") or ""
-    doc = send_signal(p["segment"], p["mode"], fields, int(p.get("duration_min") or 1), note, int(p.get("start_in_min") or 0))
+    if p.get("envelope"):     # flat fallback for devices that ignore the curve: the tightest slot
+        curve = p["envelope"].get("import_max_kw") or p["envelope"].get("export_max_kw")
+        key = "import_max_kw" if p["envelope"].get("import_max_kw") else "export_max_kw"
+        fields[key] = min(curve) if fields.get(key) is None else min(fields[key], min(curve))
+    doc = send_signal(p["segment"], p["mode"], fields, real_min(p.get("duration_min") or ENV_SLOT_SIM_MIN),
+                      p.get("note") or "", real_min(float(p.get("start_in_min") or 0)), curve=p.get("envelope"))
     AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"]})
     log("autopilot", f"{by}: sent seq {doc['seq']} {p['mode']} -> {p['segment']}")
     return doc
 
 
+def record(p, verdict, detail="", seq=None):
+    AP["history"].appendleft({"at": iso(now()), "sim_h": round(sim_hour(), 2), "trigger": p.get("situation"),
+                              "mode": p.get("mode"), "segment": p.get("segment"), "rationale": p.get("rationale"),
+                              "fields": p.get("fields"), "duration_min": p.get("duration_min"), "envelope": p.get("envelope"),
+                              "latency_ms": p.get("latency_ms"), "verdict": verdict, "detail": detail, "seq": seq})
+
+
 def autopilot_step():
     AP["last_run"] = iso(now())
     p = AP["pending"]
-    if p and (now() - datetime.fromisoformat(p["at"].replace("Z", "+00:00"))).total_seconds() > 600:
+    if p and grid_age_min(datetime.fromisoformat(p["at"].replace("Z", "+00:00"))) > 60:
         log("autopilot", f"proposal {p['mode']} -> {p['segment']} expired unapproved")
         AP["pending"] = None
+        record(p, "expired")
+    prune_expired()
+    AP["stage"] = "sense"
     situation = autopilot_trigger()
     if not situation or AP["pending"]:
+        AP["stage"] = "idle"
         return
     AP["last_trigger"] = situation
     if situation.startswith("Operator warning"):
@@ -473,23 +610,34 @@ def autopilot_step():
     elif AP["context"]:
         situation += " Standing operator warning: " + AP["context"]
     log("autopilot", f"trigger: {situation}")
+    AP["stage"] = "deepseek"
     p = ask_llm(situation)
     p["situation"], p["at"] = situation, iso(now())
     AP["last_result"] = p
-    if p.get("mode") == "NONE" or p["guard"]:
+    AP["stage"] = "guard"
+    if p.get("mode") == "NONE":
+        record(p, "none")
+        return
+    if p["guard"]:
+        record(p, "refused", p["guard"])
         return
     if AP["mode"] == "auto":
         why = autopilot_allowed(p["segment"])
         if why:
             p["guard"] = why
             log("autopilot", f"held back {p['mode']} -> {p['segment']}: {why}")
+            record(p, "held", why)
             return
         try:
-            send_proposal(p, "auto")
+            AP["stage"] = "send"
+            doc = send_proposal(p, "auto")
+            record(p, "sent", seq=doc["seq"])
         except HTTPException as e:
             p["guard"] = e.detail
+            record(p, "refused", e.detail)
     else:
         AP["pending"] = p
+        record(p, "pending")
         log("autopilot", f"waiting for operator: {p['mode']} -> {p['segment']}")
 
 
@@ -503,15 +651,18 @@ def autopilot_loop():
             autopilot_step()
         except Exception as e:
             AP["last_result"] = {"error": str(e), "at": iso(now())}
+            record({"situation": AP["last_trigger"]}, "error", str(e))
             log("autopilot", f"advisor call failed: {e}")
         finally:
             AP["busy"] = False
+            AP["stage"] = "idle"
 
 
 def autopilot_public():
-    return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy")} | {
-        "trigger_pct": AP_TRIGGER_PCT, "release_pct": AP_RELEASE_PCT, "cooldown_min": AP_COOLDOWN_MIN,
-        "max_per_hour": AP_MAX_PER_HOUR, "interval_s": AP_INTERVAL_S}
+    return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy", "stage")} | {
+        "history": list(AP["history"]), "trigger_pct": AP_TRIGGER_PCT, "release_pct": AP_RELEASE_PCT,
+        "horizon_min": AP_HORIZON_MIN, "cooldown_min": AP_COOLDOWN_MIN, "max_per_day": AP_MAX_PER_DAY,
+        "interval_s": AP_INTERVAL_S, "sim_x": SIM_X}
 
 
 # ---------------------------------------------------------------- api
@@ -552,12 +703,14 @@ def pubkey():
 
 @app.get("/api/state")
 def get_state():
+    prune_expired()
     with _lock:
         return {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
                 "devices": {k: {**v, "ack": state["acks"].get(k), "telemetry": state["telemetry"].get(k),
                                 "registered": k in state["pubkeys"]} for k, v in DEVICES.items()},
                 "active": state["active"], "log": list(LOG), "hb_paused": HB_PAUSED.is_set(),
-                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": autopilot_public()}
+                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": autopilot_public(), "scenario": SCENARIO,
+                "forecast": {n: forecast(n) for n in TREE if not n.startswith("region")}}
 
 
 @app.get("/api/history")
@@ -608,6 +761,16 @@ def set_autopilot(a: Autopilot):
     return autopilot_public()
 
 
+@app.post("/api/scenario/{name}")
+def set_scenario(name: str):
+    """demo: scale the houses not in the program (cold-evening, sunny-noon, normal)"""
+    if name not in SCENARIOS:
+        raise HTTPException(400, f"scenario must be one of {sorted(SCENARIOS)}")
+    SCENARIO["name"], (SCENARIO["load_x"], SCENARIO["pv_x"]) = name, SCENARIOS[name]
+    log("demo", f"scenario {name}: other houses load x{SCENARIO['load_x']}, PV x{SCENARIO['pv_x']}")
+    return SCENARIO
+
+
 @app.post("/api/autopilot/{decision}")
 def decide_autopilot(decision: str):
     """approve|reject the proposal waiting in propose mode"""
@@ -619,8 +782,11 @@ def decide_autopilot(decision: str):
     AP["pending"] = None
     if decision == "reject":
         log("autopilot", f"operator rejected {p['mode']} -> {p['segment']}")
+        record(p, "rejected")
         return {"ok": True}
-    return send_proposal(p, "operator approved")
+    doc = send_proposal(p, "operator approved")
+    record(p, "sent", "operator approved", doc["seq"])
+    return doc
 
 
 @app.post("/api/heartbeat/{action}")
