@@ -384,7 +384,9 @@ export async function post(path: string, body?: unknown): Promise<unknown> {
 function publish(path: string, d: unknown) {
   const w = window as unknown as { __gz?: Record<string, unknown> };
   const gz = (w.__gz ??= {});
-  const [ep, query = ""] = path.split("?");
+  const [ep0, query = ""] = path.split("?");
+  // the all-households state (the Households view) is kept apart from the console's own state poll
+  const ep = ep0 === "state" && new URLSearchParams(query).get("hh") === "all" ? "state:all" : ep0;
   gz[ep] = d;
   gz[`${ep}@`] = Date.now();
   const node = ep === "flatten" ? new URLSearchParams(query).get("node") : null;
