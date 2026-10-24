@@ -127,21 +127,27 @@ def read():
             "heat_set_c": v(HEAT_PROG, "temperature"), "heat_program": v("heating.circuits.0.operating.programs.active"),
             "flow_c": v("heating.circuits.0.temperature"), "comp_pct": v("heating.compressors.0.power")}
 
+def write(what, url, body):
+    """One command to the unit. The gateway answers 500 while it is still busy with the previous command: wait and try again."""
+    for attempt in range(3):
+        r = call("POST", url, json=body)
+        log(f"ViCare: {what}: HTTP {r.status_code}" + (f" (attempt {attempt + 1}, retry in 10 s)" if r.status_code >= 500 and attempt < 2 else ""))
+        if r.status_code < 500: return r.status_code < 300
+        time.sleep(10)
+    return False
+
 def apply_dhw(setpoint, one_time=False):
     """Returns True when every write was accepted by the cloud."""
     if READ_ONLY: log(f"READ-ONLY: would set DHW {setpoint} °C one_time={one_time}"); return True
-    r = call("POST", f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", json={"temperature": int(setpoint)})
-    log(f"ViCare: DHW setpoint -> {setpoint} °C: HTTP {r.status_code}"); ok = r.status_code < 300
-    if one_time:
-        r2 = call("POST", f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}); log(f"ViCare: one-time charge: HTTP {r2.status_code}"); ok = ok and r2.status_code < 300
+    ok = write(f"DHW setpoint -> {setpoint} °C", f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", {"temperature": int(setpoint)})
+    if one_time: ok = write("one-time charge", f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", {}) and ok
     return ok
 
 def apply_heat(setpoint):
     """Room setpoint of the owner's 'normal' program (the one active by day). Returns True when accepted."""
     if not HEAT or setpoint is None: return True
     if READ_ONLY: log(f"READ-ONLY: would set heating normal program {setpoint} °C"); return True
-    r = call("POST", f"{FEAT}/{HEAT_PROG}/commands/setTemperature", json={"targetTemperature": int(setpoint)})
-    log(f"ViCare: heating normal program -> {setpoint} °C: HTTP {r.status_code}"); return r.status_code < 300
+    return write(f"heating normal program -> {setpoint} °C", f"{FEAT}/{HEAT_PROG}/commands/setTemperature", {"targetTemperature": int(setpoint)})
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
@@ -232,9 +238,13 @@ def on_message(c, u, m):
         return
     on_signal(env)
 
+announced = False
 def on_connect(c, u, f, rc, p=None):
+    global announced
     for n in PATH: c.subscribe(f"gridzilla/sig/{n}", qos=1)
     c.subscribe("gridzilla/hb"); log(f"online via {BROKER.hostname}, dhw {read().get('dhw_c')} °C")
+    if not announced:                       # a fresh start is owner mode: tell the platform, so a stale ack from the previous run does not linger
+        announced = True; ack(last_seq, "reverted", "agent_restart", read())
 mq.on_connect, mq.on_message = on_connect, on_message
 mq.reconnect_delay_set(2, 30); mq.connect_async(BROKER.hostname, BROKER.port or 1883, keepalive=30); mq.loop_start()
 

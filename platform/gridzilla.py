@@ -113,7 +113,7 @@ STATE_FILE = HERE / "state.json"
 _lock = threading.Lock()
 state = {
     "seq": 0,
-    "hb_seq": 0,
+    "hb_seq": int(time.time()),   # devices refuse a heartbeat seq at or below the last one seen: start above any earlier run
     "active": {},          # node -> signal
     "acks": {},            # device -> last ack (parsed) + verified flag
     "telemetry": {},       # device -> {soc, grid_kw, ts}
@@ -1080,7 +1080,7 @@ def households():
         h["registered"] = h["registered"] and d["id"] in state["pubkeys"]
         t = state["telemetry"].get(d["id"]); a = state["acks"].get(d["id"])
         if t:
-            m = h["telemetry"] or {"soc": None, "grid_kw": 0.0, "ev_kw": 0.0, "hp_kw": 0.0, "dhw_c": None, "dhw_set_c": None, "boiler_c": None, "heat_set_c": None, "flow_c": None,
+            m = h["telemetry"] or {"soc": None, "grid_kw": 0.0, "ev_kw": 0.0, "hp_kw": 0.0, "dhw_c": None, "dhw_set_c": None, "boiler_c": None, "heat_set_c": None, "flow_c": None, "room_c": None,
                                    "heat": None, "ev": 0, "mode": "owner", "rx": t.get("rx")}
             if d.get("kwh"):                                   # the battery device is the meter owner
                 m["soc"] = t.get("soc"); m["grid_kw"] = t.get("grid_kw") or 0.0
@@ -1089,7 +1089,7 @@ def households():
             m["ev_kw"] += t.get("ev_kw") or 0.0
             m["hp_kw"] += t.get("hp_kw") or (t.get("grid_kw") if not d.get("kwh") else 0) or 0.0   # a heating-only device reports its draw as grid_kw
             if t.get("dhw_c") is not None: m["dhw_c"], m["dhw_set_c"] = t.get("dhw_c"), t.get("dhw_set_c")
-            if t.get("heat_set_c") is not None: m["heat_set_c"], m["flow_c"] = t.get("heat_set_c"), t.get("flow_c")   # heat pump room program and flow temperature
+            if t.get("heat_set_c") is not None: m["heat_set_c"], m["flow_c"], m["room_c"] = t.get("heat_set_c"), t.get("flow_c"), t.get("room_c")   # heat pump room program, flow and room temperature
             if t.get("boiler_c") is not None: m["boiler_c"] = t.get("boiler_c")
             kinds = [k for k in (m["heat"], t.get("heat") or ("heatpump" if d.get("heat") == "heatpump" and not d.get("kwh") else None)) if k]
             m["heat"] = "+".join(dict.fromkeys("+".join(kinds).split("+"))) if kinds else None

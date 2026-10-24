@@ -140,6 +140,57 @@
   .citystrip { display:flex; gap:2px; flex-wrap:wrap; }
   .citystrip .cell { width:26px; height:15px; border-radius:2px; font-family:var(--mono); font-size:8px; display:flex; align-items:center; justify-content:center; color:#15181c; font-weight:600; cursor:pointer; }
   .citystrip .cell.sig { box-shadow: inset 0 0 0 2px var(--acc); }
+
+  /* ---- phones and narrow tablets: one column, the page scrolls, charts get a fixed height, bigger tap targets ---- */
+  @media (max-width: 900px) {
+    html, body { height:auto; min-height:100%; overflow:auto; -webkit-text-size-adjust:100%; }
+    body { font-size:14px; }
+    header { flex-wrap:wrap; gap:6px 8px; padding:8px 12px; position:sticky; top:0; z-index:5; }
+    header h1 { font-size:17px; }
+    header .sub { display:none; }
+    header .clock { font-size:14px; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .views { order:10; flex:1 0 100%; margin:2px 0 0; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .views::-webkit-scrollbar { display:none; }
+    .views button { flex:0 0 auto; padding:8px 12px; min-height:36px; }
+    body { overflow-x:hidden; }
+    main, main[data-view] { display:grid; grid-template-columns:minmax(0, 1fr) !important; grid-template-rows:none !important; grid-auto-rows:auto; padding:10px 12px 24px; gap:10px; overflow-x:hidden; }
+    .span3 { grid-column:1; }
+    section { overflow:visible; min-height:auto; max-width:100%; min-width:0; }
+    section > * { min-width:0; max-width:100%; }
+    .ticker div, .step .v, .tile .v { white-space:normal; }
+    canvas { max-width:100%; }
+    section.scroll { overflow:visible; }
+    section[data-tab="homes"] { overflow-x:auto; }
+    h2 { flex-wrap:wrap; }
+    h2 .hint { white-space:normal; }
+    .fill { flex:none; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .schem { height:auto; }
+    #schem { min-width:600px; }   /* the feeder schematic keeps readable labels and scrolls sideways */
+    .chartbox { flex:none; height:220px; min-height:220px; }
+    .city, #signals, #apstatus, #rationale { max-height:none !important; }
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .kpi .l { white-space:normal; }
+    .steps { grid-template-columns:1fr 1fr; }
+    .countdown { grid-column:1 / -1; }
+    .step .v { font-size:19px; }
+    .dcard { grid-template-columns:44px 1fr; }
+    .dcard > :nth-child(3) { grid-column:1 / -1; }
+    .sig { grid-template-columns:62px 1fr 50px; }
+    .row { grid-template-columns:1fr; }
+    .log, #decisions { max-height:320px; overflow:auto; }
+    .tflist { grid-template-columns:1fr 1fr; }
+    .tile .v { font-size:22px; }
+    section > div[style*="grid-template-columns: 1fr 1.4fr"] { grid-template-columns:1fr !important; }
+    section[data-tab="story"][style*="flex-direction:row"] { flex-direction:column !important; }
+    button, .modes button, .tabs button { min-height:36px; padding:7px 12px; }
+    input, select, textarea { padding:9px 10px; font-size:15px; }
+    th, td { padding:7px 8px; }
+  }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .steps { grid-template-columns:1fr; }
+    .sig { grid-template-columns:56px 1fr 46px; }
+  }
 </style>
 </head>
 <body>
@@ -300,7 +351,7 @@
     <div class="modes"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
     <div class="scroll fill">
     <table>
-      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · tank</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
+      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · tank now→set · room now→set</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
       <tbody id="devices"></tbody>
     </table>
     </div>
@@ -628,11 +679,11 @@ function drawDevices() {
   document.getElementById("homeshint").textContent = `${rows.length} of ${S.summary.households} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
   document.getElementById("devices").innerHTML = rows.slice(0, 400).map(d => {
     const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
-    const heat = t.heat ? t.heat.replace("heatpump", "HP").replace("boiler", "boiler") : "";
+    const heat = t.heat ? t.heat.replace("heatpump", "heat pump") : "";
     return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.devices && D.devices.length > 1 ? ` <span class="muted">· ${D.devices.join(" + ")}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
       <td>${D.kwh ? (t.soc != null ? Number(t.soc).toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(1) : "–"}</td>
       <td>${t.ev ? (t.ev_kw > 0 ? Number(t.ev_kw).toFixed(1) : "0") + ` <span class="muted">/ ${t.ev}</span>` : ""}</td>
-      <td>${heat ? `${Number(t.hp_kw || 0).toFixed(1)} <span class="muted">${heat}${t.dhw_c != null ? ` ${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°` : ""}</span>` : ""}</td>
+      <td>${heat ? `${Number(t.hp_kw || 0).toFixed(1)} <span class="muted">${heat === "boiler" ? "boiler · " : ""}${t.dhw_c != null ? `tank ${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°` : ""}${t.heat_set_c != null ? ` · room ${t.room_c != null ? Number(t.room_c).toFixed(1) + "°" : ""}→${t.heat_set_c}°${t.room_c == null && t.flow_c != null ? ` · floor flow ${Number(t.flow_c).toFixed(0)}°` : ""}` : ""}</span>` : ""}</td>
       <td style="color:${t.mode && t.mode !== "owner" ? "var(--acc)" : "var(--muted)"}">${t.mode || (t.soc != null ? "owner" : "offline")}</td>
       <td class="st-${a.status || ""}">${a.status || ""}${a.reason ? " (" + a.reason + ")" : ""}</td>
       <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
@@ -736,7 +787,7 @@ function drawStory() {
     tile(t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(2) : "–", "kW", t.grid_kw > 0.05 ? "grid import" : t.grid_kw < -0.05 ? "grid export" : "grid · balanced") +
     tile(t.soc != null ? Number(t.soc).toFixed(0) : "–", "%", "battery SoC · 15 kWh · owner floor 20 %") +
     tile(t.ev_kw != null ? Number(t.ev_kw).toFixed(1) : "–", "kW", `EV charger · ${t.ev || 11} kW station${t.ev_kw > 0 ? " · charging" : " · idle"}`) +
-    tile(t.hp_kw != null ? Number(t.hp_kw).toFixed(1) : "–", "kW", `heat pump · tank ${t.dhw_c != null ? Number(t.dhw_c).toFixed(1) + " °C → " + (t.dhw_set_c ?? "–") + " °C" : "–"}${t.heat_set_c != null ? ` · room → ${t.heat_set_c} °C` : ""}`);
+    tile(t.hp_kw != null ? Number(t.hp_kw).toFixed(1) : "–", "kW", `heat pump · tank ${t.dhw_c != null ? Number(t.dhw_c).toFixed(1) + " °C → " + (t.dhw_set_c ?? "–") + " °C" : "–"}${t.heat_set_c != null ? ` · room → ${t.heat_set_c} °C${t.room_c != null ? ` (now ${Number(t.room_c).toFixed(1)})` : (t.flow_c != null ? ` · floor flow ${Number(t.flow_c).toFixed(0)} °C` : "")}` : ""}`);
   const hist = (H && (H.devices["real-powerplant-blatnica"] || [])) || [];
   if (!realChart) realChart = new Chart(document.getElementById("realChart"), {type: "line", data: {labels: [], datasets: [
       {label: "grid kW", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "22", fill: "origin", borderWidth: 2}]},

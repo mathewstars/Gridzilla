@@ -183,6 +183,11 @@ function step(h) {
     if (e.mode === "SUPPORT" || e.mode === "STRETCH") run = h.slab > -SPACE_OFFSET_K ? 0 : demand;
     else if (e.mode === "ABSORB" || e.mode === "PREPARE") run = h.slab < SPACE_OFFSET_K ? ht.kw : demand;
     else run = h.slab > 0.05 ? 0 : (h.slab < -0.05 ? ht.kw : demand);
+    // the diet plan's per-slot ceilings: battery first, car second, heat third. Shed the compressor only when the cap would still be
+    // broken with the car already throttled and the battery discharging; preheat the slab when PV would still exceed the export cap.
+    const dMaxNow = Math.min(cfg.kw, o.max_discharge_kw) * (h.soc <= o.min_soc ? 0 : 1), cMaxNow = Math.min(cfg.kw, o.max_charge_kw) * (h.soc >= 100 ? 0 : 1);
+    if (e.import_max_kw != null && run > 0 && h.slab > -SPACE_OFFSET_K && houseLoad + ev + hp + run - pv - dMaxNow > e.import_max_kw) run = 0;
+    if (e.export_max_kw != null && h.slab < SPACE_OFFSET_K && pv - (houseLoad + ev + hp + run) - cMaxNow > e.export_max_kw) run = ht.kw;
     h.slab = clamp(h.slab + (run - demand) / SLAB_KWH_EL_PER_K * dtH, -SPACE_OFFSET_K - 1, SPACE_OFFSET_K + 1);
     hp += run;
   });
@@ -362,6 +367,8 @@ function onSignal(h, env, platformPub) {
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2), grid_owner_kw: +(h.grid_owner_kw ?? h.grid_kw).toFixed(2),
       dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null, room_k: h.slab != null ? +h.slab.toFixed(2) : null,
+      heat_set_c: h.slab != null ? 21 + (h.effective && (h.effective.mode === "SUPPORT" || h.effective.mode === "STRETCH") ? -SPACE_OFFSET_K : (h.effective && (h.effective.mode === "ABSORB" || h.effective.mode === "PREPARE") ? SPACE_OFFSET_K : 0)) : null,
+      room_c: h.slab != null ? +(21 + h.slab).toFixed(1) : null,
       heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner", shape: !!h.shape, shape_seq: h.shape ? h.shape.seq : null,
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
