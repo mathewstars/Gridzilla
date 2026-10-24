@@ -126,21 +126,24 @@ function step(h) {
   if (e.export_max_kw != null && evMax > 0 && pv - houseLoad > e.export_max_kw)
     ev = Math.min(evMax, pv - houseLoad - e.export_max_kw);        // ABSORB: put the surplus into the car
   if (e.mode === "STRETCH") ev = 0;                  // street dark: no car charging
-  // Heat pump / boiler: a hot-water tank that cools and gets reheated; the agent moves its setpoint like the ViCare agent does.
+  // Thermal loads: heat pump and/or electric boiler, each a hot-water tank that cools and gets reheated.
+  // The agent moves their setpoints like the ViCare agent does: boost under ABSORB/PREPARE, floor under SUPPORT/STRETCH.
   let hp = 0;
-  const ht = cfg.heat;
-  if (ht) {
-    if (h.dhw_c == null) { h.dhw_c = ht.dhw_set_c; h.dhw_set_c = ht.dhw_set_c; h.heating = false; }
-    const target = e.mode === "ABSORB" || e.mode === "PREPARE" ? ht.boost_c : (e.mode === "SUPPORT" || e.mode === "STRETCH" ? ht.floor_c : ht.dhw_set_c);
-    h.dhw_set_c = target;
-    const hour = (h.simMinutes / 60) % 24;
-    const draw = (hour >= 6 && hour <= 8) || (hour >= 18 && hour <= 22) ? 0.25 : 0.04;          // °C per sim minute: showers morning/evening
-    h.dhw_c -= draw * dtH * 60 + 0.01 * dtH * 60;                                                 // standing loss
-    if (h.dhw_c < target - 5) h.heating = true;
-    if (h.dhw_c >= target) h.heating = false;
-    if (h.heating) { hp = ht.kw; h.dhw_c += (ht.type === "heatpump" ? 0.35 : 0.2) * dtH * 60; }   // heat pump ~3x the thermal output of a resistive boiler
-    if (e.mode === "STRETCH") hp = 0;                                                             // dark street: no thermal load at all
-  }
+  const heats = Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : []);
+  if (!h.tanks) h.tanks = heats.map(ht => ({ c: ht.dhw_set_c, set: ht.dhw_set_c, heating: false }));
+  const hour = (h.simMinutes / 60) % 24;
+  heats.forEach((ht, i) => {
+    const tk = h.tanks[i];
+    tk.set = e.mode === "ABSORB" || e.mode === "PREPARE" ? ht.boost_c : (e.mode === "SUPPORT" || e.mode === "STRETCH" ? ht.floor_c : ht.dhw_set_c);
+    const draw = (hour >= 6 && hour <= 8) || (hour >= 18 && hour <= 22) ? 0.25 : 0.04;          // °C per sim minute: showers morning and evening
+    tk.c -= draw * dtH * 60 + 0.01 * dtH * 60;                                                   // plus standing loss
+    if (tk.c < tk.set - 5) tk.heating = true;
+    if (tk.c >= tk.set) tk.heating = false;
+    if (e.mode === "STRETCH") tk.heating = false;                                                // dark street: no thermal load
+    if (tk.heating) { hp += ht.kw; tk.c += (ht.type === "heatpump" ? 0.35 : 0.2) * dtH * 60; }  // heat pump ~3x the heat per kW of a resistive boiler
+  });
+  h.dhw_c = h.tanks[0] ? h.tanks[0].c : null; h.dhw_set_c = h.tanks[0] ? h.tanks[0].set : null;
+  h.boiler_c = h.tanks[1] ? h.tanks[1].c : null;
   h.hp_kw = hp;
   const load = houseLoad + ev + hp;
   h.ev_kw = ev;
@@ -300,7 +303,8 @@ function onSignal(h, env, platformPub) {
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2),
-      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, heat: cfg.heat ? cfg.heat.type : null, mode: h.effective ? h.effective.mode : "owner",
+      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null,
+      heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner",
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }
 })();

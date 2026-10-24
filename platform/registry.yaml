@@ -19,50 +19,50 @@ tree:
     other_houses: 55
   tf:mauer-2:
     parent: feeder:liesing-3
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 36
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 90
   tf:siebenhirten-3:
     parent: feeder:liesing-3
     rating_kw: 630
     reverse_kw: 630
-    other_houses: 86
+    other_houses: 67
   feeder:favoriten-1:
     parent: sub:wien-sued
     rating_kw: 4000
   tf:oberlaa-4:
     parent: feeder:favoriten-1
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 36
+  tf:rothneusiedl-5:
+    parent: feeder:favoriten-1
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 54
+  tf:unterlaa-6:
+    parent: feeder:favoriten-1
     rating_kw: 630
     reverse_kw: 630
     other_houses: 35
-  tf:rothneusiedl-5:
-    parent: feeder:favoriten-1
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 77
-  tf:unterlaa-6:
-    parent: feeder:favoriten-1
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 83
   feeder:inzersdorf-2:
     parent: sub:wien-sued
     rating_kw: 4000
   tf:inzersdorf-7:
     parent: feeder:inzersdorf-2
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 36
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 45
   tf:erlaa-8:
     parent: feeder:inzersdorf-2
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 76
+    other_houses: 88
   tf:vosendorf-9:
     parent: feeder:inzersdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 43
+    other_houses: 40
   sub:wien-nord:
     parent: region:at
     rating_kw: 63000
@@ -73,53 +73,53 @@ tree:
     parent: feeder:floridsdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 45
+    other_houses: 69
   tf:strebersdorf-11:
     parent: feeder:floridsdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 83
+    other_houses: 88
   tf:jedlesee-12:
     parent: feeder:floridsdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 76
+    other_houses: 55
   feeder:donaustadt-4:
     parent: sub:wien-nord
     rating_kw: 4000
   tf:essling-13:
     parent: feeder:donaustadt-4
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 46
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 86
   tf:breitenlee-14:
     parent: feeder:donaustadt-4
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 58
+    other_houses: 43
   tf:suessenbrunn-15:
     parent: feeder:donaustadt-4
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 69
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 42
   feeder:kagran-1:
     parent: sub:wien-nord
     rating_kw: 4000
   tf:kagran-16:
     parent: feeder:kagran-1
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 70
-  tf:hirschstetten-17:
-    parent: feeder:kagran-1
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 44
-  tf:aspern-18:
+    other_houses: 39
+  tf:hirschstetten-17:
     parent: feeder:kagran-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 59
+    other_houses: 63
+  tf:aspern-18:
+    parent: feeder:kagran-1
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 52
   sub:wien-west:
     parent: region:at
     rating_kw: 63000
@@ -128,37 +128,37 @@ tree:
     rating_kw: 4000
   tf:huetteldorf-19:
     parent: feeder:penzing-1
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 48
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 78
   tf:hadersdorf-20:
     parent: feeder:penzing-1
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 63
+    other_houses: 41
   tf:weidlingau-21:
     parent: feeder:penzing-1
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 59
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 37
   feeder:hietzing-2:
     parent: sub:wien-west
     rating_kw: 4000
   tf:speising-22:
     parent: feeder:hietzing-2
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 52
-  tf:lainz-23:
-    parent: feeder:hietzing-2
     rating_kw: 250
     reverse_kw: 250
     other_houses: 41
+  tf:lainz-23:
+    parent: feeder:hietzing-2
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 62
   tf:ober-st-veit-24:
     parent: feeder:hietzing-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 90
+    other_houses: 35
   feeder:ottakring-3:
     parent: sub:wien-west
     rating_kw: 4000
@@ -166,17 +166,17 @@ tree:
     parent: feeder:ottakring-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 61
+    other_houses: 41
   tf:wilhelminenberg-26:
     parent: feeder:ottakring-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 35
+    other_houses: 64
   tf:hernals-27:
     parent: feeder:ottakring-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 52
+    other_houses: 69
   sub:wien-ost:
     parent: region:at
     rating_kw: 63000
@@ -185,55 +185,55 @@ tree:
     rating_kw: 4000
   tf:simmering-28:
     parent: feeder:simmering-1
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 54
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 65
   tf:kaiserebersdorf-29:
     parent: feeder:simmering-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 70
+    other_houses: 90
   tf:albern-30:
     parent: feeder:simmering-1
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 80
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 68
   feeder:schwechat-2:
     parent: sub:wien-ost
     rating_kw: 4000
   tf:schwechat-31:
     parent: feeder:schwechat-2
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 84
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 89
   tf:mannswoerth-32:
     parent: feeder:schwechat-2
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 61
+    other_houses: 85
   tf:rannersdorf-33:
     parent: feeder:schwechat-2
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 37
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 38
   feeder:lobau-3:
     parent: sub:wien-ost
     rating_kw: 4000
   tf:lobau-34:
     parent: feeder:lobau-3
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 65
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 56
   tf:muehlleiten-35:
     parent: feeder:lobau-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 85
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 39
   tf:gross-enzersdorf-36:
     parent: feeder:lobau-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 60
+    other_houses: 51
   sub:kendlerstrasse:
     parent: region:at
     rating_kw: 63000
@@ -242,19 +242,19 @@ tree:
     rating_kw: 4000
   tf:rudolfsheim-37:
     parent: feeder:rudolfsheim-1
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 39
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 71
   tf:fuenfhaus-38:
     parent: feeder:rudolfsheim-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 73
+    other_houses: 76
   tf:schmelz-39:
     parent: feeder:rudolfsheim-1
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 54
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 53
   feeder:meidling-2:
     parent: sub:kendlerstrasse
     rating_kw: 4000
@@ -262,35 +262,35 @@ tree:
     parent: feeder:meidling-2
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 65
+    other_houses: 42
   tf:altmannsdorf-41:
     parent: feeder:meidling-2
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 74
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 51
   tf:hetzendorf-42:
     parent: feeder:meidling-2
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 69
+    other_houses: 52
   feeder:margareten-3:
     parent: sub:kendlerstrasse
     rating_kw: 4000
   tf:margareten-43:
     parent: feeder:margareten-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 66
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 59
   tf:wieden-44:
     parent: feeder:margareten-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 86
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 51
   tf:mariahilf-45:
     parent: feeder:margareten-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 53
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 60
   sub:wien-mitte:
     parent: region:at
     rating_kw: 63000
@@ -301,30 +301,30 @@ tree:
     parent: feeder:landstrasse-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 60
+    other_houses: 69
   tf:erdberg-47:
     parent: feeder:landstrasse-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 41
+    other_houses: 89
   tf:st-marx-48:
     parent: feeder:landstrasse-1
     rating_kw: 630
     reverse_kw: 630
-    other_houses: 62
+    other_houses: 38
   feeder:leopoldstadt-2:
     parent: sub:wien-mitte
     rating_kw: 4000
   tf:leopoldstadt-49:
     parent: feeder:leopoldstadt-2
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 65
-  tf:prater-50:
-    parent: feeder:leopoldstadt-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 83
+    other_houses: 41
+  tf:prater-50:
+    parent: feeder:leopoldstadt-2
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 56
   tf:stuwerviertel-51:
     parent: feeder:leopoldstadt-2
     rating_kw: 400
@@ -335,19 +335,19 @@ tree:
     rating_kw: 4000
   tf:innere-stadt-52:
     parent: feeder:innere-stadt-3
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 44
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 86
   tf:josefstadt-53:
     parent: feeder:innere-stadt-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 78
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 71
   tf:alsergrund-54:
     parent: feeder:innere-stadt-3
-    rating_kw: 250
-    reverse_kw: 250
-    other_houses: 52
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 54
   sub:bisamberg:
     parent: region:at
     rating_kw: 63000
@@ -356,19 +356,19 @@ tree:
     rating_kw: 4000
   tf:korneuburg-55:
     parent: feeder:korneuburg-1
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 37
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 87
   tf:langenzersdorf-56:
     parent: feeder:korneuburg-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 52
+    other_houses: 71
   tf:bisamberg-57:
     parent: feeder:korneuburg-1
     rating_kw: 250
     reverse_kw: 250
-    other_houses: 38
+    other_houses: 68
   feeder:gerasdorf-2:
     parent: sub:bisamberg
     rating_kw: 4000
@@ -376,35 +376,35 @@ tree:
     parent: feeder:gerasdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 54
+    other_houses: 35
   tf:seyring-59:
     parent: feeder:gerasdorf-2
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 79
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 76
   tf:kapellerfeld-60:
     parent: feeder:gerasdorf-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 59
+    other_houses: 85
   feeder:stockerau-3:
     parent: sub:bisamberg
     rating_kw: 4000
   tf:stockerau-61:
     parent: feeder:stockerau-3
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 37
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 90
   tf:leobendorf-62:
     parent: feeder:stockerau-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 63
+    other_houses: 85
   tf:spillern-63:
     parent: feeder:stockerau-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 42
+    other_houses: 40
   sub:schwarzenbergplatz:
     parent: region:at
     rating_kw: 63000
@@ -415,53 +415,53 @@ tree:
     parent: feeder:doebling-1
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 82
+    other_houses: 79
   tf:grinzing-65:
     parent: feeder:doebling-1
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 49
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 58
   tf:nussdorf-66:
     parent: feeder:doebling-1
     rating_kw: 630
     reverse_kw: 630
-    other_houses: 75
+    other_houses: 72
   feeder:waehring-2:
     parent: sub:schwarzenbergplatz
     rating_kw: 4000
   tf:waehring-67:
     parent: feeder:waehring-2
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 81
+    rating_kw: 630
+    reverse_kw: 630
+    other_houses: 38
   tf:gersthof-68:
     parent: feeder:waehring-2
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 47
+    other_houses: 48
   tf:poetzleinsdorf-69:
     parent: feeder:waehring-2
-    rating_kw: 400
-    reverse_kw: 400
-    other_houses: 64
+    rating_kw: 250
+    reverse_kw: 250
+    other_houses: 68
   feeder:brigittenau-3:
     parent: sub:schwarzenbergplatz
     rating_kw: 4000
   tf:brigittenau-70:
     parent: feeder:brigittenau-3
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 88
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 48
   tf:zwischenbruecken-71:
     parent: feeder:brigittenau-3
     rating_kw: 400
     reverse_kw: 400
-    other_houses: 53
+    other_houses: 73
   tf:nordbahnhof-72:
     parent: feeder:brigittenau-3
-    rating_kw: 630
-    reverse_kw: 630
-    other_houses: 72
+    rating_kw: 400
+    reverse_kw: 400
+    other_houses: 71
 devices:
 - id: real-powerplant-blatnica
   tf: tf:atzgersdorf-1
@@ -491,168 +491,158 @@ devices:
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-atzgersdorf-46
+  heat: heatpump+boiler
+- id: sim-atzgersdorf-11
   tf: tf:atzgersdorf-1
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
+  vendor: huawei
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
   represents: 30
-- id: sim-atzgersdorf-58
+  ev_kw: 11
+- id: sim-atzgersdorf-21
   tf: tf:atzgersdorf-1
   vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
-- id: sim-mauer-56
+  heat: boiler
+- id: sim-mauer-64
   tf: tf:mauer-2
-  vendor: sma
+  vendor: huawei
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
-- id: sim-mauer-72
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-mauer-71
+  tf: tf:mauer-2
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-mauer-44
   tf: tf:mauer-2
   vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-siebenhirten-65
+  tf: tf:siebenhirten-3
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-siebenhirten-93
+  tf: tf:siebenhirten-3
+  vendor: goodwe
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-siebenhirten-35
+  tf: tf:siebenhirten-3
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-siebenhirten-85
+  tf: tf:siebenhirten-3
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-siebenhirten-76
+  tf: tf:siebenhirten-3
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-oberlaa-75
+  tf: tf:oberlaa-4
+  vendor: fronius
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-mauer-89
-  tf: tf:mauer-2
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
+- id: sim-oberlaa-89
+  tf: tf:oberlaa-4
+  vendor: sim
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
-- id: sim-mauer-42
-  tf: tf:mauer-2
-  vendor: sma
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-siebenhirten-56
-  tf: tf:siebenhirten-3
+- id: sim-oberlaa-96
+  tf: tf:oberlaa-4
+  vendor: goodwe
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-rothneusiedl-54
+  tf: tf:rothneusiedl-5
   vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   heat: boiler
-- id: sim-siebenhirten-22
-  tf: tf:siebenhirten-3
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-siebenhirten-62
-  tf: tf:siebenhirten-3
-  vendor: sim
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-siebenhirten-95
-  tf: tf:siebenhirten-3
-  vendor: sma
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-siebenhirten-38
-  tf: tf:siebenhirten-3
-  vendor: sma
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-oberlaa-59
-  tf: tf:oberlaa-4
-  vendor: huawei
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-oberlaa-83
-  tf: tf:oberlaa-4
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-oberlaa-35
-  tf: tf:oberlaa-4
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: boiler
-- id: sim-rothneusiedl-59
-  tf: tf:rothneusiedl-5
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-rothneusiedl-69
+- id: sim-rothneusiedl-37
   tf: tf:rothneusiedl-5
   vendor: fronius
   kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-rothneusiedl-81
+  tf: tf:rothneusiedl-5
+  vendor: sma
+  kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-rothneusiedl-21
+- id: sim-rothneusiedl-33
   tf: tf:rothneusiedl-5
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-rothneusiedl-89
-  tf: tf:rothneusiedl-5
-  vendor: sma
-  kw: 8
+  vendor: sim
+  kw: 5
   kwh: 15
-  feedin_max_kw: 8
+  feedin_max_kw: 5
   represents: 30
-  heat: heatpump
-- id: sim-unterlaa-55
+  ev_kw: 11
+- id: sim-unterlaa-22
   tf: tf:unterlaa-6
-  vendor: huawei
+  vendor: sim
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
   heat: heatpump
-- id: sim-unterlaa-62
-  tf: tf:unterlaa-6
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-unterlaa-50
+- id: sim-unterlaa-87
   tf: tf:unterlaa-6
   vendor: sim
   kw: 5
@@ -660,171 +650,185 @@ devices:
   feedin_max_kw: 5
   represents: 30
   heat: heatpump
-- id: sim-inzersdorf-98
-  tf: tf:inzersdorf-7
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
+- id: sim-unterlaa-65
+  tf: tf:unterlaa-6
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-inzersdorf-24
+- id: sim-inzersdorf-89
   tf: tf:inzersdorf-7
-  vendor: goodwe
+  vendor: sma
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-- id: sim-inzersdorf-13
+- id: sim-inzersdorf-63
   tf: tf:inzersdorf-7
   vendor: fronius
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-inzersdorf-94
-  tf: tf:inzersdorf-7
-  vendor: goodwe
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
+- id: sim-inzersdorf-28
+  tf: tf:inzersdorf-7
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-erlaa-32
+  tf: tf:erlaa-8
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
   heat: heatpump
-- id: sim-erlaa-75
+- id: sim-erlaa-96
   tf: tf:erlaa-8
   vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-erlaa-84
+  tf: tf:erlaa-8
+  vendor: fronius
   kw: 8
-  kwh: 20
+  kwh: 15
   feedin_max_kw: 8
   represents: 30
+  ev_kw: 11
+- id: sim-vosendorf-57
+  tf: tf:vosendorf-9
+  vendor: sim
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-vosendorf-76
+  tf: tf:vosendorf-9
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-vosendorf-94
+  tf: tf:vosendorf-9
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-vosendorf-50
+  tf: tf:vosendorf-9
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-stammersdorf-86
+  tf: tf:stammersdorf-10
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-stammersdorf-43
+  tf: tf:stammersdorf-10
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-stammersdorf-18
+  tf: tf:stammersdorf-10
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
   heat: boiler
-- id: sim-erlaa-56
-  tf: tf:erlaa-8
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-erlaa-30
-  tf: tf:erlaa-8
-  vendor: sim
+- id: sim-stammersdorf-35
+  tf: tf:stammersdorf-10
+  vendor: huawei
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
-  heat: heatpump
-- id: sim-vosendorf-12
-  tf: tf:vosendorf-9
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
+  heat: heatpump+boiler
+- id: sim-strebersdorf-50
+  tf: tf:strebersdorf-11
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
-  heat: heatpump
-- id: sim-vosendorf-28
-  tf: tf:vosendorf-9
-  vendor: huawei
+  ev_kw: 11
+- id: sim-strebersdorf-83
+  tf: tf:strebersdorf-11
+  vendor: sma
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
   heat: heatpump
-- id: sim-vosendorf-59
-  tf: tf:vosendorf-9
+- id: sim-strebersdorf-55
+  tf: tf:strebersdorf-11
+  vendor: goodwe
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-jedlesee-36
+  tf: tf:jedlesee-12
+  vendor: huawei
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-jedlesee-87
+  tf: tf:jedlesee-12
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-jedlesee-15
+  tf: tf:jedlesee-12
   vendor: fronius
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-stammersdorf-24
-  tf: tf:stammersdorf-10
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-stammersdorf-23
-  tf: tf:stammersdorf-10
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-stammersdorf-70
-  tf: tf:stammersdorf-10
-  vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-strebersdorf-31
-  tf: tf:strebersdorf-11
-  vendor: huawei
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-strebersdorf-62
-  tf: tf:strebersdorf-11
+  heat: heatpump+boiler
+- id: sim-essling-42
+  tf: tf:essling-13
   vendor: sma
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
-- id: sim-strebersdorf-44
-  tf: tf:strebersdorf-11
-  vendor: huawei
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-strebersdorf-47
-  tf: tf:strebersdorf-11
-  vendor: sma
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-jedlesee-17
-  tf: tf:jedlesee-12
-  vendor: sma
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-jedlesee-70
-  tf: tf:jedlesee-12
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-jedlesee-75
-  tf: tf:jedlesee-12
-  vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-jedlesee-69
-  tf: tf:jedlesee-12
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
   heat: heatpump
-- id: sim-essling-80
+- id: sim-essling-88
   tf: tf:essling-13
   vendor: huawei
   kw: 5
@@ -832,208 +836,210 @@ devices:
   feedin_max_kw: 5
   represents: 30
   heat: boiler
-- id: sim-essling-92
+- id: sim-essling-87
   tf: tf:essling-13
-  vendor: huawei
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-essling-48
-  tf: tf:essling-13
-  vendor: sim
+  vendor: goodwe
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-breitenlee-19
-  tf: tf:breitenlee-14
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
   heat: boiler
-- id: sim-breitenlee-75
-  tf: tf:breitenlee-14
-  vendor: huawei
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
+- id: sim-essling-81
+  tf: tf:essling-13
+  vendor: fronius
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-breitenlee-87
+  heat: heatpump+boiler
+- id: sim-breitenlee-79
   tf: tf:breitenlee-14
-  vendor: sma
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
+  vendor: goodwe
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
   represents: 30
-- id: sim-breitenlee-27
+  heat: boiler
+- id: sim-breitenlee-38
+  tf: tf:breitenlee-14
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-breitenlee-55
   tf: tf:breitenlee-14
   vendor: goodwe
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
-- id: sim-suessenbrunn-48
-  tf: tf:suessenbrunn-15
-  vendor: sim
-  kw: 5
+  ev_kw: 11
+  heat: boiler
+- id: sim-breitenlee-37
+  tf: tf:breitenlee-14
+  vendor: fronius
+  kw: 8
   kwh: 15
-  feedin_max_kw: 5
+  feedin_max_kw: 8
   represents: 30
   ev_kw: 11
   heat: heatpump
 - id: sim-suessenbrunn-55
   tf: tf:suessenbrunn-15
-  vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-suessenbrunn-73
+- id: sim-suessenbrunn-60
   tf: tf:suessenbrunn-15
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-kagran-21
-  tf: tf:kagran-16
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-kagran-34
-  tf: tf:kagran-16
-  vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-kagran-55
-  tf: tf:kagran-16
-  vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-kagran-91
-  tf: tf:kagran-16
-  vendor: sim
+  vendor: huawei
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-kagran-85
+- id: sim-suessenbrunn-91
+  tf: tf:suessenbrunn-15
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-kagran-77
   tf: tf:kagran-16
-  vendor: fronius
+  vendor: sma
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump
+- id: sim-kagran-60
+  tf: tf:kagran-16
+  vendor: huawei
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-hirschstetten-50
+- id: sim-kagran-70
+  tf: tf:kagran-16
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-hirschstetten-24
   tf: tf:hirschstetten-17
   vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
   represents: 30
-- id: sim-hirschstetten-19
+  heat: boiler
+- id: sim-hirschstetten-76
   tf: tf:hirschstetten-17
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-hirschstetten-15
+  heat: boiler
+- id: sim-hirschstetten-68
   tf: tf:hirschstetten-17
   vendor: fronius
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
-  heat: heatpump
-- id: sim-aspern-77
-  tf: tf:aspern-18
+  heat: heatpump+boiler
+- id: sim-hirschstetten-14
+  tf: tf:hirschstetten-17
   vendor: sma
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-aspern-87
+  heat: heatpump+boiler
+- id: sim-aspern-36
   tf: tf:aspern-18
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-aspern-10
-  tf: tf:aspern-18
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-huetteldorf-90
-  tf: tf:huetteldorf-19
   vendor: sim
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-huetteldorf-47
+- id: sim-aspern-55
+  tf: tf:aspern-18
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-aspern-31
+  tf: tf:aspern-18
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-huetteldorf-32
+  tf: tf:huetteldorf-19
+  vendor: fronius
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-huetteldorf-97
+  tf: tf:huetteldorf-19
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-huetteldorf-78
+  tf: tf:huetteldorf-19
+  vendor: goodwe
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-huetteldorf-18
   tf: tf:huetteldorf-19
   vendor: huawei
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-  heat: boiler
-- id: sim-huetteldorf-80
-  tf: tf:huetteldorf-19
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-hadersdorf-96
+- id: sim-hadersdorf-39
   tf: tf:hadersdorf-20
-  vendor: sma
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-hadersdorf-12
-  tf: tf:hadersdorf-20
-  vendor: goodwe
+  vendor: fronius
   kw: 8
-  kwh: 15
+  kwh: 20
   feedin_max_kw: 8
   represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-hadersdorf-24
+  heat: heatpump+boiler
+- id: sim-hadersdorf-50
   tf: tf:hadersdorf-20
   vendor: sim
   kw: 5
@@ -1042,484 +1048,530 @@ devices:
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-weidlingau-41
-  tf: tf:weidlingau-21
-  vendor: sma
-  kw: 8
+- id: sim-hadersdorf-59
+  tf: tf:hadersdorf-20
+  vendor: fronius
+  kw: 5
   kwh: 15
-  feedin_max_kw: 8
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-weidlingau-95
-  tf: tf:weidlingau-21
-  vendor: sma
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  heat: boiler
-- id: sim-weidlingau-42
+  heat: heatpump
+- id: sim-weidlingau-48
   tf: tf:weidlingau-21
   vendor: goodwe
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: boiler
-- id: sim-speising-66
-  tf: tf:speising-22
-  vendor: sma
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-speising-37
-  tf: tf:speising-22
-  vendor: huawei
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-speising-88
-  tf: tf:speising-22
-  vendor: huawei
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  heat: boiler
-- id: sim-speising-65
-  tf: tf:speising-22
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-speising-95
-  tf: tf:speising-22
-  vendor: sma
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-lainz-40
-  tf: tf:lainz-23
-  vendor: fronius
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-lainz-24
-  tf: tf:lainz-23
+- id: sim-weidlingau-62
+  tf: tf:weidlingau-21
   vendor: sma
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-lainz-51
-  tf: tf:lainz-23
+  heat: heatpump+boiler
+- id: sim-weidlingau-89
+  tf: tf:weidlingau-21
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-weidlingau-34
+  tf: tf:weidlingau-21
   vendor: sim
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-- id: sim-ober-st-veit-53
-  tf: tf:ober-st-veit-24
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-ober-st-veit-80
-  tf: tf:ober-st-veit-24
-  vendor: fronius
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-ober-st-veit-54
-  tf: tf:ober-st-veit-24
-  vendor: fronius
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-ober-st-veit-11
-  tf: tf:ober-st-veit-24
+- id: sim-speising-18
+  tf: tf:speising-22
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-speising-25
+  tf: tf:speising-22
   vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-ober-st-veit-50
+- id: sim-speising-12
+  tf: tf:speising-22
+  vendor: sim
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-lainz-54
+  tf: tf:lainz-23
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-lainz-83
+  tf: tf:lainz-23
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-lainz-14
+  tf: tf:lainz-23
+  vendor: huawei
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-ober-st-veit-86
+  tf: tf:ober-st-veit-24
+  vendor: sim
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-ober-st-veit-84
+  tf: tf:ober-st-veit-24
+  vendor: huawei
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-ober-st-veit-15
   tf: tf:ober-st-veit-24
   vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-ober-st-veit-17
+  tf: tf:ober-st-veit-24
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-ottakring-39
+  tf: tf:ottakring-25
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-ottakring-63
+  tf: tf:ottakring-25
+  vendor: sma
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-ottakring-66
+  tf: tf:ottakring-25
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-ottakring-51
+  tf: tf:ottakring-25
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-ottakring-11
+  tf: tf:ottakring-25
+  vendor: goodwe
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-wilhelminenberg-27
+  tf: tf:wilhelminenberg-26
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-wilhelminenberg-32
+  tf: tf:wilhelminenberg-26
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+- id: sim-wilhelminenberg-81
+  tf: tf:wilhelminenberg-26
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-wilhelminenberg-63
+  tf: tf:wilhelminenberg-26
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-hernals-13
+  tf: tf:hernals-27
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+- id: sim-hernals-97
+  tf: tf:hernals-27
+  vendor: sma
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+- id: sim-hernals-56
+  tf: tf:hernals-27
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-simmering-28
+  tf: tf:simmering-28
+  vendor: huawei
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
-- id: sim-ottakring-36
-  tf: tf:ottakring-25
-  vendor: sma
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-ottakring-86
-  tf: tf:ottakring-25
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-ottakring-67
-  tf: tf:ottakring-25
-  vendor: huawei
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-ottakring-69
-  tf: tf:ottakring-25
-  vendor: huawei
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-wilhelminenberg-37
-  tf: tf:wilhelminenberg-26
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-wilhelminenberg-26
-  tf: tf:wilhelminenberg-26
-  vendor: sim
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-wilhelminenberg-66
-  tf: tf:wilhelminenberg-26
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-wilhelminenberg-78
-  tf: tf:wilhelminenberg-26
-  vendor: sim
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-hernals-77
-  tf: tf:hernals-27
-  vendor: huawei
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-hernals-11
-  tf: tf:hernals-27
-  vendor: goodwe
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-hernals-98
-  tf: tf:hernals-27
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-hernals-92
-  tf: tf:hernals-27
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-hernals-89
-  tf: tf:hernals-27
-  vendor: huawei
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-simmering-43
-  tf: tf:simmering-28
-  vendor: huawei
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-simmering-21
-  tf: tf:simmering-28
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-simmering-79
+- id: sim-simmering-68
   tf: tf:simmering-28
   vendor: sma
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
-- id: sim-kaiserebersdorf-61
-  tf: tf:kaiserebersdorf-29
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-kaiserebersdorf-92
-  tf: tf:kaiserebersdorf-29
-  vendor: goodwe
+- id: sim-simmering-35
+  tf: tf:simmering-28
+  vendor: fronius
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-  ev_kw: 11
-- id: sim-kaiserebersdorf-25
+  heat: heatpump
+- id: sim-kaiserebersdorf-87
   tf: tf:kaiserebersdorf-29
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-kaiserebersdorf-64
-  tf: tf:kaiserebersdorf-29
-  vendor: fronius
+  vendor: goodwe
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
-- id: sim-albern-52
-  tf: tf:albern-30
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
+  heat: boiler
+- id: sim-kaiserebersdorf-38
+  tf: tf:kaiserebersdorf-29
+  vendor: fronius
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-kaiserebersdorf-69
+  tf: tf:kaiserebersdorf-29
+  vendor: sma
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-albern-45
-  tf: tf:albern-30
+  heat: boiler
+- id: sim-kaiserebersdorf-51
+  tf: tf:kaiserebersdorf-29
   vendor: huawei
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-  heat: boiler
-- id: sim-albern-21
+  ev_kw: 11
+- id: sim-albern-80
   tf: tf:albern-30
-  vendor: sim
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-albern-50
-  tf: tf:albern-30
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: boiler
-- id: sim-schwechat-80
-  tf: tf:schwechat-31
   vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
+  heat: heatpump+boiler
+- id: sim-albern-12
+  tf: tf:albern-30
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-schwechat-17
-  tf: tf:schwechat-31
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: boiler
-- id: sim-schwechat-35
-  tf: tf:schwechat-31
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-mannswoerth-61
-  tf: tf:mannswoerth-32
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-mannswoerth-16
-  tf: tf:mannswoerth-32
+- id: sim-albern-35
+  tf: tf:albern-30
   vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
-  heat: boiler
-- id: sim-mannswoerth-22
-  tf: tf:mannswoerth-32
-  vendor: sma
+  heat: heatpump
+- id: sim-schwechat-23
+  tf: tf:schwechat-31
+  vendor: sim
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
-- id: sim-rannersdorf-29
-  tf: tf:rannersdorf-33
+  ev_kw: 11
+- id: sim-schwechat-49
+  tf: tf:schwechat-31
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-schwechat-65
+  tf: tf:schwechat-31
+  vendor: huawei
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump
+- id: sim-mannswoerth-29
+  tf: tf:mannswoerth-32
   vendor: huawei
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
-- id: sim-rannersdorf-86
-  tf: tf:rannersdorf-33
+- id: sim-mannswoerth-86
+  tf: tf:mannswoerth-32
   vendor: sim
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-- id: sim-rannersdorf-25
+  ev_kw: 11
+- id: sim-mannswoerth-81
+  tf: tf:mannswoerth-32
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-rannersdorf-60
+  tf: tf:rannersdorf-33
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-rannersdorf-84
+  tf: tf:rannersdorf-33
+  vendor: sim
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-rannersdorf-38
+  tf: tf:rannersdorf-33
+  vendor: sma
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-rannersdorf-13
   tf: tf:rannersdorf-33
   vendor: sma
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-- id: sim-lobau-50
+  heat: heatpump
+- id: sim-rannersdorf-58
+  tf: tf:rannersdorf-33
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-lobau-59
   tf: tf:lobau-34
-  vendor: fronius
+  vendor: goodwe
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
-- id: sim-lobau-28
+  ev_kw: 11
+  heat: boiler
+- id: sim-lobau-90
   tf: tf:lobau-34
   vendor: sma
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
-- id: sim-lobau-58
+- id: sim-lobau-26
+  tf: tf:lobau-34
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-lobau-25
   tf: tf:lobau-34
   vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-muehlleiten-53
+  tf: tf:muehlleiten-35
+  vendor: sma
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-lobau-49
-  tf: tf:lobau-34
-  vendor: huawei
+- id: sim-muehlleiten-34
+  tf: tf:muehlleiten-35
+  vendor: sim
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-- id: sim-muehlleiten-97
-  tf: tf:muehlleiten-35
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
   ev_kw: 11
-- id: sim-muehlleiten-50
+- id: sim-muehlleiten-44
   tf: tf:muehlleiten-35
-  vendor: sim
+  vendor: sma
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-muehlleiten-92
+  heat: heatpump+boiler
+- id: sim-muehlleiten-57
   tf: tf:muehlleiten-35
-  vendor: fronius
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
+  vendor: goodwe
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-gross-enzersdorf-68
+  heat: heatpump+boiler
+- id: sim-muehlleiten-11
+  tf: tf:muehlleiten-35
+  vendor: huawei
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-gross-enzersdorf-61
   tf: tf:gross-enzersdorf-36
-  vendor: goodwe
+  vendor: fronius
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-gross-enzersdorf-12
+  tf: tf:gross-enzersdorf-36
+  vendor: fronius
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-gross-enzersdorf-69
+  tf: tf:gross-enzersdorf-36
+  vendor: fronius
   kw: 5
-  kwh: 10
+  kwh: 15
   feedin_max_kw: 5
   represents: 30
+  ev_kw: 11
+  heat: heatpump
 - id: sim-gross-enzersdorf-86
   tf: tf:gross-enzersdorf-36
-  vendor: goodwe
+  vendor: fronius
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-  ev_kw: 11
-- id: sim-gross-enzersdorf-35
+  heat: heatpump+boiler
+- id: sim-gross-enzersdorf-59
   tf: tf:gross-enzersdorf-36
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
+  vendor: huawei
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
   represents: 30
 - id: sim-rudolfsheim-31
   tf: tf:rudolfsheim-37
-  vendor: huawei
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-rudolfsheim-23
+  heat: heatpump
+- id: sim-rudolfsheim-82
+  tf: tf:rudolfsheim-37
+  vendor: sim
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-rudolfsheim-28
   tf: tf:rudolfsheim-37
   vendor: fronius
   kw: 8
@@ -1527,21 +1579,24 @@ devices:
   feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-- id: sim-rudolfsheim-54
+- id: sim-rudolfsheim-37
   tf: tf:rudolfsheim-37
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-fuenfhaus-24
-  tf: tf:fuenfhaus-38
-  vendor: sim
+  vendor: huawei
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-fuenfhaus-91
+  ev_kw: 11
+  heat: boiler
+- id: sim-rudolfsheim-86
+  tf: tf:rudolfsheim-37
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-fuenfhaus-32
   tf: tf:fuenfhaus-38
   vendor: goodwe
   kw: 5
@@ -1549,174 +1604,118 @@ devices:
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
+  heat: boiler
+- id: sim-fuenfhaus-38
+  tf: tf:fuenfhaus-38
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-fuenfhaus-88
+  tf: tf:fuenfhaus-38
+  vendor: goodwe
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
 - id: sim-fuenfhaus-72
   tf: tf:fuenfhaus-38
-  vendor: huawei
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-fuenfhaus-96
-  tf: tf:fuenfhaus-38
-  vendor: fronius
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-schmelz-90
-  tf: tf:schmelz-39
-  vendor: huawei
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-schmelz-12
-  tf: tf:schmelz-39
-  vendor: fronius
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-schmelz-75
-  tf: tf:schmelz-39
-  vendor: fronius
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-schmelz-42
-  tf: tf:schmelz-39
-  vendor: huawei
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-meidling-53
-  tf: tf:meidling-40
-  vendor: fronius
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-meidling-83
-  tf: tf:meidling-40
-  vendor: sim
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-meidling-13
-  tf: tf:meidling-40
-  vendor: sim
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  heat: boiler
-- id: sim-altmannsdorf-89
-  tf: tf:altmannsdorf-41
-  vendor: fronius
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-altmannsdorf-45
-  tf: tf:altmannsdorf-41
-  vendor: fronius
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-altmannsdorf-36
-  tf: tf:altmannsdorf-41
-  vendor: fronius
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-altmannsdorf-99
-  tf: tf:altmannsdorf-41
-  vendor: huawei
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-hetzendorf-85
-  tf: tf:hetzendorf-42
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-hetzendorf-69
-  tf: tf:hetzendorf-42
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-hetzendorf-26
-  tf: tf:hetzendorf-42
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  heat: boiler
-- id: sim-margareten-99
-  tf: tf:margareten-43
   vendor: goodwe
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
-  ev_kw: 11
-- id: sim-margareten-19
-  tf: tf:margareten-43
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
+  heat: heatpump
+- id: sim-schmelz-57
+  tf: tf:schmelz-39
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
   represents: 30
-  ev_kw: 11
-- id: sim-margareten-15
-  tf: tf:margareten-43
+- id: sim-schmelz-15
+  tf: tf:schmelz-39
   vendor: sma
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: boiler
-- id: sim-wieden-57
-  tf: tf:wieden-44
+  ev_kw: 11
+  heat: heatpump
+- id: sim-schmelz-64
+  tf: tf:schmelz-39
   vendor: sim
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-wieden-18
-  tf: tf:wieden-44
+  heat: boiler
+- id: sim-meidling-83
+  tf: tf:meidling-40
+  vendor: huawei
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-meidling-47
+  tf: tf:meidling-40
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-meidling-90
+  tf: tf:meidling-40
   vendor: sma
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-- id: sim-wieden-56
-  tf: tf:wieden-44
+  ev_kw: 11
+  heat: heatpump
+- id: sim-altmannsdorf-52
+  tf: tf:altmannsdorf-41
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-altmannsdorf-19
+  tf: tf:altmannsdorf-41
+  vendor: huawei
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-altmannsdorf-84
+  tf: tf:altmannsdorf-41
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-hetzendorf-38
+  tf: tf:hetzendorf-42
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-hetzendorf-78
+  tf: tf:hetzendorf-42
   vendor: huawei
   kw: 5
   kwh: 15
@@ -1724,267 +1723,383 @@ devices:
   represents: 30
   ev_kw: 11
   heat: boiler
-- id: sim-mariahilf-84
-  tf: tf:mariahilf-45
+- id: sim-hetzendorf-39
+  tf: tf:hetzendorf-42
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-margareten-78
+  tf: tf:margareten-43
   vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-margareten-74
+  tf: tf:margareten-43
+  vendor: huawei
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-margareten-72
+  tf: tf:margareten-43
+  vendor: sma
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  heat: boiler
+- id: sim-margareten-53
+  tf: tf:margareten-43
+  vendor: huawei
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+- id: sim-margareten-17
+  tf: tf:margareten-43
+  vendor: fronius
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-wieden-62
+  tf: tf:wieden-44
+  vendor: goodwe
   kw: 8
   kwh: 15
   feedin_max_kw: 8
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-wieden-14
+  tf: tf:wieden-44
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-wieden-13
+  tf: tf:wieden-44
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
   heat: heatpump
-- id: sim-mariahilf-51
-  tf: tf:mariahilf-45
-  vendor: huawei
-  kw: 8
+- id: sim-wieden-50
+  tf: tf:wieden-44
+  vendor: sim
+  kw: 5
   kwh: 15
-  feedin_max_kw: 8
+  feedin_max_kw: 5
   represents: 30
   ev_kw: 11
+- id: sim-mariahilf-99
+  tf: tf:mariahilf-45
+  vendor: fronius
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
 - id: sim-mariahilf-57
   tf: tf:mariahilf-45
   vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
   heat: boiler
-- id: sim-landstrasse-37
-  tf: tf:landstrasse-46
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-landstrasse-19
-  tf: tf:landstrasse-46
+- id: sim-mariahilf-83
+  tf: tf:mariahilf-45
   vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-landstrasse-99
-  tf: tf:landstrasse-46
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-erdberg-34
-  tf: tf:erdberg-47
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-erdberg-28
-  tf: tf:erdberg-47
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-erdberg-80
-  tf: tf:erdberg-47
-  vendor: huawei
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  heat: boiler
-- id: sim-erdberg-58
-  tf: tf:erdberg-47
-  vendor: sma
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
+  ev_kw: 11
+- id: sim-mariahilf-21
+  tf: tf:mariahilf-45
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-st-marx-57
-  tf: tf:st-marx-48
+- id: sim-mariahilf-31
+  tf: tf:mariahilf-45
+  vendor: huawei
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-landstrasse-55
+  tf: tf:landstrasse-46
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-landstrasse-12
+  tf: tf:landstrasse-46
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+- id: sim-landstrasse-67
+  tf: tf:landstrasse-46
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-landstrasse-29
+  tf: tf:landstrasse-46
+  vendor: sim
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-erdberg-98
+  tf: tf:erdberg-47
+  vendor: goodwe
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-erdberg-20
+  tf: tf:erdberg-47
   vendor: goodwe
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
-  heat: boiler
-- id: sim-st-marx-60
+  ev_kw: 11
+  heat: heatpump
+- id: sim-erdberg-62
+  tf: tf:erdberg-47
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-st-marx-24
   tf: tf:st-marx-48
-  vendor: sma
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-st-marx-98
+  tf: tf:st-marx-48
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-st-marx-59
+  tf: tf:st-marx-48
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-st-marx-91
+  tf: tf:st-marx-48
+  vendor: sim
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
+- id: sim-leopoldstadt-29
+  tf: tf:leopoldstadt-49
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-leopoldstadt-30
+  tf: tf:leopoldstadt-49
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-leopoldstadt-25
+  tf: tf:leopoldstadt-49
+  vendor: fronius
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-leopoldstadt-34
+  tf: tf:leopoldstadt-49
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-prater-68
+  tf: tf:prater-50
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
   heat: heatpump
-- id: sim-st-marx-11
-  tf: tf:st-marx-48
+- id: sim-prater-39
+  tf: tf:prater-50
   vendor: goodwe
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-prater-78
+  tf: tf:prater-50
+  vendor: sim
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
   heat: heatpump
-- id: sim-leopoldstadt-72
-  tf: tf:leopoldstadt-49
+- id: sim-prater-69
+  tf: tf:prater-50
+  vendor: goodwe
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-stuwerviertel-96
+  tf: tf:stuwerviertel-51
   vendor: huawei
   kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
-  heat: boiler
-- id: sim-leopoldstadt-27
-  tf: tf:leopoldstadt-49
+- id: sim-stuwerviertel-20
+  tf: tf:stuwerviertel-51
+  vendor: goodwe
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-stuwerviertel-64
+  tf: tf:stuwerviertel-51
+  vendor: sma
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-stuwerviertel-88
+  tf: tf:stuwerviertel-51
   vendor: huawei
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-leopoldstadt-91
-  tf: tf:leopoldstadt-49
-  vendor: fronius
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-prater-57
-  tf: tf:prater-50
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-prater-83
-  tf: tf:prater-50
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-prater-35
-  tf: tf:prater-50
-  vendor: sma
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-prater-51
-  tf: tf:prater-50
-  vendor: fronius
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-stuwerviertel-60
-  tf: tf:stuwerviertel-51
-  vendor: fronius
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-stuwerviertel-79
-  tf: tf:stuwerviertel-51
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-stuwerviertel-12
-  tf: tf:stuwerviertel-51
-  vendor: sma
+- id: sim-innere-stadt-62
+  tf: tf:innere-stadt-52
+  vendor: huawei
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
-- id: sim-stuwerviertel-67
-  tf: tf:stuwerviertel-51
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-innere-stadt-65
+  tf: tf:innere-stadt-52
   vendor: huawei
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
   heat: heatpump
-- id: sim-innere-stadt-53
+- id: sim-innere-stadt-40
   tf: tf:innere-stadt-52
   vendor: sma
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-innere-stadt-10
-  tf: tf:innere-stadt-52
-  vendor: goodwe
   kw: 10
-  kwh: 20
+  kwh: 25
   feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-innere-stadt-44
-  tf: tf:innere-stadt-52
-  vendor: sma
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
   represents: 30
 - id: sim-innere-stadt-31
   tf: tf:innere-stadt-52
-  vendor: goodwe
+  vendor: huawei
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-innere-stadt-37
-  tf: tf:innere-stadt-52
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
+  ev_kw: 11
   heat: heatpump
-- id: sim-josefstadt-92
+- id: sim-josefstadt-80
+  tf: tf:josefstadt-53
+  vendor: goodwe
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-josefstadt-64
   tf: tf:josefstadt-53
   vendor: goodwe
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: heatpump
-- id: sim-josefstadt-98
+  ev_kw: 11
+- id: sim-josefstadt-86
+  tf: tf:josefstadt-53
+  vendor: sim
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-josefstadt-51
   tf: tf:josefstadt-53
   vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-josefstadt-59
-  tf: tf:josefstadt-53
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-alsergrund-36
+  heat: boiler
+- id: sim-alsergrund-79
   tf: tf:alsergrund-54
   vendor: sim
   kw: 5
@@ -1992,41 +2107,47 @@ devices:
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-alsergrund-23
+  heat: heatpump
+- id: sim-alsergrund-44
   tf: tf:alsergrund-54
-  vendor: fronius
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
+  vendor: goodwe
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
   represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-alsergrund-96
+- id: sim-alsergrund-72
   tf: tf:alsergrund-54
-  vendor: sma
+  vendor: huawei
   kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-korneuburg-38
-  tf: tf:korneuburg-55
-  vendor: sim
-  kw: 5
-  kwh: 15
+  kwh: 10
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-korneuburg-44
-  tf: tf:korneuburg-55
-  vendor: goodwe
+  heat: heatpump
+- id: sim-alsergrund-66
+  tf: tf:alsergrund-54
+  vendor: sim
   kw: 10
-  kwh: 25
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+- id: sim-alsergrund-59
+  tf: tf:alsergrund-54
+  vendor: sim
+  kw: 10
+  kwh: 20
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-korneuburg-47
+- id: sim-korneuburg-73
+  tf: tf:korneuburg-55
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-korneuburg-42
   tf: tf:korneuburg-55
   vendor: sma
   kw: 5
@@ -2034,198 +2155,196 @@ devices:
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-langenzersdorf-45
+  heat: heatpump
+- id: sim-korneuburg-92
+  tf: tf:korneuburg-55
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-langenzersdorf-88
   tf: tf:langenzersdorf-56
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-langenzersdorf-23
+  tf: tf:langenzersdorf-56
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-langenzersdorf-20
+  tf: tf:langenzersdorf-56
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-langenzersdorf-64
+  tf: tf:langenzersdorf-56
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-bisamberg-34
+  tf: tf:bisamberg-57
+  vendor: goodwe
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-bisamberg-13
+  tf: tf:bisamberg-57
+  vendor: huawei
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-bisamberg-54
+  tf: tf:bisamberg-57
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-gerasdorf-49
+  tf: tf:gerasdorf-58
+  vendor: sim
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump
+- id: sim-gerasdorf-39
+  tf: tf:gerasdorf-58
+  vendor: sim
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump
+- id: sim-gerasdorf-73
+  tf: tf:gerasdorf-58
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-gerasdorf-25
+  tf: tf:gerasdorf-58
+  vendor: huawei
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+- id: sim-seyring-34
+  tf: tf:seyring-59
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-seyring-36
+  tf: tf:seyring-59
+  vendor: fronius
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-seyring-82
+  tf: tf:seyring-59
+  vendor: goodwe
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-kapellerfeld-97
+  tf: tf:kapellerfeld-60
+  vendor: sma
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-kapellerfeld-83
+  tf: tf:kapellerfeld-60
   vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-langenzersdorf-49
-  tf: tf:langenzersdorf-56
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-langenzersdorf-70
-  tf: tf:langenzersdorf-56
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-langenzersdorf-69
-  tf: tf:langenzersdorf-56
+- id: sim-kapellerfeld-12
+  tf: tf:kapellerfeld-60
   vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  heat: boiler
-- id: sim-langenzersdorf-97
-  tf: tf:langenzersdorf-56
-  vendor: huawei
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-bisamberg-20
-  tf: tf:bisamberg-57
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: boiler
-- id: sim-bisamberg-94
-  tf: tf:bisamberg-57
-  vendor: sma
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-bisamberg-82
-  tf: tf:bisamberg-57
-  vendor: sma
   kw: 8
   kwh: 15
   feedin_max_kw: 8
   represents: 30
-  heat: boiler
-- id: sim-gerasdorf-92
-  tf: tf:gerasdorf-58
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-gerasdorf-80
-  tf: tf:gerasdorf-58
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
   heat: heatpump
-- id: sim-gerasdorf-54
-  tf: tf:gerasdorf-58
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-gerasdorf-24
-  tf: tf:gerasdorf-58
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: heatpump
-- id: sim-seyring-60
-  tf: tf:seyring-59
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-seyring-83
-  tf: tf:seyring-59
+- id: sim-kapellerfeld-44
+  tf: tf:kapellerfeld-60
   vendor: goodwe
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: boiler
-- id: sim-seyring-20
-  tf: tf:seyring-59
-  vendor: huawei
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
   heat: heatpump
-- id: sim-kapellerfeld-65
-  tf: tf:kapellerfeld-60
-  vendor: huawei
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-kapellerfeld-14
-  tf: tf:kapellerfeld-60
-  vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-kapellerfeld-74
-  tf: tf:kapellerfeld-60
-  vendor: sim
-  kw: 10
+- id: sim-stockerau-46
+  tf: tf:stockerau-61
+  vendor: goodwe
+  kw: 8
   kwh: 20
-  feedin_max_kw: 10
+  feedin_max_kw: 8
   represents: 30
-- id: sim-stockerau-17
+  heat: heatpump
+- id: sim-stockerau-16
+  tf: tf:stockerau-61
+  vendor: sim
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: heatpump
+- id: sim-stockerau-52
+  tf: tf:stockerau-61
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+- id: sim-stockerau-80
   tf: tf:stockerau-61
   vendor: fronius
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-stockerau-98
-  tf: tf:stockerau-61
-  vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-stockerau-60
-  tf: tf:stockerau-61
-  vendor: goodwe
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
   heat: boiler
-- id: sim-stockerau-92
-  tf: tf:stockerau-61
-  vendor: goodwe
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-leobendorf-18
-  tf: tf:leobendorf-62
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-- id: sim-leobendorf-59
+- id: sim-leobendorf-60
   tf: tf:leobendorf-62
   vendor: huawei
   kw: 5
@@ -2233,45 +2352,42 @@ devices:
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-leobendorf-36
+  heat: boiler
+- id: sim-leobendorf-40
+  tf: tf:leobendorf-62
+  vendor: fronius
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-leobendorf-92
+  tf: tf:leobendorf-62
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-leobendorf-23
   tf: tf:leobendorf-62
   vendor: sim
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-leobendorf-48
-  tf: tf:leobendorf-62
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-leobendorf-52
-  tf: tf:leobendorf-62
-  vendor: sma
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-spillern-20
+- id: sim-spillern-30
   tf: tf:spillern-63
-  vendor: goodwe
+  vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: heatpump
-- id: sim-spillern-23
-  tf: tf:spillern-63
-  vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-spillern-43
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-spillern-56
   tf: tf:spillern-63
   vendor: huawei
   kw: 8
@@ -2279,298 +2395,285 @@ devices:
   feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-- id: sim-doebling-38
+  heat: heatpump
+- id: sim-spillern-77
+  tf: tf:spillern-63
+  vendor: sma
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-spillern-39
+  tf: tf:spillern-63
+  vendor: sma
+  kw: 10
+  kwh: 25
+  feedin_max_kw: 10
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-spillern-59
+  tf: tf:spillern-63
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-doebling-44
   tf: tf:doebling-64
   vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-doebling-47
+  heat: boiler
+- id: sim-doebling-11
   tf: tf:doebling-64
-  vendor: sma
+  vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
-  heat: heatpump
 - id: sim-doebling-59
   tf: tf:doebling-64
-  vendor: goodwe
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-doebling-49
-  tf: tf:doebling-64
   vendor: sim
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-grinzing-52
-  tf: tf:grinzing-65
-  vendor: sim
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-grinzing-98
-  tf: tf:grinzing-65
-  vendor: goodwe
+  heat: heatpump+boiler
+- id: sim-doebling-51
+  tf: tf:doebling-64
+  vendor: huawei
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-grinzing-31
+- id: sim-grinzing-50
+  tf: tf:grinzing-65
+  vendor: goodwe
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-grinzing-23
   tf: tf:grinzing-65
   vendor: sma
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-grinzing-21
-  tf: tf:grinzing-65
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-grinzing-90
-  tf: tf:grinzing-65
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-  heat: boiler
-- id: sim-nussdorf-99
-  tf: tf:nussdorf-66
-  vendor: huawei
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  heat: heatpump
-- id: sim-nussdorf-15
-  tf: tf:nussdorf-66
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-nussdorf-47
-  tf: tf:nussdorf-66
-  vendor: huawei
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-grinzing-80
+  tf: tf:grinzing-65
+  vendor: sma
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-nussdorf-21
+  tf: tf:nussdorf-66
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-nussdorf-73
+  tf: tf:nussdorf-66
+  vendor: goodwe
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
   heat: heatpump
 - id: sim-nussdorf-44
   tf: tf:nussdorf-66
-  vendor: huawei
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-waehring-14
-  tf: tf:waehring-67
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-waehring-90
-  tf: tf:waehring-67
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: heatpump
-- id: sim-waehring-16
-  tf: tf:waehring-67
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  heat: heatpump
-- id: sim-waehring-52
-  tf: tf:waehring-67
-  vendor: goodwe
-  kw: 5
-  kwh: 15
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-gersthof-64
-  tf: tf:gersthof-68
-  vendor: goodwe
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
-  ev_kw: 11
-- id: sim-gersthof-85
-  tf: tf:gersthof-68
-  vendor: goodwe
-  kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-gersthof-78
-  tf: tf:gersthof-68
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-gersthof-44
-  tf: tf:gersthof-68
-  vendor: goodwe
-  kw: 10
-  kwh: 25
-  feedin_max_kw: 10
-  represents: 30
-  ev_kw: 11
-- id: sim-gersthof-27
-  tf: tf:gersthof-68
   vendor: sma
   kw: 10
-  kwh: 20
-  feedin_max_kw: 10
-  represents: 30
-- id: sim-poetzleinsdorf-54
-  tf: tf:poetzleinsdorf-69
-  vendor: goodwe
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-  ev_kw: 11
-  heat: boiler
-- id: sim-poetzleinsdorf-53
-  tf: tf:poetzleinsdorf-69
-  vendor: sim
-  kw: 8
-  kwh: 20
-  feedin_max_kw: 8
-  represents: 30
-- id: sim-poetzleinsdorf-74
-  tf: tf:poetzleinsdorf-69
-  vendor: goodwe
-  kw: 10
   kwh: 25
   feedin_max_kw: 10
   represents: 30
-  heat: boiler
-- id: sim-poetzleinsdorf-48
-  tf: tf:poetzleinsdorf-69
-  vendor: sim
-  kw: 8
-  kwh: 15
-  feedin_max_kw: 8
-  represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-poetzleinsdorf-68
-  tf: tf:poetzleinsdorf-69
-  vendor: sim
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
   heat: heatpump
-- id: sim-brigittenau-96
-  tf: tf:brigittenau-70
+- id: sim-nussdorf-33
+  tf: tf:nussdorf-66
   vendor: fronius
-  kw: 5
-  kwh: 10
-  feedin_max_kw: 5
-  represents: 30
-- id: sim-brigittenau-13
-  tf: tf:brigittenau-70
-  vendor: huawei
-  kw: 5
+  kw: 8
   kwh: 15
-  feedin_max_kw: 5
+  feedin_max_kw: 8
   represents: 30
-  heat: boiler
-- id: sim-brigittenau-93
-  tf: tf:brigittenau-70
+  heat: heatpump
+- id: sim-waehring-89
+  tf: tf:waehring-67
   vendor: sma
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-- id: sim-zwischenbruecken-12
-  tf: tf:zwischenbruecken-71
+  heat: heatpump+boiler
+- id: sim-waehring-94
+  tf: tf:waehring-67
+  vendor: sma
+  kw: 5
+  kwh: 15
+  feedin_max_kw: 5
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-waehring-72
+  tf: tf:waehring-67
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-waehring-39
+  tf: tf:waehring-67
+  vendor: sim
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  ev_kw: 11
+- id: sim-waehring-92
+  tf: tf:waehring-67
   vendor: fronius
   kw: 10
   kwh: 20
   feedin_max_kw: 10
   represents: 30
   ev_kw: 11
-  heat: boiler
-- id: sim-zwischenbruecken-44
-  tf: tf:zwischenbruecken-71
-  vendor: goodwe
-  kw: 8
+  heat: heatpump
+- id: sim-gersthof-46
+  tf: tf:gersthof-68
+  vendor: sma
+  kw: 5
   kwh: 15
-  feedin_max_kw: 8
+  feedin_max_kw: 5
   represents: 30
-  ev_kw: 11
+  heat: heatpump
+- id: sim-gersthof-31
+  tf: tf:gersthof-68
+  vendor: fronius
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
   heat: boiler
-- id: sim-zwischenbruecken-50
-  tf: tf:zwischenbruecken-71
-  vendor: goodwe
+- id: sim-gersthof-98
+  tf: tf:gersthof-68
+  vendor: huawei
   kw: 8
   kwh: 20
   feedin_max_kw: 8
   represents: 30
   heat: heatpump
-- id: sim-zwischenbruecken-90
-  tf: tf:zwischenbruecken-71
+- id: sim-poetzleinsdorf-20
+  tf: tf:poetzleinsdorf-69
+  vendor: goodwe
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  heat: heatpump+boiler
+- id: sim-poetzleinsdorf-93
+  tf: tf:poetzleinsdorf-69
   vendor: goodwe
   kw: 5
   kwh: 10
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-  heat: heatpump
-- id: sim-zwischenbruecken-16
-  tf: tf:zwischenbruecken-71
-  vendor: sma
-  kw: 5
+  heat: boiler
+- id: sim-poetzleinsdorf-43
+  tf: tf:poetzleinsdorf-69
+  vendor: sim
+  kw: 8
   kwh: 15
-  feedin_max_kw: 5
+  feedin_max_kw: 8
   represents: 30
   heat: heatpump
-- id: sim-nordbahnhof-39
-  tf: tf:nordbahnhof-72
-  vendor: sma
+- id: sim-brigittenau-98
+  tf: tf:brigittenau-70
+  vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
   ev_kw: 11
-- id: sim-nordbahnhof-55
+- id: sim-brigittenau-90
+  tf: tf:brigittenau-70
+  vendor: huawei
+  kw: 5
+  kwh: 10
+  feedin_max_kw: 5
+  represents: 30
+  heat: boiler
+- id: sim-brigittenau-74
+  tf: tf:brigittenau-70
+  vendor: goodwe
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  heat: boiler
+- id: sim-brigittenau-34
+  tf: tf:brigittenau-70
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: boiler
+- id: sim-zwischenbruecken-75
+  tf: tf:zwischenbruecken-71
+  vendor: huawei
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump+boiler
+- id: sim-zwischenbruecken-47
+  tf: tf:zwischenbruecken-71
+  vendor: sma
+  kw: 10
+  kwh: 20
+  feedin_max_kw: 10
+  represents: 30
+  heat: boiler
+- id: sim-zwischenbruecken-62
+  tf: tf:zwischenbruecken-71
+  vendor: sma
+  kw: 8
+  kwh: 20
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+- id: sim-nordbahnhof-25
+  tf: tf:nordbahnhof-72
+  vendor: fronius
+  kw: 8
+  kwh: 15
+  feedin_max_kw: 8
+  represents: 30
+  ev_kw: 11
+  heat: heatpump
+- id: sim-nordbahnhof-89
   tf: tf:nordbahnhof-72
   vendor: sma
   kw: 8
@@ -2578,14 +2681,15 @@ devices:
   feedin_max_kw: 8
   represents: 30
   ev_kw: 11
-- id: sim-nordbahnhof-73
+  heat: boiler
+- id: sim-nordbahnhof-36
   tf: tf:nordbahnhof-72
-  vendor: goodwe
+  vendor: fronius
   kw: 5
   kwh: 15
   feedin_max_kw: 5
   represents: 30
-  heat: heatpump
+  ev_kw: 11
 policy:
   max_window_min: 240
   max_stretch_window_min: 4320

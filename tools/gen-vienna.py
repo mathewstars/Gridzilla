@@ -57,8 +57,10 @@ for sub, sd in SUBS.items():
                 hid = f"sim-{name}-{random.randint(10, 99)}"
                 while any(d["id"] == hid for d in devices): hid = f"sim-{name}-{random.randint(10, 99)}"
                 kw = random.choice([5, 5, 8, 10]); kwh = {5: 10, 8: 15, 10: 20}[kw] + random.choice([0, 5])
-                combo = random.choices(["battery", "battery+ev", "battery+hp", "battery+boiler", "battery+ev+hp", "battery+ev+boiler"], [0.20, 0.20, 0.20, 0.10, 0.20, 0.10])[0]
-                has_ev = "ev" in combo; heat = "heatpump" if "hp" in combo else ("boiler" if "boiler" in combo else "none")
+                combo = random.choices(["battery", "battery+ev", "battery+hp", "battery+boiler", "battery+ev+hp", "battery+ev+boiler", "battery+hp+boiler", "battery+ev+hp+boiler"],
+                                       [0.12, 0.16, 0.16, 0.08, 0.20, 0.08, 0.08, 0.12])[0]
+                has_ev = "ev" in combo; heats = [t for t in ("heatpump", "boiler") if (t == "heatpump" and "hp" in combo) or (t == "boiler" and "boiler" in combo)]
+                heat = "+".join(heats) if heats else "none"
                 devices.append({"id": hid, "tf": tf, "vendor": random.choice(["sim", "goodwe", "huawei", "fronius", "sma"]),
                                 "kw": kw, "kwh": kwh, "feedin_max_kw": kw, "represents": REPRESENTS,
                                 **({"ev_kw": 11} if has_ev else {}), **({"heat": heat} if heat != "none" else {})})
@@ -68,12 +70,14 @@ for sub, sd in SUBS.items():
                      "owner": {"min_soc": random.choice([15, 20, 20, 25, 30]), "max_charge_kw": kw, "max_discharge_kw": kw, "opt_out": False}}
                 if has_ev:
                     h["ev"] = {"kw": random.choice([7.4, 11, 11, 22]), "plugged": random.choice([[17, 23], [18, 23], [10, 16], [19, 24]])}
-                if heat == "heatpump":
-                    h["heat"] = {"type": "heatpump", "kw": random.choice([2.5, 3, 4]), "tank_l": random.choice([200, 300]), "dhw_set_c": random.choice([48, 50, 52]),
-                                 "floor_c": 40, "boost_c": 55}
-                elif heat == "boiler":
-                    h["heat"] = {"type": "boiler", "kw": random.choice([2, 3]), "tank_l": random.choice([120, 200]), "dhw_set_c": random.choice([55, 60]),
-                                 "floor_c": 45, "boost_c": 65}
+                h["heat"] = []
+                if "heatpump" in heats:
+                    h["heat"].append({"type": "heatpump", "kw": random.choice([2.5, 3, 4]), "tank_l": random.choice([200, 300]), "dhw_set_c": random.choice([48, 50, 52]),
+                                      "floor_c": 40, "boost_c": 55})
+                if "boiler" in heats:
+                    h["heat"].append({"type": "boiler", "kw": random.choice([2, 3]), "tank_l": random.choice([120, 200]), "dhw_set_c": random.choice([55, 60]),
+                                      "floor_c": 45, "boost_c": 65})
+                if not h["heat"]: del h["heat"]
                 houses.append(h)
 
 # the real plant and its heat pump stay on the first transformer (Blatnica demo plant on top)
@@ -100,4 +104,5 @@ hdr = ("# Gridzilla registry: Vienna-scale grid tree and the devices in the prog
 n_tf = sum(1 for t in tree if t.startswith("tf:"))
 print(f"tree: {len(SUBS)} substations, {sum(len(s['feeders']) for s in SUBS.values())} feeders, {n_tf} transformers; "
       f"{len(devices)} simulated households (+2 real) = {REPRESENTS * (len(devices) + 2)} houses represented; "
-      f"EV: {sum(1 for d in devices if 'ev_kw' in d)}, heat pumps: {sum(1 for d in devices if d.get('heat') == 'heatpump')}, boilers: {sum(1 for d in devices if d.get('heat') == 'boiler')}")
+      f"EV: {sum(1 for d in devices if 'ev_kw' in d)}, heat pumps: {sum(1 for d in devices if 'heatpump' in d.get('heat', ''))}, boilers: {sum(1 for d in devices if 'boiler' in d.get('heat', ''))}, "
+      f"all four: {sum(1 for d in devices if 'ev_kw' in d and d.get('heat') == 'heatpump+boiler')}")
