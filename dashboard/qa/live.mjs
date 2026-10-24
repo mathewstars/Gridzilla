@@ -61,7 +61,7 @@ if (!arg("no-rec", false)) {
     await ready(page, 3000);
     const dir = `${out}/rec-${size}`;
     fs.mkdirSync(dir, { recursive: true });
-    const seq0 = await page.evaluate(() => window.__gz?.state?.seq ?? null);
+    const seq0 = await page.evaluate(() => window.__gz?.state?.now ?? null); // server time of the last poll
     const shots = [];
     for (let i = 0; i < 20; i++) {
       const p = `${dir}/f${String(i).padStart(2, "0")}.png`;
@@ -69,7 +69,7 @@ if (!arg("no-rec", false)) {
       shots.push(fs.readFileSync(p));
       await page.waitForTimeout(500);
     }
-    const seq1 = await page.evaluate(() => window.__gz?.state?.seq ?? null);
+    const seq1 = await page.evaluate(() => window.__gz?.state?.now ?? null);
     const changed = shots.some((b, i) => i && !b.equals(shots[0]));
     if (!changed) F.motion.push(`${size}: nothing changed in 10 s`);
     if (seq0 != null && seq1 === seq0) F.motion.push(`${size}: no new data arrived in 10 s`);

@@ -97,7 +97,7 @@ function audit() {
       if (Math.abs(val - truth) > tol) F.mismatch.push(`${src}: page ${val} vs api ${truth}`);
     }
     // the text on screen must be the formatted data-val (after the counter settles)
-    const text = host.getAttribute("aria-label") || host.textContent; // Counter: the settled value, not a mid-glide frame
+    const text = host.getAttribute("aria-label") || [...host.querySelectorAll("[aria-label]")].map((e) => e.getAttribute("aria-label")).find((l) => /\d/.test(l)) || host.textContent; // Counter: the settled value, not a mid-glide frame
     const shown = parseFloat((text.match(/[-−]?\d[\d,]*(?:\.\d+)?/) || [""])[0].replace(/−/, "-").replace(/,/g, ""));
     const scale = parseFloat(host.dataset.scale || "1");
     if (!Number.isNaN(val) && !Number.isNaN(shown)) {
