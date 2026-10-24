@@ -17,10 +17,11 @@ act on the planner's target, which is always the first of its allowed segments.
 
 gridzilla.py runs as __main__, so this module never imports it: every function takes the gridzilla module as `g`.
 """
-import os, time
+import os, threading, time
 from datetime import datetime, timezone
 
-TIMEOUT_S = float(os.environ.get("GZ_LLM_TIMEOUT_S", "15"))    # real seconds; at GZ_SIM_X=60 that is 15 grid minutes
+TIMEOUT_S = float(os.environ.get("GZ_LLM_TIMEOUT_S", "15"))    # real seconds for the whole call; at GZ_SIM_X=60 15 grid minutes
+SIMULATED = "AI outage simulated (demo)"
 BREAKER_AFTER = 2                                              # consecutive AI failures that open the breaker
 BREAKER_S = 60                                                 # real seconds the breaker stays open before a probe
 
@@ -33,8 +34,7 @@ class Brain:
         self.simulated_down = False
         self.failures = 0
         self.open_until = None          # epoch seconds, None = breaker closed
-        self.ok = True
-        self.last_error = None
+        self.last_error = None          # last REAL failure; a simulated outage shows as simulated_down
         self.last = None                # "ai" | "rules": who produced the last decision
 
     def available(self, llm_url):
@@ -42,32 +42,30 @@ class Brain:
         if not llm_url:
             return False, "GZ_LLM_URL not set, rules only"
         if self.simulated_down:
-            return False, "AI outage simulated (demo)"
+            return False, SIMULATED
         if self.open_until is not None and self.clock() < self.open_until:
             return False, f"circuit breaker open after {self.failures} failures"
         return True, None
 
     def success(self):
-        self.failures, self.open_until, self.ok, self.last_error = 0, None, True, None
+        self.failures, self.open_until, self.last_error = 0, None, None
 
     def failure(self, err):
         self.failures += 1
-        self.ok, self.last_error = False, err
+        self.last_error = err
         if self.failures >= BREAKER_AFTER:
             self.open_until = self.clock() + BREAKER_S
 
     def simulate(self, down):
+        """Demo switch. Never touches the real failure count or error; "up" lets the next decision probe the AI
+        at once, and only a good answer clears a real failure."""
         self.simulated_down = down
-        if down:
-            self.ok, self.last_error = False, "AI outage simulated (demo)"
-        else:                            # operator says the AI is back: probe it on the next decision
+        if not down:
             self.open_until = None
-            if self.last_error == "AI outage simulated (demo)":
-                self.ok, self.last_error = True, None
 
     def public(self, llm_url):
         until = self.open_until if self.open_until is not None and self.clock() < self.open_until else None
-        return {"ok": bool(llm_url) and self.ok and not self.simulated_down and until is None,
+        return {"ok": bool(llm_url) and self.failures == 0 and not self.simulated_down and until is None,
                 "simulated_down": self.simulated_down, "failures": self.failures,
                 "breaker_open_until": datetime.fromtimestamp(until, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if until else None,
                 "last_error": self.last_error if llm_url else "GZ_LLM_URL not set, rules only", "timeout_s": TIMEOUT_S}
@@ -85,12 +83,33 @@ def err_text(e):
     return f"{type(e).__name__}: {getattr(e, 'detail', None) or e}"[:200]
 
 
+def call_with_deadline(fn, timeout):
+    """fn() in a worker thread, abandoned after `timeout` real seconds. urllib's timeout is per socket operation, so a
+    server that drips a byte at a time (or a hanging DNS lookup) could otherwise hold the autopilot forever."""
+    box = {}
+
+    def run():
+        try:
+            box["p"] = fn()
+        except BaseException as e:
+            box["e"] = e
+    t = threading.Thread(target=run, name="gz-llm-call", daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        raise TimeoutError(f"no complete answer within {timeout:g} s")
+    if "e" in box:
+        raise box["e"]
+    return box["p"]
+
+
 def check_answer(g, p):
     """DeepSeek answered, but is it usable? Anything that is not a known mode on a known segment counts as garbage."""
     if not isinstance(p, dict):
         raise ValueError("answer is not a JSON object")
     mode = p.get("mode")
-    if mode == "NONE":
+    if isinstance(mode, str) and mode.strip().upper() == "NONE":      # a loosely written "no signal" is still a decision
+        p.update(mode="NONE", guard=None)
         return
     if mode not in g.MODE_FIELDS:
         raise ValueError(f"garbage answer: unknown mode {mode!r}")
@@ -107,18 +126,20 @@ def decide(g, situation, focus):
     if ok:
         g.AP["stage"] = "deepseek"
         try:
-            p = g.ask_llm(situation, focus)
+            p = call_with_deadline(lambda: g.ask_llm(situation, focus), TIMEOUT_S + 1)   # +1: the socket timeout normally fires first
             check_answer(g, p)
-            if BRAIN.simulated_down:      # the outage switch was thrown while the call was in flight
-                raise RuntimeError("AI outage simulated (demo) during the call")
+        except Exception as e:
+            p, why = None, err_text(e)
+            if not BRAIN.simulated_down:  # a call cut short by the demo switch is not a real failure
+                BRAIN.failure(why)
+                g.log("autopilot", f"AI failed ({why})" + (f", breaker open for {BREAKER_S} s" if BRAIN.open_until else "")
+                      + ", safety rules take over")
+        if p is not None and BRAIN.simulated_down:    # the outage switch was thrown while the call was in flight
+            p, why = None, SIMULATED
+        elif p is not None:
             BRAIN.success()
             p["source"] = BRAIN.last = "ai"
             return p
-        except Exception as e:
-            BRAIN.failure(err_text(e))
-            why = BRAIN.last_error
-            g.log("autopilot", f"AI failed ({why})" + (f", breaker open for {BREAKER_S} s" if BRAIN.open_until else "")
-                  + ", safety rules take over")
     g.AP["stage"] = "rules"
     p = rules_proposal(g, focus, why or "AI unavailable")
     p["source"] = BRAIN.last = "rules"
@@ -154,7 +175,10 @@ def rules_proposal(g, focus, why="AI unavailable"):
     if not focus or node not in g.TREE or node not in (focus.get("choices") or []):
         return needs_op(f"{why}; this trigger needs a human (no automatic PREPARE / STRETCH / RECOVER)")
     if focus.get("release"):
-        sig = g.state["active"].get(node) or {}
+        sig = g.state["active"].get(node)
+        if not sig:                       # it ended while the AI was timing out: nothing left to release
+            return {"mode": "NONE", "segment": None, "fields": None, "guard": None, "latency_ms": 0,
+                    "rationale": f"AI offline: {why}. The signal on {node} already ended, nothing to release."}
         p = {"segment": node, "mode": "RELEASE", "fields": {}, "duration_min": float(g.ENV_SLOT_SIM_MIN), "start_in_min": 0,
              "note": "The grid event is over, thank you.",
              "rationale": f"AI offline: {why}. Safety rule: every transformer under {node} is forecast below "

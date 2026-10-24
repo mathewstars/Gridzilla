@@ -134,7 +134,10 @@ class Rules(Base):
             self.assertEqual(fallback.duration_sim_min(g, TF, "export"), g.ENV_SLOT_SIM_MIN)
 
     def test_release_and_warning(self):
-        p = fallback.rules_proposal(g, {"node": TF, "choices": [TF], "release": True}, "test")
+        f = {"node": TF, "choices": [TF], "release": True}
+        self.assertEqual(fallback.rules_proposal(g, f, "test")["mode"], "NONE")     # the signal already ended
+        g.state["active"][TF] = {"seq": 7, "mode": "SUPPORT", "valid_to": g.iso(g.now() + timedelta(minutes=30))}
+        p = fallback.rules_proposal(g, f, "test")
         self.assertEqual((p["mode"], p["segment"], p["guard"]), ("RELEASE", TF, None))
         p = fallback.rules_proposal(g, None, "test")
         self.assertEqual(p["mode"], "NONE")
@@ -218,6 +221,71 @@ class Wiring(Base):
                 c.close()
         self.assertEqual((g.AP["history"][0]["source"], g.AP["history"][0]["verdict"]), ("rules", "sent"))
 
+    def test_slow_drip_llm_is_cut_at_the_total_deadline(self):
+        """urllib's timeout is per socket read: a server dripping one byte at a time must still lose after TIMEOUT_S."""
+        srv = socket.socket()
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(1)
+        stop = threading.Event()
+
+        def drip():
+            c, _ = srv.accept()
+            c.recv(65536)
+            c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 100000\r\n\r\n")
+            while not stop.wait(0.1):
+                try:
+                    c.sendall(b" ")
+                except OSError:
+                    break
+            c.close()
+        threading.Thread(target=drip, daemon=True).start()
+        self.hot()
+        try:
+            with mock.patch.object(g, "LLM_URL", f"http://127.0.0.1:{srv.getsockname()[1]}/v1"), \
+                    mock.patch.object(fallback, "TIMEOUT_S", 0.5):
+                t0 = time.time()
+                g.autopilot_step()
+                self.assertLess(time.time() - t0, 4)
+        finally:
+            stop.set()
+            srv.close()
+        self.assertEqual((g.AP["history"][0]["source"], g.AP["history"][0]["verdict"]), ("rules", "sent"))
+        self.assertIn("TimeoutError", fallback.BRAIN.last_error)
+
+    def test_outage_switch_during_a_call_is_not_a_real_failure(self):
+        self.hot()
+
+        def answer_after_down(*a, **k):
+            g.demo_ai("down")
+            return llm_reply(GOOD_SUPPORT)
+        with self.urlopen(side_effect=answer_after_down):
+            g.autopilot_step()
+        self.assertEqual(g.AP["history"][0]["source"], "rules")
+        self.assertEqual((fallback.BRAIN.failures, fallback.BRAIN.last_error), (0, None))
+        g.demo_ai("up")
+        self.assertTrue(g.autopilot_public()["ai"]["ok"])
+
+    def test_demo_up_does_not_hide_a_real_outage(self):
+        self.hot()
+        with self.urlopen(side_effect=ConnectionRefusedError("dead")):
+            g.autopilot_step()
+            g.state["active"].clear()
+            g.AP["sent"].clear()
+            g.autopilot_step()
+        g.demo_ai("down")
+        g.demo_ai("up")
+        ai = g.autopilot_public()["ai"]
+        self.assertEqual((ai["ok"], ai["failures"], ai["breaker_open_until"]), (False, 2, None))   # probe on the next decision
+        self.assertIn("ConnectionRefusedError", ai["last_error"])
+
+    def test_loose_none_is_a_decision_not_garbage(self):
+        self.hot()
+        with self.urlopen(return_value=llm_reply('{"mode": "none", "rationale": "meter glitch"}')):
+            g.autopilot_step()
+        self.assertEqual((g.AP["history"][0]["source"], g.AP["history"][0]["verdict"]), ("ai", "none"))
+        self.assertEqual(fallback.BRAIN.failures, 0)
+        self.publish.assert_not_called()
+
     def test_simulated_outage_makes_no_call_and_up_returns_to_ai(self):
         self.hot()
         g.demo_ai("down")
@@ -264,7 +332,7 @@ class Wiring(Base):
         g.AP["sent"].clear()
         with self.urlopen(return_value=llm_reply('{"mode": "NONE", "rationale": "fine"}')):
             g.autopilot_step()                       # probe succeeds: closed
-        self.assertEqual((b.failures, b.open_until, b.ok), (0, None, True))
+        self.assertEqual((b.failures, b.open_until, g.autopilot_public()["ai"]["ok"]), (0, None, True))
         self.assertEqual(g.AP["history"][0]["source"], "ai")
 
     def test_rules_respect_cooldown(self):
