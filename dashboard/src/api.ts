@@ -364,6 +364,14 @@ export async function post(path: string, body?: unknown): Promise<unknown> {
 }
 
 /** Poll an endpoint every `ms`. `error` is set while the platform is unreachable; the last good value is kept. */
+/** QA gate G2 (dashboard/qa/truth.mjs): the last payload of every endpoint stays on window.__gz, so the checker can trace
+ *  each number on screen (its data-src) back to exactly what the page fetched. Keyed by endpoint (state, history, ...). */
+function publish(path: string, d: unknown) {
+  const w = window as unknown as { __gz?: Record<string, unknown> };
+  (w.__gz ??= {})[path.split("?")[0]] = d;
+  (w.__gz as Record<string, unknown>)[`${path.split("?")[0]}@`] = Date.now();
+}
+
 function usePoll<T>(path: string, ms: number, enabled = true) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<{ status?: number; message: string } | null>(null);
@@ -373,6 +381,7 @@ function usePoll<T>(path: string, ms: number, enabled = true) {
     try {
       const d = await getJSON<T>(path);
       if (my === tick.current) {
+        publish(path, d);
         setData(d);
         setError(null);
       }
