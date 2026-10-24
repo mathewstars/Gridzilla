@@ -8,6 +8,11 @@ node_modules/
 agent/keys/
 platform/state.json
 __pycache__/
+platform/state.json.tmp
+platform/state.json.bak
+platform/history.json
+platform/history.tmp
+platform/autopilot-history.json
 
 # raw video generations and the jingle copy, the final trailer lives in docs/
 video/hf_*.mp4

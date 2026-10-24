@@ -78,6 +78,7 @@ function makeHouse(cfg, keys) {
     lastSeq: loadSeq(cfg.id),
     lastHb: Date.now(),
     signal: null,          // active parsed signal
+    pendingSeq: null,      // newest accepted event signal; a start timer applies only while it is still this one
     effective: null,       // merged limits in force
     grid_kw: 0, load_kw: 0, pv_kw: 0, batt_kw: 0,
     mq: null,
@@ -250,7 +251,7 @@ function step(h) {
   h.simMinutes += SPEED;
 
   // owner reserve reached during a live event: tell the platform once that the limits can no longer be held
-  const spending = e.export_min_kw != null || e.import_max_kw != null;
+  const spending = !!h.effective && (h.effective.export_min_kw != null || h.effective.import_max_kw != null);   // an event, not the diet plan
   if (spending && h.soc <= o.min_soc && !h.reportedMinSoc) {
     h.reportedMinSoc = true;
     if (e.export_min_kw != null) { e.export_min_kw = 0; h.effective.export_min_kw = 0; }
@@ -307,7 +308,7 @@ function onSignal(h, env, platformPub) {
   if (age > 120 || age < -30) return ack(h, sig.seq, "refused", "expired");
   if (Date.parse(sig.valid_to) < Date.now()) return ack(h, sig.seq, "refused", "expired");
   h.lastSeq = sig.seq; saveSeq(h.cfg.id, sig.seq);
-  if (sig.mode === "RELEASE") { h.effective = null; h.signal = null; log(h.cfg.id, "RELEASE -> owner mode"); return ack(h, sig.seq, "applied", null); }
+  if (sig.mode === "RELEASE") { h.effective = null; h.signal = null; h.pendingSeq = null; log(h.cfg.id, "RELEASE -> owner mode"); return ack(h, sig.seq, "applied", null); }
   if (sig.mode === "SHAPE") {                                                   // the diet plan: kept beside the event signal, no heartbeat needed
     if (!sig.envelope) return ack(h, sig.seq, "refused", "shape_without_curve");
     h.shape = sig; if (!h.shapeLogged) { h.shapeLogged = true; log(h.cfg.id, `SHAPE accepted: ${sig.envelope.import_max_kw.length} slots, tonight's ceiling ${sig.envelope.import_max_kw.slice(0, 8).join("/")} kW`); }
@@ -318,7 +319,10 @@ function onSignal(h, env, platformPub) {
   const ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);
   const startIn = Math.max(0, Date.parse(sig.valid_from) - Date.now());
   log(h.cfg.id, `${sig.mode} accepted (${status}${reason ? ", " + reason : ""}), starts in ${(startIn / 1000).toFixed(0)}s, ramp ${ramp.toFixed(0)}s`);
+  h.pendingSeq = sig.seq;
   setTimeout(() => {
+    if (h.pendingSeq !== sig.seq || Date.parse(sig.valid_to) <= Date.now())   // released or replaced while waiting: never apply a stale signal
+      return log(h.cfg.id, `seq ${sig.seq} not applied (${h.pendingSeq === sig.seq ? "window over" : "released or replaced"} before it started)`);
     h.signal = sig; h.effective = eff; h.lastHb = Date.now();
     ack(h, sig.seq, status, reason);
     const live = ["ABSORB", "SUPPORT"].includes(sig.mode);                     // these need heartbeats; schedules do not

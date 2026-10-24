@@ -124,6 +124,8 @@ cd platform && ../.venv/bin/python gridzilla.py
 #    with the advisor: copy platform/.env.example to platform/.env, set GZ_LLM_KEY (gateway token), then
 ./run.sh
 #    The advisor talks ONLY to the LLM gateway on :9000. The model server itself must not be reachable.
+#    operator key (off by default): set GZ_OPERATOR_KEY in platform/.env and every button/POST needs it; the board stays readable for all.
+#    an operator logs in once per browser at https://<board>/login?key=<the key> (and /logout); scripts send the header X-GZ-Key.
 
 # 3. four simulated houses (two villages on one 22 kV feeder), two with EV chargers
 cd agent && npm install && node sim-agent.js          # GZ_SPEED=1 (default) = 1 simulated minute per second; use 2-4 to see SoC move fast

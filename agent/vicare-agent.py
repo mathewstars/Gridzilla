@@ -151,6 +151,7 @@ def apply_heat(setpoint):
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
+pending_seq = None     # newest accepted signal; a waiting go() applies only while it is still this one (RELEASE clears it)
 SAVED_FILE = KEYS / f"{DEVICE}.saved.json"                          # {"dhw_set_c": owner tank setpoint, "heat_set_c": owner room setpoint}
 OWNER_DHW_C = float(os.environ.get("VICARE_DHW_OWNER", "50"))     # the owner's normal setpoint, the value every revert must end at
 try:
@@ -187,7 +188,7 @@ def revert(reason):
     log(f"REVERT to owner mode ({reason})"); ack(None, "reverted" if ok else "partial", reason if ok else "revert_write_failed", read())
 
 def on_signal(env):
-    global last_seq, saved, effective, sig_active, end_at, watchdog, last_hb
+    global last_seq, saved, effective, sig_active, end_at, watchdog, last_hb, pending_seq
     sig = verify(env)
     if not sig: return ack(None, "refused", "bad_sig", read())
     if sig["segment"] not in PATH: return
@@ -197,6 +198,7 @@ def on_signal(env):
     if age > 120 or age < -30 or datetime.strptime(sig["valid_to"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) < now(): return ack(sig["seq"], "refused", "expired", read())
     last_seq = sig["seq"]; save_state()
     mode = sig["mode"]
+    with lock: pending_seq = None if mode == "RELEASE" else sig["seq"]
     if mode == "RELEASE":
         revert("release"); return ack(sig["seq"], "applied", None, read())
     telem = read()
@@ -212,6 +214,8 @@ def on_signal(env):
         global saved, effective, sig_active, end_at, watchdog, last_hb
         time.sleep(start)
         with lock:
+            if pending_seq != sig["seq"] or time.time() >= vt:          # released or replaced while waiting: never apply a stale signal
+                log(f"seq {sig['seq']} not applied (released, replaced or over before it started)"); return
             if saved is None:
                 dhw_owner = telem.get("dhw_set_c") or OWNER_DHW_C
                 if dhw_owner in (FLOOR, BOOST): dhw_owner = OWNER_DHW_C          # never "save" a value we set ourselves
