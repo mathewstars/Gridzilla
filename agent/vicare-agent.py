@@ -28,7 +28,7 @@ PLATFORM = os.environ.get("GZ_PLATFORM", "http://127.0.0.1:8080")
 BROKER = urlparse(os.environ.get("GZ_BROKER", "mqtts://mqtt.victronlab.sk:8883"))
 DEVICE = os.environ.get("GZ_DEVICE", "vicare-blatnica")
 FLOOR = float(os.environ.get("VICARE_DHW_FLOOR", "40")); BOOST = float(os.environ.get("VICARE_DHW_BOOST", "60"))
-NOMINAL_KW = float(os.environ.get("VICARE_KW", "3")); READ_ONLY = os.environ.get("GZ_READ_ONLY", "0") == "1"
+NOMINAL_KW = float(os.environ.get("VICARE_KW", "3"))   # Vitocal: compressor ~3 kW electrical while heating water; READ_ONLY = os.environ.get("GZ_READ_ONLY", "0") == "1"
 HB_TIMEOUT = 120
 now = lambda: datetime.now(timezone.utc)
 iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -60,29 +60,61 @@ def sign(doc):
     payload = json.dumps(doc, separators=(",", ":"))
     return json.dumps({"v": 1, "kid": "dev", "payload": payload, "sig": base64.b64encode(PRIV.sign(payload.encode())).decode()})
 
-# ------------------------------------------------------------------ ViCare
-from PyViCare.PyViCare import PyViCare
-vic = PyViCare(); vic.initWithCredentials(os.environ["VICARE_EMAIL"], os.environ["VICARE_PASSWORD"], os.environ["VICARE_CLIENT_ID"], str(KEYS / "vicare-token.save"))
-dev = vic.devices[0]; unit = dev.asAutoDetectDevice()
-log(f"ViCare device: {dev.getModel()} ({dev.getDeviceId()}) via {type(unit).__name__}")
+# ------------------------------------------------------------------ ViCare, direct REST (the library's login flow fails; the API itself is simple)
+import requests
+IAM = "https://iam.viessmann-climatesolutions.com/idp/v3"; API = "https://api.viessmann-climatesolutions.com/iot/v2"
+CID = os.environ["VICARE_CLIENT_ID"]; REDIRECT = "vicare://oauth-callback/everest"
+tok_file = KEYS / "vicare-token.json"; _tok = {"access": None, "exp": 0}
 
-def safe(fn, default=None):
-    try: return fn()
-    except Exception: return default
+def _login_with_password():
+    import secrets
+    ver = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode()
+    ch = base64.urlsafe_b64encode(hashlib.sha256(ver.encode()).digest()).rstrip(b"=").decode()
+    r = requests.post(f"{IAM}/authorize", params={"client_id": CID, "redirect_uri": REDIRECT, "response_type": "code", "code_challenge": ch, "code_challenge_method": "S256", "scope": "IoT User offline_access"},
+                      auth=(os.environ["VICARE_EMAIL"], os.environ["VICARE_PASSWORD"]), allow_redirects=False, timeout=30)
+    code = r.headers["Location"].split("code=")[1]
+    return requests.post(f"{IAM}/token", data={"grant_type": "authorization_code", "client_id": CID, "redirect_uri": REDIRECT, "code": code, "code_verifier": ver}, timeout=30).json()
+
+def token():
+    if _tok["access"] and time.time() < _tok["exp"] - 60: return _tok["access"]
+    t = None
+    if tok_file.exists():
+        rt = json.loads(tok_file.read_text()).get("refresh_token")
+        if rt:
+            t = requests.post(f"{IAM}/token", data={"grant_type": "refresh_token", "client_id": CID, "refresh_token": rt}, timeout=30).json()
+            if "access_token" not in t: t = None
+    if t is None: t = _login_with_password()
+    tok_file.write_text(json.dumps({"refresh_token": t.get("refresh_token")})); os.chmod(tok_file, 0o600)
+    _tok.update(access=t["access_token"], exp=time.time() + int(t.get("expires_in", 3600))); return _tok["access"]
+
+H = lambda: {"Authorization": "Bearer " + token()}
+d = json.loads((KEYS / "vicare-device.json").read_text()) if (KEYS / "vicare-device.json").exists() else None
+if d is None:
+    inst = requests.get(f"{API}/equipment/installations", params={"includeGateways": "true"}, headers=H(), timeout=30).json()["data"]
+    for i in inst:
+        for g in i.get("gateways", []):
+            for dv in g.get("devices", []):
+                if dv.get("deviceType") == "heating": d = {"installation": i["id"], "gateway": g["serial"], "device": dv["id"], "model": dv.get("modelId")}
+    (KEYS / "vicare-device.json").write_text(json.dumps(d))
+FEAT = f"{API}/features/installations/{d['installation']}/gateways/{d['gateway']}/devices/{d['device']}/features"
+log(f"ViCare device: {d['model']} at installation {d['installation']}")
 
 def read():
-    r = {"dhw_c": safe(lambda: unit.getDomesticHotWaterStorageTemperature()),
-         "dhw_set_c": safe(lambda: unit.getDomesticHotWaterConfiguredTemperature()),
-         "dhw_mode": safe(lambda: unit.getDomesticHotWaterActiveMode()),
-         "outside_c": safe(lambda: unit.getOutsideTemperature()),
-         "active": bool(safe(lambda: unit.getBurnerActive(), None) or safe(lambda: unit.getCompressorActive(), None) or safe(lambda: unit.getDomesticHotWaterCharging(), None))}
-    return r
+    try:
+        feats = {x["feature"]: x for x in requests.get(FEAT, headers=H(), timeout=30).json()["data"]}
+    except Exception as e:
+        log(f"ViCare read failed: {e}"); return {}
+    v = lambda f, p="value": ((feats.get(f) or {}).get("properties") or {}).get(p, {}).get("value")
+    return {"dhw_c": v("heating.dhw.sensors.temperature.hotWaterStorage"), "dhw_set_c": v("heating.dhw.temperature.main"),
+            "dhw_mode": v("heating.dhw.operating.modes.active"), "outside_c": v("heating.sensors.temperature.outside"),
+            "one_time": v("heating.dhw.oneTimeCharge", "active"), "active": bool(v("heating.compressors.0", "active") or v("heating.dhw.charging", "active"))}
 
 def apply_dhw(setpoint, one_time=False):
     if READ_ONLY: log(f"READ-ONLY: would set DHW {setpoint} °C one_time={one_time}"); return
-    unit.setDomesticHotWaterTemperature(int(setpoint))
-    if one_time: safe(lambda: unit.activateOneTimeCharge())
-    log(f"ViCare: DHW setpoint -> {setpoint} °C" + (" + one-time charge" if one_time else ""))
+    r = requests.post(f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", json={"temperature": int(setpoint)}, headers=H(), timeout=30)
+    log(f"ViCare: DHW setpoint -> {setpoint} °C: HTTP {r.status_code}")
+    if one_time:
+        r2 = requests.post(f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}, headers=H(), timeout=30); log(f"ViCare: one-time charge: HTTP {r2.status_code}")
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
