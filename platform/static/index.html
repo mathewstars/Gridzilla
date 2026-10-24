@@ -285,7 +285,7 @@ function drawEnvelope() {
   envChart.data.labels = curve.map((_, k) => hhmm((e.start_sim_h ?? 0) + k * e.slot_sim_min / 60));
   envChart.data.datasets[0].label = imp ? "import ceiling" : "export ceiling";
   envChart.data.datasets[0].data = curve.map(v => sign * v);
-  const devs = devOrder.filter(d => S.devices[d].path.includes(selNode) && S.devices[d].telemetry);
+  const devs = Object.keys(S.devices).filter(d => S.devices[d].path.includes(selNode) && S.devices[d].telemetry && S.devices[d].kwh > 0);
   envChart.data.datasets[1].data = curve.map((_, k) => {
     const lo = t0 + k * slotMs, hi = lo + slotMs, vals = [];
     devs.forEach(d => (H.devices[d] || []).forEach(p => { const t = Date.parse(p.ts); if (t >= lo && t < hi && p.grid_kw != null) vals.push(p.grid_kw); }));
