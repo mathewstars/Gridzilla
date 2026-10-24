@@ -1,14 +1,19 @@
 // Derived views of the platform state: which feeder is on screen, which houses sit on it, plain-English names.
 import type { Decision, Device, State } from "./api";
 
+// Apple white (DESIGN.md): monochrome, the only hue is system red for "over the limit". Direction, not colour, tells
+// taking from giving. The keys stay so every view reads its colours from here.
 export const COLORS = {
-  take: "#58a6ff", // house taking power from the grid
-  give: "#ffc93c", // house giving power back
-  signal: "#33e1c9", // Gridzilla: signals, envelopes, the AI
-  ok: "#3ddc84",
-  warn: "#ffb020",
-  crit: "#ff4d5e",
-  muted: "#8a97ab",
+  take: "#1d1d1f", // house taking power from the grid (drawn above zero / solid)
+  give: "#6e6e73", // house giving power back (drawn below zero / hollow)
+  signal: "#1d1d1f", // Gridzilla: signals, envelopes, the AI
+  ok: "#1d1d1f",
+  warn: "#6e6e73",
+  crit: "#ff3b30",
+  muted: "#86868b",
+  ground: "#f5f5f7",
+  card: "#ffffff",
+  fill: "#e8e8ed",
 };
 
 export const nice = (id: string | null | undefined) => {

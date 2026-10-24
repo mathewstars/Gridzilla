@@ -34,8 +34,8 @@ function storyFeeder(s: NonNullable<ReturnType<typeof useGridState>["data"]>) {
 function Splash({ error }: { error: string | null }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
-      <div className="text-2xl font-semibold tracking-tight">Gridzilla</div>
-      <div className="text-dim">{error ? `Waiting for the platform (${error})` : "Connecting to the grid..."}</div>
+      <div className="t-headline">Gridzilla</div>
+      <div className="t-small">{error ? `Waiting for the platform (${error})` : "Connecting to the grid..."}</div>
     </div>
   );
 }
@@ -77,28 +77,26 @@ export default function App() {
 
   if (view && view in views)
     return (
-      <div className="flex h-screen flex-col gap-3 p-4">
+      <div className="flex h-screen flex-col gap-4 p-4">
         <WarningBanner weather={weather} />
         <div className="min-h-0 flex-1">{views[view as keyof typeof views]}</div>
         <Drawer s={s} feeder={feeder} open={drawer || view === "drawer"} onClose={() => setDrawer(false)} />
       </div>
     );
 
+  // One screen at 1440x900 and 2560x1440, no page scroll: header, three numbers, the street next to the curve, then the
+  // AI decision, the allowed box and the weather. Phones stack everything in reading order.
   return (
-    <div className="mx-auto flex min-h-screen max-w-[3200px] flex-col gap-3 p-3 sm:p-4 lg:h-screen lg:min-h-0 lg:overflow-hidden">
+    <div className="mx-auto flex min-h-screen max-w-[3200px] flex-col gap-4 px-4 py-4 lg:h-screen lg:min-h-0 lg:gap-[1.1rem] lg:overflow-hidden lg:px-6 lg:py-5">
       {views.header}
       <WarningBanner weather={weather} />
       {views.headline}
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col gap-3">
-          <div className="h-[22rem] min-h-0 sm:h-[28rem] lg:h-auto lg:flex-[1.25]">{views.street}</div>
-          <div className="min-h-0 lg:flex-1">{views.brain}</div>
-        </section>
-        <section className="flex min-h-0 flex-col gap-3">
-          <div className="h-[22rem] min-h-0 lg:h-auto lg:flex-[1.3]">{views.curve}</div>
-          <div className="h-[18rem] min-h-0 lg:h-auto lg:flex-1">{views.envelope}</div>
-          <div className="min-h-0 lg:flex-[0.7]">{views.weather}</div>
-        </section>
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-12 lg:grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-[1.1rem]">
+        <div className="h-[24rem] min-h-0 lg:col-span-7 lg:h-auto">{views.street}</div>
+        <div className="h-[22rem] min-h-0 lg:col-span-5 lg:h-auto">{views.curve}</div>
+        <div className="min-h-0 lg:col-span-5">{views.brain}</div>
+        <div className="h-[20rem] min-h-0 lg:col-span-4 lg:h-auto">{views.envelope}</div>
+        <div className="min-h-0 lg:col-span-3">{views.weather}</div>
       </main>
       <Drawer s={s} feeder={feeder} open={drawer} onClose={() => setDrawer(false)} />
     </div>
