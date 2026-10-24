@@ -162,6 +162,7 @@
       <button data-ap="auto" onclick="setAp({mode:'auto'})">Autonomous</button>
       <button data-ap="propose" onclick="setAp({mode:'propose'})">Operator approves</button>
       <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
+      <button onclick="decideAp('review')" style="margin:0">Review now</button>
       <span style="flex:1"></span>
       <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button></span>
     </div>
@@ -658,11 +659,11 @@ function drawStory() {
   const okN = sentHouses.filter(d => d.ack.status === "applied").length, partN = sentHouses.filter(d => d.ack.status === "partial").length;
   const steps = [
     ["SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? `${hh(w.tf)} forecast ${ap.horizon_min} grid min ahead` : "nothing above the trigger", `trigger at ±${ap.trigger_pct || 85} % · every ${ap.interval_s || 15} grid min`, stage === "sense" || stage === "deepseek"],
-    ["DEEPSEEK DECIDES", last && last.mode ? `${last.mode} → ${hh(last.segment)}` : "–", last ? esc((last.rationale || last.trigger || "").slice(0, 150)) : "", last && last.latency_ms ? `answered in ${(last.latency_ms / 1000).toFixed(1)} s · ${last.duration_min || ""} min · ${last.fields ? Object.entries(last.fields).filter(([k, v]) => v != null).map(([k, v]) => k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ") + v + " kW").join(", ") : ""}` : "DeepSeek-V4.1-Flash on the DGX Spark", stage === "deepseek"],
+    ["DEEPSEEK DECIDES", last && last.mode ? `${last.mode} → ${hh(last.segment)}` : (ap.last_run ? "nothing to do" : "–"), last ? esc((last.rationale || last.trigger || "").slice(0, 150)) : (ap.last_run ? `last review ${ap.last_run.slice(11, 16)} UTC · no transformer forecast past ±${ap.trigger_pct || 85} %` : ""), last && last.latency_ms ? `answered in ${(last.latency_ms / 1000).toFixed(1)} s · ${last.duration_min || ""} min · ${last.fields ? Object.entries(last.fields).filter(([k, v]) => v != null).map(([k, v]) => k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ") + v + " kW").join(", ") : ""}` : "DeepSeek-V4.1-Flash on the DGX Spark", stage === "deepseek"],
     ["GUARD", last ? last.verdict.toUpperCase() : "–", last && last.detail ? esc(last.detail.slice(0, 120)) : (last ? "within policy: window, depth, rate, reverse rating" : ""), "deterministic policy, not AI", stage === "guard"],
     ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
   document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
-    `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div></div>`;
+    `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
   // curve with vs without
   const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw;
   if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [

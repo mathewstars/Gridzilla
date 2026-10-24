@@ -640,6 +640,12 @@ def autopilot_trigger():
     hs = hotspots()
     AP["hotspots"] = hs
     t = plan_target(hs)
+    if AP.get("force"):
+        AP["force"] = False
+        ag = aggregates()
+        tops = sorted(((n, ag[n]["load_pct"] or 0) for n in TREE if n.startswith("tf:")), key=lambda kv: -abs(kv[1]))[:5]
+        where = "; ".join(f"{n} at {p} %" for n, p in tops)
+        return (f"Operator asked for a review now, grid hour {sim_hour():.1f}. Highest transformers: {where}. If nothing needs a signal, say so and propose RELEASE for nothing or the least invasive ABSORB/SUPPORT only where the forecast justifies it.", t)
     if t:
         what = "load peak, houses import" if t["dir"] == "import" else "PV surplus, reverse flow"
         return (f"{t['node']}: {len(t['hot'])} of {t['under']} transformers forecast past {AP_TRIGGER_PCT} % within {AP_HORIZON_MIN} grid "
@@ -708,6 +714,14 @@ def send_proposal(p, by):
     return doc
 
 
+AP_HIST_FILE = HERE / "autopilot-history.json"
+try:
+    for _h in reversed(json.loads(AP_HIST_FILE.read_text())[:20]):
+        AP["history"].appendleft(_h)
+except Exception:
+    pass
+
+
 def record(p, verdict, detail="", seq=None):
     AP["history"].appendleft({"at": iso(now()), "sim_h": round(sim_hour(), 2), "trigger": p.get("situation"),
                               "mode": p.get("mode"), "segment": p.get("segment"), "rationale": p.get("rationale"),
@@ -715,6 +729,10 @@ def record(p, verdict, detail="", seq=None):
                               "latency_ms": p.get("latency_ms"), "verdict": verdict, "detail": detail, "seq": seq,
                               "target": (p.get("focus") or {}).get("node"), "hot": (p.get("focus") or {}).get("hot"),
                               "worst_pct": (p.get("focus") or {}).get("worst_pct")})
+    try:
+        AP_HIST_FILE.write_text(json.dumps(list(AP["history"])))
+    except Exception:
+        pass
 
 
 def autopilot_step():
@@ -973,8 +991,12 @@ def set_scenario(name: str):
 @app.post("/api/autopilot/{decision}")
 def decide_autopilot(decision: str):
     """approve|reject the proposal waiting in propose mode"""
+    if decision == "review":                      # ask DeepSeek now, whatever the load (demo and operator use)
+        AP["force"] = True
+        log("autopilot", "operator asked for a review now")
+        return {"ok": True}
     if decision not in ("approve", "reject"):
-        raise HTTPException(400, "decision must be approve or reject")
+        raise HTTPException(400, "decision must be approve, reject or review")
     p = AP["pending"]
     if not p:
         raise HTTPException(404, "nothing pending")
