@@ -20,7 +20,10 @@ import math
 SLOTS = 96                  # 24 h in 15-minute slots
 DT = 0.25                   # hours per slot
 MARGIN = 0.9                # never plan past 90 % of the rating
-EV_KWH_DAY = 14.0           # average commute, the simulated fleet draws 6-26
+EV_KWH_SESSION = 16.0       # a commute: the fleet draws 6-26 kWh when it charges
+EV_P_CHARGE = 0.55          # a car charges on about 55 % of nights (home-charging surveys: 2-4 sessions a week)
+EV_KWH_DAY = EV_KWH_SESSION * EV_P_CHARGE   # expected kWh per EV house per night
+EV_ARRIVE = (17.0, 21.5)    # uncontrolled charging starts spread over the evening arrivals, not all at 17:00
 EV_PLUG_H, EV_UNPLUG_H = 17.0, 7.0
 PV_KWP_AVG = 8.0            # program houses: average array size
 BASE_FLOOR_KW = 2.0         # protocol floor for an import ceiling
@@ -71,11 +74,15 @@ def plan_tf(tf, info, h0, other_kw, houses, ev_houses, pv_x, batt_kwh_usable, ba
     ev_mask = [in_window(h, EV_PLUG_H, EV_UNPLUG_H) for h in hours]
     e_ev = ev_houses * EV_KWH_DAY
     cap = MARGIN * rating
-    # naive: every car charges at 11 kW the moment it is plugged in, batteries do nothing for the grid
-    naive_ev = []
-    for h in hours:
+    # naive (no Gridzilla): every car that charges tonight starts at 11 kW when it arrives (arrivals spread over
+    # EV_ARRIVE) and stops when full; the fraction of sessions active at hour h is the overlap with that spread
+    dur = EV_KWH_SESSION / 11.0
+    a0, a1 = EV_ARRIVE
+    starts = [a0 + k * 0.25 for k in range(int((a1 - a0) / 0.25))]
+    def active_frac(h):
         hh = h % 24
-        naive_ev.append(ev_houses * 11.0 * (1.0 if 17 <= hh < 18 else 0.75 if 18 <= hh < 19 else 0.4 if 19 <= hh < 20 else 0.12 if 20 <= hh < 21 else 0.0) * (EV_KWH_DAY / 14.0))
+        return sum(1 for st in starts if st <= hh < st + dur or st <= hh + 24 < st + dur) / len(starts)
+    naive_ev = [ev_houses * EV_P_CHARGE * 11.0 * active_frac(h) for h in hours]
     naive = [u + n for u, n in zip(unc, naive_ev)]
     # level L: cars fit below it, the peak above it fits in the batteries
     lo, hi = min(unc) - 1, max(max(unc), cap) + 1

@@ -90,8 +90,12 @@ function profiles(h) {
   const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
   const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
   const [pa, pb] = ev.plugged || [17, 7];
-  const plugged = ev.kw && (pa < pb ? (hour >= pa && hour < pb) : (hour >= pa || hour < pb));   // overnight windows wrap midnight
-  if (plugged && h.evDay !== Math.floor(h.simMinutes / 1440)) { h.evDay = Math.floor(h.simMinutes / 1440); h.evNeedKwh = 6 + Math.random() * 20; }   // a commute: 6-26 kWh per day
+  // realistic coincidence, the same in the measured and the counterfactual curve: a car charges on about 55 % of nights
+  // (6-26 kWh, a commute), and arrives somewhere in the three hours after the household's nominal plug-in time
+  const day = Math.floor(h.simMinutes / 1440);
+  if (ev.kw && h.evDay !== day && hour >= pa) { h.evDay = day; h.evNeedKwh = Math.random() < 0.55 ? 6 + Math.random() * 20 : 0; h.evArrive = pa + Math.random() * 3; }
+  const arrive = h.evArrive ?? pa;
+  const plugged = ev.kw && (pa < pb ? (hour >= arrive && hour < pb) : (hour >= arrive || hour < pb));   // overnight windows wrap midnight
   const wants = plugged && (h.evNeedKwh || 0) > 0;
   return { load, pv, evMax: wants ? ev.kw : 0 };
 }
