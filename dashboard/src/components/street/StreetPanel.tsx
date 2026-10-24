@@ -3,7 +3,7 @@
 // the machine has no WebGL. Phones get a lighter scene with the list under it.
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { State } from "../../api";
-import { nice, type House } from "../../model";
+import { MODE_WORDS, nice, type House } from "../../model";
 import { Empty } from "../ui";
 import { buildStreets, FLOW_EPS, type StreetModel } from "./layout";
 import type { HoverInfo } from "./Street3D";
@@ -36,6 +36,15 @@ export function useReducedMotion() {
 const kw = (v: number) => (Math.abs(v) >= 100 ? Math.round(v).toLocaleString("en-US") : v.toFixed(1));
 const isOver = (st: StreetModel) => Math.abs(st.pct ?? 0) >= 100;
 
+/** Why an owner's box said no or followed only partly, in the owner's words (never the raw reply codes). */
+const REASON_WORDS: Record<string, string> = {
+  min_soc: "kept its battery reserve",
+  owner_limit: "kept the owner's own limit",
+  opt_out: "the owner opted out",
+  stale_seq: "already had it",
+};
+const reasonWords = (r: string) => REASON_WORDS[r] ?? r.replace(/_/g, " ");
+
 function houseLines(h: House) {
   if (!h.online) return ["Offline: no reading from this house right now"];
   const out: string[] = [];
@@ -45,8 +54,8 @@ function houseLines(h: House) {
   if (h.pv_kw > 0.05) out.push(`Solar making ${kw(h.pv_kw)} kW`);
   if (h.ev_kw > 0.05) out.push(`Car charging at ${kw(h.ev_kw)} kW`);
   if (h.hp_kw > 0.05) out.push(`Heating running at ${kw(h.hp_kw)} kW`);
-  if (h.ackStatus === "refused") out.push(`Said no to the last signal${h.ackReason ? `: ${h.ackReason.replace(/_/g, " ")}` : ""}`);
-  if (h.ackStatus === "partial") out.push(`Followed it partly${h.ackReason ? ` (${h.ackReason.replace(/_/g, " ")})` : ""}`);
+  if (h.ackStatus === "refused") out.push(`Said no to the last signal${h.ackReason ? `: ${reasonWords(h.ackReason)}` : ""}`);
+  if (h.ackStatus === "partial") out.push(`Followed it partly${h.ackReason ? ` (${reasonWords(h.ackReason)})` : ""}`);
   return out;
 }
 
@@ -81,7 +90,7 @@ export function Tooltip({ hover, s, feeder, box, hint = "Click to show its curve
     title = h.real ? `${h.name}, a real home` : h.name;
     sub = `In the program, stands for ${h.represents} homes`;
     lines = houseLines(h);
-    if (h.underSignal) state = `Following Gridzilla (${h.mode.toLowerCase()})`;
+    if (h.underSignal) state = `Following Gridzilla: ${(MODE_WORDS[h.mode]?.title ?? h.mode).toLowerCase()}`;
     else if (h.online) state = "Owner in charge of the battery";
   } else if (hover.kind === "normal" && hover.street) {
     title = "Neighbour, not in the program";
@@ -91,7 +100,7 @@ export function Tooltip({ hover, s, feeder, box, hint = "Click to show its curve
     const st = hover.street;
     title = `${nice(st.tf)} street transformer`;
     sub = `${st.houses.length} program homes, ${st.others} others`;
-    tech = `${st.tf}, rated ${st.rating} kW`;
+    tech = `Rated ${st.rating} kW${st.reverse != null && st.reverse !== st.rating ? `, ${st.reverse} kW going back` : ""}`;
     state = tfShort(st);
     alert = isOver(st);
     lines = hint ? [tfStatus(st), hint] : [tfStatus(st)];
@@ -99,7 +108,7 @@ export function Tooltip({ hover, s, feeder, box, hint = "Click to show its curve
     const a = s.aggregates[feeder];
     title = "Substation";
     sub = `Feeds the ${nice(feeder)} line`;
-    tech = `${s.tree[feeder]?.parent ?? ""} to ${feeder}`;
+    tech = s.tree[feeder]?.parent ? `${nice(s.tree[feeder].parent)} to the ${nice(feeder)} line` : "";
     lines = [a?.total_kw == null ? "No reading yet" : a.total_kw >= 0 ? `Sending ${kw(a.total_kw)} kW down the line` : `Taking ${kw(-a.total_kw)} kW back from the line`];
   }
   useLayoutEffect(() => {
@@ -254,7 +263,7 @@ export default function StreetPanel({ s, feeder, selected, onSelect, compact }: 
         <span className="t-small">{subtitle}</span>
       </div>
       {streets.length === 0 ? (
-        <Empty>No street transformers on this feeder yet.</Empty>
+        <Empty>No street transformers on this line yet.</Empty>
       ) : (
         <div className={`flex min-h-0 flex-1 ${compact ? "flex-col gap-2" : "gap-5"}`}>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">

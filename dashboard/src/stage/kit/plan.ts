@@ -87,7 +87,7 @@ export function curveTitle(node: string, simHour: number, story: { nowPct: numbe
   if (!story) return `${name} with and without Gridzilla`;
   if ((story.nowPct ?? 0) < 0 || (story.basePct ?? 0) < 0) return `Keeping ${name}'s solar inside the backflow limit`;
   const h = ((simHour % 24) + 24) % 24;
-  if (h >= 15) return `Flattening the evening peak on ${name}`;
+  if (h >= 15) return `Eating the evening peak on ${name}`;
   if (h < 6) return `Tonight's plan for ${name}`;
   return `Getting ${name} ready for the evening peak`;
 }

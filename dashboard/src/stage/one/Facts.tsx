@@ -2,10 +2,10 @@
 // space only, each a big value, a one-line label and a small line. Stat styling adapted from 21st.dev "Stats Bento"
 // (@uilayout.contact, id 25311): sentence-case labels, no inverted hero, no texture, no borders.
 //   P1 limited time   countdown ring of the active signal's window in grid time, then owner mode
-//   P2 owner control  homes following vs owner limits winning (ack status and reason), x8 per simulated household
+//   P2 owner control  homes following, the deck's trust line, owner limits winning (reply status and reason)
 //   P3 curtailment    kW over a street limit with vs without Gridzilla, plus battery room kept for noon solar
 //   P4 no expansion   street transformers that need no upgrade tonight (city diet plan), live fallback
-//   P5 any vendor     Victron + Viessmann at Blatnica on the same signed signal, signatures verified
+//   P5 any maker      Victron + Viessmann at Blatnica on the same signed signal, signatures verified
 // Every digit sits inside a data-src host (qa/README.md). Counts have no G2 grammar yet: they carry the proposed
 // count(...) formula from STORY.md (gap a) so the gate can learn it. Layout: container queries in facts.css.
 import type { ReactNode } from "react";
@@ -22,7 +22,6 @@ const REGION = "region:at";
 const FC = `flatten:${REGION}`; // window.__gz key of the city plan (api.ts publishes each plan per node)
 
 const A = (tf: string) => `state/aggregates/${tf}`;
-const R_FROM = "state/summary/houses / state/summary/households";
 
 /** Homes per simulated household (8). Blatnica is one real home. */
 const ratio = (s: State) => (s.summary && s.summary.households ? s.summary.houses / s.summary.households : 8);
@@ -38,7 +37,7 @@ function activeKey(s: State, sig: Signal) {
   return Object.entries(s.active ?? {}).find(([, v]) => v.seq === sig.seq)?.[0] ?? sig.segment;
 }
 
-/** Owner reasons in plain words (STORY.md fact 19). stale_seq is a duplicate delivery, never an owner refusal. */
+/** Owner reasons (STORY.md fact 19): these count as an owner saying no. stale_seq is a duplicate delivery, never one. */
 const OWNER_WORDS: Record<string, string> = {
   min_soc: "kept their battery reserve",
   owner_limit: "kept their own limit",
@@ -231,13 +230,11 @@ function P2Owner({ s, tf, street }: { s: State; tf: string; street: Street | nul
   const r = ratio(s);
   const sig = signalOn(s, tf);
   const hs = Object.values(s.households ?? {}).filter((h) => h.tf === tf && h.telemetry);
-  let back = 0;
   const won: Record<string, number> = {};
   for (const h of hs) {
     const w = homes(h, r);
     const a = h.ack;
     if (!a) continue;
-    if (a.status === "reverted") back += w;
     const owner = a.reason && OWNER_WORDS[a.reason] && (a.status === "partial" || a.status === "refused");
     if (owner && (!sig || a.seq === sig.seq)) won[a.reason as string] = (won[a.reason as string] ?? 0) + w;
   }
@@ -251,20 +248,15 @@ function P2Owner({ s, tf, street }: { s: State; tf: string; street: Street | nul
   const totalTag = { src: "derived", from: street.homesFrom };
 
   const wonTotal = Object.values(won).reduce((x, y) => x + y, 0);
-  const reasons = Object.keys(won);
-  const ownerLine =
+  // The proof rides on the trust line's last words, so the fact never grows a line when owners say no.
+  const proof =
     wonTotal > 0 ? (
-      <>
-        Owner limits win: <Inline value={wonTotal} src="derived" from={`sum(${HH}[ack/status in partial,refused; ack/reason in min_soc,owner_limit,opt_out]/represents)`} />{" "}
-        {reasons.length === 1 ? OWNER_WORDS[reasons[0]] : "kept their own limits"}
-      </>
-    ) : street.what === "signal" ? (
-      "No owner had to say no"
-    ) : back > 0 ? (
-      "The last signal is over: owner settings are back"
-    ) : (
-      "Owner limits always win"
-    );
+      <span className="gzF-proof">
+        {" "}
+        <Inline value={wonTotal} src="derived" from={`sum(${HH}[ack/status in partial,refused; ack/reason in min_soc,owner_limit,opt_out]/represents)`} />{" "}
+        just did
+      </span>
+    ) : null;
 
   return (
     <Fact
@@ -279,9 +271,10 @@ function P2Owner({ s, tf, street }: { s: State; tf: string; street: Street | nul
       label={`follow the ${street.what === "signal" ? "signal" : "diet plan"}`}
       small={
         <>
-          <span className="gzF-line">{ownerLine}</span>
-          <span className="gzF-line gzF-foot">
-            One simulated household = <Inline value={r} src="derived" from={R_FROM} /> homes
+          {/* The deck's trust line, word for word (the street card says how many homes one house stands for). */}
+          <span className="gzF-line gzF-trust">
+            The operator asks, the house decides, the owner can always say no{proof ? "." : ""}
+            {proof}
           </span>
         </>
       }
@@ -507,7 +500,7 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
           Victron + Viessmann
         </span>
       }
-      label="open profile, any brand can join"
+      label="any maker of the box can join"
       small={
         <>
           <span className="gzF-line">{sigLine}</span>

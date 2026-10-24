@@ -11,11 +11,41 @@ export function cleanText(t: string | null | undefined, ids: string[] = []) {
     const slug = id.split(":")[1];
     if (slug && /-\d+$/.test(slug)) out = out.replace(new RegExp(`\\b${slug}\\b`, "g"), nice(id));
   });
-  return out
+  return plainWords(out)
     .replace(/\b(\d{1,2}\.\d{1,2})\s?h\b/g, (_, h) => hhmm(+h))
     .replace(/\s+\|\s+guard ok$/i, "")
     .replace(/(\d) (%|kWh|kW|h|min|s|°C)(?=[\s.,;:)]|$)/g, "$1\u00a0$2") // keep "118 %" on one line
     .trim();
+}
+
+/** The deck's house rules for every visible word: grid operator (not DSO), signal or message (not envelope, setpoint,
+ *  heartbeat), maker of the box (not OEM or vendor), battery "% full" (not SoC). Applied to raw platform sentences. */
+export function plainWords(t: string) {
+  return t
+    .replace(/\bDSOs\b/g, "grid operators")
+    .replace(/\bDSO\b/g, "grid operator")
+    .replace(/\b(?:target_|min_)?SoC\s*(?:of\s*)?(\d+(?:\.\d+)?)\s?%/gi, "$1\u00a0% full")
+    .replace(/(\d+(?:\.\d+)?)\s?%\s*SoC\b/gi, "$1\u00a0% full")
+    .replace(/\btarget_soc\b/gi, "battery target")
+    .replace(/\bmin_soc\b/gi, "battery reserve")
+    .replace(/\bSoC\b/gi, "battery level")
+    .replace(/\bset-?points?\b/gi, "direct command")
+    .replace(/\benvelopes\b/gi, "limits")
+    .replace(/\benvelope\b/gi, "limit")
+    .replace(/\bheartbeats?\b/gi, "signal")
+    .replace(/\b(?:OEMs|vendors)\b/gi, "makers of the box")
+    .replace(/\b(?:OEM|vendor)\b/gi, "maker of the box")
+    .replace(/\bsegments\b/gi, "parts of the grid")
+    .replace(/\bsegment\b/gi, "part of the grid")
+    .replace(/\bcohorts\b/gi, "groups")
+    .replace(/\bcohort\b/gi, "group")
+    .replace(/\bEd25519\s*/g, "")
+    .replace(/\bMQTT broker\b/gi, "message server")
+    .replace(/\bMQTT\b/g, "message")
+    .replace(/\btelemetry\b/gi, "readings")
+    .replace(/\backed\b/gi, "replied")
+    .replace(/\backs\b/gi, "replies")
+    .replace(/\back\b/gi, "reply");
 }
 
 /** The worst forecast in a congestion trigger, so the card can show one big number. */
@@ -74,7 +104,7 @@ export function dur(min: number | null | undefined) {
 
 const kw = (v: number) => `${Number.isInteger(v) ? v : v.toFixed(1)} kW`;
 
-/** The allowed box in one line: the tightest slot of the envelope (or the flat field) per house. */
+/** The allowed box in one line: the tightest slot of the limits over time (or the flat field) per house. */
 export function boxLine(env: Envelope | null | undefined, fields: Record<string, number | null> | null | undefined) {
   const imp = env?.import_max_kw?.length ? Math.min(...env.import_max_kw) : fields?.import_max_kw ?? null;
   const exp = env?.export_max_kw?.length ? Math.min(...env.export_max_kw) : fields?.export_max_kw ?? null;
@@ -94,7 +124,7 @@ export function plainReason(detail: string | null | undefined, mode?: string | n
   if ((m = d.match(/limit (\d+) signals per grid day/))) return `Daily limit reached: at most ${m[1]} signals a day`;
   if ((m = d.match(/limit (\d+) signals per real hour/))) return `Real homes get at most ${m[1]} signals an hour`;
   if (/never sent autonomously/.test(d)) return `"${modeTitle(mode)}" always needs a person to approve it`;
-  if ((m = d.match(/operator signal seq \d+ on (\S+) overlaps/))) return `An operator's own signal is already running on ${nice(m[1])}`;
+  if ((m = d.match(/operator signal seq \d+ on (\S+) overlaps/))) return `The grid operator's own signal is already running on ${nice(m[1])}`;
   if (/window must be/.test(d)) return "The time window is outside what the rules allow";
   if ((m = d.match(/SUPPORT already sent (\d+)x today for (\S+)/))) return `${nice(m[2])} already used its ${m[1]} battery calls today`;
   if ((m = d.match(/import cap below policy floor ([\d.]+)/))) return `Would leave a house under ${m[1]} kW, below the guaranteed minimum`;
@@ -105,7 +135,7 @@ export function plainReason(detail: string | null | undefined, mode?: string | n
   if (/may not carry/.test(d)) return "The signal carried settings its type may not use";
   if (/envelope/.test(d)) return "The allowed box broke a safety rule";
   if (/target_soc below/.test(d)) return "Asked batteries to fill too little to matter";
-  if (/operator approved/.test(d)) return "Approved by the operator";
+  if (/operator approved/.test(d)) return "Approved by the grid operator";
   if (/nothing pending/.test(d)) return "That proposal is no longer waiting";
   return cleanText(d);
 }

@@ -1,6 +1,7 @@
 // The side card "plan": dad's diet plan (SHAPE) for tonight, numbers only (the one curve on the stage is the hero chart,
 // STAGE.md 1): the street's peak before -> after the plan and the kWh of car charging moved into the night, both at
-// display size, then the whole city in one line. Sources: /api/flatten?node=<tf> for the street, /api/flatten?node=region:at
+// display size, then the whole city in one line. The plan unplugs the cars at 07:00 (platform flatten.py EV_UNPLUG_H),
+// so cars_full reads "full by seven", the pitch's words. Sources: /api/flatten?node=<tf> for the street, /api/flatten?node=region:at
 // for the city (useFlatten, every 5 s). No reading = a grey "Waiting" line, never a made-up value. Every number carries
 // data-src/data-val (qa/README.md).
 //
@@ -26,7 +27,7 @@ const CSS = `
   font-size:var(--gzP-d);line-height:1.05;font-weight:600;letter-spacing:-.015em}
 .gzPlan-unit{margin-left:.08em;font-size:.5em;font-weight:600;color:${P.secondary};letter-spacing:0}
 .gzPlan-arrow{font-size:.7em;font-weight:600;color:${P.tertiary}}
-.gzPlan-cap{margin:0;font-size:var(--gzP-b);line-height:1.35;color:${P.secondary};letter-spacing:-.016em}
+.gzPlan-cap{margin:0;text-wrap:pretty;font-size:var(--gzP-b);line-height:1.35;color:${P.secondary};letter-spacing:-.016em}
 .gzPlan-cap .gzPlan-arrow{margin:0 .1em;font-size:1em}
 .gzPlan-b{margin:0;font-size:var(--gzP-b);line-height:1.35;color:${P.ink};letter-spacing:-.022em}
 .gzPlan-city{margin:0;font-size:var(--gzP-b);line-height:1.35;color:${P.secondary};letter-spacing:-.022em}
@@ -85,7 +86,7 @@ export default function PlanCard({ st }: { st: StoryState }) {
                   </span>
                 </div>
                 <p className="gzPlan-cap">
-                  car charging moved into the night, {p.cars_full ? "every car full by morning" : "not every car full by morning"}
+                  car charging moved to the night, {p.cars_full ? "cars full by seven" : "not every car full by seven"}
                 </p>
               </div>
             ) : (

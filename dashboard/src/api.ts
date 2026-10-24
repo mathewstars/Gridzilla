@@ -404,10 +404,12 @@ async function loadPoll(path: string) {
 }
 
 /** Poll an endpoint every `ms`. `error` is set while the platform is unreachable; the last good value is kept, also
- *  across a change of `path` until the new answer lands. */
+ *  across a change of `path` until the new answer lands. `dataPath` is the path that value answered, so a caller can
+ *  tell "the answer for what I asked now" from "the previous answer kept on screen". */
 function usePoll<T>(path: string, ms: number, enabled = true) {
   const [, bump] = useState(0);
   const last = useRef<T | null>(null);
+  const lastPath = useRef<string | null>(null);
   useEffect(() => {
     if (!enabled) return;
     let p = polls.get(path);
@@ -424,13 +426,19 @@ function usePoll<T>(path: string, ms: number, enabled = true) {
       if (!poll.subs.size) {
         window.clearInterval(poll.timer);
         poll.timer = 0;
+        // Nobody watches this path any more: drop its answer, so coming back later never shows minutes-old data as new.
+        poll.data = null;
+        poll.tick++;
       }
     };
   }, [path, ms, enabled]);
   const p = enabled ? polls.get(path) : undefined;
-  if (p?.data != null) last.current = p.data as T;
+  if (p?.data != null) {
+    last.current = p.data as T;
+    lastPath.current = path;
+  }
   const reload = useCallback(() => loadPoll(path), [path]);
-  return { data: last.current, error: p?.error ?? null, reload };
+  return { data: last.current, dataPath: lastPath.current, error: p?.error ?? null, reload };
 }
 
 /** Path of a node up to the root, nearest parent first. */
@@ -475,13 +483,18 @@ export function useGridState(hh = "", fc = "") {
   const r = usePoll<State>(q, 3000);
   if (r.data?.tree) tree.current = r.data.tree;
   const data = useMemo(() => (r.data ? normalize(r.data, tree.current) : null), [r.data]);
-  return { ...r, data };
+  /** The node whose households the shown payload carries (`hh` of the request it answered). */
+  const hhOf = r.dataPath != null ? new URLSearchParams(r.dataPath.split("?")[1] ?? "").get("hh") ?? "" : null;
+  return { ...r, data, hhOf };
 }
 
-/** History only for what is on screen, downsampled by the platform. */
+/** History only for what is on screen, downsampled by the platform. `asked` lists the nodes the shown payload was asked
+ *  for (a node the platform has no readings for is simply missing from `data.nodes`). */
 export function useHistory(nodes: string[], devices: string[]) {
   const q = `history?nodes=${encodeURIComponent(nodes.filter(Boolean).join(","))}&devices=${encodeURIComponent(devices.filter(Boolean).join(","))}&limit=240`;
-  return usePoll<History>(q, 5000, nodes.length > 0);
+  const r = usePoll<History>(q, 5000, nodes.length > 0);
+  const asked = r.dataPath != null ? (new URLSearchParams(r.dataPath.split("?")[1] ?? "").get("nodes") ?? "").split(",").filter(Boolean) : [];
+  return { ...r, asked };
 }
 
 /** True while the platform advertises `path` in its OpenAPI schema. Checked once a minute, so a missing optional
@@ -587,5 +600,5 @@ export function useFlatten(node: string | null | undefined) {
   const r = usePoll<Flatten>(`flatten?node=${encodeURIComponent(node ?? "")}`, 5000, !!node);
   const data = r.data && r.data.node === node ? r.data : null;
   const plan = data && data.enabled && data.plan && data.plan.tf === node ? data.plan : null;
-  return { data, plan, available: !!data, missing: r.error?.status === 404 };
+  return { data, plan, available: !!data, missing: r.error?.status === 404, failed: !!r.error };
 }

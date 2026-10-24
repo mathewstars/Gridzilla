@@ -6,7 +6,7 @@ import type { Decision, Device, State } from "./api";
 export const COLORS = {
   take: "#1d1d1f", // house taking power from the grid (drawn above zero / solid)
   give: "#6e6e73", // house giving power back (drawn below zero / hollow)
-  signal: "#1d1d1f", // Gridzilla: signals, envelopes, the AI
+  signal: "#1d1d1f", // Gridzilla: signals, their limits, the AI
   ok: "#1d1d1f",
   warn: "#6e6e73",
   crit: "#ff3b30",
@@ -267,6 +267,6 @@ export function plainTrigger(t: string | null | undefined) {
   }
   const rel = t.match(/(ABSORB|SUPPORT) seq (\d+) on (\S+) is active/);
   if (rel) return `${nice(rel[3])} is calm again, the signal can end`;
-  if (t.startsWith("Operator warning")) return `Operator warning: ${t.replace("Operator warning: ", "")}`;
+  if (t.startsWith("Operator warning")) return `Grid operator warning: ${t.replace("Operator warning: ", "")}`;
   return t;
 }

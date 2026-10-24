@@ -200,6 +200,23 @@
     --pad-y: clamp(16px, min(1.6vw, 2.2vh), 36px);
   }
 }
+/* Safety margin below 1000 px tall (1440x900 sat 3 px over one screen): the bar, the gaps, the card paddings and the
+   top row's minimum tighten a little, which gives the three rows ~15 px of slack, and the grid's bottom padding can
+   absorb ~13 px more before the page would scroll. The fr rows still fill the screen, so the slack never shows as a
+   gap; it only takes up a longer line in a card. */
+@media (min-width: 1180px) and (min-height: 860px) and (max-height: 999px) {
+  .gzS {
+    --gap: clamp(12px, min(1.1vw, 1.45vh), 24px);
+    --pad-y: clamp(16px, min(1.6vw, 1.75vh), 36px);
+  }
+  .gzS-bar {
+    min-height: 3rem;
+  }
+  .gzS-story,
+  .gzS-curve {
+    --min: min(25rem, 43vh);
+  }
+}
 
 /* ------------------------------------------------------------ splash */
 .gzS-splash {

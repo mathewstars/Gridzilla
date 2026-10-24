@@ -134,3 +134,13 @@
   font-size: 0.875rem;
   color: #86868b;
 }
+/* P2's trust line (the deck's words): the owner-in-control fact itself, so ink, not grey. */
+.gzF-trust {
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  color: #1d1d1f;
+}
+/* "16 just did": the live proof after the trust line, in the proof grey. */
+.gzF-proof {
+  color: #6e6e73;
+}
