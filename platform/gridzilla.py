@@ -26,6 +26,8 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import weather
+
 HERE = Path(__file__).parent
 KEYS = HERE / "keys"
 KID = "gz-2026-10"
@@ -129,7 +131,8 @@ def sim_hour():
 
 # Demo scenario: scales the houses NOT in the program. load_x > 1 = cold evening, pv_x > 1 = sunny noon.
 SCENARIO = {"name": "normal", "load_x": 1.0, "pv_x": 1.0}
-SCENARIOS = {"normal": (1.0, 1.0), "cold-evening": (1.2, 1.0), "sunny-noon": (1.0, 5.0)}
+SCENARIOS = {"normal": (1.0, 1.0), "cold-evening": (1.2, 1.0), "sunny-noon": (1.0, 5.0),
+             "live-weather": (1.0, 1.0)}   # live-weather: per-hour factors from the real forecast (weather.py)
 SIM_X = float(os.environ.get("GZ_SIM_X", "60"))   # simulated seconds per real second; sim-agent default is 1 sim minute per second
 
 
@@ -147,7 +150,10 @@ def other_profile_kw(hour):
     evening = 2.9 * math.exp(-((hour - 19) / 2.2) ** 2)      # heat pumps, cooking, a few uncontrolled EV chargers
     sun = max(0.0, math.sin((hour - 6) / 12 * math.pi))
     pv = -2.2 * sun * 0.5          # half of them have PV, exporting at noon
-    return (base + morning + evening) * SCENARIO["load_x"] + pv * SCENARIO["pv_x"]
+    load_x, pv_x = SCENARIO["load_x"], SCENARIO["pv_x"]
+    if SCENARIO["name"] == "live-weather":
+        load_x, pv_x = weather.factors_at(hour) or (load_x, pv_x)
+    return (base + morning + evening) * load_x + pv * pv_x
 
 
 def sample_history():
@@ -445,6 +451,9 @@ Use the forecast: act BEFORE the transformer reaches its rating, size duration_m
 All times (duration_min, start_in_min) are in grid minutes; the grid clock is sim_hour.
 Policy: window max 240 grid minutes (STRETCH up to 4320), export_min_kw max 5 per device, import_max_kw min 2, max two SUPPORT per node per grid day.
 Answer with ONLY a JSON object: {"segment": "...", "mode": "...", "fields": {...}, "duration_min": N, "start_in_min": N, "note": "one sentence for the owners", "rationale": "two sentences for the operator"}
+Weather (grid hours, real forecast): a cold or windy-cold evening ahead means a bigger heat-pump peak, so PREPARE batteries
+earlier and SUPPORT through the peak; strong sun at midday means PV backflow, so ABSORB. An official warning is context,
+not a reason for a crisis signal by itself.
 If no signal is needed right now, answer {"mode": "NONE", "rationale": "..."}."""
 
 
@@ -484,7 +493,8 @@ def ask_llm(situation: str):
                         "soc": (state["telemetry"].get(d["id"]) or {}).get("soc")} for d in DEVICES.values()],
            "active_signals": {n: {k: s.get(k) for k in ("seq", "mode", "valid_to", *ALL_FIELDS) if s.get(k) is not None}
                               for n, s in state["active"].items()},
-           "support_sent_today": {k.rsplit(":", 1)[0]: v for k, v in state["support_count"].items() if k.endswith(f":{sim_day()}")}}
+           "support_sent_today": {k.rsplit(":", 1)[0]: v for k, v in state["support_count"].items() if k.endswith(f":{sim_day()}")},
+           "weather": weather.llm_context(sim_hour())}
     body = {"model": LLM_MODEL, "temperature": 0.2, "max_tokens": 1500,
             "messages": [{"role": "system", "content": ADVISOR_SYSTEM},
                          {"role": "user", "content": f"Grid state:\n{json.dumps(ctx)}\n\nSituation: {situation}"}]}
@@ -800,6 +810,11 @@ def households():
     return out
 
 
+@app.get("/api/weather")
+def get_weather():
+    return weather.snapshot(sim_hour())
+
+
 @app.get("/api/history")
 def history():
     with _lock:
@@ -850,7 +865,7 @@ def set_autopilot(a: Autopilot):
 
 @app.post("/api/scenario/{name}")
 def set_scenario(name: str):
-    """demo: scale the houses not in the program (cold-evening, sunny-noon, normal)"""
+    """demo: scale the houses not in the program (cold-evening, sunny-noon, normal, live-weather)"""
     if name not in SCENARIOS:
         raise HTTPException(400, f"scenario must be one of {sorted(SCENARIOS)}")
     SCENARIO["name"], (SCENARIO["load_x"], SCENARIO["pv_x"]) = name, SCENARIOS[name]
@@ -902,6 +917,7 @@ def main():
     threading.Thread(target=heartbeat_loop, daemon=True).start()
     threading.Thread(target=sampler_loop, daemon=True).start()
     threading.Thread(target=autopilot_loop, daemon=True).start()
+    threading.Thread(target=weather.loop, args=(TREE,), daemon=True).start()
     import uvicorn
     log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  llm={LLM_URL or 'off'}")
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
