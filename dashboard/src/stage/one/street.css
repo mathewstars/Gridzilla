@@ -1,0 +1,119 @@
+/* The street card (design/STAGE.md section 9). The shell's card runs edge to edge and rounds the canvas; here the 3D
+   fills it and the words sit in the card's own flow on top: a name column on the left, the key along the bottom.
+   The camera frames the street in the space the words leave free (StreetCard measures it), so text never sits on a
+   house. Nothing has a fixed height; the words set the card's minimum through the flow. */
+
+.gzs {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, clamp(8.5rem, 30cqi, 13rem)) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name ."
+    ".    ."
+    "key  key";
+  row-gap: 0.75rem;
+  min-width: 0;
+  padding: var(--pad, clamp(16px, 1.6vw, 36px));
+  color: #1d1d1f;
+}
+
+/* The canvas lies under the words and fills the whole card. */
+.gzs-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gzs-name {
+  grid-area: name;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.gzs-title {
+  margin: 0;
+  font-size: clamp(1.0625rem, 0.9rem + 0.45vw, 1.75rem);
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: 0.007em;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+.gzs-sub {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.43;
+  letter-spacing: -0.016em;
+  color: #6e6e73;
+  text-wrap: pretty;
+}
+.gzs-sub b {
+  font-weight: 600;
+  color: #1d1d1f;
+}
+.gzs-wait {
+  color: #86868b;
+}
+
+/* The key: what the green lots and the moving dots mean. One row that wraps. */
+.gzs-key {
+  grid-area: key;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  line-height: 1.43;
+  letter-spacing: -0.016em;
+  color: #6e6e73;
+}
+.gzs-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+.gzs-sw {
+  flex: none;
+  display: inline-block;
+}
+.gzs-sw-lot {
+  width: 0.875rem;
+  height: 0.625rem;
+  border-radius: 3px;
+  background: #c8ebd2;
+}
+.gzs-sw-in,
+.gzs-sw-back {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: #1d1d1f;
+}
+.gzs-sw-back {
+  background: #34c759;
+}
+
+/* A squarer card: the name across the top, the street under it. */
+.gzs[data-mode="stack"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "name"
+    "."
+    "key";
+}
+
+/* A narrow card with the name beside the street keeps the name and the picture; the key would crowd the street. */
+@container (max-width: 26rem) {
+  .gzs[data-mode="side"] .gzs-key {
+    display: none;
+  }
+}

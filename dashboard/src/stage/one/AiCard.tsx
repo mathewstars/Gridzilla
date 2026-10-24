@@ -1,0 +1,421 @@
+// The side card "ai": Sees -> Thinks -> Checks -> Acts, the autopilot's real decision lit step by step in sync with its
+// live stage. Built on kit/AiSteps' decision logic, drawn after the 21st.dev "Animated Progress Stepper" (stepper-03,
+// @shadcnspace, id 28558, design/21st/step-progress.tsx): step nodes on a track that fills as the work moves on, a
+// node that turns into a check when its step is done. Re-implemented here, not pasted; no buttons, nothing clickable.
+//
+// STAGE.md 7.5 colours: done = green check, guard refused or held = red cross, a proposal waiting for a person = orange
+// ring, waiting = grey ring. No blue, no coloured text. Every number on the card is its own span with data-src/data-val
+// (qa/README.md), so G2 can trace it to /api/state.
+//
+// The shell's card (Stage.tsx, data-card="ai") owns the surface and padding; this part fills it.
+// Layout by the card's own width: one column below 20rem, two by two from 20rem, four across with the track from 44rem.
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { CheckCircle, XCircle } from "@phosphor-icons/react";
+import type { State } from "../../api";
+import { hhmm, nice } from "../../model";
+import { modeTitle, plainReason, worstOf } from "../../components/brain/plain";
+import { P } from "../palette";
+import type { StoryState } from "../useStory";
+
+type Node = "done" | "active" | "waiting" | "human" | "refused";
+
+/** A number on screen and where it comes from. `val` is the raw payload value (left out for clock times and text). */
+interface Num {
+  t: string;
+  src: string;
+  val?: number;
+  scale?: number;
+  label?: string;
+}
+type Part = string | Num;
+
+interface Step {
+  name: string;
+  node: Node;
+  value: Part[];
+  sub: Part[] | null;
+  /** seq of a signed message: its check draws itself when the seq is new. */
+  seal?: number | null;
+}
+
+const NAMES = ["Sees", "Thinks", "Checks", "Acts"];
+const STAGE_INDEX: Record<string, number> = { sense: 0, deepseek: 1, guard: 2, send: 3 };
+const EASE = [0, 0, 0.5, 1] as const;
+
+const fmt = (v: number) => v.toLocaleString("en-US");
+const kwText = (v: number) => (Number.isInteger(v) ? fmt(v) : v.toFixed(1));
+
+/** "Sees": the worst transformer's % and when, from the decision's own trigger line (or the live target). */
+function sees(
+  s: State,
+  trigger: string | null | undefined,
+  trigSrc: string,
+  worst?: { src: string; val: number | null | undefined },
+): { value: Part[]; sub: Part[] | null } {
+  // A release: the peak is over on that part of the grid.
+  const rel = trigger?.match(/on (\S+) is active but every transformer under it is forecast below (\d+) %/);
+  if (rel) {
+    const pct = +rel[2];
+    const relSrc = s.autopilot?.release_pct === pct ? { src: "state/autopilot/release_pct", val: pct } : { src: trigSrc };
+    return { value: ["Peak over"], sub: [`${nice(rel[1])} below `, { t: String(pct), ...relSrc }, "\u00a0%"] };
+  }
+  const w = worstOf(trigger);
+  if (w) {
+    const wv = worst?.val;
+    const pct = wv != null && Math.round(wv) === w.pct ? { src: worst!.src, val: wv } : { src: trigSrc };
+    return {
+      value: [{ t: String(Math.abs(w.pct)), ...pct }, "\u00a0% at ", { t: w.at, src: trigSrc }],
+      sub: [nice(w.tf) + (w.others > 0 ? " and more" : "")],
+    };
+  }
+  const tg = s.autopilot?.target;
+  if (tg?.worst)
+    return {
+      value: [
+        { t: String(Math.round(Math.abs(tg.worst_pct))), src: "state/autopilot/target/worst_pct", val: tg.worst_pct },
+        "\u00a0% at ",
+        { t: hhmm(tg.worst_at_h), src: "state/autopilot/target/worst_at_h" },
+      ],
+      sub: [nice(tg.worst)],
+    };
+  return { value: ["Every street"], sub: ["watched all the time"] };
+}
+
+/** DeepSeek and how long it took, in seconds. */
+const thinks = (ms: number | null | undefined, src: string): Part[] =>
+  ms ? ["DeepSeek ", { t: (ms / 1000).toFixed(1), src, val: ms, scale: 0.001 }, "\u00a0s"] : ["DeepSeek"];
+
+/** The box the guard checked: "at most 3 kW a home", or with its end "3 kW a home until 22:44" (the limited time). */
+function capParts(fields: Record<string, number | null> | null | undefined, base: string, until?: Part[] | null): Part[] | null {
+  const imp = fields?.import_max_kw;
+  const exp = fields?.export_max_kw;
+  const lead = until ? [] : ["at most "];
+  const tail = until ? [" ", ...until] : [];
+  if (imp != null) return [...lead, { t: kwText(imp), src: `${base}/fields/import_max_kw`, val: imp }, "\u00a0kW a home", ...tail];
+  if (exp != null) return [...lead, { t: kwText(exp), src: `${base}/fields/export_max_kw`, val: exp }, "\u00a0kW out a home", ...tail];
+  return null;
+}
+
+/** Homes under the segment, each simulated household standing for several real homes. */
+function homes(s: State, seg: string | null | undefined): Part[] | null {
+  const a = seg ? s.aggregates?.[seg] : null;
+  const r = s.summary?.households ? s.summary.houses / s.summary.households : 1;
+  if (!a || !a.online) return null;
+  return [{ t: fmt(Math.round(a.online * r)), src: `state/aggregates/${seg}/online`, val: a.online, scale: r }, "\u00a0homes"];
+}
+
+function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
+  const ap = s.autopilot;
+  const mk = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null): Step[] =>
+    rows.map(([value, sub], i) => ({ name: NAMES[i], node: nodes[i], value, sub, seal: i === 3 ? seal : null }));
+
+  if (!ap || ap.mode === "off")
+    return {
+      key: "off",
+      busy: false,
+      steps: mk(["waiting", "waiting", "waiting", "waiting"], [
+        [["Autopilot off"], ["a person is in charge"]],
+        [["Resting"], null],
+        [["Standing by"], null],
+        [["Nothing sent"], null],
+      ]),
+    };
+
+  // Live: the autopilot works right now.
+  if (ap.busy && ap.stage in STAGE_INDEX) {
+    const k = STAGE_INDEX[ap.stage];
+    const nodes = NAMES.map((_, i) => (i < k ? "done" : i === k ? "active" : "waiting")) as Node[];
+    const see = sees(s, ap.last_trigger, "state/autopilot/last_trigger", { src: "state/autopilot/target/worst_pct", val: ap.target?.worst_pct });
+    return {
+      key: `busy-${ap.stage}-${ap.last_run}`,
+      busy: true,
+      steps: mk(nodes, [
+        [see.value, see.sub],
+        [["DeepSeek"], [k === 1 ? "thinking" : k > 1 ? "answered" : "next"]],
+        k > 2 ? [["Guard passed"], ["inside every safety rule"]] : k === 2 ? [["Checking"], ["the safety rules"]] : [["Guard"], ["next"]],
+        k === 3 ? [["Signing"], [{ t: "Ed25519", src: "deck", label: "protocol v1" }, " over MQTT"]] : [["Nothing yet"], null],
+      ]),
+    };
+  }
+
+  // A proposal waits for a person.
+  const pend = ap.pending;
+  if (pend && !pend.error) {
+    const base = "state/autopilot/pending";
+    const guardOk = !pend.guard;
+    const see = pend.situation ? sees(s, pend.situation, `${base}/situation`) : sees(s, ap.last_trigger, "state/autopilot/last_trigger");
+    return {
+      key: `pending-${pend.at ?? ""}`,
+      busy: false,
+      steps: mk(["done", "done", guardOk ? "done" : "refused", guardOk ? "human" : "waiting"], [
+        [see.value, see.sub],
+        [thinks(pend.latency_ms, `${base}/latency_ms`), [modeTitle(pend.mode)]],
+        guardOk
+          ? [["Guard passed"], capParts(pend.fields, base) ?? ["inside every safety rule"]]
+          : [["Guard refused"], [{ t: plainReason(pend.guard, pend.mode) ?? "", src: `${base}/guard` }]],
+        guardOk
+          ? [["Waiting for a human OK"], [pend.segment ? `for ${nice(pend.segment)}` : "before anything is sent"]]
+          : [["Nothing sent"], null],
+      ]),
+    };
+  }
+
+  const d = ap.history?.[0];
+  if (!d) {
+    const see = sees(s, ap.last_trigger, "state/autopilot/last_trigger");
+    return {
+      key: "watch",
+      busy: false,
+      steps: mk(["active", "waiting", "waiting", "waiting"], [[see.value, see.sub], [["DeepSeek"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]),
+    };
+  }
+
+  const base = "state/autopilot/history/0";
+  const key = `d-${d.at}-${d.verdict}`;
+  const see = sees(s, d.trigger, `${base}/trigger`, { src: `${base}/worst_pct`, val: d.worst_pct });
+  const seeRow: [Part[], Part[] | null] = [see.value, see.sub];
+  const think: [Part[], Part[] | null] = [thinks(d.latency_ms, `${base}/latency_ms`), d.mode ? [modeTitle(d.mode)] : null];
+  const until: Part[] | null =
+    d.duration_min && d.mode !== "RELEASE" ? ["until ", { t: hhmm(d.sim_h + d.duration_min / 60), src: `${base}/sim_h` }] : null;
+  const passed: [Part[], Part[] | null] = [["Guard passed"], capParts(d.fields, base, until) ?? ["inside every safety rule"]];
+  const reason = (t: string | null | undefined): Part[] | null => (t ? [{ t, src: `${base}/detail` }] : null);
+  const nothing: [Part[], Part[] | null] = [["Nothing sent"], null];
+
+  switch (d.verdict) {
+    case "sent": {
+      // "#1217 to 192 homes": the signed message and who got it (its end sits under Checks).
+      const to = homes(s, d.segment);
+      const sub: Part[] | null = d.seq != null ? ["#", { t: String(d.seq), src: `${base}/seq`, val: d.seq }, ...(to ? [" to ", ...to] : [])] : to;
+      return { key, busy: false, steps: mk(["done", "done", "done", "done"], [seeRow, think, passed, [["Signed and sent"], sub]], d.seq) };
+    }
+    case "refused":
+      return { key, busy: false, steps: mk(["done", "done", "refused", "waiting"], [seeRow, think, [["Guard refused"], reason(plainReason(d.detail, d.mode))], nothing]) };
+    case "held":
+      return { key, busy: false, steps: mk(["done", "done", "refused", "waiting"], [seeRow, think, [["Held back"], reason(plainReason(d.detail, d.mode))], nothing]) };
+    case "none":
+      return { key, busy: false, steps: mk(["done", "done", "waiting", "waiting"], [seeRow, [think[0], ["no action needed"]], [["Nothing to check"], null], nothing]) };
+    case "error":
+      return { key, busy: false, steps: mk(["done", "done", "waiting", "waiting"], [seeRow, [["DeepSeek"], ["no answer in time"]], [["Nothing to check"], null], nothing]) };
+    case "pending":
+      return { key, busy: false, steps: mk(["done", "done", "done", "human"], [seeRow, think, passed, [["Waiting for a human OK"], d.mode ? [modeTitle(d.mode)] : null]]) };
+    case "rejected":
+      return { key, busy: false, steps: mk(["done", "done", "done", "done"], [seeRow, think, passed, [["Declined"], ["a person said no"]]]) };
+    case "expired":
+      return { key, busy: false, steps: mk(["done", "done", "done", "waiting"], [seeRow, think, passed, [["Expired"], ["nobody approved in time"]]]) };
+  }
+  return { key, busy: false, steps: mk(["done", "waiting", "waiting", "waiting"], [seeRow, [["DeepSeek"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]) };
+}
+
+/** Text and tagged numbers of one line. */
+function Parts({ parts }: { parts: Part[] }) {
+  return (
+    <>
+      {parts.map((p, i) =>
+        typeof p === "string" ? (
+          <span key={i}>{p}</span>
+        ) : (
+          <span
+            key={i}
+            data-src={p.src}
+            data-val={p.val != null ? String(p.val) : undefined}
+            data-scale={p.scale != null && p.scale !== 1 ? String(p.scale) : undefined}
+            data-label={p.label}
+          >
+            {p.t}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Green check that draws itself when a new signed message goes out (the signed-and-sent moment). */
+function SealCheck({ play }: { play: boolean }) {
+  return (
+    <motion.svg
+      viewBox="0 0 28 28"
+      className="gzAi-icon"
+      initial={play ? { scale: 0.6, opacity: 0 } : false}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.35, ease: EASE }}
+      aria-hidden
+    >
+      <circle cx="14" cy="14" r="13" fill={P.green} />
+      <motion.path
+        d="M8 14.5l4 4 8-9"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={play ? { pathLength: 0 } : false}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, delay: play ? 0.25 : 0, ease: EASE }}
+      />
+    </motion.svg>
+  );
+}
+
+/** The step's node on the track: check, cross, or a ring (ink while working, orange while a person is asked). */
+function StepNode({ node, seal, fresh, pulse }: { node: Node; seal: boolean; fresh: boolean; pulse: boolean }) {
+  return (
+    <span className="gzAi-node" aria-hidden>
+      {node === "done" ? (
+        seal ? (
+          <SealCheck play={fresh} />
+        ) : (
+          <CheckCircle weight="fill" className="gzAi-icon" color={P.green} />
+        )
+      ) : node === "refused" ? (
+        <XCircle weight="fill" className="gzAi-icon" color={P.red} />
+      ) : (
+        <span className="gzAi-ring" style={{ borderColor: node === "active" ? P.ink : node === "human" ? P.orange : "#d2d2d7" }}>
+          {pulse && (
+            <motion.span
+              className="gzAi-pulse"
+              style={{ borderColor: P.ink }}
+              initial={{ scale: 1, opacity: 0.6 }}
+              animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0.15, 0.6] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+const CSS = `
+.gzAi{container-type:inline-size;position:relative;min-width:0;display:flex;flex-direction:column;gap:.5rem;
+  --n:1rem;--v:1.375rem;--s:.9375rem}
+.gzAi ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:.5rem 1.25rem}
+.gzAi li{position:relative;min-width:0}
+.gzAi-head{display:flex;align-items:center;gap:.45em;font-size:var(--n);line-height:1.15;font-weight:600;letter-spacing:.007em}
+.gzAi-node{position:relative;display:inline-grid;place-items:center;width:1.15em;height:1.15em;flex:none}
+.gzAi-icon{width:1.15em;height:1.15em;display:block}
+.gzAi-ring{position:relative;box-sizing:border-box;width:.95em;height:.95em;border-radius:50%;border:2px solid;background:#fff;
+  transition:border-color .3s cubic-bezier(0,0,.5,1)}
+.gzAi-pulse{position:absolute;inset:-4px;border-radius:50%;border:2px solid}
+.gzAi-v{margin:.125rem 0 0;font-size:var(--v);line-height:1.1;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;text-wrap:balance;transition:color .3s cubic-bezier(0,0,.5,1)}
+.gzAi-s{margin:0;font-size:var(--s);line-height:1.3;font-weight:400;color:#3a3a3c;letter-spacing:-.016em;overflow-wrap:anywhere}
+.gzAi-track{display:none}
+.gzAi-foot{margin:auto 0 0;font-size:var(--s);line-height:1.35;color:${P.secondary};letter-spacing:-.016em}
+@container (min-width:20rem){
+  .gzAi ol{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container (min-width:44rem){
+  .gzAi{--n:1.125rem;--v:1.625rem;--s:1rem;gap:1rem}
+  .gzAi ol{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(1rem,2.4cqi,2.5rem)}
+  .gzAi-head{flex-direction:column;align-items:flex-start;gap:.5rem}
+  .gzAi-node{width:1.4em;height:1.4em}
+  .gzAi-icon{width:1.4em;height:1.4em}
+  .gzAi-ring{width:1.15em;height:1.15em}
+  /* The track: from this node to the next one, under the gap between the columns. */
+  .gzAi-track{display:block;position:absolute;top:.7em;left:calc(1.4em + 6px);right:calc(-1 * clamp(1rem,2.4cqi,2.5rem) + 6px);height:2px;
+    margin-top:-1px;border-radius:1px;background:${P.fill};font-size:var(--n);overflow:hidden}
+  .gzAi-track>span{display:block;height:100%;background:${P.green};transform-origin:left center}
+}
+`;
+
+/** Sees / Thinks / Checks / Acts card. Props: `st` from useStory. */
+export default function AiCard({ st }: { st: StoryState }) {
+  const s = st.s;
+  const view = s ? stepsFor(s) : null;
+  const key = view?.key ?? "";
+  const reduced = useReducedMotion();
+
+  // A new decision replays the steps once, 0.3 s apart. The first render shows the current decision as it is.
+  const [shown, setShown] = useState(4);
+  const lastKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastKey.current === null || key.startsWith("busy") || key === lastKey.current) {
+      lastKey.current = key;
+      return;
+    }
+    const wasBusy = lastKey.current.startsWith("busy");
+    lastKey.current = key;
+    if (wasBusy || reduced) return; // the live stages already lit the steps
+    setShown(0);
+    const ids = [1, 2, 3, 4].map((i) => window.setTimeout(() => setShown(i), i * 300));
+    return () => ids.forEach(clearTimeout);
+  }, [key, reduced]);
+
+  // The check on Acts draws itself only for a seq that appeared while the stage was open.
+  const sealSeq = view?.steps[3].seal ?? null;
+  const seenSeq = useRef<number | null>(null);
+  const [freshSeq, setFreshSeq] = useState<number | null>(null);
+  useEffect(() => {
+    if (sealSeq == null) return;
+    if (seenSeq.current != null && sealSeq !== seenSeq.current) setFreshSeq(sealSeq);
+    seenSeq.current = sealSeq;
+  }, [sealSeq]);
+
+  const ap = s?.autopilot;
+  const foot =
+    !ap || ap.mode === "off"
+      ? "A person is in charge, the autopilot is off."
+      : ap.mode === "propose"
+        ? "The autopilot proposes, a person approves."
+        : "Autopilot on. A person can take over any time.";
+
+  return (
+    <div className="gzAi" aria-label="What the AI does">
+      <style>{CSS}</style>
+      {view ? (
+        <ol>
+          {view.steps.map((step, i) => {
+            // While a replay runs, steps not reached yet wait and the one being revealed works.
+            const node: Node = i < shown ? step.node : i === shown && step.node !== "waiting" ? "active" : "waiting";
+            const lit = node !== "waiting";
+            const next = view.steps[i + 1];
+            const nextLit = !!next && i + 1 < shown && next.node !== "waiting";
+            return (
+              <li key={step.name} aria-current={node === "active" || node === "human" ? "step" : undefined}>
+                {i < 3 && (
+                  <span className="gzAi-track" aria-hidden>
+                    <motion.span
+                      initial={false}
+                      animate={{ scaleX: node === "done" && nextLit ? 1 : 0 }}
+                      transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 20 }}
+                    />
+                  </span>
+                )}
+                <div className="gzAi-head" style={{ color: lit ? P.ink : P.tertiary }}>
+                  <StepNode
+                    node={node}
+                    seal={i === 3 && step.seal != null}
+                    fresh={i === 3 && step.seal != null && step.seal === freshSeq}
+                    pulse={view.busy && node === "active" && !reduced}
+                  />
+                  <span>{step.name}</span>
+                </div>
+                <motion.p
+                  key={JSON.stringify(step.value)}
+                  className="gzAi-v"
+                  initial={reduced ? false : { opacity: 0.4 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, ease: EASE }}
+                  style={{ color: lit ? P.ink : P.tertiary }}
+                >
+                  <Parts parts={step.value} />
+                </motion.p>
+                {step.sub && lit && (
+                  <p className="gzAi-s">
+                    <Parts parts={step.sub} />
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="gzAi-v" style={{ color: P.tertiary }}>
+          Waiting for the autopilot
+        </p>
+      )}
+      <p className="gzAi-foot">{foot}</p>
+    </div>
+  );
+}

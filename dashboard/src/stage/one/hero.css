@@ -1,0 +1,186 @@
+/* Hero (story card): sizes follow the card, never the window (design/STAGE.md 5.5, 6, 7.2). The card is its own size
+   container, so the same part reads right as a 5-column tile at 1440, a full-width band at 1022 and a phone card.
+   Nothing has a fixed height around text and nothing hides overflow: text wraps, the ring drops under the figure. */
+
+.gzH {
+  container: gzhero / inline-size;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Default (narrow card, phones): one column; head on top, figure and ring, then the three numbers. When the card is
+   taller than its content (class a fills one screen), the claim sits at the bottom, keynote style. */
+.gzH-in {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(0.75rem, 3cqi, 1.75rem);
+  min-width: 0;
+}
+
+.gzH-wait {
+  margin: auto 0;
+  color: #6e6e73;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Story sentence: head-xl, at most 3 lines, balanced; never clipped, never ellipsed. */
+.gzH-line {
+  margin: 0;
+  font-size: clamp(1.625rem, min(1rem + 2vw, 7.4cqi), 3.5rem);
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.005em;
+  color: #1d1d1f;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+.gzH-place {
+  margin: 0.5em 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.47;
+  letter-spacing: -0.022em;
+  color: #6e6e73;
+}
+
+/* Hero figure with the ring beside it; the ring wraps under the figure when they do not both fit. */
+.gzH-fig {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem clamp(1rem, 4cqi, 2.5rem);
+  min-width: 0;
+}
+.gzH-claim {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.gzH-big {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: clamp(3.25rem, min(2.2rem + 4.6vw, 21cqi, 10.5vh), 8rem); /* vh cap keeps 1440x900 one screen */
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #1d1d1f;
+}
+.gzH-unit {
+  margin-left: 0.12em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #6e6e73;
+}
+.gzH-cap {
+  margin: 0.45em 0 0;
+  font-size: clamp(1.0625rem, 4.2cqi, 1.5rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: #1d1d1f;
+  text-wrap: balance;
+}
+.gzH-none {
+  margin: 0;
+  font-size: clamp(1.5rem, min(1rem + 1vw, 6.5cqi), 2.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #6e6e73;
+  text-wrap: balance;
+}
+.gzH-strong {
+  font-weight: 600;
+}
+.gzH-ring {
+  flex: 0 0 auto;
+  width: clamp(5.5rem, min(28cqi, 15vh), 11rem); /* vh cap: the ring is the tallest thing in the card at 1920x1080 */
+  display: block; /* not grid: the ring's max-width 100% must resolve against this definite width */
+}
+
+/* Without / with / limit: as many columns as fit, never squeezed; a column wraps its label instead of cutting it. */
+.gzH-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.875rem clamp(1rem, 4cqi, 2rem);
+  min-width: 0;
+}
+.gzH-stat {
+  min-width: 0;
+}
+.gzH-stat-l {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  letter-spacing: -0.022em;
+  color: #6e6e73;
+}
+.gzH-key {
+  width: 0.95em;
+  height: 0.95em;
+  flex: 0 0 auto;
+}
+.gzH-stat-v {
+  margin-top: 0.15em;
+  font-size: clamp(1.375rem, min(1rem + 1vw, 7cqi), 2.25rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: #1d1d1f;
+}
+.gzH-pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4em;
+}
+.gzH-pct {
+  font-size: 0.62em;
+  color: #6e6e73;
+}
+
+/* Wide card (class b band at 600-1179, big screens): sentence and numbers left, figure and ring right. */
+@container gzhero (min-width: 52rem) {
+  .gzH-in {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-areas:
+      "head fig"
+      "stats fig";
+    align-content: space-between;
+    column-gap: clamp(1.5rem, 4cqi, 3.5rem);
+  }
+  .gzH-head {
+    grid-area: head;
+  }
+  .gzH-fig {
+    grid-area: fig;
+    align-self: center;
+  }
+  .gzH-stats {
+    grid-area: stats;
+    align-self: end;
+  }
+  .gzH-big {
+    font-size: clamp(3.25rem, min(2.2rem + 4.6vw, 11cqi, 10.5vh), 8rem);
+  }
+  .gzH-cap {
+    font-size: clamp(1.0625rem, 2.1cqi, 1.5rem);
+  }
+  .gzH-line {
+    font-size: clamp(1.625rem, min(1rem + 2vw, 4.2cqi), 3.5rem);
+  }
+  .gzH-ring {
+    width: clamp(5.5rem, min(15cqi, 15vh), 11rem);
+  }
+  .gzH-stat-v {
+    font-size: clamp(1.375rem, min(1rem + 1vw, 3.4cqi), 2.25rem);
+  }
+}

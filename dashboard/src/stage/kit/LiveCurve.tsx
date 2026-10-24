@@ -1,17 +1,21 @@
-// THE money shot: one street transformer over the last hours and the forecast ahead. "Without Gridzilla" (the
-// simulator's counterfactual, baseline_kw) is a grey dashed line that keeps climbing; "With Gridzilla" (total_kw) is the
-// bold ink line that bends down under the limit; the gap between them is filled flat Apple green and its size is the big
-// number on top. The limit is a red line in both directions, the line turns red only where it really is over the limit.
+// THE money shot: one street transformer over the last hours and the time ahead. "Without Gridzilla" (the simulator's
+// counterfactual, baseline_kw) is a grey dashed line; "With Gridzilla" (total_kw) is the bold line that bends down under
+// the limit; the gap between them is filled green. The limit is a red line, the line turns red only where it really is
+// over the limit.
+//
+// Stage mode (design/STAGE.md 7.1) adds dad's diet plan as the hero idea: from Now on the plan's "without" hill
+// (naive_kw, grey dashed) and its target shape (planned_kw, a green line that sits flat on the ceiling L) with the moved
+// energy shaded between them, plus the active signal's time-limited window as a band in the plot and a bar under the
+// hours. The line is ink (blue is for things you click), the legend sits above the plot as wrapping HTML with live values.
 //
 // Labels never collide: the chart measures its own box, every label gets a real text box, and they are placed in
-// priority order (Now, the newest signal, axis ticks, Forecast); a label with no free spot is dropped. The series and
-// the limit are named in a legend row under the plot (HTML, wraps), so no label ever sits on a line. Below 360 x 200 px
-// only the essentials stay in the plot: the two lines, the limit line and Now.
+// priority order (axis ticks, then Limit, Now, the signal window, Plan, Without, Gridzilla acted); a label with no free
+// spot is dropped, never nudged off its anchor. In stage mode the lines themselves block labels too.
 //
 // Motion with purpose only: the time axis pans linearly with grid time, the newest segment of the line grows to each new
-// reading (no full redraw), the scale glides when the peak grows, and every number ticks. Built from curve/series.ts.
+// reading (no full redraw), the scale glides when the peak grows, the plan redraws when a new plan round lands.
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import type { History, State } from "../../api";
+import type { FlattenPlan, History, Signal, State } from "../../api";
 import { hhmm, loadPct, nice } from "../../model";
 import { signalMarks, unwrapForecast, unwrapHistory, niceStep, type HistPt } from "../../components/curve/series";
 import { P } from "../palette";
@@ -19,6 +23,7 @@ import Counter, { fmtNum } from "./Counter";
 import { smoothBand, smoothPath } from "./smooth";
 import { useTweens } from "./tween";
 import { placeLabels, textW, useBox, type LabelReq, type Rect } from "./layout";
+import { apex, plateauStart, signalWindow, slicePlan, unwrapPlan } from "./plan";
 
 type Variant = "hero" | "card";
 
@@ -80,16 +85,55 @@ export function keptOff(s: State, history: History | null, node: string, pastH =
   };
 }
 
-
 type Placed = Map<string, Rect>;
+type XYPt = [number, number];
 
-/** A short legend swatch: solid, dashed or the limit line. */
-function Swatch({ color, dashed, width }: { color: string; dashed?: boolean; width: number }) {
+/** A short legend swatch: solid, dashed, a filled square or the signal bar. */
+function Swatch({ color, dashed, width, kind = "line", opacity }: { color: string; dashed?: boolean; width?: number; kind?: "line" | "fill" | "bar"; opacity?: number }) {
+  if (kind === "fill")
+    return <span className="inline-block shrink-0 rounded-[0.2em]" style={{ width: "0.9em", height: "0.9em", background: color, opacity: opacity ?? 0.45 }} aria-hidden />;
+  if (kind === "bar")
+    return (
+      <svg width="1.6em" height="0.6em" viewBox="0 0 24 8" className="shrink-0" aria-hidden>
+        <rect x="1" y="1" width="11" height="6" rx="3" fill={P.ink} />
+        <rect x="13" y="1" width="10" height="6" rx="3" fill={P.fill} />
+      </svg>
+    );
   return (
     <svg width="1.6em" height="0.6em" viewBox="0 0 24 8" className="shrink-0" aria-hidden>
-      <line x1="2" x2="22" y1="4" y2="4" stroke={color} strokeWidth={width} strokeLinecap="round" strokeDasharray={dashed ? "4 4" : undefined} />
+      <line x1="2" x2="22" y1="4" y2="4" stroke={color} strokeWidth={width ?? 3} strokeLinecap="round" strokeDasharray={dashed ? "4 4" : undefined} />
     </svg>
   );
+}
+
+/** One legend entry: key, label in secondary, live value in ink. */
+function Key({ swatch, label, children }: { swatch: ReactNode; label: string; children?: ReactNode }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-[0.4em] whitespace-nowrap">
+      {swatch}
+      <span style={{ color: P.secondary }}>{label}</span>
+      {children != null && (
+        <span className="font-semibold" style={{ color: P.ink }}>
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Rects along a polyline (only between x0 and x1, the visible plot), so labels keep clear of the line itself. */
+function trace(out: Rect[], pts: XYPt[], r: number, x0: number, x1: number) {
+  const step = Math.max(3, r * 1.5);
+  const put = (x: number, y: number) => x >= x0 && x <= x1 && out.push({ x: x - r, y: y - r, w: 2 * r, h: 2 * r });
+  for (let i = 0; i < pts.length; i++) {
+    const [xa, ya] = pts[i];
+    put(xa, ya);
+    if (i + 1 < pts.length) {
+      const [xb, yb] = pts[i + 1];
+      const n = Math.floor(Math.hypot(xb - xa, yb - ya) / step);
+      for (let j = 1; j < n; j++) put(xa + ((xb - xa) * j) / n, ya + ((yb - ya) * j) / n);
+    }
+  }
 }
 
 export default function LiveCurve({
@@ -100,51 +144,90 @@ export default function LiveCurve({
   variant = "hero",
   header = true,
   ground,
+  stage = false,
+  plan,
+  signal,
+  span,
+  legend,
+  minPlot,
+  planSrc = "flatten",
 }: {
   s: State;
   history: History | null;
   /** The transformer on screen, e.g. "tf:mauer-2". */
   node: string;
-  /** CSS height; hero fills its parent (100%), card defaults to 22rem. The plot never gets shorter than 9rem. */
+  /** CSS height; hero fills its parent (100%), card defaults to 22rem, stage grows with its flex parent. */
   height?: number | string;
   variant?: Variant;
   /** Big "kept off the street" number and the transformer name above the chart (default on). */
   header?: boolean;
   /** Colour behind the chart, used as the thin halo that keeps line labels readable (default white). */
   ground?: string;
+  /** The one-stage look (STAGE.md 7.1): ink line, direct labels, legend above, the plan instead of the forecast. */
+  stage?: boolean;
+  /** The diet plan for `node` (useFlatten(node).plan). From Now on it replaces the forecast: grey hill + green target. */
+  plan?: FlattenPlan | null;
+  /** The signal covering `node` right now (signalOn): its valid_from..valid_to window on the time axis. */
+  signal?: Signal | null;
+  /** Hours before and after Now. `narrow` is used while the plot is under 480 px wide (phones). */
+  span?: { past: number; future: number; narrow?: { past: number; future: number } };
+  /** Legend row position (default: below, stage: above). */
+  legend?: "above" | "below" | "none";
+  /** CSS min-height of the plot (default 9rem). */
+  minPlot?: string;
+  /** window.__gz key the plan payload is kept under, for data-src (default "flatten"). */
+  planSrc?: string;
 }) {
   const hero = variant === "hero";
-  const PAST = hero ? 6 : 4;
-  const FUTURE = hero ? 2 : 1.5;
   const clock = useClock(s.sim_hour);
   const [plot, { w: W, h: H, rem }] = useBox<HTMLDivElement>();
+  const sp0 = span ?? { past: hero ? 6 : 4, future: hero ? 2 : 1.5 };
+  const sp = W > 0 && W < 480 && sp0.narrow ? sp0.narrow : sp0;
+  const PAST = sp.past;
+  const FUTURE = sp.future;
   const tn = node ? s.tree[node] : undefined;
-  const rating = tn?.rating_kw ?? null;
+  const agg = node ? s.aggregates[node] : undefined;
+  const rating = tn?.rating_kw ?? agg?.rating_kw ?? null;
   const reverse = rating != null ? tn?.reverse_kw ?? rating : null;
+  const lineC = stage ? P.ink : P.blue;
+  const washO = stage ? 0.16 : 0.38;
+  const legendAt = legend ?? (stage ? "above" : "below");
 
   const hist = useMemo(() => unwrapHistory(history, node, clock.t, s.sim_hour), [history, node, clock.t, s.sim_hour]);
-  const fc = useMemo(() => unwrapForecast(s, node, clock.t), [s, node, clock.t]);
+  const usePlan = stage && !!plan;
+  const fc = useMemo(() => (usePlan ? [] : unwrapForecast(s, node, clock.t)), [usePlan, s, node, clock.t]);
+  const planPts = useMemo(() => (usePlan && plan ? unwrapPlan(plan, s.sim_hour, clock.t) : []), [usePlan, plan, s.sim_hour, clock.t]);
   const marks = useMemo(() => signalMarks(s, node, clock.t), [s, node, clock.t]);
+  const win = useMemo(() => (stage ? signalWindow(s, signal, clock.t) : null), [stage, s, signal, clock.t]);
   const last = hist[hist.length - 1];
   const hasBase = hist.some((p) => p.base != null);
 
   // Scale: everything visible plus the limit, and the reverse limit once power flows back.
   const vis = hist.filter((p) => p.t >= clock.t - PAST - 0.5);
+  const futVis = slicePlan(planPts, clock.t, clock.t + FUTURE + 0.3);
   const vals = [
     ...vis.map((p) => p.total),
     ...vis.flatMap((p) => (p.base == null ? [] : [p.base])),
     ...fc.filter((p) => p.t <= clock.t + FUTURE + 0.3).map((p) => p.total),
+    ...futVis.flatMap((p) => [p.naive, p.planned]),
   ];
   const vMax = vals.length ? Math.max(...vals) : 0;
   const vMin = vals.length ? Math.min(...vals) : 0;
-  // Only the limit in the flow direction: solar backflow when the street pushes back more than it draws.
   const lim = rating ?? Math.max(10, vMax);
+  const span_ = Math.max(vMax, 0) - Math.min(vMin, 0) || 1;
+  // Which limits to draw: classic = only the one in the flow direction; stage = import, plus the reverse limit when the
+  // street pushes back more than half of it (noon export).
   const backflow = reverse != null && -vMin > Math.max(0, vMax);
-  const showRev = backflow;
-  const showImp = !backflow;
-  const span = Math.max(vMax, 0) - Math.min(vMin, 0) || 1;
-  const hiT = backflow ? Math.max(vMax, 0) + span * 0.08 : Math.max(lim * 1.08, vMax + span * 0.08);
-  const loT = backflow ? Math.min(-(reverse as number) * 1.08, vMin - span * 0.08) : Math.min(0, vMin - span * 0.05);
+  const showImp = stage ? !(backflow && vMax <= 0) : !backflow;
+  const showRev = stage ? reverse != null && vMin < -0.5 * reverse : backflow;
+  const hiT = stage
+    ? (showImp ? Math.max(lim, vMax) : Math.max(vMax, 0) + span_ * 0.08) * (showImp ? 1.08 : 1)
+    : backflow
+      ? Math.max(vMax, 0) + span_ * 0.08
+      : Math.max(lim * 1.08, vMax + span_ * 0.08);
+  const loT = showRev
+    ? Math.min(-(reverse as number) * 1.08, vMin - span_ * 0.08)
+    : Math.min(0, vMin - span_ * (stage ? 0.06 : 0.05));
 
   // Head of the line: glides to the newest reading; a jump (restart, other transformer) lands at once.
   const headTo = last?.t ?? clock.t;
@@ -157,12 +240,12 @@ export default function LiveCurve({
   const [view, head, lo, hi] = useTweens([
     { to: clock.t, ms: 3000, linear: true, snap: clock.snap },
     { to: headTo, ms: 4000, linear: true, snap: headSnap || clock.snap },
-    { to: loT, ms: 900 },
-    { to: hiT, ms: 900 },
+    { to: loT, ms: 800 },
+    { to: hiT, ms: 800 },
   ]);
 
   const big = keptOff(s, history, node, PAST);
-  const kw = s.aggregates[node]?.total_kw ?? last?.total ?? null;
+  const kw = agg?.total_kw ?? last?.total ?? null;
   const pct = loadPct(s, node, kw);
   const over = pct != null && Math.abs(pct) >= 100;
   const kwFmt = (v: number) => fmtNum(Math.round(v) || 0);
@@ -170,23 +253,27 @@ export default function LiveCurve({
   // ---- sizes, all from the chart's own box (not the window)
   const k = rem / 16;
   const compact = W < 360 || H < 200;
-  const fs = Math.max(12, Math.min(hero ? 30 : 15 * k, W / 44, H / 10));
-  const fsAxis = Math.max(11, fs * 0.86);
+  const fs = stage ? Math.max(13, rem * (compact ? 0.875 : 1)) : Math.max(12, Math.min(hero ? 30 : 15 * k, W / 44, H / 10));
+  const fsAxis = stage ? Math.max(12, rem * 0.875) : Math.max(11, fs * 0.86);
   const lh = Math.ceil(fs * 1.3);
   const lhA = Math.ceil(fsAxis * 1.3);
-  const swTotal = hero ? Math.max(3, Math.min(6, W / 280)) : 3.25 * k;
-  const swBase = hero ? swTotal * 0.85 : 2.5 * k;
-  const swLim = hero ? Math.max(2, swTotal * 0.6) : 2 * k;
+  const swTotal = stage ? Math.max(2.5, rem * 0.19) : hero ? Math.max(3, Math.min(6, W / 280)) : 3.25 * k;
+  const swBase = stage ? swTotal * 0.8 : hero ? swTotal * 0.85 : 2.5 * k;
+  const swLim = stage ? Math.max(1.5, rem * 0.1) : hero ? Math.max(2, swTotal * 0.6) : 2 * k;
   const halo = ground ?? P.card;
   const g = rem * 0.4;
 
-  // ---- geometry (px): top row for Now and the signal, bottom row for the hours, kW on the right
+  // ---- geometry (px): top row for Now and the signal, then the plot, the hours, and in stage mode the window bar
   const showX = H >= 120;
+  const winBar = Math.max(6, Math.round(rem * 0.375));
+  const winRow = win ? Math.max(lhA, winBar) + Math.round(fsAxis * 0.4) : 0;
   const padT = lh + Math.round(fs * 0.5);
-  const padB = showX ? lhA + Math.round(fsAxis * 0.45) : 4;
+  const tickRow = showX ? lhA + Math.round(fsAxis * 0.45) : 4;
+  const padB = tickRow + winRow;
   const padL = Math.round(rem * 0.25);
   const ph = Math.max(1, H - padT - padB);
-  const yCount = Math.max(2, Math.min(hero ? 5 : 4, Math.floor(ph / (lhA * 2.2))));
+  const plotB = padT + ph;
+  const yCount = stage ? 2 : Math.max(2, Math.min(hero ? 5 : 4, Math.floor(ph / (lhA * 2.2))));
   const yStep = niceStep(hiT - loT || 1, yCount);
   const ticksOf = (a: number, b: number) => {
     const out: number[] = [];
@@ -213,16 +300,26 @@ export default function LiveCurve({
   if (shown.length && headTot != null && head > shown[shown.length - 1].t)
     shown.push({ ...shown[shown.length - 1], t: head, total: headTot, base: headBase });
 
-  const totalPts = shown.map((p) => [x(p.t), y(p.total)] as [number, number]);
+  const totalPts = shown.map((p) => [x(p.t), y(p.total)] as XYPt);
   const baseRun = shown.filter((p) => p.base != null);
-  const basePts = baseRun.map((p) => [x(p.t), y(p.base as number)] as [number, number]);
+  const basePts = baseRun.map((p) => [x(p.t), y(p.base as number)] as XYPt);
   const shaving = (p: HistPt) => p.base != null && Math.abs(p.total) < Math.abs(p.base) && (Math.sign(p.base) === Math.sign(p.total) || Math.abs(p.total) <= 1);
   const band = smoothBand(
     baseRun.map((p) => [x(p.t), y(shaving(p) ? (p.base as number) : p.total)]),
     baseRun.map((p) => [x(p.t), y(p.total)]),
   );
-  const fcPts = fc.filter((p) => p.t >= view - 0.05 && p.t <= tR + 0.3).map((p) => [x(p.t), y(p.total)] as [number, number]);
+  const fcPts = fc.filter((p) => p.t >= view - 0.05 && p.t <= tR + 0.3).map((p) => [x(p.t), y(p.total)] as XYPt);
   if (fcPts.length && headTot != null && last && view - head < 0.6) fcPts.unshift([x(head), y(headTot)]);
+
+  // The plan from Now on: grey hill, green target, the moved energy between them.
+  const fut = slicePlan(planPts, view, tR + 0.3);
+  const naivePts = fut.map((p) => [x(p.t), y(p.naive)] as XYPt);
+  const planLine = fut.map((p) => [x(p.t), y(p.planned)] as XYPt);
+  const planBand = fut.length > 1 ? smoothBand(naivePts, planLine) : "";
+  const level = plan?.level_kw ?? null;
+  const plateau = usePlan && level != null ? plateauStart(fut, level) : null;
+  const top = usePlan ? apex(fut) : null;
+  const topIsPeak = !!(top && plan && Math.abs(top.naive - plan.peak_naive_kw) < Math.max(1, plan.peak_naive_kw * 0.01) && top.naive > top.planned + 1);
 
   // Signals that went out, clustered (one per half hour); the newest one is named on the top row.
   const seen: number[] = [];
@@ -235,37 +332,126 @@ export default function LiveCurve({
   const latest = pins[pins.length - 1];
 
   const yTicks = ticksOf(lo, hi);
-  // Hours thin out by the pixels they get: every 1, 2, 3, 4 or 6 hours.
+  // Hours thin out by the pixels they get (stage: every 3 or 6 hours, on the hour).
   const wHour = textW("00:00", fsAxis);
   const hourPx = pw / (past + FUTURE);
-  const tStep = [1, 2, 3, 4, 6].find((st) => hourPx * st >= wHour * 1.7) ?? 6;
+  const steps = stage ? [3, 6, 12] : [1, 2, 3, 4, 6];
+  const tStep = steps.find((st) => hourPx * st >= wHour * 1.7) ?? steps[steps.length - 1];
   const tTicks: number[] = [];
   if (showX) for (let t = Math.ceil(tL / tStep) * tStep; t <= tR; t += tStep) tTicks.push(t);
 
   const nowX = x(view);
   const endX = shown.length ? x(shown[shown.length - 1].t) : nowX;
-  const clipId = `over-${node.replace(/[^a-z0-9]/gi, "")}-${variant}`;
+  const clipId = `over-${node.replace(/[^a-z0-9]/gi, "")}-${variant}${stage ? "-s" : ""}`;
   const hasLine = headTot != null && shown.length > 1;
   const yB = hasLine && headBase != null && basePts.length > 1 ? y(headBase) : null;
   const limV = rating == null ? null : showImp ? rating : -(reverse as number);
+  const winX = win ? { a: Math.max(padL, x(win.t0)), b: Math.min(padL + pw, x(win.t1)) } : null;
+  const winOn = !!(winX && winX.b > winX.a + 1);
 
   // ---- label layout: priority order, first free spot wins, the rest drop out
   const bounds: Rect = { x: 0, y: 0, w: W, h: H };
+  const inPlot: Rect = { x: padL, y: 0, w: pw, h: plotB };
   const topY = Math.round(fs * 0.1);
   const reqs: LabelReq[] = [];
   const blocked: Rect[] = [];
   const dot = (cx: number, cy: number, r: number) => blocked.push({ x: cx - r, y: cy - r, w: 2 * r, h: 2 * r });
+  const wPair = (a: string, b: string, size: number) => textW(a, size, 400) + textW(b, size, 600);
+  const limTxt = rating != null ? `${kwFmt(rating)} kW` : "";
+  const planTxt = level != null ? `${kwFmt(level)} kW` : "";
+  const topTxt = plan ? `${fmtNum(plan.peak_naive_pct)} %` : "";
   if (ready) {
     if (hasLine) dot(x(head), y(headTot as number), swTotal * 1.8);
     for (const m of pins) {
       const v = at(hist, m.t, "total");
       if (v != null) dot(x(m.t), y(v), swTotal * 1.6);
     }
+    if (stage) {
+      // The lines block labels, so a label never sits on a line.
+      const r = swTotal / 2 + 1;
+      trace(blocked, totalPts, r, padL, padL + pw);
+      trace(blocked, basePts, r, padL, padL + pw);
+      trace(blocked, naivePts, r, padL, padL + pw);
+      trace(blocked, planLine, r, padL, padL + pw);
+      if (limV != null) blocked.push({ x: padL, y: y(limV) - swLim / 2, w: pw, h: swLim });
+      blocked.push({ x: nowX - 1, y: padT - fs * 0.4, w: 2, h: plotB - padT + fs * 0.4 });
+      if (winOn && winX) blocked.push({ x: winX.a, y: plotB + tickRow + (winRow - winBar) / 2, w: winX.b - winX.a, h: winBar });
+    }
 
-    // 1. Now
-    const nowW = textW("Now ", fs, 600) + textW(hhmm(view), fs, 400);
-    reqs.push({ id: "now", w: nowW, h: lh, spots: [{ x: nowX + g, y: topY }, { x: nowX - g - nowW, y: topY }] });
-    // 2. The newest signal, on the top row beside its line
+    if (stage) {
+      // 0. Axis ticks first: kW on the right, hours along the bottom
+      yTicks.forEach((v, i) => {
+        const t = tickTxt(v, i === yTicks.length - 1);
+        reqs.push({ id: `y${v}`, w: textW(t, fsAxis), h: lhA, spots: [{ x: padL + pw + Math.round(rem * 0.5), y: y(v) - lhA / 2 }] });
+      });
+      tTicks.forEach((t) => {
+        const w = textW(hhmm(t), fsAxis);
+        reqs.push({ id: `t${t}`, w, h: lhA, bounds: { x: padL, y: 0, w: pw, h: H }, spots: [{ x: x(t) - w / 2, y: plotB + Math.round(fsAxis * 0.3) }] });
+      });
+      // 1. Limit, right end above the line (else below, else at the left end)
+      if (showImp && rating != null) {
+        const ly = y(rating);
+        [wPair("Limit ", limTxt, fs), textW(limTxt, fs, 600)].forEach((w, i) => {
+          // right end first, then sliding left along the line, above before below: the limit always finds a spot
+          const xr = padL + pw - w - g * 0.5;
+          const xs = [xr, ...[1, 2, 3, 4, 5, 6].map((j) => padL + (pw * (7 - j)) / 7 - w / 2), padL + g * 0.5];
+          const above = ly - swLim / 2 - 3 - lh;
+          const below = ly + swLim / 2 + 3;
+          reqs.push({ id: i ? "limS" : "lim", group: "lim", w, h: lh, bounds: inPlot, spots: [...xs.map((x) => ({ x, y: above })), ...xs.map((x) => ({ x, y: below }))] });
+        });
+      }
+    }
+
+    // Now
+    [["Now ", hhmm(clock.t)], ["Now", ""]].forEach(([a, b], i) => {
+      const nowW = textW(a, fs, 600) + (b ? textW(b, fs, 400) : 0);
+      if (!stage && i) return;
+      reqs.push({ id: i ? "nowS" : "now", group: "now", w: nowW, h: lh, spots: [{ x: nowX + g, y: topY }, { x: nowX - g - nowW, y: topY }] });
+    });
+
+    if (stage && winOn && winX && win) {
+      // The signal window: beside its bar under the hours
+      const wy = plotB + tickRow + (winRow - lhA) / 2;
+      [`Signal #${win.seq} until ${hhmm(win.t1)}`, `Until ${hhmm(win.t1)}`].forEach((t, i) => {
+        const w = textW(t, fsAxis, i ? 400 : 400);
+        reqs.push({ id: i ? "winS" : "win", group: "win", w, h: lhA, spots: [{ x: winX.b + g, y: wy }, { x: winX.a - g - w, y: wy }] });
+      });
+    }
+
+    if (stage && !compact) {
+      // Plan, on the start of its flat ceiling
+      if (plateau && level != null) {
+        const px = x(plateau.t);
+        const py = y(level);
+        const w = wPair("Plan ", planTxt, fs);
+        const gapY = swTotal / 2 + 3;
+        // the flat run: from its first slot while the plan stays on L
+        let endT = plateau.t;
+        for (const p of fut) if (p.t >= plateau.t && Math.abs(p.planned - level) < Math.max(0.5, level * 0.005)) endT = p.t;
+        const mx = (px + x(endT)) / 2 - w / 2;
+        const below = py + gapY;
+        const above = py - gapY - lh;
+        reqs.push({ id: "plan", w, h: lh, bounds: inPlot, spots: [{ x: px, y: below }, { x: mx, y: below }, { x: px - w, y: below }, { x: px, y: above }, { x: mx, y: above }, { x: px - w, y: above }] });
+      }
+      // Without, at the top of the hill the plan flattens
+      if (top && topIsPeak) {
+        const ax = x(top.t);
+        const ay = y(top.naive);
+        [wPair("Without Gridzilla ", topTxt, fs), wPair("Without ", topTxt, fs)].forEach((w, i) => {
+          const gy = swBase / 2 + 3;
+          reqs.push({
+            id: i ? "topS" : "top",
+            group: "top",
+            w,
+            h: lh,
+            bounds: inPlot,
+            spots: [{ x: ax - w / 2, y: ay - gy - lh }, { x: ax + g, y: ay - gy - lh }, { x: ax - g - w, y: ay - gy - lh }, { x: ax + g * 1.5, y: ay - lh / 2 }, { x: ax - g * 1.5 - w, y: ay - lh / 2 }],
+          });
+        });
+      }
+    }
+
+    // The newest signal, on the top row beside its line
     if (latest && !compact) {
       [`Gridzilla acted ${hhmm(latest.t)}`, `Acted ${hhmm(latest.t)}`].forEach((t, i) => {
         const w = textW(t, fs, 600);
@@ -273,19 +459,22 @@ export default function LiveCurve({
         reqs.push({ id: i ? "sigS" : "sig", group: "sig", w, h: lh, spots: [{ x: mx - g - w, y: topY }, { x: mx + g, y: topY }] });
       });
     }
-    // 3. Axis ticks: kW on the right, hours along the bottom
-    yTicks.forEach((v, i) => {
-      const t = tickTxt(v, i === yTicks.length - 1);
-      reqs.push({ id: `y${v}`, w: textW(t, fsAxis), h: lhA, spots: [{ x: padL + pw + Math.round(rem * 0.5), y: y(v) - lhA / 2 }] });
-    });
-    tTicks.forEach((t) => {
-      const w = textW(hhmm(t), fsAxis);
-      reqs.push({ id: `t${t}`, w, h: lhA, bounds: { x: padL, y: 0, w: pw, h: H }, spots: [{ x: x(t) - w / 2, y: H - padB + Math.round(fsAxis * 0.3) }] });
-    });
-    // 4. Forecast, top right
-    if (fcPts.length > 1 && !compact) {
-      const w = textW("Forecast", fsAxis);
-      reqs.push({ id: "fc", w, h: lhA, spots: [{ x: padL + pw - w - g * 0.5, y: topY + (lh - lhA) / 2 }] });
+
+    if (!stage) {
+      // Axis ticks: kW on the right, hours along the bottom
+      yTicks.forEach((v, i) => {
+        const t = tickTxt(v, i === yTicks.length - 1);
+        reqs.push({ id: `y${v}`, w: textW(t, fsAxis), h: lhA, spots: [{ x: padL + pw + Math.round(rem * 0.5), y: y(v) - lhA / 2 }] });
+      });
+      tTicks.forEach((t) => {
+        const w = textW(hhmm(t), fsAxis);
+        reqs.push({ id: `t${t}`, w, h: lhA, bounds: { x: padL, y: 0, w: pw, h: H }, spots: [{ x: x(t) - w / 2, y: plotB + Math.round(fsAxis * 0.3) }] });
+      });
+      // Forecast, top right
+      if (fcPts.length > 1 && !compact) {
+        const w = textW("Forecast", fsAxis);
+        reqs.push({ id: "fc", w, h: lhA, spots: [{ x: padL + pw - w - g * 0.5, y: topY + (lh - lhA) / 2 }] });
+      }
     }
     if (!shown.length) {
       const t1 = tn ? `Waiting for the first readings from ${nice(node)}` : "Waiting for the grid to report a street transformer";
@@ -296,9 +485,16 @@ export default function LiveCurve({
     }
   }
   const placed: Placed = ready ? placeLabels(reqs, bounds, blocked) : new Map();
-  const label = (id: string, size: number, fill: string, children: ReactNode, opts: { weight?: number; halo?: boolean } = {}) => {
+  const label = (
+    id: string,
+    size: number,
+    fill: string,
+    children: ReactNode,
+    opts: { weight?: number; halo?: boolean; src?: string; val?: number | null } = {},
+  ) => {
     const b = placed.get(id);
     if (!b) return null;
+    const useHalo = opts.halo ?? stage;
     return (
       <text
         key={id}
@@ -308,15 +504,26 @@ export default function LiveCurve({
         fontSize={size}
         fontWeight={opts.weight ?? 600}
         fill={fill}
-        stroke={opts.halo ? halo : undefined}
-        strokeWidth={opts.halo ? Math.max(3, rem * 0.3) : undefined}
-        paintOrder={opts.halo ? "stroke" : undefined}
+        stroke={useHalo ? halo : undefined}
+        strokeWidth={useHalo ? Math.max(3, rem * 0.3) : undefined}
+        paintOrder={useHalo ? "stroke" : undefined}
         style={{ fontVariantNumeric: "tabular-nums" }}
+        data-src={opts.src}
+        data-val={opts.src && opts.val != null ? String(opts.val) : undefined}
       >
         {children}
       </text>
     );
   };
+  /** "Limit 630 kW": the word in secondary, the value in ink. */
+  const pair = (a: string, b: string) => (
+    <>
+      <tspan fontWeight={400} fill={P.secondary}>
+        {a}
+      </tspan>
+      {b}
+    </>
+  );
 
   // Header: the gap as the one big number, else the load itself.
   const gapKw = big.kw ?? (big.peak || null);
@@ -343,11 +550,86 @@ export default function LiveCurve({
       </>
     );
 
-  const legendFs = Math.max(13, Math.min(26, (W || 600) / 56));
-  const limitWord = limV == null ? null : showRev ? `Limit ${kwFmt(reverse as number)} kW flowing back` : `Limit ${kwFmt(rating as number)} kW`;
+  const limitWord = limV == null ? null : showRev && !showImp ? `Limit ${kwFmt(reverse as number)} kW flowing back` : `Limit ${kwFmt(rating as number)} kW`;
+  const src = (p: string) => `state/aggregates/${node}/${p}`;
+  const base = agg?.baseline_kw ?? null;
+  const winLabelShown = placed.has("win") || placed.has("winS");
+
+  // Stage legend: every series named once, with its live value; wraps, never on the plot.
+  const stageLegend = (
+    <div
+      className="flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
+      style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
+    >
+      <Key swatch={<Swatch color={P.ink} width={3.5} />} label={hasBase ? "With Gridzilla" : "Load now"}>
+        <Counter value={kw} src={src("total_kw")} /> kW
+      </Key>
+      {(hasBase || usePlan) && (
+        <Key swatch={<Swatch color={P.tertiary} width={3} dashed />} label="Without Gridzilla">
+          {base != null ? (
+            <>
+              <Counter value={base} src={src("baseline_kw")} /> kW
+            </>
+          ) : null}
+        </Key>
+      )}
+      {usePlan && level != null && (
+        <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan">
+          <Counter value={level} src={`${planSrc}/plan/level_kw`} /> kW
+        </Key>
+      )}
+      {(hasBase || usePlan) && <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.3} />} label="Energy moved" />}
+      {rating != null && (
+        <Key swatch={<Swatch color={P.red} width={2.5} />} label="Limit">
+          <Counter value={rating} src={agg?.rating_kw != null ? src("rating_kw") : undefined} /> kW
+        </Key>
+      )}
+      {win && winOn && !winLabelShown && (
+        <Key swatch={<Swatch color={P.ink} kind="bar" />} label="Signal until">
+          <span data-src="axis">{hhmm(win.t1)}</span>
+        </Key>
+      )}
+    </div>
+  );
+
+  const classicLegend = (
+    <div className="flex flex-wrap items-center gap-x-[1.1em] gap-y-1 pt-[0.5em]" style={{ fontSize: Math.max(13, Math.min(26, (W || 600) / 56)), lineHeight: 1.25, color: P.secondary }}>
+      <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: P.blue }}>
+        <Swatch color={P.blue} width={3.5} />
+        {hasBase ? "With Gridzilla" : "Load"}
+      </span>
+      {hasBase && (
+        <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
+          <Swatch color={P.tertiary} width={3} dashed />
+          Without Gridzilla
+        </span>
+      )}
+      {hasBase && (
+        <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
+          <Swatch color={P.green} kind="fill" />
+          Kept off the street
+        </span>
+      )}
+      {limitWord && (
+        <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: P.red }}>
+          <Swatch color={P.red} width={2.5} />
+          {limitWord}
+        </span>
+      )}
+    </div>
+  );
+  const legendEl = legendAt === "none" ? null : stage ? stageLegend : classicLegend;
+
+  const aria =
+    usePlan && plan
+      ? `${nice(node)}: tonight's peak would reach ${plan.peak_naive_pct} % of the limit without Gridzilla, ${plan.peak_plan_pct} % with the plan`
+      : `Load on ${nice(node)} with and without Gridzilla`;
 
   return (
-    <div className={`flex min-h-0 min-w-0 flex-col ${hero ? "" : "panel p-5"}`} style={{ height: height ?? (hero ? "100%" : "22rem") }}>
+    <div
+      className={`flex min-h-0 min-w-0 flex-col ${hero || stage ? "" : "panel p-5"}`}
+      style={stage && height == null ? { flex: "1 1 auto" } : { height: height ?? (hero ? "100%" : "22rem") }}
+    >
       {header && (
         <header className={hero ? "mb-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-2" : "mb-2 flex flex-col-reverse gap-2"}>
           <div className="min-w-0">{headLine}</div>
@@ -366,9 +648,10 @@ export default function LiveCurve({
           )}
         </header>
       )}
-      <div ref={plot} className="relative min-h-[9rem] min-w-0 flex-1">
+      {legendAt === "above" && legendEl}
+      <div ref={plot} className="relative min-w-0 flex-1" style={{ minHeight: minPlot ?? "9rem" }}>
         {ready && (
-          <svg width={W} height={H} className="absolute inset-0 block" role="img" aria-label={`Load on ${nice(node)} with and without Gridzilla`}>
+          <svg width={W} height={H} className="absolute inset-0 block" role="img" aria-label={aria}>
             <defs>
               <clipPath id={`${clipId}-plot`}>
                 <rect x={padL} y={0} width={pw} height={H} />
@@ -381,26 +664,41 @@ export default function LiveCurve({
               )}
             </defs>
 
+            {/* the signal's time-limited window, a faint band behind everything */}
+            {stage && winOn && winX && <rect x={winX.a} y={padT - fs * 0.4} width={winX.b - winX.a} height={plotB - padT + fs * 0.4} fill={P.ink} fillOpacity={0.04} />}
+
             {/* scale: faint grid lines */}
             {yTicks.map((v) => (
               <line key={`g${v}`} x1={padL} x2={padL + pw} y1={y(v)} y2={y(v)} stroke={P.ink} strokeOpacity={v === 0 ? 0.16 : 0.06} strokeWidth={1} />
             ))}
 
             <g clipPath={`url(#${clipId}-plot)`}>
-              {/* the gap Gridzilla keeps off the street */}
-              {band && <path d={band} fill={P.green} fillOpacity={0.38} />}
-              {/* without Gridzilla */}
+              {/* the energy Gridzilla moves: kept off in the past, planned away from Now on */}
+              {band && <path d={band} fill={P.green} fillOpacity={washO} />}
+              {planBand && <path d={planBand} fill={P.green} fillOpacity={washO} />}
+              {/* without Gridzilla: measured counterfactual, then the plan's hill; red where it is over the limit */}
               {basePts.length > 1 && (
                 <path d={smoothPath(basePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
               )}
-              {/* forecast ahead */}
+              {naivePts.length > 1 && (
+                <path d={smoothPath(naivePts)} fill="none" stroke={P.tertiary} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" strokeLinejoin="round" />
+              )}
+              {stage && rating != null && (
+                <g clipPath={`url(#${clipId})`}>
+                  {basePts.length > 1 && <path d={smoothPath(basePts)} fill="none" stroke={P.red} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" />}
+                  {naivePts.length > 1 && <path d={smoothPath(naivePts)} fill="none" stroke={P.red} strokeWidth={swBase} strokeDasharray={`${swBase * 3} ${swBase * 2.2}`} strokeLinecap="round" />}
+                </g>
+              )}
+              {/* forecast ahead (only without a plan) */}
               {fcPts.length > 1 && (
                 <path d={smoothPath(fcPts)} fill="none" stroke={P.ink} strokeOpacity={0.28} strokeWidth={swBase * 0.8} strokeDasharray={`${swBase * 1.6} ${swBase * 2}`} strokeLinecap="round" />
               )}
+              {/* the diet plan: the target shape the street is pulled onto */}
+              {planLine.length > 1 && <path d={smoothPath(planLine)} fill="none" stroke={P.green} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />}
               {/* with Gridzilla, red only where it really is over the limit */}
               {totalPts.length > 1 && (
                 <>
-                  <path d={smoothPath(totalPts)} fill="none" stroke={P.blue} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={smoothPath(totalPts)} fill="none" stroke={lineC} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" />
                   {rating != null && (
                     <path d={smoothPath(totalPts)} fill="none" stroke={P.red} strokeWidth={swTotal} strokeLinecap="round" strokeLinejoin="round" clipPath={`url(#${clipId})`} />
                   )}
@@ -409,18 +707,25 @@ export default function LiveCurve({
               {/* where a signal went out */}
               {pins.map((m) => {
                 const v = at(hist, m.t, "total");
-                return v == null ? null : <circle key={m.key} cx={x(m.t)} cy={y(v)} r={swTotal * 1.25} fill={P.blue} stroke="#fff" strokeWidth={swTotal * 0.6} />;
+                return v == null ? null : <circle key={m.key} cx={x(m.t)} cy={y(v)} r={swTotal * 1.25} fill={lineC} stroke={halo} strokeWidth={swTotal * 0.6} />;
               })}
             </g>
 
-            {/* the limit in the flow direction */}
-            {limV != null && <line x1={padL} x2={padL + pw} y1={y(limV)} y2={y(limV)} stroke={P.red} strokeWidth={swLim} />}
+            {/* the limits */}
+            {stage ? (
+              <>
+                {showImp && rating != null && <line x1={padL} x2={padL + pw} y1={y(rating)} y2={y(rating)} stroke={P.red} strokeWidth={swLim} />}
+                {showRev && reverse != null && <line x1={padL} x2={padL + pw} y1={y(-reverse)} y2={y(-reverse)} stroke={P.red} strokeWidth={swLim} />}
+              </>
+            ) : (
+              limV != null && <line x1={padL} x2={padL + pw} y1={y(limV)} y2={y(limV)} stroke={P.red} strokeWidth={swLim} />
+            )}
 
             {/* the newest signal: a dashed line down to the reading */}
             {latest && !compact && (() => {
               const v = at(hist, latest.t, "total");
               const mx = x(latest.t);
-              return <line x1={mx} x2={mx} y1={padT - fs * 0.4} y2={v == null ? H - padB : y(v)} stroke={P.ink} strokeOpacity={0.35} strokeWidth={1.25 * k} strokeDasharray={`${2 * k} ${3 * k}`} />;
+              return <line x1={mx} x2={mx} y1={padT - fs * 0.4} y2={v == null ? plotB : y(v)} stroke={P.ink} strokeOpacity={0.35} strokeWidth={1.25 * k} strokeDasharray={`${2 * k} ${3 * k}`} />;
             })()}
 
             {/* the gap at the head */}
@@ -431,54 +736,89 @@ export default function LiveCurve({
             {/* the head of the line: a ring pulses each time a new reading lands */}
             {hasLine && (
               <g>
-                <circle key={`pulse-${last?.t ?? 0}`} cx={x(head)} cy={y(headTot as number)} r={swTotal * 1.4} fill="none" stroke={P.blue} strokeWidth={swTotal * 0.5}>
+                <circle key={`pulse-${last?.t ?? 0}`} cx={x(head)} cy={y(headTot as number)} r={swTotal * 1.4} fill="none" stroke={lineC} strokeWidth={swTotal * 0.5}>
                   <animate attributeName="r" from={swTotal * 1.4} to={swTotal * 5} dur="1.4s" repeatCount="1" fill="freeze" />
                   <animate attributeName="stroke-opacity" from="0.6" to="0" dur="1.4s" repeatCount="1" fill="freeze" />
                 </circle>
-                <circle cx={x(head)} cy={y(headTot as number)} r={swTotal * 1.4} fill={P.blue} stroke={halo} strokeWidth={swTotal * 0.5} />
+                <circle cx={x(head)} cy={y(headTot as number)} r={swTotal * 1.4} fill={lineC} stroke={halo} strokeWidth={swTotal * 0.5} />
               </g>
             )}
 
             {/* now */}
-            <line x1={nowX} x2={nowX} y1={padT - fs * 0.4} y2={H - padB} stroke={P.ink} strokeOpacity={0.22} strokeWidth={1.25 * k} />
+            <line x1={nowX} x2={nowX} y1={padT - fs * 0.4} y2={plotB} stroke={P.ink} strokeOpacity={stage ? 0.25 : 0.22} strokeWidth={stage ? 1 : 1.25 * k} />
+
+            {/* the signal window bar under the hours: elapsed ink, remaining fill, a surface gap at Now */}
+            {stage && winOn && winX && (() => {
+              const by = plotB + tickRow + (winRow - winBar) / 2;
+              const split = Math.min(winX.b, Math.max(winX.a, nowX));
+              const r = winBar / 2;
+              return (
+                <g>
+                  {split - winX.a > 1 && <rect x={winX.a} y={by} width={Math.max(winBar, split - winX.a - 1)} height={winBar} rx={r} fill={P.ink} />}
+                  {winX.b - split > 1 && <rect x={Math.min(winX.b - winBar, split + 1)} y={by} width={Math.max(winBar, winX.b - split - 1)} height={winBar} rx={r} fill={P.fill} />}
+                </g>
+              );
+            })()}
 
             {/* every label, already placed without overlap */}
-            {label("now", fs, P.ink, <>Now <tspan fontWeight={400} fill={P.secondary}>{hhmm(view)}</tspan></>)}
-            {latest && (label("sig", fs, P.ink, `Gridzilla acted ${hhmm(latest.t)}`) ?? label("sigS", fs, P.ink, `Acted ${hhmm(latest.t)}`))}
-            {yTicks.map((v, i) => label(`y${v}`, fsAxis, P.secondary, tickTxt(v, i === yTicks.length - 1), { weight: 400 }))}
-            {tTicks.map((t) => label(`t${t}`, fsAxis, P.secondary, hhmm(t), { weight: 400 }))}
-            {label("fc", fsAxis, P.tertiary, "Forecast", { weight: 400 })}
+            <g data-src="axis">
+              {yTicks.map((v, i) => label(`y${v}`, fsAxis, stage ? P.tertiary : P.secondary, tickTxt(v, i === yTicks.length - 1), { weight: 400, halo: false }))}
+              {tTicks.map((t) => label(`t${t}`, fsAxis, stage ? P.tertiary : P.secondary, hhmm(t), { weight: 400, halo: false }))}
+              {label("now", fs, P.ink, <>Now <tspan fontWeight={400} fill={P.secondary}>{hhmm(clock.t)}</tspan></>) ?? label("nowS", fs, P.ink, "Now")}
+              {latest && (label("sig", fs, P.ink, `Gridzilla acted ${hhmm(latest.t)}`) ?? label("sigS", fs, P.ink, `Acted ${hhmm(latest.t)}`))}
+              {label("fc", fsAxis, P.tertiary, "Forecast", { weight: 400 })}
+              {win && label("winS", fsAxis, P.secondary, `Until ${hhmm(win.t1)}`, { weight: 400, halo: false })}
+            </g>
+            {stage && rating != null &&
+              (label("lim", fs, P.ink, pair("Limit ", limTxt), { src: agg?.rating_kw != null ? src("rating_kw") : "axis", val: rating }) ??
+                label("limS", fs, P.ink, limTxt, { src: agg?.rating_kw != null ? src("rating_kw") : "axis", val: rating }))}
+            {win && label("win", fsAxis, P.secondary, `Signal #${win.seq} until ${hhmm(win.t1)}`, { weight: 400, halo: false, src: `state/active/${win.key}/seq`, val: win.seq })}
+            {level != null && label("plan", fs, P.ink, pair("Plan ", planTxt), { src: `${planSrc}/plan/level_kw`, val: level })}
+            {plan && (label("top", fs, P.ink, pair("Without Gridzilla ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }) ??
+              label("topS", fs, P.ink, pair("Without ", topTxt), { src: `${planSrc}/plan/peak_naive_pct`, val: plan.peak_naive_pct }))}
             {label("wait", fs, P.secondary, tn ? `Waiting for the first readings from ${nice(node)}` : "Waiting for the grid to report a street transformer", { weight: 400 }) ??
               label("waitS", fs, P.secondary, "Waiting for readings", { weight: 400 })}
           </svg>
         )}
       </div>
-      {(
-        <div className="flex flex-wrap items-center gap-x-[1.1em] gap-y-1 pt-[0.5em]" style={{ fontSize: legendFs, lineHeight: 1.25, color: P.secondary }}>
-          <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: P.blue }}>
-            <Swatch color={P.blue} width={3.5} />
-            {hasBase ? "With Gridzilla" : "Load"}
-          </span>
-          {hasBase && (
-            <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
-              <Swatch color={P.tertiary} width={3} dashed />
-              Without Gridzilla
-            </span>
-          )}
-          {hasBase && (
-            <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">
-              <span className="inline-block shrink-0 rounded-[0.2em]" style={{ width: "0.9em", height: "0.9em", background: P.green, opacity: 0.45 }} aria-hidden />
-              Kept off the street
-            </span>
-          )}
-          {limitWord && (
-            <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: P.red }}>
-              <Swatch color={P.red} width={2.5} />
-              {limitWord}
-            </span>
-          )}
-        </div>
-      )}
+      {legendAt === "below" && legendEl}
+      {usePlan && plan && <PlanTable plan={plan} hist={hist} planPts={planPts} tL={tL} view={view} tR={tR} />}
+    </div>
+  );
+}
+
+/** Screen-reader twin of the chart: measured hourly for the past, the plan hourly ahead. */
+function PlanTable({ plan, hist, planPts, tL, view, tR }: { plan: FlattenPlan; hist: HistPt[]; planPts: ReturnType<typeof unwrapPlan>; tL: number; view: number; tR: number }) {
+  const rows: { t: number; w: number | null; wo: number | null; p: number | null }[] = [];
+  for (let t = Math.ceil(tL); t <= Math.floor(view); t++) rows.push({ t, w: at(hist, t, "total"), wo: at(hist, t, "base"), p: null });
+  for (const p of planPts) if (p.t > view && p.t <= tR && Math.abs(p.t - Math.round(p.t)) < 0.13) rows.push({ t: p.t, w: null, wo: p.naive, p: p.planned });
+  const f = (v: number | null) => (v == null ? "" : `${Math.round(v)} kW`);
+  // The 1px sr-only box sits on a div: a table grows to its content's width, which made phone pages 418 px wide.
+  return (
+    <div className="sr-only">
+    <table>
+      <caption>
+        Peak {plan.peak_naive_pct} % of the limit without Gridzilla, {plan.peak_plan_pct} % with the plan
+      </caption>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>With Gridzilla</th>
+          <th>Without Gridzilla</th>
+          <th>The plan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.t}>
+            <td>{hhmm(r.t)}</td>
+            <td>{f(r.w)}</td>
+            <td>{f(r.wo)}</td>
+            <td>{f(r.p)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
     </div>
   );
 }

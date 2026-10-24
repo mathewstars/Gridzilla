@@ -1,0 +1,130 @@
+/* The judges' five (one/Facts.tsx). One tile, five columns separated by space only. Each fact is a subgrid of three
+   rows (value, label, small line), so values, labels and small lines line up across the columns. Sizes follow the
+   card's width (the shell's card is the size container; a fact cannot be one, containment would undo the subgrid),
+   never the window. Nothing has a fixed height and nothing hides overflow. */
+
+.gzF {
+  --v: 7.5cqi; /* value size: about 15 % of one column */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  column-gap: clamp(1rem, 2.6cqi, 3.5rem);
+  row-gap: 1.5rem;
+  min-width: 0;
+}
+
+.gzF-fact {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  row-gap: 0.3rem;
+  min-width: 0;
+}
+
+/* Phones: two columns, the countdown first across both. */
+.gzF-p1 {
+  grid-column: 1 / -1;
+}
+
+/* 3 + 2 while five columns would be narrower than about 11rem each. */
+@container (min-width: 34rem) {
+  .gzF {
+    --v: 5cqi;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .gzF-p1,
+  .gzF-p2,
+  .gzF-p3 {
+    grid-column: span 2;
+  }
+  .gzF-p4,
+  .gzF-p5 {
+    grid-column: span 3;
+  }
+}
+@container (min-width: 64rem) {
+  .gzF {
+    --v: 3cqi;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .gzF-fact.gzF-fact {
+    grid-column: auto;
+  }
+}
+
+/* Value row: display size scaled by the fact's width; it sits on the bottom of its row so the baselines align. */
+.gzF-v {
+  align-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  min-width: 0;
+  font-size: clamp(1.75rem, var(--v), 2.75rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: #1d1d1f;
+}
+.gzF-num {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.gzF-u {
+  margin-left: 0.18em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #6e6e73;
+}
+.gzF-pair {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.25em;
+}
+.gzF-of {
+  font-size: 0.5em;
+  font-weight: 600;
+  color: #6e6e73;
+}
+/* The one text value (P5): head size, it wraps between the two brands when narrow. */
+.gzF-brands {
+  font-size: clamp(1.25rem, calc(var(--v) * 0.62), 2.125rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.gzF-idle,
+.gzF-quiet {
+  color: #86868b;
+}
+.gzF-quiet .gzC-ring {
+  opacity: 0.8;
+}
+
+.gzF-l {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+  text-wrap: pretty;
+}
+.gzF-s {
+  display: grid;
+  align-content: start;
+  row-gap: 0.15rem;
+  font-size: 0.875rem;
+  line-height: 1.38;
+  letter-spacing: -0.016em;
+  color: #6e6e73;
+  text-wrap: pretty;
+}
+.gzF-line {
+  display: block;
+}
+.gzF-foot,
+.gzF-wait {
+  color: #86868b;
+}

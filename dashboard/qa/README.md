@@ -20,6 +20,11 @@ Every element that shows a live number carries where it came from:
   Endpoints are the poll paths in `src/api.ts`: `state`, `history`, `weather`, `flatten`. The page keeps the last payload of each on `window.__gz`.
 - `data-val="123.4"`: the raw value before formatting; `data-scale="0.001"` when shown in other units (kW as MW).
 - `data-src="derived" data-from="state/aggregates/tf:x/baseline_kw - state/aggregates/tf:x/total_kw"`: computed values (+ - * / and parentheses).
+- Inside `data-from`, `count(<collection>)` and `sum(<collection>/<field>)` aggregate over a collection: a `*` segment takes every child
+  (`tf:*` only keys starting with `tf:`), `[filters]` keep children where every clause holds. Clauses join with `and`; each is
+  `field op value` (`= != > >= < <=`, `in a,b`), `abs(field) op value`, `field != null`, or a bare `field` (present and not false).
+  Value may be a number, `true`/`false`/`null`, another field of the same child (`rating_kw`), or a string.
+  Example: `count(state/aggregates/tf:*[total_kw != null and abs(total_kw) <= rating_kw])`.
 - `data-src="deck" data-label="measured in Blatnica"`: a static fact from the pitch deck, labelled on screen.
 - `data-src="axis"`: chart ticks and scaffolding.
 - `data-src="sample"`: fixture values, allowed only with `?weather=sample` / `?plant=sample`.

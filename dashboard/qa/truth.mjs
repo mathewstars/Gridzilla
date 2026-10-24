@@ -22,10 +22,48 @@ function audit() {
     for (const k of rest) { if (v == null) return undefined; v = v[k]; }
     return v;
   };
+  // derived formulas: arithmetic over paths, plus count(...) / sum(...) over collections (qa/README.md)
+  const val = (o, path) => path.split("/").reduce((v, k) => (v == null ? v : v[k]), o);
+  const splitPath = (q) => { const out = []; let cur = "", depth = 0; for (const c of q) { if (c === "[") depth++; if (c === "]") depth--; if (c === "/" && !depth) { out.push(cur); cur = ""; } else cur += c; } out.push(cur); return out; };
+  const cond = (item, expr) => expr.split(/\s+and\s+/).every((cl) => {
+    const m = cl.trim().match(/^(abs\()?([\w:./-]+)\)?\s*(==|=|!=|>=|<=|>|<|\s+in\s+)\s*(.+)$/);
+    if (!m) { const v = val(item, cl.trim()); return v != null && v !== false; }
+    let lhs = val(item, m[2]);
+    if (m[1] && typeof lhs === "number") lhs = Math.abs(lhs);
+    const op = m[3].trim(), raw = m[4].trim();
+    if (op === "in") return raw.split(",").map((x) => x.trim()).includes(String(lhs));
+    let rhs;
+    if (raw === "null") rhs = null; else if (raw === "true") rhs = true; else if (raw === "false") rhs = false;
+    else if (!Number.isNaN(Number(raw))) rhs = Number(raw);
+    else { const neg = raw.startsWith("-"); const v = val(item, neg ? raw.slice(1) : raw); rhs = v === undefined ? raw : neg ? -v : v; }
+    if (op === "=" || op === "==") return lhs == rhs;
+    if (op === "!=") return lhs != rhs;
+    if (lhs == null || rhs == null) return false;
+    return op === ">" ? lhs > rhs : op === ">=" ? lhs >= rhs : op === "<" ? lhs < rhs : lhs <= rhs;
+  });
+  const agg = (fn, q) => {
+    let cur = [gz];
+    for (const seg of splitPath(q.trim())) {
+      const m = seg.match(/^([^[]*)((?:\[[^\]]*\])*)$/);
+      const key = m[1];
+      const filters = [...m[2].matchAll(/\[([^\]]*)\]/g)].map((x) => x[1]);
+      cur = key.endsWith("*")
+        ? cur.flatMap((o) => (o && typeof o === "object" ? Object.entries(o).filter(([k]) => k.startsWith(key.slice(0, -1))).map(([, v]) => v) : []))
+        : cur.map((o) => (o == null ? undefined : o[key]));
+      for (const f of filters) cur = cur.filter((it) => it != null && cond(it, f));
+    }
+    cur = cur.filter((v) => v != null);
+    return fn === "count" ? cur.length : cur.reduce((a, v) => a + (typeof v === "number" ? v : 0), 0);
+  };
   const evalFrom = (expr) => {
-    const js = expr.replace(/[a-z_]+\/[^\s()+\-*/]+(?:\/[^\s()+*/]+)*/gi, (p) => { const v = get(p); return typeof v === "number" ? `(${v})` : "NaN"; });
-    if (!/^[\d\s.()+\-*/eNa]+$/.test(js)) return NaN;
-    try { return Function(`return (${js})`)(); } catch { return NaN; }
+    let e = expr.replace(/\b(count|sum)\(((?:[^()]|\([^()]*\))*)\)/g, (_, fn, q) => `(${agg(fn, q)})`);
+    e = e.split(/(\s+|[()])/).map((tok) => {
+      if (!/^[a-z][^\s]*\//i.test(tok)) return tok;
+      const v = get(tok);
+      return typeof v === "number" ? `(${v})` : "NaN";
+    }).join("");
+    if (!/^[\d\s.()+\-*/eNa]+$/.test(e)) return NaN;
+    try { return Function(`return (${e})`)(); } catch { return NaN; }
   };
   const visible = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
@@ -59,7 +97,8 @@ function audit() {
       if (Math.abs(val - truth) > tol) F.mismatch.push(`${src}: page ${val} vs api ${truth}`);
     }
     // the text on screen must be the formatted data-val (after the counter settles)
-    const shown = parseFloat((host.textContent.match(/[-−]?\d[\d,]*(?:\.\d+)?/) || [""])[0].replace(/−/, "-").replace(/,/g, ""));
+    const text = host.getAttribute("aria-label") || host.textContent; // Counter: the settled value, not a mid-glide frame
+    const shown = parseFloat((text.match(/[-−]?\d[\d,]*(?:\.\d+)?/) || [""])[0].replace(/−/, "-").replace(/,/g, ""));
     const scale = parseFloat(host.dataset.scale || "1");
     if (!Number.isNaN(val) && !Number.isNaN(shown)) {
       const want = val * scale;

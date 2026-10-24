@@ -363,40 +363,74 @@ export async function post(path: string, body?: unknown): Promise<unknown> {
   return j;
 }
 
-/** Poll an endpoint every `ms`. `error` is set while the platform is unreachable; the last good value is kept. */
 /** QA gate G2 (dashboard/qa/truth.mjs): the last payload of every endpoint stays on window.__gz, so the checker can trace
- *  each number on screen (its data-src) back to exactly what the page fetched. Keyed by endpoint (state, history, ...). */
+ *  each number on screen (its data-src) back to exactly what the page fetched. Keyed by endpoint (state, history, ...);
+ *  a diet plan is also kept per node as "flatten:<node>", so the street plan and the city plan never overwrite each other. */
 function publish(path: string, d: unknown) {
   const w = window as unknown as { __gz?: Record<string, unknown> };
-  (w.__gz ??= {})[path.split("?")[0]] = d;
-  (w.__gz as Record<string, unknown>)[`${path.split("?")[0]}@`] = Date.now();
+  const gz = (w.__gz ??= {});
+  const [ep, query = ""] = path.split("?");
+  gz[ep] = d;
+  gz[`${ep}@`] = Date.now();
+  const node = ep === "flatten" ? new URLSearchParams(query).get("node") : null;
+  if (node) {
+    gz[`flatten:${node}`] = d;
+    gz[`flatten:${node}@`] = Date.now();
+  }
 }
 
+type PollErr = { status?: number; message: string };
+/** One poller per path, shared by every component that asks for it: two cards showing the same endpoint always show
+ *  the same payload, and that payload is the one on window.__gz. */
+type Poll = { data: unknown; error: PollErr | null; subs: Set<() => void>; timer: number; tick: number };
+const polls = new Map<string, Poll>();
+
+async function loadPoll(path: string) {
+  const p = polls.get(path);
+  if (!p) return;
+  const my = ++p.tick;
+  try {
+    const d = await getJSON<unknown>(path);
+    if (my !== p.tick) return;
+    publish(path, d);
+    p.data = d;
+    p.error = null;
+  } catch (e) {
+    if (my !== p.tick) return;
+    const err = e as Error & { status?: number };
+    p.error = { status: err.status, message: err.message };
+  }
+  p.subs.forEach((f) => f());
+}
+
+/** Poll an endpoint every `ms`. `error` is set while the platform is unreachable; the last good value is kept, also
+ *  across a change of `path` until the new answer lands. */
 function usePoll<T>(path: string, ms: number, enabled = true) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<{ status?: number; message: string } | null>(null);
-  const tick = useRef(0);
-  const load = useCallback(async () => {
-    const my = ++tick.current;
-    try {
-      const d = await getJSON<T>(path);
-      if (my === tick.current) {
-        publish(path, d);
-        setData(d);
-        setError(null);
-      }
-    } catch (e) {
-      const err = e as Error & { status?: number };
-      if (my === tick.current) setError({ status: err.status, message: err.message });
-    }
-  }, [path]);
+  const [, bump] = useState(0);
+  const last = useRef<T | null>(null);
   useEffect(() => {
     if (!enabled) return;
-    load();
-    const id = window.setInterval(load, ms);
-    return () => window.clearInterval(id);
-  }, [load, ms, enabled]);
-  return { data, error, reload: load };
+    let p = polls.get(path);
+    if (!p) polls.set(path, (p = { data: null, error: null, subs: new Set(), timer: 0, tick: 0 }));
+    const poll = p;
+    const f = () => bump((n) => n + 1);
+    poll.subs.add(f);
+    if (!poll.timer) {
+      loadPoll(path);
+      poll.timer = window.setInterval(() => loadPoll(path), ms);
+    } else if (poll.data != null) f();
+    return () => {
+      poll.subs.delete(f);
+      if (!poll.subs.size) {
+        window.clearInterval(poll.timer);
+        poll.timer = 0;
+      }
+    };
+  }, [path, ms, enabled]);
+  const p = enabled ? polls.get(path) : undefined;
+  if (p?.data != null) last.current = p.data as T;
+  const reload = useCallback(() => loadPoll(path), [path]);
+  return { data: last.current, error: p?.error ?? null, reload };
 }
 
 /** Path of a node up to the root, nearest parent first. */

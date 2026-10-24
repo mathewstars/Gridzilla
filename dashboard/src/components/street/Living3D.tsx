@@ -5,8 +5,11 @@
 // when load falls. Solar panels on the PV roofs catch the sun, a battery's green fill is its charge, a heat pump's fan
 // spins with its kW, a car stands in the driveway while it charges. Dots run along the wires into houses taking power
 // and out of houses giving it back, faster for more kW. Sun, light and shadows follow grid time and real cloud cover.
+// A house that follows Gridzilla (diet plan or a signal) stands on a green lot; when real readings show houses switching,
+// their lots grow in and pulse, grouped by cohort while a staggered signal runs (the fleet fills in waves).
 // Perf: every repeated part (each house model too) is one instanced mesh moved in useFrame (no React state per frame),
-// wires are one merged geometry, so the whole street stays around 35 draw calls.
+// wires are one merged geometry, so the whole street stays around 35 draw calls. The canvas stops drawing when the
+// parent says so (off-screen or hidden tab) and counts its frames on window.__gz3d.frames for the QA gate G5.
 import { ContactShadows, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject, type RefObject } from "react";
@@ -14,6 +17,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { House } from "../../model";
+import { cohortOf } from "./cohort";
 import { P, loadTone } from "../../stage/palette";
 import { FLOW_EPS, flowSpeed, type StreetModel } from "./layout";
 import { lightAt, newLight } from "./sky";
@@ -128,6 +132,7 @@ const mat = {
 };
 
 const PANEL_DARK = new THREE.Color("#233049");
+const LOT_ON = "#c8ebd2"; // Apple green at about a quarter on the light ground: this home follows Gridzilla
 const PANEL_LIT = new THREE.Color("#8fb0dd");
 const DOT_TAKE = new THREE.Color(P.ink); // power going into a house
 const DOT_GIVE = new THREE.Color(P.green); // clean power flowing back
@@ -200,7 +205,7 @@ function useStaticParts(lots: Lot[]) {
       // a driveway across the front yard
       const yard = OFFSET - d / 2 - ROAD_W / 2;
       const dz = z + w * 0.3;
-      drives.push({ m: mtx(side * (ROAD_W / 2 + yard / 2), 0.008, dz, yard, 1, 1.25), owner: -1 });
+      drives.push({ m: mtx(side * (ROAD_W / 2 + yard / 2), 0.035, dz, yard, 1, 1.25), owner: -1 }); // above the green lot
       const hs = l.house;
       if (hs?.hasPv) {
         // a panel field on the road-facing roof slope (ridge along z after the turn)
@@ -406,6 +411,80 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
   );
 }
 
+// ------------------------------------------------------------------ green lots: who follows Gridzilla, joining in waves
+/** What a house was last seen doing, and from when (performance.now ms) the change shows. */
+export interface Follow {
+  want: boolean; // follows Gridzilla now
+  was: boolean; // what it showed before this change
+  mode: string;
+  at: number; // -1 = known from the start, no pulse
+}
+
+const PULSE_MS = 900;
+const LOT_Y = 0.02; // clear of the shadow ground at 0 (the camera stands far back, so a hair's gap z-fights)
+const WAVE_MS = 450; // between cohorts on screen
+const lotGeo = (() => {
+  const s = new THREE.Shape();
+  const a = 0.5,
+    r = 0.12;
+  s.moveTo(-a + r, -a);
+  s.lineTo(a - r, -a);
+  s.quadraticCurveTo(a, -a, a, -a + r);
+  s.lineTo(a, a - r);
+  s.quadraticCurveTo(a, a, a - r, a);
+  s.lineTo(-a + r, a);
+  s.quadraticCurveTo(-a, a, -a, a - r);
+  s.lineTo(-a, -a + r);
+  s.quadraticCurveTo(-a, -a, -a + r, -a);
+  return new THREE.ShapeGeometry(s, 4).rotateX(-Math.PI / 2);
+})();
+const lotMat = new THREE.MeshBasicMaterial({ color: LOT_ON });
+
+function FollowLots({ lots, follow, still }: { lots: Lot[]; follow: MutableRefObject<Map<string, Follow>>; still: boolean }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const prog = useMemo(() => lots.filter((l) => l.house), [lots]);
+  const shown = useRef(new Map<string, number>());
+  useFrame((_, dtRaw) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dt = Math.min(dtRaw, 0.05);
+    const t = performance.now();
+    prog.forEach((l, k) => {
+      const key = l.house!.key;
+      const f = follow.current.get(key);
+      const live = f ? (f.at < 0 || t >= f.at ? f.want : f.was) : false;
+      let on = shown.current.get(key) ?? (live ? 1 : 0);
+      on = still ? (live ? 1 : 0) : on + ((live ? 1 : 0) - on) * (1 - Math.exp(-dt * 5));
+      shown.current.set(key, on);
+      const p = !still && f && f.at >= 0 && t >= f.at && t < f.at + PULSE_MS ? Math.sin((Math.PI * (t - f.at)) / PULSE_MS) : 0;
+      const sc = Math.max(HIDE, on * (1 + 0.12 * p));
+      // the lot runs from the road edge to just behind the house
+      const xi = l.side * (ROAD_W / 2 + 0.3);
+      const xo = l.x + l.side * (l.d / 2 + 1.0);
+      mesh.setMatrixAt(k, mtx((xi + xo) / 2, LOT_Y, l.z, Math.abs(xo - xi) * sc, 1, (l.w + 1.2) * sc, 0, 0, 0, _m));
+    });
+    mesh.count = prog.length;
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+  if (!prog.length) return null;
+  return <instancedMesh key={prog.length} ref={ref} args={[lotGeo, lotMat, prog.length]} raycast={noRay} frustumCulled={false} />;
+}
+
+/** Counts rendered frames for the QA gate (G5 measures fps and the off-screen pause with it). */
+function FrameCount() {
+  useFrame(() => {
+    const g = (window.__gz3d ??= { frames: 0 });
+    g.frames++;
+  });
+  return null;
+}
+
+declare global {
+  interface Window {
+    __gz3d?: { frames: number };
+  }
+}
+
 /** Panels tint and shine with how squarely the sun hits them right now. */
 function Panels({ parts, env }: { parts: (Part & { n: THREE.Vector3 })[]; env: MutableRefObject<Env> }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -567,7 +646,9 @@ function Substation({ onHover, interactive }: { onHover: HoverFn; interactive: b
 }
 
 // ------------------------------------------------------------------ sky: sun, light and shadows follow grid time
-function SkyRig({ hour, cloud, env, centerZ, shadowRef }: { hour: number; cloud: number; env: MutableRefObject<Env>; centerZ: number; shadowRef: RefObject<THREE.ShadowMaterial> }) {
+const PAPER = new THREE.Color("#ffffff");
+
+function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number; cloud: number; env: MutableRefObject<Env>; centerZ: number; shadowRef: RefObject<THREE.ShadowMaterial>; paper: boolean }) {
   const sun = useRef<THREE.DirectionalLight>(null);
   const hemi = useRef<THREE.HemisphereLight>(null);
   const { scene } = useThree();
@@ -601,7 +682,8 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef }: { hour: number; cloud:
       hemi.current.intensity = light.hemi * 0.9;
       hemi.current.color.copy(light.hemiSky);
     }
-    if (scene.background instanceof THREE.Color) scene.background.copy(light.bg);
+    // on a white card the sky sits closer to white, keeping its tint (cooler at night, warmer at dusk)
+    if (scene.background instanceof THREE.Color) scene.background.copy(light.bg).lerp(PAPER, paper ? 0.6 : 0);
     if (shadowRef.current) shadowRef.current.opacity = light.shadow;
     env.current.sun = light.sun;
     env.current.sunDir.copy(light.sunDir);
@@ -628,11 +710,20 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef }: { hour: number; cloud:
 
 // ------------------------------------------------------------------ camera: frame the street from further back, sway slowly
 const PHI = 0.98; // from straight above: ~34 degrees above the horizon
-const THETA = 0.5; // from the front right
+const THETA = 0.4; // from the front right
 const SWAY = 0.2; // radians either way
 const SWAY_S = 56; // seconds for one slow sway
 
-function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean }) {
+/** Pixels along each edge of the canvas that text covers: the street is framed in what is left. */
+export interface Pad {
+  l: number;
+  r: number;
+  t: number;
+  b: number;
+}
+const NO_PAD: Pad = { l: 0, r: 0, t: 0, b: 0 };
+
+function CameraRig({ pts, still, interactive, sway, pad }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean; sway: boolean; pad: Pad }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, clock } = useThree();
   const lastTouch = useRef(-100);
@@ -640,13 +731,18 @@ function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: b
   const off = useMemo(() => new THREE.Vector3(), []);
   const target = useMemo(() => new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()), [pts]);
 
-  // the smallest distance at which the street fits with air around it, then a lens shift that centres it
+  // the smallest distance at which the street fits with air around it, then a lens shift that centres it in the part
+  // of the canvas no text covers (in clip space, -1..1 each way)
   const frame = useMemo(() => {
     const w = Math.max(1, size.width),
       h = Math.max(1, size.height);
+    const fx0 = -1 + (2 * Math.min(pad.l, w * 0.7)) / w,
+      fx1 = 1 - (2 * Math.min(pad.r, w * 0.7)) / w,
+      fy0 = -1 + (2 * Math.min(pad.b, h * 0.7)) / h,
+      fy1 = 1 - (2 * Math.min(pad.t, h * 0.7)) / h;
     const cam = new THREE.PerspectiveCamera((camera as THREE.PerspectiveCamera).fov, w / h, 0.5, 2000);
     const v = new THREE.Vector3();
-    const edge = 0.86; // room for the sway and some air: houses are context, not giants
+    const edge = sway ? 0.86 : 0.92; // room for the sway and some air: houses are context, not giants
     const extent = (r: number) => {
       cam.position.copy(target).add(v.setFromSphericalCoords(r, PHI, THETA));
       cam.lookAt(target);
@@ -671,12 +767,12 @@ function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: b
     for (let i = 0; i < 30; i++) {
       const mid = (lo + hi) / 2;
       const e = extent(mid);
-      if (!e.behind && e.x1 - e.x0 <= 2 * edge && e.y1 - e.y0 <= 2 * edge) hi = mid;
+      if (!e.behind && e.x1 - e.x0 <= (fx1 - fx0) * edge && e.y1 - e.y0 <= (fy1 - fy0) * edge) hi = mid;
       else lo = mid;
     }
     const e = extent(hi);
-    return { radius: hi, offX: ((e.x0 + e.x1) / 2) * (w / 2), offY: (-(e.y0 + e.y1) / 2) * (h / 2), w, h };
-  }, [camera, size.width, size.height, pts, target]);
+    return { radius: hi, offX: ((e.x0 + e.x1) / 2 - (fx0 + fx1) / 2) * (w / 2), offY: ((fy0 + fy1) / 2 - (e.y0 + e.y1) / 2) * (h / 2), w, h };
+  }, [camera, size.width, size.height, pts, target, sway, pad.l, pad.r, pad.t, pad.b]);
 
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
@@ -694,7 +790,7 @@ function CameraRig({ pts, still, interactive }: { pts: THREE.Vector3[]; still: b
     if (clock.elapsedTime - lastTouch.current < 6) return;
     off.copy(camera.position).sub(target);
     sph.setFromVector3(off);
-    const want = THETA + (still ? 0 : SWAY * Math.sin((clock.elapsedTime * 2 * Math.PI) / SWAY_S));
+    const want = THETA + (still || !sway ? 0 : SWAY * Math.sin((clock.elapsedTime * 2 * Math.PI) / SWAY_S));
     const k = still ? 1 : Math.min(1, Math.min(dt, 0.05) * 1.2);
     sph.theta += (want - sph.theta) * k;
     sph.phi += (PHI - sph.phi) * k;
@@ -733,9 +829,19 @@ export interface LivingProps {
   interactive: boolean;
   still: boolean;
   slots?: number;
+  /** false = draw nothing (off-screen or hidden tab); the scene keeps its state and resumes where it was. */
+  run?: boolean;
+  /** Slow camera sway around the front. Off on the stage: only data moves there. */
+  sway?: boolean;
+  /** Cohorts of the staggered signal over this street right now (n), null when none: houses then switch together. */
+  waves?: number | null;
+  /** Canvas edges covered by text, in px: the street is framed in the rest. */
+  pad?: Pad;
+  /** Sky closer to white, for a white card. */
+  paper?: boolean;
 }
 
-export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 12 }: LivingProps) {
+export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 12, run = true, sway = true, waves = null, pad = NO_PAD, paper = false }: LivingProps) {
   const layoutKey = `${st.tf}|${st.houses.map((h) => `${h.house.key}:${h.house.hasPv ? 1 : 0}${h.house.kwh > 0 ? 1 : 0}${h.house.hasHeat ? 1 : 0}`).join(",")}|${slots}`;
   const lots = useMemo(() => lotsOf(st, slots), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const parts = useStaticParts(lots);
@@ -745,10 +851,25 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
   // latest readings live in refs, so useFrame reads them without re-rendering
   const live = useRef(new Map<string, House & { shape: boolean }>());
   const flow = useRef<Flow>({ kw: {} });
+  const follow = useRef(new Map<string, Follow>());
   useEffect(() => {
     live.current = new Map(st.houses.map(({ house }) => [house.key, { ...house, shape: shapeKeys.has(house.key) }]));
     flow.current = { kw: flowsOf(st, lots, otherKw) };
-  }, [st, lots, otherKw, shapeKeys]);
+    // who follows Gridzilla now; a switch shows after its cohort's turn when a staggered signal runs
+    const t = performance.now();
+    const next = new Map<string, Follow>();
+    for (const h of live.current.values()) {
+      const want = h.online && (h.underSignal || h.shape);
+      const mode = h.online ? h.mode : "offline";
+      const prev = follow.current.get(h.key);
+      if (!prev) next.set(h.key, { want, was: want, mode, at: -1 });
+      else if (prev.want !== want || (want && prev.mode !== mode)) {
+        const shownNow = prev.at < 0 || t >= prev.at ? prev.want : prev.was;
+        next.set(h.key, { want, was: shownNow, mode, at: t + (waves ? cohortOf(h, waves) * WAVE_MS : 0) });
+      } else next.set(h.key, prev);
+    }
+    follow.current = next;
+  }, [st, lots, otherKw, shapeKeys, waves]);
   const env = useRef<Env>({ sun: 0, sunDir: new THREE.Vector3(0, 1, 0) });
   const shadowMat = useRef<THREE.ShadowMaterial>(null);
 
@@ -776,6 +897,7 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
     <Canvas
       flat
       shadows
+      frameloop={run ? "always" : "never"}
       dpr={[1, 1.75]}
       camera={{ fov: 24, near: 0.5, far: 600, position: [10, 30, 40] }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
@@ -783,7 +905,7 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
       onPointerMissed={() => onHover(null)}
       onPointerLeave={() => onHover(null)}
     >
-      <SkyRig hour={hour} cloud={cloud} env={env} centerZ={centerZ} shadowRef={shadowMat} />
+      <SkyRig hour={hour} cloud={cloud} env={env} centerZ={centerZ} shadowRef={shadowMat} paper={paper} />
       {/* the ground is the background itself: only the shadows show on it, so it stays light at every hour */}
       <mesh geometry={plane} scale={[500, 1, 500]} receiveShadow raycast={noRay}>
         <shadowMaterial ref={shadowMat} opacity={0.12} color="#1d1d1f" />
@@ -804,7 +926,9 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
       <LiveParts lots={lots} live={live} still={still} />
       <mesh geometry={geo} material={mat.wire} raycast={noRay} />
       <PowerDots wires={wires} flow={flow} still={still} />
-      <CameraRig pts={pts} still={still} interactive={interactive} />
+      <FollowLots lots={lots} follow={follow} still={still} />
+      <FrameCount />
+      <CameraRig pts={pts} still={still} interactive={interactive} sway={sway} pad={pad} />
     </Canvas>
   );
 }

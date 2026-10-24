@@ -18,8 +18,8 @@ const API = "http://localhost:8081/api";
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
 
 // In-page detectors. Returns findings by kind; every count must be 0.
-function detect(oneScreen) {
-  const vw = innerWidth, vh = innerHeight;
+function detect([oneScreen, W]) {
+  const vw = Math.min(innerWidth, W), vh = innerHeight; // phones may widen the layout viewport: judge against the device width
   const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], notOneScreen: [] };
   const hidden = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
@@ -120,7 +120,7 @@ async function cell(state, p, size) {
   try {
     await page.goto(url(p), { waitUntil: "domcontentloaded", timeout: 30000 });
     await ready(page, state === "live" ? 20000 : 4000);
-    const f = await page.evaluate(detect, W >= 1440 && H >= 900);
+    const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
     f.console = errors;
     const shot = `${out}/${state}-${p}-${size}.png`;
     await page.screenshot({ path: shot, fullPage: true });

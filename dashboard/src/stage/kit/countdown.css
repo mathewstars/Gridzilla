@@ -1,0 +1,29 @@
+/* kit/Countdown: ring + time left in one row. The ring follows the font size of the row, so it scales with the digits. */
+.gzC {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-width: 0;
+}
+.gzC-ring {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+.gzC-time {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+.gzC-digits {
+  white-space: nowrap;
+}
+.gzC-unit {
+  font-size: 0.5em;
+  font-weight: 600;
+  color: #6e6e73;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
