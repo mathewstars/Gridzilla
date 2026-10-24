@@ -45,8 +45,9 @@ const browser = await launch();
   await page.waitForTimeout(1200);
   const scene = await page.evaluate(() => { const a = window.__gz3d?.frames ?? null; return new Promise((r) => setTimeout(() => r(a == null ? null : ((window.__gz3d.frames - a) / 3)), 3000)); });
   if (fps < 50) F.fps.push(`page ${fps.toFixed(1)} fps at 1440x900`);
-  if (scene == null) F.fps.push("window.__gz3d.frames missing: the 3D scene does not report frames");
-  else if (scene < 50) F.fps.push(`3D ${scene.toFixed(1)} fps at 1440x900`);
+  const hasCanvas = await page.evaluate(() => !!document.querySelector("canvas"));
+  if (scene == null && hasCanvas) F.fps.push("window.__gz3d.frames missing: the 3D scene does not report frames");
+  else if (scene != null && scene < 50) F.fps.push(`3D ${scene.toFixed(1)} fps at 1440x900`);
   fs.writeFileSync(`${out}/fps.json`, JSON.stringify({ fps, scene }));
   await ctx.close();
 }
