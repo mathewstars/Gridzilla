@@ -128,6 +128,46 @@ Stop. Take questions.
 
 ---
 
+## Windows, links, and what to show in each
+
+Open all of them before the talk, logged in, each on its own desktop or browser window so alt-tab goes deck → board → VRM → Node-RED and back.
+
+### 1. The deck
+`docs/Gridzilla-pitch.pptx` in PowerPoint. Slide 1 has the jingle; test the sound through the room speakers.
+
+### 2. Gridzilla board: https://gridzilla.victronlab.sk
+One page, five tabs, nothing to log in to. The tab you were on is remembered per browser.
+
+| tab | when | what to show |
+|---|---|---|
+| **Presentation** | demo steps 1, 2, 4 | City strip, the four decision tiles, the with/without curve, the Blatnica live panel. Chips: VIENNA, a substation, a feeder; click a green cell for one street. "follow autopilot" keeps the curve on whatever DeepSeek last addressed; "pin Blatnica" keeps it on our street. The header line says the simulated time of day and the last signal, even an ended one. |
+| **Flattening** | demo step 3 | Tonight's 24 h diet plan: grey dashed without, blue with, orange eaten, the level L. VIENNA first, then a feeder, then one street. The five tiles: peak without, peak with, eaten, car charging moved, noon export level. The four steps of the algorithm and the monster line on the right. |
+| **Autopilot** | demo step 7 | The loop as a schematic, the latest decisions with full rationale, the envelope curves, the "Review now" button, the scenario buttons (Normal, Cold evening, Sunny noon, Live weather) and **"pause heartbeat"** for the revert demo. Resume it afterwards. |
+| **Manual** | demo step 5 | The signal composer: segment, mode, fields, window. For the demo: `tf:atzgersdorf-1`, SUPPORT, import_max_kw 2, 10 minutes. The log below shows the guard verdict, the signature and every ack. |
+| **Households** | only if asked | Every house with SoC, grid, EV, heat pump, tank, mode, diet-plan flag, filtered by the selected feeder or all 272. |
+
+APIs behind it, if a juror wants raw data: `/api/state`, `/api/history?nodes=tf:speising-22`, `/api/flatten?node=feeder:liesing-3`, `/api/weather`, `/api/devices`.
+
+### 3. VRM: https://vrm.victronenergy.com
+Log in with the victronlab account, open the Blatnica installation (portal id `c0619ab3794e`). Show the **Dashboard** with the live flow diagram: grid, battery, PV, loads, EV charger. During the Manual SUPPORT step the grid setpoint and battery power move within seconds. Also useful: **Advanced** → "Grid" and "Battery power" widgets for the last hour, to show the step. VRM is the independent witness: Victron's own portal, not our page.
+
+### 4. Node-RED on the Cerbo
+Two ways in:
+- From VRM: installation → **Venus OS Large** → **Node-RED** (the remote editor through VRM; works from the venue network).
+- On the site LAN or over the tailnet: https://192.168.90.147:1881 (self-signed cert, user `admin`).
+
+Open the tab **"Gridzilla agent"**. What to show, one sentence each: the MQTT-in node subscribed to our path (`region:at`, `sub:wien-sued`, `feeder:liesing-3`, `tf:atzgersdorf-1`), the **verify** function (signature, sequence, window, path), the **merge** function (owner limits, `effective = tighter(signal, owner)`), the Victron output nodes that write ESS settings and the EV charger current, the watchdog that reverts after 120 s without a heartbeat, and the **ack** out to `gridzilla/ack/real-powerplant-blatnica`. Do not deploy anything during the talk; the user's own "MaxInverterPower" tab is not ours, leave it alone.
+
+Show Node-RED only if asked how the device side works, or in the Q&A. It is the proof that the vendor-specific part is a handful of nodes.
+
+### 5. GitHub: https://github.com/mathewstars/Gridzilla
+`protocol/PROTOCOL.md` for the signal spec, `platform/flatten.py` for the algorithm, `agent/` for the three agents (simulator, Node-RED flow, ViCare), `docs/` for this guide, the deck and the architecture page.
+
+### 6. Architecture page: https://claude.ai/artifact/EKMwWEAfzeujPU5DGsgVpi
+The long-form version: problem, signals, the diet plan, resilience, enforcement, the Victron control plane, threats and controls. For jurors who read afterwards.
+
+---
+
 ## Questions you will get, and the short answers
 
 - **Who guarantees the house follows the limit?** The meter. Payment follows the measured fifteen-minute interval. A cap costs the owner nothing, so there is no reason to cheat; forced feed-in is paid per kWh.
