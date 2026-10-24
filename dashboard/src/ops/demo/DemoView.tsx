@@ -144,7 +144,11 @@ function NowCard({ ops }: { ops: Ops }) {
         </div>
       )}
       <h3 className="demo-h3">Signals running</h3>
-      <ActiveList ops={ops} />
+      {/* the projector shows the two newest; the rest are one line, so the panel never runs off the screen */}
+      <div className="demo-sigs">
+        <ActiveList ops={ops} />
+      </div>
+      {Object.keys(s.active).length > 2 && <p className="demo-more">and {Object.keys(s.active).length - 2} more running (all of them in Operations)</p>}
     </section>
   );
 }
