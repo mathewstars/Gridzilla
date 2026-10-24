@@ -17,6 +17,11 @@ const mqtt = require("mqtt");
 const PLATFORM = process.env.GZ_PLATFORM || "http://localhost:8080";
 const BROKER = process.env.GZ_BROKER || "mqtt://localhost:1883";
 const SPEED = +(process.env.GZ_SPEED || 1);           // simulated minutes per real second
+// Space heating of heat-pump houses (underfloor, like the real Vitocal): the floor slab is a thermal store the agent may shift by
+// SPACE_OFFSET_K, exactly what the ViCare agent does with the owner's room program. GZ_SPACE_HEAT=0 switches the model off.
+const SPACE_HEAT = process.env.GZ_SPACE_HEAT !== "0";
+const SPACE_OFFSET_K = +(process.env.GZ_SPACE_OFFSET_K || 2);   // room-program offset under a signal, K
+const SLAB_KWH_EL_PER_K = 1.7;                                  // ~6 kWh thermal per K of slab, at COP 3.5 = 1.7 kWh electric per K
 const HB_TIMEOUT_S = 120;                               // revert after this long without heartbeat
 const KEYS = path.join(__dirname, "keys");
 fs.mkdirSync(KEYS, { recursive: true });
@@ -164,6 +169,23 @@ function step(h) {
     if (e.mode === "STRETCH") tk.heating = false;                                                // dark street: no thermal load
     if (tk.heating) { hp += ht.kw; tk.c += (ht.type === "heatpump" ? 0.35 : 0.2) * dtH * 60; }  // heat pump ~3x the heat per kW of a resistive boiler
   });
+  // Space heating via the floor slab. demand = steady electric draw of the heat pump for the house at this hour (weather-scaled);
+  // h.slab = room/slab deviation from the owner's setpoint in K. SUPPORT/STRETCH: compressor off until -offset, then hold.
+  // ABSORB/PREPARE: run flat out until +offset, then hold. Owner mode: coast while warm, catch up (rebound) while cold.
+  let spaceOwner = 0;
+  heats.forEach(ht => {
+    if (!SPACE_HEAT || ht.type !== "heatpump") return;
+    if (h.slab == null) h.slab = 0;
+    const solar = hour >= 10 && hour <= 16 ? 0.5 : 1;                                             // daytime gains halve the demand
+    const demand = ht.kw * 0.35 * solar * ((h.wx && h.wx.load_x) ?? 1);                                      // ~1 kW electric for a 3 kW heat pump at 8 °C outside
+    spaceOwner += demand;
+    let run;
+    if (e.mode === "SUPPORT" || e.mode === "STRETCH") run = h.slab > -SPACE_OFFSET_K ? 0 : demand;
+    else if (e.mode === "ABSORB" || e.mode === "PREPARE") run = h.slab < SPACE_OFFSET_K ? ht.kw : demand;
+    else run = h.slab > 0.05 ? 0 : (h.slab < -0.05 ? ht.kw : demand);
+    h.slab = clamp(h.slab + (run - demand) / SLAB_KWH_EL_PER_K * dtH, -SPACE_OFFSET_K - 1, SPACE_OFFSET_K + 1);
+    hp += run;
+  });
   h.dhw_c = h.tanks[0] ? h.tanks[0].c : null; h.dhw_set_c = h.tanks[0] ? h.tanks[0].set : null;
   h.boiler_c = h.tanks[1] ? h.tanks[1].c : null;
   h.hp_kw = hp;
@@ -183,7 +205,7 @@ function step(h) {
   // counterfactual "without Gridzilla": full EV, thermal loads at their normal setpoints, battery in plain self-consumption
   {
     const evOwner = evMax, hpOwner = heats.reduce((sum, ht, i) => sum + ((h.tanks[i] && h.tanks[i].c < ht.dhw_set_c - 5) || (h.tanks[i] && h.tanks[i].heating && !h.effective) ? ht.kw : 0), 0);
-    const loadOwner = houseLoad + evOwner + hpOwner, sOwner = pv - loadOwner;
+    const loadOwner = houseLoad + evOwner + hpOwner + spaceOwner, sOwner = pv - loadOwner;     // owner would heat the slab steadily at demand
     const cMax = Math.min(cfg.kw, o.max_charge_kw) * (h.soc >= 100 ? 0 : 1), dMax = Math.min(cfg.kw, o.max_discharge_kw) * (h.soc <= o.min_soc ? 0 : 1);
     const bOwner = sOwner > 0 ? Math.min(sOwner, cMax) : -Math.min(-sOwner, dMax);
     h.grid_owner_kw = loadOwner - pv + bOwner;
@@ -339,7 +361,7 @@ function onSignal(h, env, platformPub) {
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
       batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2), grid_owner_kw: +(h.grid_owner_kw ?? h.grid_kw).toFixed(2),
-      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null,
+      dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null, room_k: h.slab != null ? +h.slab.toFixed(2) : null,
       heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner", shape: !!h.shape, shape_seq: h.shape ? h.shape.seq : null,
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
   }

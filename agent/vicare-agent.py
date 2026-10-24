@@ -5,13 +5,17 @@ A heating unit is a controllable LOAD. The eight functions are the same as for a
   ABSORB / PREPARE  -> raise the hot-water setpoint to the boost value and trigger a one-time charge (soak surplus, fill before event)
   SUPPORT / STRETCH -> lower the hot-water setpoint to the owner's floor (shed load)
   RELEASE / revert  -> restore the previous setpoint
-Heating-circuit changes are left out on purpose for the demo (comfort), only DHW is touched.
+Heating circuit (opt-in, VICARE_HEAT=1): the same signals shift the owner's "normal" room program by VICARE_HEAT_OFFSET K,
+  ABSORB / PREPARE -> +offset (store surplus in the floor slab), SUPPORT / STRETCH -> -offset (shed the compressor), capped to
+  [VICARE_HEAT_MIN, VICARE_HEAT_MAX]. Never a mode change, never standby, never the compressor directly: SG-Ready semantics.
 
 Env (git-ignored .env or systemd -E):
   GZ_PLATFORM=http://127.0.0.1:8080   GZ_BROKER=mqtts://mqtt.victronlab.sk:8883   GZ_MQTT_USER / GZ_MQTT_PASS
   VICARE_EMAIL  VICARE_PASSWORD  VICARE_CLIENT_ID   GZ_DEVICE=vicare-blatnica
   VICARE_DHW_FLOOR=40  VICARE_DHW_BOOST=60  VICARE_KW=3  (nominal electrical kW while heating water; 0 for a gas boiler)
+  VICARE_HEAT=1  VICARE_HEAT_OFFSET=2  VICARE_HEAT_MIN=19  VICARE_HEAT_MAX=27  (heating-circuit offset; default off = DHW only)
   GZ_READ_ONLY=1  -> never write to the unit (first test)
+Acks are honest: a write the Viessmann cloud rejects (it returns HTTP 500 under load) is acked "partial", not "applied".
 """
 import os, sys, json, time, base64, hashlib, random, threading
 from datetime import datetime, timezone
@@ -30,6 +34,8 @@ DEVICE = os.environ.get("GZ_DEVICE", "vicare-blatnica")
 FLOOR = float(os.environ.get("VICARE_DHW_FLOOR", "40")); BOOST = float(os.environ.get("VICARE_DHW_BOOST", "60"))
 NOMINAL_KW = float(os.environ.get("VICARE_KW", "3"))   # Vitocal: compressor ~3 kW electrical while heating water
 READ_ONLY = os.environ.get("GZ_READ_ONLY", "0") == "1"
+HEAT = os.environ.get("VICARE_HEAT", "0") == "1"
+HEAT_OFFSET = float(os.environ.get("VICARE_HEAT_OFFSET", "2")); HEAT_MIN = float(os.environ.get("VICARE_HEAT_MIN", "19")); HEAT_MAX = float(os.environ.get("VICARE_HEAT_MAX", "27"))
 HB_TIMEOUT = 120
 now = lambda: datetime.now(timezone.utc)
 iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -104,7 +110,8 @@ if d is None:
                 if dv.get("deviceType") == "heating": d = {"installation": i["id"], "gateway": g["serial"], "device": dv["id"], "model": dv.get("modelId")}
     (KEYS / "vicare-device.json").write_text(json.dumps(d))
 FEAT = f"{API}/features/installations/{d['installation']}/gateways/{d['gateway']}/devices/{d['device']}/features"
-log(f"ViCare device: {d['model']} at installation {d['installation']}")
+HEAT_PROG = "heating.circuits.0.operating.programs.normal"
+log(f"ViCare device: {d['model']} at installation {d['installation']}, heating circuit {'ON (offset ' + str(HEAT_OFFSET) + ' K)' if HEAT else 'off (DHW only)'}")
 
 def read():
     try:
@@ -116,24 +123,37 @@ def read():
     v = lambda f, p="value": ((feats.get(f) or {}).get("properties") or {}).get(p, {}).get("value")
     return {"dhw_c": v("heating.dhw.sensors.temperature.hotWaterStorage"), "dhw_set_c": v("heating.dhw.temperature.main"),
             "dhw_mode": v("heating.dhw.operating.modes.active"), "outside_c": v("heating.sensors.temperature.outside"),
-            "one_time": v("heating.dhw.oneTimeCharge", "active"), "active": bool(v("heating.compressors.0", "active") or v("heating.dhw.charging", "active"))}
+            "one_time": v("heating.dhw.oneTimeCharge", "active"), "active": bool(v("heating.compressors.0", "active") or v("heating.dhw.charging", "active")),
+            "heat_set_c": v(HEAT_PROG, "temperature"), "heat_program": v("heating.circuits.0.operating.programs.active"),
+            "flow_c": v("heating.circuits.0.temperature"), "comp_pct": v("heating.compressors.0.power")}
 
 def apply_dhw(setpoint, one_time=False):
-    if READ_ONLY: log(f"READ-ONLY: would set DHW {setpoint} °C one_time={one_time}"); return
+    """Returns True when every write was accepted by the cloud."""
+    if READ_ONLY: log(f"READ-ONLY: would set DHW {setpoint} °C one_time={one_time}"); return True
     r = call("POST", f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", json={"temperature": int(setpoint)})
-    log(f"ViCare: DHW setpoint -> {setpoint} °C: HTTP {r.status_code}")
+    log(f"ViCare: DHW setpoint -> {setpoint} °C: HTTP {r.status_code}"); ok = r.status_code < 300
     if one_time:
-        r2 = call("POST", f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}); log(f"ViCare: one-time charge: HTTP {r2.status_code}")
+        r2 = call("POST", f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}); log(f"ViCare: one-time charge: HTTP {r2.status_code}"); ok = ok and r2.status_code < 300
+    return ok
+
+def apply_heat(setpoint):
+    """Room setpoint of the owner's 'normal' program (the one active by day). Returns True when accepted."""
+    if not HEAT or setpoint is None: return True
+    if READ_ONLY: log(f"READ-ONLY: would set heating normal program {setpoint} °C"); return True
+    r = call("POST", f"{FEAT}/{HEAT_PROG}/commands/setTemperature", json={"targetTemperature": int(setpoint)})
+    log(f"ViCare: heating normal program -> {setpoint} °C: HTTP {r.status_code}"); return r.status_code < 300
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
-SAVED_FILE = KEYS / f"{DEVICE}.saved.json"
+SAVED_FILE = KEYS / f"{DEVICE}.saved.json"                          # {"dhw_set_c": owner tank setpoint, "heat_set_c": owner room setpoint}
 OWNER_DHW_C = float(os.environ.get("VICARE_DHW_OWNER", "50"))     # the owner's normal setpoint, the value every revert must end at
 try:
-    _pending = json.loads(SAVED_FILE.read_text()).get("dhw_set_c")
-    if _pending is not None:                                         # a previous run died while a signal was active: put the owner's value back
-        log(f"restoring owner setpoint {_pending} °C left behind by a previous run")
-        apply_dhw(_pending); SAVED_FILE.unlink(missing_ok=True)
+    _pending = json.loads(SAVED_FILE.read_text())
+    if _pending.get("dhw_set_c") is not None or _pending.get("heat_set_c") is not None:   # a previous run died while a signal was active: put the owner's values back
+        log(f"restoring owner setpoints {_pending} left behind by a previous run")
+        if _pending.get("dhw_set_c") is not None: apply_dhw(_pending["dhw_set_c"])
+        if _pending.get("heat_set_c") is not None: apply_heat(_pending["heat_set_c"])
+        SAVED_FILE.unlink(missing_ok=True)
 except FileNotFoundError:
     pass
 except Exception as e:
@@ -144,18 +164,21 @@ if os.environ.get("GZ_MQTT_USER"): mq.username_pw_set(os.environ["GZ_MQTT_USER"]
 
 def ack(seq, status, reason, telem):
     doc = {"v": 1, "device": DEVICE, "path": PATH, "seq": seq, "status": status, "reason": reason,
-           "applied": {"mode": effective["mode"]} if effective else {}, "soc": 0, "grid_kw": round((NOMINAL_KW if telem.get("active") else 0.0), 2), "ts": iso(now())}
+           "applied": dict(effective) if effective else {}, "soc": 0, "grid_kw": round((NOMINAL_KW if telem.get("active") else 0.0), 2), "ts": iso(now())}
     mq.publish(f"gridzilla/ack/{DEVICE}", sign(doc), qos=1)
-    log(f"ack {status}{' (' + reason + ')' if reason else ''} seq={seq} dhw={telem.get('dhw_c')}°C set={telem.get('dhw_set_c')}°C")
+    log(f"ack {status}{' (' + reason + ')' if reason else ''} seq={seq} dhw={telem.get('dhw_c')}°C set={telem.get('dhw_set_c')}°C" + (f" room_set={telem.get('heat_set_c')}°C" if HEAT else ""))
 
 def revert(reason):
     global saved, effective, sig_active
     with lock:
         if effective is None: return
-        if saved is not None: apply_dhw(saved)
-        effective = None; sig_active = None; saved = None
-        SAVED_FILE.unlink(missing_ok=True)
-    log(f"REVERT to owner mode ({reason})"); ack(None, "reverted", reason, read())
+        ok = True
+        if saved is not None:
+            ok = apply_dhw(saved["dhw_set_c"]) and apply_heat(saved.get("heat_set_c"))
+        effective = None; sig_active = None
+        if ok: saved = None; SAVED_FILE.unlink(missing_ok=True)   # a failed revert keeps the owner's values on disk: retried at the next poll and at restart
+        else: log("REVERT: cloud rejected a write, keeping saved values for retry")
+    log(f"REVERT to owner mode ({reason})"); ack(None, "reverted" if ok else "partial", reason if ok else "revert_write_failed", read())
 
 def on_signal(env):
     global last_seq, saved, effective, sig_active, end_at, watchdog, last_hb
@@ -171,9 +194,9 @@ def on_signal(env):
     if mode == "RELEASE":
         revert("release"); return ack(sig["seq"], "applied", None, read())
     telem = read()
-    if mode in ("ABSORB", "PREPARE"):   target, one_time = BOOST, True
-    elif mode in ("SUPPORT", "STRETCH"): target, one_time = FLOOR, False
-    else: return ack(sig["seq"], "applied", None, telem)                     # RECOVER: nothing to do for a tank
+    if mode in ("ABSORB", "PREPARE"):   target, one_time, hdir = BOOST, True, +1
+    elif mode in ("SUPPORT", "STRETCH"): target, one_time, hdir = FLOOR, False, -1
+    else: return ack(sig["seq"], "applied", None, telem)                     # RECOVER: nothing to do for a tank or a slab
     ramp = sig["ramp_s"][0] + random.random() * (sig["ramp_s"][1] - sig["ramp_s"][0])
     start = max(0, (datetime.strptime(sig["valid_from"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) - now()).total_seconds()) + ramp / 10
     vf = datetime.strptime(sig["valid_from"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
@@ -184,13 +207,18 @@ def on_signal(env):
         time.sleep(start)
         with lock:
             if saved is None:
-                saved = telem.get("dhw_set_c") or OWNER_DHW_C
-                if saved in (FLOOR, BOOST): saved = OWNER_DHW_C          # never "save" a value we set ourselves
-                SAVED_FILE.write_text(json.dumps({"dhw_set_c": saved}))
-            effective = {"mode": mode}; sig_active = sig["seq"]
+                dhw_owner = telem.get("dhw_set_c") or OWNER_DHW_C
+                if dhw_owner in (FLOOR, BOOST): dhw_owner = OWNER_DHW_C          # never "save" a value we set ourselves
+                saved = {"dhw_set_c": dhw_owner, "heat_set_c": telem.get("heat_set_c") if HEAT else None}
+                SAVED_FILE.write_text(json.dumps(saved))
+            heat_target = None
+            if HEAT and saved.get("heat_set_c") is not None:
+                heat_target = min(HEAT_MAX, max(HEAT_MIN, saved["heat_set_c"] + hdir * HEAT_OFFSET))
+            effective = {"mode": mode, "dhw_set_c": target, **({"heat_set_c": heat_target} if heat_target is not None else {})}; sig_active = sig["seq"]
             end_at = min(vt, vf + (4320 if mode == "STRETCH" else 1440) * 60); watchdog = mode in ("ABSORB", "SUPPORT"); last_hb = time.time()
-            apply_dhw(target, one_time)
-        ack(sig["seq"], "applied", None, read())
+            ok = apply_dhw(target, one_time)
+            ok = apply_heat(heat_target) and ok
+        ack(sig["seq"], "applied" if ok else "partial", None if ok else "cloud_write_failed", read())
     threading.Thread(target=go, daemon=True).start()
 
 def on_message(c, u, m):
@@ -215,7 +243,11 @@ while True:
     time.sleep(POLL_S)
     t = read()
     mq.publish(f"gridzilla/state/{DEVICE}", json.dumps({"soc": 0, "grid_kw": round(NOMINAL_KW if t.get("active") else 0.0, 2), "dhw_c": t.get("dhw_c"), "dhw_set_c": t.get("dhw_set_c"),
-                                                        "dhw_mode": t.get("dhw_mode"), "outside_c": t.get("outside_c"), "mode": effective["mode"] if effective else "owner", "ts": iso(now())}))
+                                                        "dhw_mode": t.get("dhw_mode"), "outside_c": t.get("outside_c"), "heat_set_c": t.get("heat_set_c"), "flow_c": t.get("flow_c"),
+                                                        "comp_pct": t.get("comp_pct"), "mode": effective["mode"] if effective else "owner", "ts": iso(now())}))
+    if saved is not None and effective is None:                      # a revert the cloud rejected earlier: try again
+        log("retrying owner-setpoint restore")
+        if apply_dhw(saved["dhw_set_c"]) and apply_heat(saved.get("heat_set_c")): saved = None; SAVED_FILE.unlink(missing_ok=True)
     if effective:
         if time.time() >= end_at: revert("window_end")
         elif watchdog and time.time() - last_hb > HB_TIMEOUT: revert("heartbeat_lost")
