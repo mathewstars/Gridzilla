@@ -1,6 +1,8 @@
-// Dense sortable table for the plain views: sticky header, hairline rows, hover, optional row click.
+// Dense sortable table for the plain views: sticky header, hairline rows, hover, optional row click. On phones (shell.css)
+// every row becomes a small block: the title column on top, an aside value at its right, the other cells as labelled
+// items that wrap; a "Sort by" picker stands in for the header.
 import { useMemo, useState, type ReactNode } from "react";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, SortAscending, SortDescending } from "@phosphor-icons/react";
 
 export type Col<T> = {
   key: string;
@@ -10,6 +12,10 @@ export type Col<T> = {
   sort?: (r: T) => number | string | null | undefined;
   right?: boolean;
   className?: string;
+  /** Phone layout: the row's title (default: the first column), the value beside it, or a full-width line. */
+  phone?: "title" | "aside" | "line";
+  /** Label in front of the value on phones; "" shows the value alone. Defaults to `label`. */
+  phoneLabel?: string;
 };
 
 export default function Table<T>({ rows, cols, rowKey, onRow, initial, empty }: {
@@ -34,8 +40,32 @@ export default function Table<T>({ rows, cols, rowKey, onRow, initial, empty }: 
     });
   }, [rows, cols, by]);
   if (!rows.length) return <div className="vw-empty">{empty ?? "Nothing here yet."}</div>;
+  const titled = cols.some((c) => c.phone === "title");
+  const role = (c: Col<T>, i: number) => c.phone ?? (!titled && i === 0 ? "title" : undefined);
+  const sortable = cols.filter((c) => c.sort);
   return (
     <div className="vw-scroll">
+      {sortable.length > 1 && (
+        <div className="tbl-sort">
+          <label>
+            Sort by
+            <select className="tbl-sort-sel" value={by?.key ?? ""} onChange={(e) => setBy((b) => ({ key: e.target.value, dir: b?.dir ?? -1 }))}>
+              {!by && <option value="">as listed</option>}
+              {sortable.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="tbl-sort-dir"
+            disabled={!by}
+            aria-label={by?.dir === 1 ? "Ascending, switch to descending" : "Descending, switch to ascending"}
+            title={by?.dir === 1 ? "Ascending" : "Descending"}
+            onClick={() => setBy((b) => (b ? { key: b.key, dir: (b.dir * -1) as 1 | -1 } : b))}
+          >
+            {by?.dir === 1 ? <SortAscending size={16} weight="bold" /> : <SortDescending size={16} weight="bold" />}
+          </button>
+        </div>
+      )}
       <table className="tbl">
         <thead>
           <tr>
@@ -56,11 +86,15 @@ export default function Table<T>({ rows, cols, rowKey, onRow, initial, empty }: 
         <tbody>
           {sorted.map((r) => (
             <tr key={rowKey(r)} className={onRow ? "is-click" : undefined} onClick={onRow ? () => onRow(r) : undefined}>
-              {cols.map((c) => (
-                <td key={c.key} data-label={c.label} className={[c.right ? "r" : "", c.className ?? ""].join(" ").trim() || undefined}>
-                  {c.cell(r)}
-                </td>
-              ))}
+              {cols.map((c, i) => {
+                const ph = role(c, i);
+                const lbl = ph === "title" ? "" : c.phoneLabel ?? c.label;
+                return (
+                  <td key={c.key} className={[c.right ? "r" : "", c.className ?? "", ph ? `ph-${ph}` : ""].join(" ").trim() || undefined} data-label={lbl || undefined}>
+                    {c.cell(r)}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

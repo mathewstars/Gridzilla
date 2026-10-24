@@ -236,6 +236,12 @@
   .tb-sep, .tb-spacer { display: none; }
   .tb-grp { flex-wrap: wrap; }
   .seg-btn { height: 30px; padding: 0 9px; }
+  /* help and theme ride at the right end of the autopilot line instead of after the chips; the status chips follow */
+  .tb:not(.is-compact) > .tb-icons { margin-left: auto; }
+  .tb-icons .ibtn { width: 34px; height: 34px; border-radius: 17px; }
+  .tb > .chip, .tb > .tb-err { order: 2; }
+  .chip { height: 32px; border-radius: 16px; }
+  .tbtn { height: 26px; padding: 0 11px; border-radius: 13px; }
 }
 
 /* ---------------------------------------------------------------- table views */
@@ -298,6 +304,45 @@
 .loadbar { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .loadbar i { position: relative; display: block; width: 54px; height: 5px; border-radius: 3px; background: var(--sh-track); overflow: hidden; }
 .loadbar i b { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+
+/* phones: no table wider than the screen. Each row is a block: title, aside value at its right, then the other cells as
+   "label value" items that wrap (Table.tsx sets ph-* and data-label); the header becomes a Sort by picker. */
+.tbl-sort { display: none; }
+@media (max-width: 760px) {
+  .vw-scroll { overflow-x: visible; }
+  .tbl-sort {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px;
+    box-shadow: inset 0 -1px 0 var(--sh-line); font-size: max(12px, 0.75rem); font-weight: 500; color: var(--color-tertiary);
+  }
+  .tbl-sort label { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .tbl-sort-sel {
+    appearance: none; height: 32px; min-width: 0; max-width: 100%; padding: 0 28px 0 10px; border: 0; border-radius: 8px;
+    background-color: var(--sh-track); color: var(--color-ink); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-secondary) 50%), linear-gradient(135deg, var(--color-secondary) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 52%, calc(100% - 10px) 52%; background-size: 4px 4px; background-repeat: no-repeat;
+  }
+  .tbl-sort-sel:focus-visible, .tbl-sort-dir:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sh-blue); }
+  .tbl-sort-dir {
+    display: grid; place-items: center; flex: none; width: 34px; height: 32px; border: 0; border-radius: 8px;
+    background: var(--sh-track); color: var(--color-ink); cursor: pointer;
+  }
+  .tbl-sort-dir:disabled { color: var(--color-tertiary); cursor: default; }
+  .tbl, .tbl tbody { display: block; }
+  .tbl thead { display: none; }
+  .tbl tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; padding: 10px 14px; box-shadow: inset 0 -1px 0 var(--sh-line); }
+  .tbl tr:last-child { box-shadow: none; }
+  .tbl tr::after { content: ""; order: 2; flex-basis: 100%; } /* line break after the title line */
+  .tbl td { order: 3; display: block; max-width: 100%; min-width: 0; padding: 0; box-shadow: none; text-align: left; overflow-wrap: break-word; }
+  .tbl td.ph-title { order: 0; flex: 1 1 0; font-size: 0.875rem; }
+  .tbl td.ph-aside { order: 1; flex: none; max-width: 60%; text-align: right; }
+  .tbl td.ph-line { flex-basis: 100%; }
+  .tbl td[data-label]::before { content: attr(data-label) "\00a0\00a0"; color: var(--color-tertiary); font-size: max(12px, 0.75rem); font-weight: 400; }
+  .tbl .nw { white-space: normal; }
+  .tbl .wrap { min-width: 0; max-width: none; }
+  /* card header tools: the filter takes its own full line (placeholder not cut), a segmented filter wraps */
+  .vw-card-h .vw-input { flex: 1 1 100%; width: auto; height: 34px; }
+  .vw-card-h .seg { flex-wrap: wrap; max-width: 100%; }
+}
 
 /* From 1240 the console is one screen tall (ops.css): the view scrolls inside itself so the sidebar and top bar stay put,
    and table headers stick to the top of that scroller. */
