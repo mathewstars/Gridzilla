@@ -238,9 +238,13 @@ def on_message(c, u, m):
         return
     on_signal(env)
 
+announced = False
 def on_connect(c, u, f, rc, p=None):
+    global announced
     for n in PATH: c.subscribe(f"gridzilla/sig/{n}", qos=1)
     c.subscribe("gridzilla/hb"); log(f"online via {BROKER.hostname}, dhw {read().get('dhw_c')} °C")
+    if not announced:                       # a fresh start is owner mode: tell the platform, so a stale ack from the previous run does not linger
+        announced = True; ack(last_seq, "reverted", "agent_restart", read())
 mq.on_connect, mq.on_message = on_connect, on_message
 mq.reconnect_delay_set(2, 30); mq.connect_async(BROKER.hostname, BROKER.port or 1883, keepalive=30); mq.loop_start()
 
