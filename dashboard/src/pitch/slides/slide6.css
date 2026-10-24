@@ -1,0 +1,113 @@
+/* Slide 6, real and simulated: two ground tiles on white, side by side (6 + 6 columns), rows aligned across them like
+   apple.com/compare. Every row is anchored to the bottom of its tile, so the big numbers sit on one line whatever the
+   sentences above them wrap to. */
+.s6 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--p-gutter);
+  padding: var(--p-margin-y) var(--p-margin-x);
+  box-sizing: border-box;
+}
+.s6-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 64px 64px 56px;
+  box-sizing: border-box;
+}
+.s6-tile h2 {
+  margin: 0;
+}
+.s6-say {
+  margin: 20px 0 0;
+  max-width: 660px;
+  text-wrap: pretty;
+}
+
+/* The proof block fills the rest of the tile; its rows stack from the bottom up. */
+.s6-proof {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+}
+/* Waiting state: the real path as three done rows (green marks only, ink text). */
+.s6-path {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+.s6-path li {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.s6-check {
+  flex: none;
+  color: var(--p-green);
+}
+
+.s6-stat {
+  min-width: 0;
+}
+.s6-n {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+  white-space: nowrap;
+}
+.s6-big .s6-n {
+  line-height: 1;
+}
+.s6-line {
+  margin: 14px 0 0;
+  max-width: 640px;
+}
+.s6-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--p-gutter);
+  margin-top: 56px;
+}
+.s6-pair .s6-line {
+  min-height: 80px; /* two lines of 30px, so both cells end on the same line */
+}
+.s6-foot {
+  margin: 40px 0 0;
+}
+
+/* Count up: a hidden copy of the end text (drawn from an attribute, so it is not page text) holds the width. */
+.s6-count {
+  display: inline-grid;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.s6-count > span {
+  grid-area: 1 / 1;
+}
+.s6-v {
+  justify-self: end;
+}
+.s6-w {
+  visibility: hidden;
+}
+.s6-w::before {
+  content: attr(data-w);
+}
+
+/* Each measured number arrives as it starts counting: opacity and a short rise, once. */
+.s6-rise {
+  animation: s6-in 0.6s var(--p-ease) both;
+}
+@keyframes s6-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}

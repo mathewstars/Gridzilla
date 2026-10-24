@@ -12,7 +12,7 @@ export const NOTES: Notes[] = [
   {
     who: "Matthew",
     time: "0:00, 30 s",
-    lines: ["Press Space: the jingle plays for 30 seconds. Say nothing.", "Then, flat: Now you probably wonder what the monster really is."],
+    lines: ["Before you walk up: press F for full screen and 2 for the cold evening, so the peak is already building.", "Press Space: the jingle plays for 30 seconds. Say nothing.", "Then, flat: Now you probably wonder what the monster really is."],
     keys: "Space starts the jingle. Next press goes to the problem.",
   },
   {

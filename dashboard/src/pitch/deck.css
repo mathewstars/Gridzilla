@@ -1,4 +1,5 @@
-/* The deck shell: a white window, the 1920x1080 canvas scaled to fit, full-bleed slides at window size. */
+/* The deck shell: a white window, the 1920x1080 canvas scaled to fit, full-bleed slides at window size, and the
+   presenter's tools (timer, notes, overview) in real window px on top. Nothing here is drawn on a slide. */
 html,
 body {
   margin: 0;
@@ -11,6 +12,14 @@ body {
   inset: 0;
   background: #ffffff;
   overflow: hidden;
+  color: var(--p-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* The pointer hides after 2 s without movement. */
+.p-deck.p-nocursor,
+.p-deck.p-nocursor * {
+  cursor: none !important;
 }
 .p-canvas {
   position: absolute;
@@ -19,6 +28,7 @@ body {
   width: 1920px;
   height: 1080px;
   transform-origin: 0 0;
+  overflow: hidden;
 }
 .p-bleed {
   position: absolute;
@@ -35,4 +45,188 @@ body {
 }
 .p-stage {
   min-height: 100%;
+}
+
+/* T: elapsed timer, bottom right, real px. Ink on a small ground tile; the tile (never the text) tints orange when
+   more than 10 s behind the run of show and red past the 4:20 hard stop. */
+.p-timer {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  pointer-events: none;
+  user-select: none;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.p-timer-off {
+  font-size: 18px;
+  font-weight: 400;
+  color: #6e6e73;
+}
+.p-timer.is-behind {
+  background: #ffe9cc;
+}
+.p-timer.is-late {
+  background: #ffd9d6;
+}
+.p-timer.is-behind .p-timer-off,
+.p-timer.is-late .p-timer-off {
+  color: #1d1d1f;
+}
+
+/* N: presenter notes, a white sheet with the soft shadow at the bottom of the window. */
+.p-notes {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 40;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(1280px, calc(100vw - 32px));
+  max-height: 40vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 24px 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #1d1d1f;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
+  font-size: 20px;
+  line-height: 1.4;
+}
+.p-notes.is-lifted {
+  bottom: 64px;
+  max-height: calc(40vh - 48px);
+}
+.p-notes-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin-bottom: 8px;
+}
+.p-notes-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+.p-notes-step,
+.p-notes-meta {
+  font-size: 18px;
+  font-weight: 400;
+  color: #6e6e73;
+}
+.p-notes-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-notes-lines li + li {
+  margin-top: 6px;
+}
+.p-notes-keys {
+  margin: 10px 0 0;
+  font-size: 18px;
+  color: #6e6e73;
+}
+
+/* Esc: the overview, a light table of the seven slides on the ground grey. */
+.p-over {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: #f5f5f7;
+  padding: 40px;
+  box-sizing: border-box;
+}
+.p-over-grid {
+  display: grid;
+  gap: 28px;
+  align-content: center;
+}
+.p-over-item {
+  appearance: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.p-thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  transition:
+    transform 0.25s cubic-bezier(0.25, 0.1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.3, 1);
+  contain: layout paint;
+}
+.p-over-item:hover .p-thumb {
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 16px 0 rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.p-over-item.is-sel .p-thumb {
+  box-shadow: 0 0 0 4px #0071e3, 0 4px 24px rgb(0 0 0 / 0.08);
+}
+.p-over-item:active .p-thumb {
+  transform: scale(0.98);
+}
+.p-thumb-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.p-thumb-live {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #e8e8ed;
+  color: #1d1d1f;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.p-over-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 12px;
+  font-size: 18px;
+  line-height: 24px;
+}
+.p-over-name {
+  font-weight: 600;
+  min-width: 0;
+}
+.p-over-at {
+  flex: none;
+  color: #6e6e73;
+  font-variant-numeric: tabular-nums;
 }

@@ -1,0 +1,48 @@
+/* Slide 1, the title: one word as a poster. White canvas, ink type, nothing else moves while the jingle plays. */
+
+/* The wordmark. Size and position are set from its measured ink (Slide1.tsx) so the letters run exactly from the
+   left margin to the right margin and the capitals sit on the optical centre, whatever font the laptop resolves. */
+.s1-word {
+  position: absolute;
+  left: 120px;
+  top: 360px;
+  margin: 0;
+  font-size: 360px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+  color: var(--p-ink);
+  font-kerning: normal;
+}
+/* A zero-size mark on the baseline: its offsetTop is where the letters stand. */
+.s1-probe {
+  display: inline-block;
+  width: 0;
+  height: 0;
+}
+
+/* The one line after the jingle, centred under the word. */
+.s1-line {
+  position: absolute;
+  left: 120px;
+  right: 120px;
+  top: 724px;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Team and track, quiet on one baseline at the bottom margin. */
+.s1-credits {
+  position: absolute;
+  left: 120px;
+  right: 120px;
+  bottom: 96px;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 80px;
+  white-space: nowrap;
+}

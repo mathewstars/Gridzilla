@@ -1,0 +1,109 @@
+/* Slide 2, the problem. 1920x1080 design px, 12 columns between 120px margins, 40px gutters (column 103.33px). */
+
+.s2 .s2-head {
+  position: absolute;
+  left: 120px;
+  top: 96px;
+  width: 1680px;
+  margin: 0;
+}
+.s2 .s2-line {
+  display: block;
+}
+/* The tight head-xl leading would let the glyph boxes of two separate lines touch; a little air keeps them apart. */
+.s2 .s2-line-2 {
+  margin-top: 16px;
+}
+
+/* Three facts on one grid, one shared number baseline, no cards: four columns each. */
+.s2 .s2-facts {
+  position: absolute;
+  left: 120px;
+  top: 456px;
+  width: 1680px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 40px;
+}
+.s2 .s2-fact {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s var(--p-ease),
+    transform 0.8s var(--p-ease);
+}
+.s2 .s2-fact.is-on {
+  opacity: 1;
+  transform: none;
+}
+.s2 .s2-place {
+  margin: 0;
+}
+.s2 .s2-fact .s2-num {
+  display: flex;
+  align-items: baseline;
+  height: 1em;
+  line-height: 1;
+  margin-top: 30px;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.s2 .s2-digits {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+.s2 .s2-line-body {
+  margin: 26px 0 0;
+  max-width: 520px;
+}
+
+/* Odometer wheel: an invisible 0 holds the width and the baseline; the column of digits slides behind a window. */
+.s2 .s2-wheel {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+.s2 .s2-wheel-ref {
+  display: inline-block;
+  line-height: 1;
+  visibility: hidden;
+}
+.s2 .s2-wheel-win {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.s2 .s2-wheel-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.s2 .s2-wheel-cell {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+/* The punchline: alone on the bottom margin. */
+.s2 .s2-punch {
+  position: absolute;
+  left: 120px;
+  bottom: 96px;
+  width: 1680px;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.8s var(--p-ease);
+}
+.s2 .s2-punch.is-on {
+  opacity: 1;
+}
+
+.s2.s2-still .s2-fact,
+.s2.s2-still .s2-punch {
+  transition: none;
+}

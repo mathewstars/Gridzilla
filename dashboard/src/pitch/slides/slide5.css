@@ -1,0 +1,7 @@
+/* Slide 5: the live stage at the real window size. The shell's .p-bleed (deck.css) is the one scroll container: the
+   stage fills the window at 1180x860 and up and grows taller on short windows, where .p-bleed scrolls. Nothing here
+   may scroll or clip on its own, so there is never a second scrollbar. */
+.p-stage {
+  min-height: 100%;
+  overflow: visible;
+}

@@ -1,0 +1,54 @@
+/* Slide 4: the monster eats peaks. One big curve on the left, the two peak numbers on the right. */
+.s4-head {
+  position: absolute;
+  left: var(--p-margin-x);
+  top: var(--p-margin-y);
+  margin: 0;
+}
+.s4-sub {
+  position: absolute;
+  left: var(--p-margin-x);
+  top: 210px;
+  margin: 0;
+}
+.s4-chart {
+  position: absolute;
+  left: 120px;
+  top: 300px;
+  width: 1180px;
+  height: 620px;
+  overflow: visible;
+}
+.s4-chart text {
+  font-family: inherit;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.s4-tick { fill: var(--p-tertiary); }
+.s4-note { fill: var(--p-secondary); }
+.s4-label { fill: var(--p-ink); font-weight: 600; }
+.s4-nums {
+  position: absolute;
+  left: 1380px;
+  top: 380px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+}
+.s4-num-label {
+  margin: 12px 0 0;
+}
+.s4-foot {
+  position: absolute;
+  left: var(--p-margin-x);
+  right: var(--p-margin-x);
+  bottom: var(--p-margin-y);
+  margin: 0;
+}
+.s4-illu {
+  position: absolute;
+  left: 1380px;
+  top: 300px;
+  margin: 0;
+}

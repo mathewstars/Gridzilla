@@ -1,0 +1,212 @@
+/* Slide 3, the idea: one signed message, four boxes that each sort it out by themselves. Canvas px (1920x1080). */
+
+.s3 .s3-enter {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s var(--p-ease), transform 0.8s var(--p-ease);
+}
+.s3.s3-in .s3-enter {
+  opacity: 1;
+  transform: none;
+}
+
+/* The message card. */
+.s3-card {
+  position: absolute;
+  left: 420px;
+  top: 96px;
+  width: 1080px;
+  height: 280px;
+  padding: 36px 64px 0;
+  box-sizing: border-box;
+  z-index: 2;
+}
+.s3-headers {
+  display: grid;
+  height: 40px;
+}
+.s3-header {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--p-secondary);
+  opacity: 0;
+  transition: opacity 0.3s var(--p-ease);
+}
+.s3-header.is-on {
+  opacity: 1;
+  transition: opacity 0.5s var(--p-ease) 0.3s;
+}
+.s3-header svg {
+  flex: none;
+  color: var(--p-ink);
+}
+.s3-msg {
+  margin: 16px 0 0;
+  white-space: pre-line;
+  color: var(--p-ink);
+}
+.s3-ghost {
+  visibility: hidden;
+}
+.s3-caret {
+  position: relative;
+}
+.s3-caret::after {
+  content: "";
+  position: absolute;
+  left: 0.03em;
+  top: 0.1em;
+  width: 5px;
+  height: 0.9em;
+  border-radius: 2px;
+  background: var(--p-ink);
+}
+
+/* The wires from the card to the boxes. */
+.s3-wires {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+.s3-wire {
+  fill: none;
+  stroke: var(--p-ink);
+  stroke-opacity: 0.28;
+  stroke-width: 2.5;
+}
+.s3-dot {
+  fill: var(--p-ink);
+}
+
+/* The four boxes. */
+.s3-box {
+  position: absolute;
+  top: 464px;
+  width: 390px;
+  height: 292px;
+  z-index: 2;
+}
+.s3-box-in {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--p-r);
+  background: var(--p-ground);
+  padding: 32px 36px;
+  box-sizing: border-box;
+  transition: transform 0.8s var(--p-ease);
+}
+.s3-box-lit {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--p-r);
+  background: var(--p-white);
+  box-shadow: var(--p-shadow), 0 18px 40px rgb(0 0 0 / 0.07);
+  opacity: 0;
+  transition: opacity 0.8s var(--p-ease);
+}
+.s3-box.is-lit .s3-box-in {
+  transform: translateY(-6px);
+}
+.s3-box.is-lit .s3-box-lit {
+  opacity: 1;
+}
+.s3-box-body {
+  position: relative;
+}
+.s3-box-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+}
+.s3-box-icon {
+  flex: none;
+  color: var(--p-ink);
+  opacity: 0.32;
+  transition: opacity 0.8s var(--p-ease);
+}
+.s3-box.is-lit .s3-box-icon {
+  opacity: 1;
+}
+.s3-box-device {
+  color: var(--p-secondary);
+  flex: 1;
+}
+.s3-box-check {
+  flex: none;
+  color: var(--p-green);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.6s var(--p-ease), transform 0.6s var(--p-ease);
+}
+.s3-box.is-lit .s3-box-check {
+  opacity: 1;
+  transform: none;
+}
+.s3-box-maker {
+  margin-top: 18px;
+  color: var(--p-ink);
+  white-space: nowrap;
+}
+.s3-box-acts {
+  display: grid;
+  margin-top: 10px;
+}
+.s3-box-act {
+  grid-area: 1 / 1;
+  text-wrap: balance;
+  color: var(--p-ink);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s var(--p-ease), transform 0.3s var(--p-ease);
+}
+.s3-box-act.is-on {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.7s var(--p-ease) 0.3s, transform 0.7s var(--p-ease) 0.3s;
+}
+
+/* The line under the boxes, then the slide's last word. */
+.s3-foot {
+  position: absolute;
+  left: 120px;
+  width: 1680px;
+  top: 784px;
+  height: 200px;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+  z-index: 2;
+}
+.s3-foot-line {
+  grid-area: 1 / 1;
+  margin: 0;
+  color: var(--p-ink);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.8s var(--p-ease), transform 0.8s var(--p-ease);
+}
+.s3-foot-line.is-on {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.35s;
+}
+.s3-foot-line.is-gone {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition-duration: 0.45s;
+}
+
+/* Freeze and reduced motion: final state at once. */
+.s3.s3-still,
+.s3.s3-still * {
+  transition: none !important;
+}
