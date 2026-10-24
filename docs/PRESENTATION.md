@@ -14,7 +14,7 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 |---|---|---|---|
 | 0:00 | 1 Title | M | Jingle, 30 s, say nothing, then one line. |
 | 0:30 | 2 Problem | M | The storage exists, the signal does not. |
-| 0:55 | 3 The idea | M | The operator asks, the house decides, the owner can always say no. |
+| 0:55 | 3 The idea | M | One message, three everyday jobs, any box. A limit, never a command. |
 | 1:35 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
 | 2:15 | 5 Live demo | M + P | Board: Vienna curve, the AI's decision, Flattening tab, Blatnica, heartbeat. 75 s. |
 | 3:30 | 6 Real vs simulated | MT | Measured numbers, honest counterfactual. |
@@ -33,7 +33,9 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 
 **3. The idea (0:55 to 1:35).**
 
-> One signed message. The operator says: this street, next three hours, take at most three kilowatts per house. Never "discharge now", never a setting. The house decides how: battery first, car second, hot water third. The owner can always say no. If the operator goes silent, every house is back to normal in two minutes. The smart meter sees whether the house kept the limit, and that is what gets paid. An AI proposes every fifteen minutes, thirty lines of rules decide, the platform signs.
+> One message does the whole job. "This street, next three hours, take at most three kilowatts per house." Every house under it reads the same line: the Victron, the GoodWe, the Viessmann, the car charger. Each one sorts it out by itself: battery first, car second, hot water third. Same message at noon: "give at most two", and the sun goes into the batteries instead of the feeder. Same message after an outage: "be full by seven", and the street refills without a second blackout. The operator only ever sends a limit, never a command, which is why an operator can sign up for it tomorrow. An AI writes the message every fifteen minutes, thirty lines of rules check it, the platform signs it.
+
+The owner's veto, the two-minute revert and the meter accounting are Q&A material; they land better when someone asks.
 
 **4. The monster eats peaks (1:35 to 2:15).**
 
