@@ -156,6 +156,7 @@ The platform generates its Ed25519 key on first start (`platform/keys/`, private
 ```
 protocol/                PROTOCOL.md + JSON Schemas: envelope, signal, ack. Frozen.
 platform/gridzilla.py    DSO platform: registry, policy guard, Ed25519 signing, MQTT, heartbeat, dashboard, advisor
+platform/weather.py      live weather (Open-Meteo) and official warnings (MeteoAlarm, GeoSphere) for /api/weather and the autopilot
 platform/registry.yaml   grid tree (region > substation > feeder > transformer) and the devices in the program
 platform/static/         operator dashboard
 agent/sim-agent.js       simulated houses speaking the protocol (verify, scope, merge, ack, watchdog, revert)
@@ -173,3 +174,14 @@ The platform runs the grid on its own. Every 10 s it forecasts each street trans
 Modes on the dashboard: **Autonomous** (default when `GZ_LLM_URL` is set, or `GZ_AUTOPILOT=auto`), **Operator approves** (one click per decision), **Off**. The dashboard shows the control loop live (sense → trigger → DeepSeek → guard → sign → houses), every decision with DeepSeek's rationale, and the envelope curve against the measured power of the program houses. Two demo scenarios scale the houses outside the program: *cold evening* (load ×1.2) and *sunny noon* (PV ×5).
 
 The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`); all autopilot and envelope times are grid minutes.
+
+## Live weather and warnings
+
+`platform/weather.py` fetches the real forecast every 15 minutes and serves it at `GET /api/weather` (current values, 48 hours, official warnings, a one-sentence summary, and `grid_view`: the next 24 grid hours mapped onto the simulation clock). DeepSeek gets the summary, the next 6 grid hours and the active warnings in its context.
+
+- Forecast: [Open-Meteo](https://open-meteo.com), global, no key. The free API is for non-commercial use; a production deployment would use their paid commercial endpoint, set with `GZ_WEATHER_URL`.
+- Warnings: MeteoAlarm (EUMETNET, ~38 European countries) for `GZ_WEATHER_COUNTRY` (default `AT`), filtered to the region of the location by EMMA_ID (`GZ_WEATHER_AREA`) or by name; the feed has no area shapes, so if neither matches, the country list is kept. In Austria, GeoSphere Austria's coordinate-based warnings are added on top.
+- Location: `GZ_WEATHER_LAT`, `GZ_WEATHER_LON`, `GZ_WEATHER_NAME`; otherwise the top registry node with `lat`/`lon`; otherwise Wien-Liesing.
+- `POST /api/scenario/live-weather` lets the weather drive the houses outside the program: load ×(1 + 0.016 per degree of apparent temperature below 15 °C, max 1.6), PV × measured sun / clear-sky sun. The default scenario does not change.
+- `GZ_WEATHER=0` turns it off (offline demo). On an outage the last good data is served with `stale: true`; the platform never waits for it.
+- Tests (offline, recorded responses): `cd platform && python3 -m unittest discover -s tests`
