@@ -601,12 +601,12 @@ export function ShaderBackground({ className }: { className?: string }) {
 }
 
 // ---- Gridzilla addition (not part of the published file) ---------------------------------------------------------
-/** Set this recipe's palette (hex, up to 8) and whether time runs, before a ShaderBackground mounts (remount it with a
- *  React key to apply a change). The shader reads UNIFORMS when its canvas mounts. */
-export function setPalette(hex: string[], still: boolean) {
+/** Set this recipe's palette (hex, up to 8), its speed and whether time runs, before a ShaderBackground mounts (remount
+ *  it with a React key to apply a change). The shader reads UNIFORMS when its canvas mounts. */
+export function setPalette(hex: string[], still: boolean, speed = 0.575) {
   const rgb = hex.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number])
   while (rgb.length < 8) rgb.push(rgb[rgb.length - 1])
   UNIFORMS.colors = rgb.slice(0, 8)
   UNIFORMS.colorCount = Math.min(hex.length, 8)
-  UNIFORMS.timeScale = still ? 0 : 0.575
+  UNIFORMS.timeScale = still ? 0 : speed
 }

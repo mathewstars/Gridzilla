@@ -1,15 +1,17 @@
-// Slide 6, real and simulated (3:30, 25 s, dad). An honest split, said before anyone asks: on the left what runs for
-// real (the Victron plant and the Viessmann heat pump in Blatnica, live from the API, or "waiting for the plant" and
-// never a made-up value), on the right what is simulated (two thousand houses in Vienna) with the three measured
-// numbers from the deck, counting up once. Two ground tiles side by side, rows aligned like apple.com/compare.
+// Slide 6, real and simulated (3:30, 25 s, dad). A split screen, both halves live. Left, real: the Victron plant and
+// the Viessmann heat pump in Blatnica, Slovakia, straight from /api/state (or "Blatnica: waiting for the plant" and
+// never a made-up value), with the signed message path under it. Right, simulated: the city heat grid, one cell per
+// street transformer in the simulated Vienna, coloured by its load every poll, with the three measured numbers under it.
+// The two tiles share their rows (CSS subgrid), so the hero, the bottom row and the foot line up across the split.
 // Count up adapted from 21st.dev "Count Up" (@unlumen, id 20068): its no-effect mode (a motion value writing the text
 // through a ref), with our ease instead of its spring, a real minus sign, and a hidden copy of the end text holding the width.
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { animate, useReducedMotion } from "motion/react";
-import { CheckCircle } from "@phosphor-icons/react";
+import { BatteryCharging, CheckCircle, HourglassMedium, ShieldCheck, Signature } from "@phosphor-icons/react";
 import { useGridState, type State } from "../../api";
 import Counter from "../../stage/kit/Counter";
 import { useServerNow } from "../../stage/kit/Countdown";
+import { loadTone } from "../../stage/palette";
 import { MEASURED, MEASURED_ON } from "../facts";
 import type { SlideProps } from "../types";
 import "./slide6.css";
@@ -17,6 +19,7 @@ import "./slide6.css";
 const EASE: [number, number, number, number] = [0.25, 0.1, 0.3, 1];
 const MINUS = "−";
 const B = "state/households/blatnica";
+const COLS = 12;
 
 const fmt = (v: number, d: number) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
@@ -65,14 +68,11 @@ function CountUp({
   );
 }
 
-/** One row of a tile: a big number with its unit at half size and a short line under it. */
-function Stat({ value, unit, line, big, rise, delay }: { value: ReactNode; unit: string; line: ReactNode; big?: boolean; rise: boolean; delay: number }) {
+/** One column of a bottom row: a mark (a number or an icon with a word), then a short line under it. */
+function Cell({ top, line, rise, delay }: { top: ReactNode; line: ReactNode; rise: boolean; delay: number }) {
   return (
-    <div className={`s6-stat${big ? " s6-big" : ""}${rise ? " s6-rise" : ""}`} style={rise ? { animationDelay: `${delay}s` } : undefined}>
-      <div className={`s6-n ${big ? "p-display" : "p-head"}`}>
-        {value}
-        <span className="p-unit">{unit}</span>
-      </div>
+    <div className={`s6-cell${rise ? " s6-rise" : ""}`} style={rise ? { animationDelay: `${delay}s` } : undefined}>
+      <div className="s6-top">{top}</div>
       <p className="p-small p-secondary s6-line">{line}</p>
     </div>
   );
@@ -80,108 +80,150 @@ function Stat({ value, unit, line, big, rise, delay }: { value: ReactNode; unit:
 
 // ------------------------------------------------------------------ left: real
 
-/** The real path, end to end (what the plant does with every message). */
-const PATH = ["The platform signs the message", "The plant checks the signature", "Battery and heat pump follow it"];
-
-function since(ms: number) {
-  const s = Math.max(0, Math.round(ms / 1000));
-  return s < 90 ? { v: s, unit: "s" } : { v: Math.round(s / 60), unit: "min" };
+/** One reading of the real plant: what it is, then the live number, or "waiting" when the plant is silent. */
+function Reading({ name, value, unit }: { name: string; value: ReactNode | null; unit: string }) {
+  return (
+    <div className="s6-reading">
+      <p className="p-small p-secondary s6-rname">{name}</p>
+      {value != null ? (
+        <div className="p-title s6-rval">
+          {value}
+          <span className="p-unit">{unit}</span>
+        </div>
+      ) : (
+        <p className="p-body p-tertiary s6-rwait">waiting</p>
+      )}
+    </div>
+  );
 }
 
-function Real({ s, nowMs, loading }: { s: State | null; nowMs: number | null; loading: boolean }) {
+function RealHero({ s, nowMs, loading }: { s: State | null; nowMs: number | null; loading: boolean }) {
   const b = s?.households?.blatnica;
   const t = b?.telemetry ?? null;
   const rx = t?.rx ? Date.parse(t.rx) : NaN;
   const ageMs = nowMs != null && Number.isFinite(rx) ? nowMs - rx : null;
   const live = !!b && b.registered && !!t && ageMs != null && ageMs < 5 * 60_000;
-
-  if (loading) return <div className="s6-proof" />;
-  // The plant is silent: the path it runs on is still real and built, so say that, and say plainly that the live
-  // numbers are waiting. Never a last-known or made-up value.
-  if (!live || !t)
-    return (
-      <div className="s6-proof">
-        <ul className="s6-path">
-          {PATH.map((line) => (
-            <li key={line} className="p-sub">
-              <CheckCircle weight="fill" size={44} className="s6-check" aria-hidden />
-              {line}
-            </li>
-          ))}
-        </ul>
-        <p className="p-small p-tertiary s6-foot">Blatnica: waiting for the plant</p>
-      </div>
-    );
-
-  const age = since(ageMs ?? 0);
-  const ack = b.ack;
-  const heat =
-    t.dhw_c != null ? (
-      <Stat
-        rise={false}
-        delay={0}
-        value={<Counter value={t.dhw_c} src={`${B}/telemetry/dhw_c`} />}
-        unit="°C"
-        line="hot water in the Viessmann heat pump"
-      />
-    ) : (
-      <Stat
-        rise={false}
-        delay={0}
-        value={<Counter value={t.hp_kw} decimals={1} src={`${B}/telemetry/hp_kw`} />}
-        unit="kW"
-        line="the Viessmann heat pump is drawing"
-      />
-    );
-
+  if (loading) return <div className="s6-hero" />;
+  const ack = b?.ack;
+  const L = live && t ? t : null;
   return (
-    <div className="s6-proof">
-      {t.soc != null ? (
-        <Stat
-          big
-          rise={false}
-          delay={0}
-          value={<Counter value={t.soc} src={`${B}/telemetry/soc`} />}
-          unit="%"
-          line="the Victron battery in the real home, now"
-        />
-      ) : (
-        <Stat
-          big
-          rise={false}
-          delay={0}
-          value={<Counter value={t.grid_kw} decimals={1} src={`${B}/telemetry/grid_kw`} />}
-          unit="kW"
-          line="the real home at its meter, now"
-        />
-      )}
-      <div className="s6-pair">
-        <Stat
-          rise={false}
-          delay={0}
-          value={
-            <span className="p-num" data-src={`${B}/telemetry/rx`}>
-              {age.v}
-            </span>
-          }
-          unit={age.unit}
-          line="since the plant last reported"
-        />
-        {heat}
+    <div className="s6-hero" data-live={live ? "1" : "0"}>
+      <div className="s6-plant">
+        <Reading name="Victron battery" unit="%" value={L && L.soc != null ? <Counter value={L.soc} src={`${B}/telemetry/soc`} /> : null} />
+        <Reading name="Home at the meter" unit="kW" value={L ? <Counter value={L.grid_kw} decimals={1} src={`${B}/telemetry/grid_kw`} /> : null} />
+        <Reading name="Car charger" unit="kW" value={L ? <Counter value={L.ev_kw} decimals={1} src={`${B}/telemetry/ev_kw`} /> : null} />
+        <Reading name="Viessmann heat pump" unit="kW" value={L ? <Counter value={L.hp_kw} decimals={1} src={`${B}/telemetry/hp_kw`} /> : null} />
       </div>
-      <p className="p-small p-tertiary s6-foot">
-        {ack?.seq != null ? (
-          <>
-            {ack.status === "reverted" ? "Back to its owner after message " : "Answered message "}#
-            <span className="p-num" data-src={`${B}/ack/seq`} data-val={String(ack.seq)}>
-              {ack.seq}
+      {live ? (
+        <p className="p-small s6-status">
+          {ack?.verified ? <CheckCircle weight="fill" size={36} className="s6-ok" aria-hidden /> : null}
+          {ack?.seq != null ? (
+            <span>
+              {ack.status === "reverted" ? "Back to its owner after message " : "Answered message "}
+              <span className="p-num" data-src={`${B}/ack/seq`} data-val={String(ack.seq)}>
+                {ack.seq}
+              </span>
+              {ack.verified ? ", signature checked" : ""}
             </span>
-            {ack.verified ? ", signature checked" : ""}
-          </>
-        ) : (
-          "Live on the same signed message path"
-        )}
-      </p>
+          ) : (
+            <span>Live, on the same signed message path</span>
+          )}
+        </p>
+      ) : (
+        <p className="p-small s6-status">
+          <HourglassMedium weight="regular" size={36} className="s6-wait" aria-hidden />
+          <span>Blatnica: waiting for the plant</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The real path every message takes, end to end. Marks turn green only while the plant answers, signature checked. */
+const PATH = [
+  { Icon: Signature, word: "Signed", line: ["by the platform,", "one message"] },
+  { Icon: ShieldCheck, word: "Checked", line: ["by the plant,", "signature first"] },
+  { Icon: BatteryCharging, word: "Followed", line: ["by the battery", "and heat pump"] },
+];
+
+// ------------------------------------------------------------------ right: simulated
+
+type Tone = "green" | "orange" | "red" | "none";
+const toneOf = (pct: number | null | undefined): Tone =>
+  pct == null ? "none" : loadTone(pct) === "#ff3b30" ? "red" : loadTone(pct) === "#ff9500" ? "orange" : "green";
+const TF = "state/aggregates/tf:*";
+const COUNT_FROM: Record<Exclude<Tone, "none">, string> = {
+  green: `count(${TF}[load_pct != null and abs(load_pct) < 85])`,
+  orange: `count(${TF}[abs(load_pct) >= 85 and abs(load_pct) < 100])`,
+  red: `count(${TF}[abs(load_pct) >= 100])`,
+};
+
+function Live({ n, from }: { n: number; from: string }) {
+  return (
+    <span className="p-num" data-src="derived" data-from={from} data-val={String(n)}>
+      {n}
+    </span>
+  );
+}
+
+function HeatGrid({ s, wave }: { s: State | null; wave: boolean }) {
+  const cells = useMemo(() => {
+    const a = s?.aggregates ?? {};
+    return Object.keys(a)
+      .filter((k) => k.startsWith("tf:"))
+      .sort()
+      .map((k) => ({ k, pct: a[k].load_pct }));
+  }, [s]);
+  const counts = { green: 0, orange: 0, red: 0, none: 0 };
+  cells.forEach((c) => counts[toneOf(c.pct)]++);
+  const rows = Math.max(1, Math.ceil(cells.length / COLS));
+  return (
+    <div className="s6-hero">
+      <div
+        className="s6-grid"
+        style={{ gridTemplateRows: `repeat(${rows}, 1fr)` }}
+        role="img"
+        aria-label="One square per street transformer, coloured by its load"
+      >
+        {cells.map((c, i) => {
+          const p = c.pct == null ? null : Math.min(1, Math.abs(c.pct) / 100);
+          // Brighter = closer to its limit; the hue is the meaning (green inside, orange near, red over).
+          const bg = p == null ? "var(--p-fill)" : `color-mix(in srgb, ${loadTone(c.pct)} ${Math.round(45 + 55 * p)}%, var(--p-fill))`;
+          const col = i % COLS;
+          const row = Math.floor(i / COLS);
+          return (
+            <span
+              key={c.k}
+              className={`s6-sq${wave ? " s6-sq-in" : ""}`}
+              style={{ backgroundColor: bg, animationDelay: wave ? `${(col + row) * 0.035}s` : undefined }}
+            />
+          );
+        })}
+      </div>
+      {/* No payload yet: no caption, rather than a row of zeros that are not true. */}
+      {cells.length > 0 ? (
+        <>
+          <p className="p-small s6-status">
+            <span>
+              <Live n={cells.length} from={`count(${TF})`} /> street transformers in a simulated Vienna, live
+            </span>
+          </p>
+          <p className="p-small p-secondary s6-legend">
+            <span className="s6-key">
+              <i className="s6-dot s6-dot-green" aria-hidden />
+              <Live n={counts.green} from={COUNT_FROM.green} /> inside the limit
+            </span>
+            <span className="s6-key">
+              <i className="s6-dot s6-dot-orange" aria-hidden />
+              <Live n={counts.orange} from={COUNT_FROM.orange} /> near it
+            </span>
+            <span className="s6-key">
+              <i className="s6-dot s6-dot-red" aria-hidden />
+              <Live n={counts.red} from={COUNT_FROM.red} /> over
+            </span>
+          </p>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -191,61 +233,119 @@ function Real({ s, nowMs, loading }: { s: State | null; nowMs: number | null; lo
 export default function Slide6({ freeze }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
-  // Empty hh: the cheapest board payload, it ships only the real home (Blatnica).
+  // Empty hh: the cheapest board payload. It still ships every street transformer's aggregate and the real home.
   const { data, error } = useGridState("", "");
   const nowMs = useServerNow(data?.now);
   const M = MEASURED;
+  const b = data?.households?.blatnica;
+  const t = b?.telemetry;
+  const rx = t?.rx ? Date.parse(t.rx) : NaN;
+  const verified = !!b?.registered && !!t && !!b?.ack?.verified && nowMs != null && Number.isFinite(rx) && nowMs - rx < 5 * 60_000;
+  // The grid builds in once: its cells mount with the first payload and play a quick wave (CSS, once per cell, keyed by
+  // transformer), then only their colours move.
+  const wave = !still;
 
   return (
     <div className="p-slide s6" data-slide="6">
       <section className="p-tile s6-tile">
-        <h2 className="p-head">Real</h2>
-        <p className="p-sub p-secondary s6-say">
-          A Victron plant and a Viessmann heat pump in Blatnica, Slovakia, follow the signed message.
-        </p>
-        <Real s={data} nowMs={nowMs} loading={!data && !error} />
+        <header className="s6-head">
+          <h2 className="p-head">Real</h2>
+          <p className="p-small p-secondary s6-say">A Victron plant and a Viessmann heat pump in Blatnica, Slovakia, follow a signed message.</p>
+        </header>
+        <RealHero s={data} nowMs={nowMs} loading={!data && !error} />
+        <div className="s6-row s6-path">
+          {PATH.map(({ Icon, word, line }, i) => (
+            <Cell
+              key={word}
+              rise={!still}
+              delay={0.6 + i * 0.25}
+              top={
+                <span className="s6-badge">
+                  <Icon weight={verified ? "fill" : "regular"} size={40} className={verified ? "s6-ok" : "s6-mark"} aria-hidden />
+                </span>
+              }
+              line={
+                <>
+                  <span className="s6-word">{word}</span>
+                  {line.map((l) => (
+                    <span key={l} className="s6-l">
+                      {l}
+                    </span>
+                  ))}
+                </>
+              }
+            />
+          ))}
+        </div>
+        <p className="p-small p-tertiary s6-foot">The whole path is real. The planning runs on the fleet.</p>
       </section>
 
       <section className="p-tile s6-tile">
-        <h2 className="p-head">Simulated</h2>
-        <p className="p-sub p-secondary s6-say">Two thousand houses in a simulated Vienna. The same cars, with and without Gridzilla.</p>
-        <div className="s6-proof">
-          <Stat
-            big
+        <header className="s6-head">
+          <h2 className="p-head">Simulated</h2>
+          <p className="p-small p-secondary s6-say">Two thousand houses, the same cars with and without Gridzilla, realistic charging.</p>
+        </header>
+        <HeatGrid s={data} wave={wave} />
+        <div className="s6-row">
+          <Cell
             rise={!still}
             delay={0.8}
-            value={<CountUp to={M.street.pct} sign={MINUS} delay={1} still={still} label="one street, measured on the simulated fleet" />}
-            unit="%"
+            top={
+              <span className="p-head s6-n">
+                <CountUp to={M.street.pct} sign={MINUS} delay={1} still={still} label="one street, measured on the simulated fleet" />
+                <span className="p-unit">%</span>
+              </span>
+            }
             line={
               <span data-src="deck" data-label="Speising evening peak">
-                one street at the evening peak, {M.street.withoutKw} to {M.street.withKw} kW
+                <span className="s6-word">one street</span>
+                <span className="s6-l">{M.street.name},</span>
+                <span className="s6-l">
+                  {M.street.withoutKw} to {M.street.withKw} kW
+                </span>
               </span>
             }
           />
-          <div className="s6-pair">
-            <Stat
-              rise={!still}
-              delay={1.5}
-              value={<CountUp to={M.city.offMw} decimals={1} sign={MINUS} delay={1.7} still={still} label="Vienna, measured on the simulated fleet" />}
-              unit="MW"
-              line={
-                <span data-src="deck" data-label="Vienna houses and peak">
-                  Vienna, {M.city.houses.toLocaleString("en-US")} houses, {M.city.withoutMw} to {M.city.withMw} MW
+          <Cell
+            rise={!still}
+            delay={1.3}
+            top={
+              <span className="p-head s6-n">
+                <CountUp to={M.city.offMw} decimals={1} sign={MINUS} delay={1.5} still={still} label="Vienna, measured on the simulated fleet" />
+                <span className="p-unit">MW</span>
+              </span>
+            }
+            line={
+              <span data-src="deck" data-label="Vienna houses and peak">
+                <span className="s6-word">Vienna</span>
+                <span className="s6-l">{M.city.houses.toLocaleString("en-US")} houses,</span>
+                <span className="s6-l">
+                  {M.city.withoutMw} to {M.city.withMw} MW
                 </span>
-              }
-            />
-            <Stat
-              rise={!still}
-              delay={2.4}
-              value={<CountUp to={M.noCars.offKw} delay={2.4} still={still} label="street with no cars, measured on the simulated fleet" />}
-              unit="kW"
-              line="a street where no car charged"
-            />
-          </div>
-          <p className="p-small p-tertiary s6-foot" data-src="deck" data-label="measured on">
-            Measured on the simulated fleet, {MEASURED_ON}
-          </p>
+              </span>
+            }
+          />
+          <Cell
+            rise={!still}
+            delay={1.8}
+            top={
+              <span className="p-head s6-n">
+                <CountUp to={M.noCars.offKw} delay={1.8} still={still} label="street with no cars, measured on the simulated fleet" />
+                <span className="p-unit">kW</span>
+              </span>
+            }
+            line={
+              <>
+                <span className="s6-word">a street</span>
+                <span className="s6-l">where no car</span>
+                <span className="s6-l">charged</span>
+              </>
+            }
+          />
         </div>
+        <p className="p-small p-tertiary s6-foot" data-src="deck" data-label="measured on">
+          Measured on the simulated fleet, {MEASURED_ON}
+        </p>
       </section>
     </div>
   );

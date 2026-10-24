@@ -35,14 +35,17 @@ function readSteps() {
     const src = fs.readFileSync(new URL("../src/pitch/slides/index.ts", import.meta.url), "utf8");
     const body = src.slice(src.indexOf("SLIDES"));
     const rows = body.split("\n").filter((l) => /Component:\s*Slide\d/.test(l));
-    const steps = rows.map((l) => Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1));
-    if (steps.length) return steps;
+    const steps = {};
+    for (const l of rows) steps[Number(/Component:\s*Slide(\d+)/.exec(l)[1])] = Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1);
+    if (Object.keys(steps).length) return steps;
   } catch {}
-  return [1, 1, 2, 1, 1, 1, 2];
+  return { 0: 1, 1: 1, 2: 1, 3: 3, 4: 1, 5: 1, 6: 1, 7: 2 };
 }
+// Steps per slide number (0 = the trailer, 1-7 the slides).
 const STEPS = readSteps();
-const N = STEPS.length;
-const slides = arg("slides") ? String(arg("slides")).split(",").map(Number) : STEPS.map((_, i) => i + 1);
+const NUMS = Object.keys(STEPS).map(Number).sort((a, b) => a - b);
+const N = NUMS[NUMS.length - 1];
+const slides = arg("slides") ? String(arg("slides")).split(",").map(Number) : NUMS;
 const sep = base.includes("?") ? "&" : "?";
 // Both themes by default (dark is the product default); --themes dark or --themes light runs one.
 const themes = String(arg("themes", "dark,light")).split(",");
@@ -162,7 +165,8 @@ async function g1(theme) {
     if (cur) seen.add(cur);
     // Every step of every slide, one press for the jingle on slide 1, then a few spare presses at the end: the deck
     // must stay on the last slide.
-    const presses = 1 + STEPS.reduce((a, s) => a + s, 0) + 1;
+    // Slide 0: one press plays the trailer, the next skips it to the title. Then every step of slides 1-7.
+    const presses = 2 + NUMS.filter((n) => n > 0).reduce((a, n) => a + STEPS[n], 0) + 1;
     for (let k = 1; k <= presses; k++) {
       await page.keyboard.press("ArrowRight");
       await page.waitForTimeout(500);
@@ -175,7 +179,7 @@ async function g1(theme) {
       if (typeof s === "number") seen.add(s);
       else errors.push(`after press ${k}: on screen ${s} (expected exactly one slide)`);
     }
-    for (let i = 1; i <= N; i++) if (!seen.has(i)) errors.push(`slide ${i} never came on screen while stepping through`);
+    for (const i of NUMS) if (!seen.has(i)) errors.push(`slide ${i} never came on screen while stepping through`);
     const last = trace[trace.length - 1].slide;
     if (last !== N) errors.push(`ended on slide ${last}, expected ${N}`);
   } catch (e) {
@@ -220,7 +224,7 @@ if (only !== "g3") {
 }
 if (only !== "g1") {
   const jobs = [];
-  for (const s of slides) for (let st = 0; st < (STEPS[s - 1] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) for (const t of themes) jobs.push(() => cell(s, st, size, ph, t));
+  for (const s of slides) for (let st = 0; st < (STEPS[s] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) for (const t of themes) jobs.push(() => cell(s, st, size, ph, t));
   await pool(jobs, CONC);
 }
 await browser.close();

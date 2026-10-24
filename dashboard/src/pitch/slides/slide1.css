@@ -1,48 +1,37 @@
-/* Slide 1, the title: one word as a poster. White canvas, ink type, nothing else moves while the jingle plays. */
-
-/* The wordmark. Size and position are set from its measured ink (Slide1.tsx) so the letters run exactly from the
-   left margin to the right margin and the capitals sit on the optical centre, whatever font the laptop resolves. */
-.s1-word {
+/* Slide 1, the title: one centred column on the moving hero background. */
+.s1-col {
   position: absolute;
-  left: 120px;
-  top: 360px;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 120px;
+}
+/* The wordmark: 220 design px (the shell's scaling keeps it between about 96 and 220 real px), tight tracking. */
+.s1-word {
   margin: 0;
-  font-size: 360px;
-  font-weight: 600;
+  font-size: 220px;
   line-height: 1;
-  letter-spacing: -0.045em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   white-space: nowrap;
   color: var(--p-ink);
-  font-kerning: normal;
 }
-/* A zero-size mark on the baseline: its offsetTop is where the letters stand. */
-.s1-probe {
-  display: inline-block;
-  width: 0;
-  height: 0;
+.s1-tag {
+  margin: 44px 0 0;
+  font-size: 44px;
+  font-weight: 500;
+  color: var(--p-ink);
+  opacity: 0.92;
 }
-
-/* The one line after the jingle, centred under the word. */
-.s1-line {
-  position: absolute;
-  left: 120px;
-  right: 120px;
-  top: 724px;
-  margin: 0;
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* Team and track, quiet on one baseline at the bottom margin. */
 .s1-credits {
-  position: absolute;
-  left: 120px;
-  right: 120px;
-  bottom: 96px;
-  margin: 0;
+  margin-top: 56px;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 80px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--p-secondary);
   white-space: nowrap;
 }

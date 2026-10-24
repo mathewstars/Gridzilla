@@ -9,10 +9,11 @@
     "typecheck": "tsc -b",
     "preview": "vite preview",
     "qa": "node qa/run.mjs",
-    "pitch:dev": "vite --port 5175 --strictPort --base /",
-    "pitch:preview": "vite build --base / --outDir node_modules/.pitch-dist --emptyOutDir && vite preview --base / --outDir node_modules/.pitch-dist --port 4175 --strictPort",
+    "pitch:dev": "npm run pitch:trailer && vite --port 5175 --strictPort --base /",
+    "pitch:preview": "npm run pitch:trailer && vite build --base / --outDir node_modules/.pitch-dist --emptyOutDir && vite preview --base / --outDir node_modules/.pitch-dist --port 4175 --strictPort",
     "pitch:pdf": "node qa/pitch-pdf.mjs",
-    "pitch:qa": "node qa/pitch.mjs"
+    "pitch:qa": "node qa/pitch.mjs",
+    "pitch:trailer": "node qa/pitch-trailer.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

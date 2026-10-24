@@ -210,3 +210,118 @@
 .s3.s3-still * {
   transition: none !important;
 }
+
+/* Noon: the changed words slide to the noon version in place (no second typing): the old words slide up and out,
+   then the new ones slide up into their place, so the two are never both visible. */
+.s3 .s3-swap {
+  display: inline-grid;
+  vertical-align: bottom;
+}
+.s3 .s3-swap > span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(-70%);
+  transition:
+    opacity 0.22s var(--p-ease-state),
+    transform 0.22s var(--p-ease-state);
+}
+.s3 .s3-swap > span.is-on {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.3s var(--p-ease) 0.22s,
+    transform 0.4s var(--p-ease) 0.22s;
+}
+.s3 .s3-swap > span:not(.is-on):last-child {
+  transform: translateY(70%);
+}
+
+/* Step 2, the loop: the message scene leaves, the ring scene comes. */
+.s3.s3-looping .s3-card,
+.s3.s3-looping .s3-box,
+.s3.s3-looping .s3-wires,
+.s3.s3-looping .s3-foot {
+  transition: opacity 0.25s var(--p-ease-state);
+}
+.s3.s3-looping .s3-card,
+.s3.s3-looping .s3-box,
+.s3.s3-looping .s3-wires,
+.s3.s3-looping .s3-foot {
+  opacity: 0;
+}
+.s3-loop {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s var(--p-ease);
+}
+.s3-loop.is-on {
+  opacity: 1;
+}
+.s3-loop-title {
+  position: absolute;
+  left: 120px;
+  top: 96px;
+  margin: 0;
+}
+.s3-loop-ring {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: visible;
+}
+.s3-loop-track {
+  fill: none;
+  stroke: var(--p-fill);
+  stroke-width: 6;
+}
+.s3-loop-lap {
+  fill: none;
+  stroke: var(--p-ink);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dashoffset: 1;
+}
+.s3-loop-node {
+  fill: var(--p-bg);
+  stroke: var(--p-fill-press);
+  stroke-width: 6;
+  transition:
+    fill 0.4s var(--p-ease),
+    stroke 0.4s var(--p-ease);
+}
+.s3-loop-node.is-lit {
+  fill: var(--p-green);
+  stroke: var(--p-green);
+}
+.s3-station {
+  position: absolute;
+  opacity: 0.32;
+  transition: opacity 0.5s var(--p-ease);
+}
+.s3-station.is-lit {
+  opacity: 1;
+}
+.s3-station-top {
+  text-align: center;
+}
+.s3-station-left {
+  text-align: right;
+}
+.s3-station-name {
+  margin: 0;
+}
+.s3-station-line {
+  margin-top: 6px;
+}
+.s3.s3-still .s3-loop,
+.s3.s3-still .s3-station,
+.s3.s3-still .s3-loop-node,
+.s3.s3-still .s3-card,
+.s3.s3-still .s3-box,
+.s3.s3-still .s3-foot,
+.s3.s3-still .s3-wires,
+.s3.s3-still .s3-swap > span {
+  transition: none;
+}

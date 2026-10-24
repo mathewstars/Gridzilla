@@ -3,16 +3,18 @@
 //
 // Keys (one window listener in the capture phase; every key the shell uses is stopped there, on every slide, so the
 // live stage on slide 5 never also handles Left, Right or F; all other keys, like 1-4, reach the stage):
-//   Right, Space, PageDown  next build step, then next slide (on slide 1 the first press starts the jingle)
+//   Right, Space, PageDown  next build step, then next slide (on slide 0 the first press plays the trailer, the next
+//                           skips it; at its end the deck hard-cuts to the title by itself)
 //   Left, PageUp            back: previous step, then the previous slide at its last step
 //   F                       full screen, with Esc kept for the page (hold Esc to leave full screen)
 //   T                       small elapsed timer, bottom right      N  presenter notes      Esc  slide overview
 //   D                       dark or light theme (dark by default; ?theme=dark|light; remembered like the ops console)
-// URL: ?slide=N (1-based) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
+// URL: ?slide=N (0 = the trailer, 1-7 the slides) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
 // are written back to the URL as you move, so a reload stays put. window.__pitch exposes the state for QA.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { SLIDES } from "./slides";
-import { useJingle } from "./shell/useJingle";
+import { useTrailer } from "./shell/useTrailer";
 import Timer from "./shell/Timer";
 import Notes from "./shell/Notes";
 import Overview, { overviewLayout } from "./shell/Overview";
@@ -97,13 +99,14 @@ function toggleFullscreen() {
 export default function Deck() {
   const q = useMemo(() => new URLSearchParams(location.search), []);
   const freeze = q.get("freeze") === "end" ? "end" : null;
-  const [pos, setPosRaw] = useState<Pos>(() => clampPos(Number(q.get("slide") || 1) - 1, Number(q.get("step") || 0)));
+  const [pos, setPosRaw] = useState<Pos>(() => clampPos(Number(q.get("slide") ?? 0), Number(q.get("step") || 0)));
   const posRef = useRef(pos);
   const [ui, setUiRaw] = useState<Ui>({ timer: false, notes: false, overview: false, sel: 0 });
   const uiRef = useRef(ui);
   const [t0, setT0] = useState<number | null>(null);
   const t0Ref = useRef<number | null>(null);
-  const jingle = useJingle(`${import.meta.env.BASE_URL}pitch/jingle.m4a`, !freeze);
+  const afterTrailer = useRef(() => {});
+  const trailer = useTrailer(!freeze, () => afterTrailer.current());
   const size = useWindowSize();
   const [theme, setTheme] = useTheme();
   const cursorHidden = useIdleCursor(CURSOR_IDLE_MS);
@@ -117,29 +120,30 @@ export default function Deck() {
     setUiRaw(u);
   }, []);
 
-  const { start: startJingle, stop: stopJingle, stateRef: jingleRef } = jingle;
+  const { start: startTrailer, stop: stopTrailer, stateRef: jingleRef } = trailer;
 
-  /** Every slide change goes through here: leaving slide 1 while the jingle plays fades it out. */
+  /** Every slide change goes through here: leaving slide 0 while the trailer plays stops it there. */
   const go = useCallback(
     (p: Pos) => {
-      if (p.i !== 0) stopJingle();
+      if (p.i !== 0) stopTrailer();
       setPos(p);
     },
-    [setPos, stopJingle],
+    [setPos, stopTrailer],
   );
+  // The trailer's last frame: hard cut to the title.
+  afterTrailer.current = () => go({ i: 1, step: 0 });
 
   const next = useCallback(() => {
     const p = posRef.current;
-    if (p.i === 0 && jingleRef.current === "idle" && startJingle()) {
-      if (t0Ref.current == null) {
-        t0Ref.current = performance.now();
-        setT0(t0Ref.current);
-      }
-      return;
+    if (p.i === 0 && t0Ref.current == null) {
+      // The run of show starts with the first press on the trailer.
+      t0Ref.current = performance.now();
+      setT0(t0Ref.current);
     }
+    if (p.i === 0 && jingleRef.current === "idle" && startTrailer()) return;
     if (p.step < SLIDES[p.i].steps - 1) go({ i: p.i, step: p.step + 1 });
     else if (p.i < LAST) go({ i: p.i + 1, step: 0 });
-  }, [go, jingleRef, startJingle]);
+  }, [go, jingleRef, startTrailer]);
 
   const prev = useCallback(() => {
     const p = posRef.current;
@@ -213,7 +217,7 @@ export default function Deck() {
   useEffect(() => {
     try {
       const url = new URL(location.href);
-      url.searchParams.set("slide", String(pos.i + 1));
+      url.searchParams.set("slide", String(pos.i));
       url.searchParams.set("step", String(pos.step));
       if (url.href !== location.href) history.replaceState(history.state, "", url);
     } catch {
@@ -226,7 +230,7 @@ export default function Deck() {
     const w = window as unknown as { __pitch?: unknown };
     w.__pitch = {
       get slide() {
-        return posRef.current.i + 1;
+        return posRef.current.i;
       },
       get step() {
         return posRef.current.step;
@@ -253,29 +257,50 @@ export default function Deck() {
     };
   }, [jingleRef]);
 
+  // One transition for every slide change: a 0.3 s crossfade. The trailer's end is a hard cut into the title.
+  const prevI = useRef(pos.i);
+  const fromTrailer = prevI.current === 0 && pos.i === 1;
+  useEffect(() => {
+    prevI.current = pos.i;
+  }, [pos.i]);
+  const fade = freeze ? 0 : 0.3;
+
   const scale = Math.min(size.w / W, size.h / H);
   const left = (size.w - W * scale) / 2;
   const top = (size.h - H * scale) / 2;
 
   return (
-    <div className={`p-deck${cursorHidden ? " p-nocursor" : ""}`} data-slide-current={pos.i + 1}>
+    <div className={`p-deck${cursorHidden ? " p-nocursor" : ""}`} data-slide-current={pos.i}>
       <Backdrop kind={SLIDES[pos.i].bg ?? "none"} theme={theme} freeze={!!freeze} />
       {SLIDES.map((d, i) => {
+        // Full-bleed slides (the trailer, the live demo) live outside the scaled canvas; the demo stays mounted.
+        if (!d.fullBleed) return null;
         const on = i === pos.i;
         if (!on && !d.keepMounted) return null;
-        const el = <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} jingle={jingle.state} />;
-        if (d.fullBleed)
-          return (
-            <div key={d.id} className={`p-bleed${on ? "" : " p-off"}`} aria-hidden={!on}>
-              {el}
-            </div>
-          );
         return (
-          <div key={d.id} className="p-canvas" style={{ transform: `translate(${left}px, ${top}px) scale(${scale})` }}>
-            {el}
+          <div key={d.id} className={`p-bleed${on ? "" : " p-off"}`} aria-hidden={!on}>
+            <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} jingle={trailer.state === "playing" ? "playing" : "ended"} />
           </div>
         );
       })}
+      <AnimatePresence initial={false}>
+        {!SLIDES[pos.i].fullBleed && (
+          <motion.div
+            key={SLIDES[pos.i].id}
+            className="p-canvas"
+            style={{ x: left, y: top, scale, originX: 0, originY: 0 }}
+            initial={fromTrailer ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: fade, ease: [0.4, 0, 0.6, 1] }}
+          >
+            {(() => {
+              const d = SLIDES[pos.i];
+              return <d.Component step={pos.step} active freeze={freeze} jingle={trailer.state === "playing" ? "playing" : "ended"} />;
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {ui.timer ? <Timer t0={t0} i={pos.i} /> : null}
       {ui.notes ? <Notes i={pos.i} step={pos.step} lift={ui.timer} /> : null}
       {ui.overview ? (

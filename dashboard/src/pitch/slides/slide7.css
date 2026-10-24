@@ -71,3 +71,15 @@
   display: block;
   white-space: nowrap;
 }
+
+/* Step 0: the ask, one sentence centred in the frame, balanced over two lines when it needs two. */
+.s7-ask {
+  display: grid;
+  place-items: center;
+}
+.s7-ask-line {
+  margin: 0;
+  max-width: 1500px;
+  text-align: center;
+  text-wrap: balance;
+}

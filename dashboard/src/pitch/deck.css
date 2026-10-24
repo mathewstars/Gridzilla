@@ -38,10 +38,19 @@ body {
   background: var(--color-ground);
 }
 /* Kept mounted but off-screen: the stage keeps its data warm and its 3D street pauses (it watches visibility). */
+.p-bleed {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+}
+/* Off-screen once faded: the stage keeps its data warm and its 3D street pauses (it watches visibility). */
 .p-bleed.p-off {
+  opacity: 0;
   transform: translateX(200vw);
   visibility: hidden;
   pointer-events: none;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1),
+    visibility 0s linear 0.3s,
+    transform 0s linear 0.3s;
 }
 .p-stage {
   min-height: 100%;
@@ -244,4 +253,15 @@ body {
 .p-backdrop-canvas {
   position: absolute;
   inset: 0;
+}
+/* Content slides: the same moving light, dimmed to about 60 % so text keeps its contrast. */
+.p-backdrop-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--p-bg);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.p-backdrop-dim.is-on {
+  opacity: 0.42;
 }

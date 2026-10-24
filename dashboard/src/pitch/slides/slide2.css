@@ -1,36 +1,57 @@
-/* Slide 2, the problem. 1920x1080 design px, 12 columns between 120px margins, 40px gutters (column 103.33px). */
+/* Slide 2, the problem. 1920x1080 design px, 120px side margins, 96px top and bottom, 40px gutters.
+   The animated mesh background shows through: the three stat moments sit on soft scrim panels so they stay legible. */
 
+.s2 {
+  --s2-scrim: rgb(255 255 255 / 0.7);
+}
+:root[data-theme="dark"] .s2 {
+  --s2-scrim: rgb(11 11 15 / 0.55);
+}
+
+/* Headline: two lines, the second in secondary. Separate lines get a little air so their glyph boxes never touch. */
 .s2 .s2-head {
   position: absolute;
   left: 120px;
   top: 96px;
   width: 1680px;
   margin: 0;
+  transition: opacity 0.8s var(--p-ease);
 }
 .s2 .s2-line {
   display: block;
+  white-space: nowrap;
 }
-/* The tight head-xl leading would let the glyph boxes of two separate lines touch; a little air keeps them apart. */
 .s2 .s2-line-2 {
   margin-top: 16px;
 }
 
-/* Three facts on one grid, one shared number baseline, no cards: four columns each. */
+/* Three stat moments, four columns each, on scrim panels. */
 .s2 .s2-facts {
   position: absolute;
   left: 120px;
-  top: 456px;
+  top: 312px;
   width: 1680px;
+  height: 523px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   column-gap: 40px;
+  transform-origin: 50% 0;
+  transition:
+    opacity 0.8s var(--p-ease),
+    transform 0.8s var(--p-ease);
 }
 .s2 .s2-fact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  border-radius: var(--p-r);
+  background: var(--s2-scrim);
   opacity: 0;
   transform: translateY(24px);
   transition:
-    opacity 0.6s var(--p-ease),
-    transform 0.8s var(--p-ease);
+    opacity 0.5s var(--p-ease),
+    transform 0.7s var(--p-ease);
 }
 .s2 .s2-fact.is-on {
   opacity: 1;
@@ -38,13 +59,22 @@
 }
 .s2 .s2-place {
   margin: 0;
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.s2 .s2-art {
+  display: block;
+  width: 461px;
+  height: 120px;
+  margin-top: 18px;
+  overflow: visible;
 }
 .s2 .s2-fact .s2-num {
   display: flex;
   align-items: baseline;
   height: 1em;
   line-height: 1;
-  margin-top: 30px;
+  margin-top: 24px;
   white-space: nowrap;
   color: var(--p-ink);
 }
@@ -53,9 +83,80 @@
   align-items: baseline;
   font-variant-numeric: tabular-nums;
 }
-.s2 .s2-line-body {
-  margin: 26px 0 0;
-  max-width: 520px;
+.s2 .s2-caption {
+  margin: 22px 0 0;
+  text-wrap: balance;
+}
+
+/* The punchline lands last, alone: the moments and the headline step back. */
+.s2 .s2-punch {
+  position: absolute;
+  left: 120px;
+  bottom: 96px;
+  width: 1680px;
+  margin: 0;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.8s var(--p-ease),
+    transform 0.8s var(--p-ease);
+}
+.s2.is-punch .s2-punch {
+  opacity: 1;
+  transform: none;
+}
+.s2.is-punch .s2-facts {
+  opacity: 0.25;
+  transform: scale(0.985);
+}
+.s2.is-punch .s2-head {
+  opacity: 0.5;
+}
+
+/* Drawings: colour only on marks. Green = stored; grey = cut off, idle, out of reach. */
+.s2 .s2-well {
+  fill: var(--p-fill);
+}
+.s2 .s2-green {
+  fill: var(--p-green);
+}
+.s2 .s2-stroke,
+.s2 .s2-contact {
+  fill: none;
+  stroke: var(--p-tertiary);
+  stroke-width: 3;
+}
+.s2 .s2-solid-dim {
+  fill: var(--p-tertiary);
+}
+.s2 .s2-wire,
+.s2 .s2-pylon {
+  fill: none;
+  stroke: var(--p-tertiary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.s2 .s2-dash {
+  stroke-dasharray: 2 10;
+}
+.s2 .s2-off {
+  opacity: 0.45;
+}
+.s2 .s2-knob {
+  fill: var(--p-ink);
+}
+.s2 .s2-lit {
+  stroke: var(--p-ink);
+}
+.s2 .s2-dev {
+  color: var(--p-tertiary);
+  opacity: 0.45;
+}
+.s2 .s2-dev-lit {
+  color: var(--p-ink);
+  opacity: 1;
 }
 
 /* Odometer wheel: an invisible 0 holds the width and the baseline; the column of digits slides behind a window. */
@@ -89,20 +190,8 @@
   line-height: 1;
 }
 
-/* The punchline: alone on the bottom margin. */
-.s2 .s2-punch {
-  position: absolute;
-  left: 120px;
-  bottom: 96px;
-  width: 1680px;
-  margin: 0;
-  opacity: 0;
-  transition: opacity 0.8s var(--p-ease);
-}
-.s2 .s2-punch.is-on {
-  opacity: 1;
-}
-
+.s2.s2-still .s2-head,
+.s2.s2-still .s2-facts,
 .s2.s2-still .s2-fact,
 .s2.s2-still .s2-punch {
   transition: none;

@@ -1,45 +1,39 @@
-// The deck's one background family (captain: premium, from 21st.dev, never hand-rolled): Paper Shaders by @paper-design.
-// "hero" = the animated Mesh Gradient (slides 1 and 7), "calm" = its still sibling, Static Mesh Gradient (2, 3, 6),
-// "none" = the plain theme ground (4 stays clean; 5 is the live stage). One full-window layer behind every slide, so
-// slides that share a background share one canvas; a change crossfades. Palettes follow the theme (dark by default).
+// The deck's background (captain: premium, from 21st.dev, never hand-rolled, clearly visible): Paper Shaders' animated
+// Mesh Gradient by @paper-design (bg/mesh-gradient.tsx), green and teal light moving slowly on near-black. One canvas
+// behind every slide that has a background, so it keeps moving across slide changes: full strength on the title and
+// the close ("hero"), dimmed to about 60 % on the content slides ("calm"); slide 4 and the live demo have none.
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ShaderBackground as HeroShader, setPalette as setHero } from "../bg/mesh-gradient";
-import { ShaderBackground as CalmShader, setPalette as setCalm } from "../bg/static-mesh-gradient";
+import { ShaderBackground, setPalette } from "../bg/mesh-gradient";
 import type { BgKind } from "../types";
 
-/** Deep greens: the monster's colour, dark enough that ink text keeps its contrast everywhere on the slide. */
 const PALETTES = {
-  dark: {
-    hero: ["#07120d", "#0d3a26", "#1c6b45", "#0b0b0f"],
-    calm: ["#0b0b0f", "#0a1d14", "#10301f", "#0b0b0f"],
-  },
-  light: {
-    hero: ["#ffffff", "#dcf3e4", "#c3e9d1", "#f5f5f7"],
-    calm: ["#ffffff", "#eef8f2", "#e2f3e8", "#ffffff"],
-  },
+  dark: ["#040706", "#0b5d3d", "#0f8f7f", "#06261c"],
+  light: ["#ffffff", "#c4eedd", "#9fe0cf", "#eef9f4"],
 } as const;
+const SPEED = 0.4;
 
 export default function Backdrop({ kind, theme, freeze }: { kind: BgKind; theme: "dark" | "light"; freeze: boolean }) {
   const still = !!useReducedMotion() || freeze;
-  // The shaders read their palette when their canvas mounts; the key below remounts them on a theme change.
-  setHero([...PALETTES[theme].hero], still);
-  setCalm([...PALETTES[theme].calm], still);
+  // The shader reads its palette when its canvas mounts; the key below remounts it on a theme change only, so the
+  // same light keeps moving from slide to slide.
+  setPalette([...PALETTES[theme]], still, SPEED);
   return (
     <div className="p-backdrop" aria-hidden>
       <AnimatePresence initial={false}>
         {kind !== "none" && (
           <motion.div
-            key={`${kind}-${theme}`}
+            key={`bg-${theme}`}
             className="p-backdrop-layer"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: still ? 0 : 0.6, ease: [0.4, 0, 0.6, 1] }}
+            transition={{ duration: still ? 0 : 0.3, ease: [0.4, 0, 0.6, 1] }}
           >
-            {kind === "hero" ? <HeroShader className="p-backdrop-canvas" /> : <CalmShader className="p-backdrop-canvas" />}
+            <ShaderBackground className="p-backdrop-canvas" />
           </motion.div>
         )}
       </AnimatePresence>
+      <div className={`p-backdrop-dim${kind === "calm" ? " is-on" : ""}`} />
     </div>
   );
 }

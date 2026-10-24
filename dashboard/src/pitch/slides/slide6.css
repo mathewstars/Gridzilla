@@ -1,60 +1,150 @@
-/* Slide 6, real and simulated: two ground tiles on white, side by side (6 + 6 columns), rows aligned across them like
-   apple.com/compare. Every row is anchored to the bottom of its tile, so the big numbers sit on one line whatever the
-   sentences above them wrap to. */
+/* Slide 6, real and simulated: two tiles side by side over the deck's moving background (6 + 6 columns). The tiles
+   share four rows through subgrid (head, hero, bottom row, foot), so the plant and the heat grid start on one line, the
+   path and the measured numbers sit on one line, and the two foot notes end on one line, like apple.com/compare. */
 .s6 {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr auto auto;
   column-gap: var(--p-gutter);
-  padding: var(--p-margin-y) var(--p-margin-x);
+  padding: 72px var(--p-margin-x);
   box-sizing: border-box;
 }
 .s6-tile {
-  display: flex;
-  flex-direction: column;
+  grid-row: 1 / span 4;
+  display: grid;
+  grid-template-rows: subgrid;
   min-width: 0;
-  padding: 64px 64px 56px;
+  padding: 52px 56px 48px;
   box-sizing: border-box;
 }
 .s6-tile h2 {
   margin: 0;
 }
 .s6-say {
-  margin: 20px 0 0;
-  max-width: 660px;
+  margin: 10px 0 0;
   text-wrap: pretty;
 }
 
-/* The proof block fills the rest of the tile; its rows stack from the bottom up. */
-.s6-proof {
-  flex: 1;
+/* ---------------------------------------------------------------- the hero of each half */
+.s6-hero {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   min-height: 0;
+  padding-top: 36px;
 }
-/* Waiting state: the real path as three done rows (green marks only, ink text). */
-.s6-path {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 36px;
-}
-.s6-path li {
+.s6-status {
   display: flex;
   align-items: center;
-  gap: 22px;
-  white-space: nowrap;
+  gap: 14px;
+  margin: 22px 0 0;
   color: var(--p-ink);
 }
-.s6-check {
+.s6-ok {
   flex: none;
   color: var(--p-green);
 }
+.s6-wait,
+.s6-mark {
+  flex: none;
+  color: var(--p-secondary);
+}
 
-.s6-stat {
+/* Real: the plant as four readings, two by two, on the tile's inner fill. */
+.s6-plant {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.s6-reading {
+  background: var(--p-fill);
+  border-radius: var(--p-r-small);
+  padding: 18px 24px 20px;
   min-width: 0;
+  min-height: 124px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.s6-rname {
+  margin: 0;
+  white-space: nowrap;
+}
+.s6-rval {
+  display: flex;
+  align-items: baseline;
+  line-height: 1;
+  white-space: nowrap;
+  margin-top: 12px;
+}
+.s6-rwait {
+  margin: 12px 0 0;
+}
+
+/* Simulated: the heat grid, one square per street transformer. Colours glide 0.4 s on every poll. */
+.s6-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  height: 236px;
+}
+.s6-sq {
+  border-radius: 6px;
+  transition: background-color 0.4s var(--p-ease-state);
+}
+.s6-sq-in {
+  animation: s6-sq 0.3s var(--p-ease) both;
+}
+@keyframes s6-sq {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+.s6-legend {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 28px;
+  row-gap: 4px;
+  margin: 6px 0 0;
+}
+.s6-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.s6-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex: none;
+}
+.s6-dot-green {
+  background: var(--p-green);
+}
+.s6-dot-orange {
+  background: var(--p-orange);
+}
+.s6-dot-red {
+  background: var(--p-red);
+}
+
+/* ---------------------------------------------------------------- bottom row: three columns in each half */
+.s6-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr);
+  column-gap: 28px;
+  padding-top: 36px;
+  align-items: start;
+}
+.s6-cell {
+  min-width: 0;
+}
+.s6-top {
+  height: 72px;
+  display: flex;
+  align-items: flex-end;
 }
 .s6-n {
   display: flex;
@@ -62,24 +152,40 @@
   line-height: 1;
   white-space: nowrap;
 }
-.s6-big .s6-n {
-  line-height: 1;
+/* Real: the path as three round marks joined by a wire, the way every message travels. */
+.s6-badge {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--p-fill);
+  display: grid;
+  place-items: center;
+}
+.s6-path .s6-cell:not(:last-child) .s6-top::after {
+  content: "";
+  flex: 1;
+  align-self: center;
+  height: 2px;
+  margin: 0 -12px 0 16px;
+  background: var(--p-wire);
 }
 .s6-line {
-  margin: 14px 0 0;
-  max-width: 640px;
+  margin: 12px 0 0;
 }
-.s6-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: var(--p-gutter);
-  margin-top: 56px;
+.s6-word,
+.s6-l {
+  display: block;
+  white-space: nowrap;
 }
-.s6-pair .s6-line {
-  min-height: 80px; /* two lines of 30px, so both cells end on the same line */
+.s6-word {
+  color: var(--p-ink);
+  font-weight: 600;
 }
 .s6-foot {
-  margin: 40px 0 0;
+  margin: 0;
+  padding-top: 24px;
+  align-self: end;
 }
 
 /* Count up: a hidden copy of the end text (drawn from an attribute, so it is not page text) holds the width. */
@@ -101,7 +207,7 @@
   content: attr(data-w);
 }
 
-/* Each measured number arrives as it starts counting: opacity and a short rise, once. */
+/* Each bottom cell arrives once: opacity and a short rise. */
 .s6-rise {
   animation: s6-in 0.6s var(--p-ease) both;
 }

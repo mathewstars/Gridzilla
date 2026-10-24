@@ -31,7 +31,9 @@ const slides = await page.evaluate(() => window.__pitch.slides);
 
 const pngs = [];
 for (const [k, s] of slides.entries()) {
-  const n = k + 1;
+  // Slide k is ?slide=k (0 = the trailer, a film: it has no page in the PDF).
+  if (s.id === "trailer") continue;
+  const n = k;
   const step = Math.max(0, s.steps - 1);
   label = `slide ${n}`;
   await page.goto(url(n, step), { waitUntil: "domcontentloaded" });

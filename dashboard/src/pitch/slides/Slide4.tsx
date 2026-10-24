@@ -4,8 +4,8 @@
 // Gridzilla the evening heads past the limit; the orange slice is the peak Gridzilla eats and stays on screen; green
 // is the car charging the plan moves into the night; the plan draws over it in ink.
 // Line draw-in adapted from 21st.dev "Line graph" by @motiondotdev (id 24687): pathLength draw-in, hover dropped.
-import { useEffect, useId, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { animate, motion, useReducedMotion } from "motion/react";
 import { useFlatten } from "../../api";
 import type { FlattenPlan } from "../../api";
 import { P } from "../../stage/palette";
@@ -243,7 +243,8 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
         {/* The limit, red, with its name at the right end. */}
         <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(0.2, 0.6)}>
           <line x1={X0} x2={X1} y1={limitY} y2={limitY} stroke={P.red} strokeWidth={2} />
-          <text className="s4-label" x={X1} y={limitY - 16} textAnchor="end">
+          {/* "Limit" at whichever end of the line the peak's label leaves free. */}
+          <text className="s4-label" x={g.peakX > (X0 + X1) / 2 ? X0 : X1} y={limitY - 16} textAnchor={g.peakX > (X0 + X1) / 2 ? "start" : "end"}>
             Limit
           </text>
         </motion.g>
@@ -292,7 +293,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           <text className="s4-label" x={g.peakLabelX} y={g.y(g.peak.naive) - 66}>
             Without Gridzilla
           </text>
-          <text className="s4-note" x={g.peakLabelX} y={g.y(g.peak.naive) - 26}>
+          <text className="s4-note" data-src="axis" x={g.peakLabelX} y={g.y(g.peak.naive) - 26}>
             {g.peakNote}
           </text>
         </motion.g>
@@ -304,7 +305,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
         {g.showSeven && (
           <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(7.4, 0.6)}>
             <circle cx={g.sevenX} cy={g.sevenY} r={11} fill={P.green} stroke="var(--p-bg)" strokeWidth={4} />
-            <text className="s4-note" x={g.fullRight} y={g.fullY} textAnchor="end">
+            <text className="s4-note" data-src="axis" x={g.fullRight} y={g.fullY} textAnchor="end">
               07:00, every car full
             </text>
           </motion.g>
@@ -315,34 +316,14 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
 
       <div className="s4-nums">
         <motion.div initial={init({ opacity: 0, y: 24 })} animate={{ opacity: 1, y: 0 }} transition={T(tPeak, 0.7)}>
-          <div
-            className="p-display p-num"
-            style={{ color: P.red }}
-            data-src={snap.live ? `${src}/peak_naive_pct` : "illustration"}
-            data-val={snap.peakNaive}
-          >
-            {snap.peakNaive}
-            <span className="p-unit">%</span>
-          </div>
-          <p className="p-small p-secondary s4-num-label">without Gridzilla</p>
-        </motion.div>
-        <motion.div initial={init({ opacity: 0, y: 24 })} animate={{ opacity: 1, y: 0 }} transition={T(6.6, 0.7)}>
-          <div
-            className="p-display p-num p-ink"
-            data-src={snap.live ? `${src}/peak_plan_pct` : "illustration"}
-            data-val={snap.peakPlan}
-          >
-            {snap.peakPlan}
-            <span className="p-unit">%</span>
-          </div>
-          <p className="p-small p-secondary s4-num-label">with Gridzilla, tonight's plan</p>
+          <Morph from={snap.peakNaive} to={snap.peakPlan} live={snap.live} still={still} start={4.8} src={src} />
         </motion.div>
       </div>
 
       <motion.p className="p-small p-tertiary s4-foot" initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(0.4, 0.6)}>
         {snap.live && snap.houses != null ? (
           <>
-            The next 24 hours for Vienna:{" "}
+            <span data-src="deck" data-label="the plan's horizon">The next 24 hours for Vienna:</span>{" "}
             <span className="p-num" data-src={`${src}/houses`} data-val={snap.houses}>
               {snap.houses.toLocaleString("en-US")}
             </span>{" "}
@@ -352,6 +333,52 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           <>Illustration: the live plan is not reachable right now. The shapes are drawn by hand.</>
         )}
       </motion.p>
+    </>
+  );
+}
+
+/** The moment of the slide: the peak without Gridzilla, red, counts down to the plan's peak and turns green as the
+ *  Gridzilla line bends under the limit (it starts drawing at `start` s). The way down stays as a small line. */
+function Morph({ from, to, live, still, start, src }: { from: number; to: number; live: boolean; still: boolean; start: number; src: string }) {
+  const num = useRef<HTMLSpanElement>(null);
+  const [withG, setWithG] = useState(still);
+  useEffect(() => {
+    const show = (v: number) => {
+      if (num.current) num.current.textContent = String(Math.round(v));
+    };
+    if (still) {
+      show(to);
+      setWithG(true);
+      return;
+    }
+    show(from);
+    setWithG(false);
+    const t = window.setTimeout(() => setWithG(true), start * 1000);
+    const a = animate(from, to, { delay: start, duration: 1.6, ease: EASE, onUpdate: show });
+    return () => {
+      window.clearTimeout(t);
+      a.stop();
+    };
+  }, [from, to, still, start]);
+  return (
+    <>
+      <div
+        className={`p-display p-num s4-morph${withG ? " is-with" : ""}`}
+        data-src={live ? `${src}/${withG ? "peak_plan_pct" : "peak_naive_pct"}` : "illustration"}
+        data-val={withG ? to : from}
+        aria-label={`${withG ? to : from} %`}
+      >
+        <span ref={num}>{withG ? to : from}</span>
+        <span className="p-unit">%</span>
+      </div>
+      <p className="p-small p-secondary s4-num-label">{withG ? "with Gridzilla, tonight's plan" : "without Gridzilla"}</p>
+      <p className={`p-small p-secondary s4-num-from${withG ? " is-on" : ""}`}>
+        down from{" "}
+        <span className="p-num" data-src={live ? `${src}/peak_naive_pct` : "illustration"} data-val={from}>
+          {from}
+        </span>{" "}
+        % without it
+      </p>
     </>
   );
 }

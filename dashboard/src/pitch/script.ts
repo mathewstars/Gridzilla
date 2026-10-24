@@ -12,8 +12,17 @@ export const NOTES: Notes[] = [
   {
     who: "Matthew",
     time: "0:00, 30 s",
-    lines: ["Before you walk up: press F for full screen and 2 for the cold evening, so the peak is already building.", "Press Space: the jingle plays for 30 seconds. Say nothing.", "Then, flat: Now you probably wonder what the monster really is."],
-    keys: "Space starts the jingle. Next press goes to the problem.",
+    lines: [
+      "Before you walk up: press F for full screen and 2 for the cold evening, so the peak is already building.",
+      "Press Space: the trailer plays with its sound for 30 seconds. Say nothing.",
+      "At its last frame the deck cuts to the title by itself.",
+    ],
+    keys: "Space plays the trailer. A press while it plays skips to the title.",
+  },
+  {
+    who: "Matthew",
+    time: "0:30, 2 s",
+    lines: ["Right after the cut, flat: Now you probably wonder what the monster really is."],
   },
   {
     who: "Matthew",
@@ -34,9 +43,10 @@ export const NOTES: Notes[] = [
       "Every box under it reads the same line. The Victron, the GoodWe, the Viessmann, the car charger. Each one sorts it out by itself. Battery first, car second, hot water third.",
       "(Right) Same message at noon: \"give at most two.\" The sun goes into the batteries instead of the feeder.",
       "The operator only ever sends a limit. Never a command. The house decides. The owner can always say no.",
-      "An AI writes the message every fifteen minutes. Thirty lines of rules check it. The platform signs it.",
+      "(Right) Every fifteen minutes the AI reads the whole city. Seventy-two transformers, the weather, the plan, every house's reply.",
+      "It writes the message. Thirty lines of rules check it. The platform signs it. The houses reply, signed.",
     ],
-    keys: "Right shows the same message at noon. Next press goes to the peaks.",
+    keys: "Right: the same message at noon. Right: the loop. Next press goes to the peaks.",
   },
   {
     who: "Peter",

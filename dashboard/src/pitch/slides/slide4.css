@@ -30,7 +30,7 @@
 .s4-nums {
   position: absolute;
   left: 1380px;
-  top: 380px;
+  top: 470px;
   width: 420px;
   display: flex;
   flex-direction: column;
@@ -51,4 +51,21 @@
   left: 1380px;
   top: 300px;
   margin: 0;
+}
+
+/* The one number: red over the limit, green once the plan holds it under. */
+.s4-morph {
+  color: var(--p-red);
+  transition: color 1.2s var(--p-ease);
+}
+.s4-morph.is-with {
+  color: var(--p-green-text);
+}
+.s4-num-from {
+  margin: 8px 0 0;
+  opacity: 0;
+  transition: opacity 0.6s var(--p-ease) 1s;
+}
+.s4-num-from.is-on {
+  opacity: 1;
 }

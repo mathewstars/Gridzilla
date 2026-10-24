@@ -23,6 +23,7 @@
   --p-orange: #ff9500; /* peak building */
   --p-red: #ff3b30; /* over the limit, either direction */
   --p-blue: #0071e3; /* interactive only (the overview grid) */
+  --p-green-text: #248a3d; /* green as text: Apple's accessible green on white (4.6:1); the system green in dark */
 
   --p-ease: cubic-bezier(0.25, 0.1, 0.3, 1); /* things settling in (apple.com) */
   --p-ease-state: cubic-bezier(0.4, 0, 0.6, 1); /* state changes (apple.com) */
@@ -49,6 +50,7 @@
   --p-fill: #2a2a2e;
   --p-fill-press: #3a3a3e;
   --p-wire: rgb(245 245 247 / 0.3);
+  --p-green-text: #34c759;
   --p-shadow: 0 0 0 1px #2a2a2e;
   --p-shadow-lift: 0 0 0 1px #3a3a3e;
 }

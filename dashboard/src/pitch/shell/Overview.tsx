@@ -53,7 +53,7 @@ export default function Overview({ sel, cur, winW, winH, onPick, onHover }: Prop
             <div className="p-thumb" style={{ width: tw, height: th }}>
               {d.fullBleed ? (
                 <div className="p-thumb-live" style={{ fontSize: Math.max(18, Math.round(tw * 0.075)) }}>
-                  Live demo
+                  {d.id === "trailer" ? "Trailer" : "Live demo"}
                 </div>
               ) : (
                 <div className="p-thumb-canvas" style={{ transform: `scale(${s})` }} aria-hidden>
