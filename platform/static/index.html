@@ -136,7 +136,7 @@
 <body>
 <header>
   <h1>GRIDZILLA</h1>
-  <span class="sub">DSO control · Liesing feeder 3</span>
+  <span class="sub" id="subtitle">DSO control · Vienna</span>
   <span class="pill" id="seqpill">seq –</span>
   <span class="pill ok" id="hbpill">heartbeat on</span>
   <span class="pill" id="llmpill">advisor off</span>
@@ -738,6 +738,9 @@ async function refresh() {
   }
   tick++;
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
+  const focus = document.querySelector("main").dataset.view === "story" ? storyNode() : selNode;
+  const chain = pathOf(focus).filter(n => !n.startsWith("region")).map(n => n.split(":")[1]).join(" › ");
+  document.getElementById("subtitle").textContent = `DSO control · Vienna · ${chain}`;
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
   document.getElementById("llmpill").textContent = S.autopilot ? `DeepSeek · ${S.autopilot.mode === "auto" ? "autonomous" : S.autopilot.mode === "propose" ? "operator approves" : "off"}` : (S.llm ? "advisor: DeepSeek" : "advisor off");
