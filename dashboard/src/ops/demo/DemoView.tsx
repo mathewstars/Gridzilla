@@ -2,7 +2,7 @@
 // live curve and ring, one sentence of state), the AI's steps and the signals running, the newest three events, and the
 // whole city as a strip of coloured dots. Auto-picks the most interesting transformer; Up/Down override it.
 // Exported as DemoView for the pitch deck (it runs its own data hook when no console data is passed in).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { post, type FlattenPlan, type State } from "../../api";
 import { hhmm, nice } from "../../model";
 import LiveCurve from "../../stage/kit/LiveCurve";
@@ -74,8 +74,17 @@ function Demo({ ops }: { ops: Ops }) {
   );
 }
 
-/** One sentence of state: what is coming and what Gridzilla does about it. */
-function sentence(s: State, tf: string, plan: FlattenPlan | null): string {
+/** A number in running text, tagged for the data-truth gate (qa/README.md). */
+function N({ src, from, val, children }: { src: string; from?: string; val?: number; children: ReactNode }) {
+  return (
+    <span data-src={src} data-from={from} data-val={val == null ? undefined : String(val)}>
+      {children}
+    </span>
+  );
+}
+
+/** One sentence of state: what is coming and what Gridzilla does about it. Every number in it is tagged. */
+function sentence(s: State, tf: string, plan: FlattenPlan | null): ReactNode {
   const name = nice(tf);
   const peak = s.forecast_peak?.[tf];
   const sig = cellOf(s, tf, null).signal;
@@ -92,16 +101,38 @@ function sentence(s: State, tf: string, plan: FlattenPlan | null): string {
     const lim = plan.rating_kw || 1;
     let i = peakIn(near);
     if (Math.abs(plan.naive_kw[i]) / lim < 0.85) i = peakIn(slots);
-    const naivePct = Math.round((100 * Math.abs(plan.naive_kw[i])) / lim);
-    const planPct = Math.round((100 * Math.abs(plan.planned_kw[i])) / lim);
-    const moved = Math.round(Math.abs(plan.naive_kw[i]) - Math.abs(plan.planned_kw[i]));
+    const naive = Math.abs(plan.naive_kw[i]);
+    const planned = Math.abs(plan.planned_kw[i]);
+    const naivePct = Math.round((100 * naive) / lim);
+    const planPct = Math.round((100 * planned) / lim);
+    const moved = Math.round(naive - planned);
     const hour = plan.hours[i] ?? plan.start_h;
     const tomorrow = (s.sim_hour % 24) + i * 0.25 >= 24;
-    const when = `${tomorrow ? "tomorrow at " : "at "}${hhmm(hour)}`;
-    if (naivePct >= 85 && moved > 0) return `Peak coming ${when}: ${naivePct} % of the limit. Gridzilla is moving ${moved} kW to keep ${name} at ${planPct} %.`;
+    const P = `flatten:${tf}/plan`;
+    if (naivePct >= 85 && moved > 0)
+      return (
+        <>
+          Peak coming {tomorrow ? "tomorrow at " : "at "}
+          <N src="axis">{hhmm(hour)}</N>: <N src="derived" from={`${P}/naive_kw/${i} / ${P}/rating_kw * 100`} val={(100 * plan.naive_kw[i]) / lim}>{naivePct} %</N> of the limit.
+          Gridzilla is moving <N src="derived" from={`${P}/naive_kw/${i} - ${P}/planned_kw/${i}`} val={plan.naive_kw[i] - plan.planned_kw[i]}>{moved} kW</N> to keep {name} at{" "}
+          <N src="derived" from={`${P}/planned_kw/${i} / ${P}/rating_kw * 100`} val={(100 * plan.planned_kw[i]) / lim}>{planPct} %</N>.
+        </>
+      );
   }
-  if (sig) return `Gridzilla is holding ${name} inside its limit until ${hhmm(s.sim_hour + (Date.parse(sig.valid_to) - Date.parse(s.now)) / 3_600_000 * (s.autopilot?.sim_x ?? 60))}.`;
-  if (peak && Math.abs(peak.pct) >= 85) return `${name} is heading to ${Math.abs(peak.pct)} % at ${hhmm(peak.h)}. Gridzilla is watching.`;
+  if (sig)
+    return (
+      <>
+        Gridzilla is holding {name} inside its limit until{" "}
+        <N src="axis">{hhmm(s.sim_hour + ((Date.parse(sig.valid_to) - Date.parse(s.now)) / 3_600_000) * (s.autopilot?.sim_x ?? 60))}</N>.
+      </>
+    );
+  if (peak && Math.abs(peak.pct) >= 85)
+    return (
+      <>
+        {name} is heading to <N src={`state/forecast_peak/${tf}/pct`} val={peak.pct}>{Math.abs(peak.pct)} %</N> at <N src="axis">{hhmm(peak.h)}</N>. Gridzilla is
+        watching.
+      </>
+    );
   return `${name} is inside its limit. The houses run on their own.`;
 }
 
@@ -116,7 +147,10 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
       <header className="demo-hero-head">
         <div>
           <h1 className="demo-name">{nice(tf)}</h1>
-          <p className="demo-where">{nice(feeder)} street transformer · limit {c.limit == null ? "–" : `${Math.round(c.limit)} kW`}</p>
+          <p className="demo-where">
+            {nice(feeder)} street transformer · limit{" "}
+            {c.limit == null ? "–" : <N src={`state/aggregates/${tf}/rating_kw`} val={c.limit}>{Math.round(c.limit)} kW</N>}
+          </p>
         </div>
         <p className="demo-sentence">{sentence(s, tf, plan)}</p>
       </header>
@@ -125,10 +159,10 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           {ready ? (
             <LiveCurve key={tf} stage s={s} history={ops.history} node={tf} header={false} plan={plan} signal={c.signal} ground="var(--color-card)" height="100%" span={{ past: 6, future: 12, narrow: { past: 3, future: 6 } }} legend="above" minPlot="12rem" planSrc={`flatten:${tf}`} />
           ) : (
-            <p className="demo-wait">Loading the last 6 hours of {nice(tf)}</p>
+            <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
           )}
         </div>
-        <div className="demo-ring" style={{ color: loadTone(c.pct) }}>
+        <div className="demo-ring" style={{ color: loadTone(c.pct) }} data-src={`state/aggregates/${tf}/load_pct`} data-val={c.pct == null ? undefined : String(c.pct)}>
           <LoadRing pct={c.pct} size={400} />
         </div>
       </div>

@@ -65,17 +65,28 @@ export function ActiveList({ ops }: { ops: Ops }) {
               <span className="cp-strong">{MODE_LABEL[sig.mode] ?? sig.mode}</span>
               <span className="cp-code">{sig.mode}</span>
               <span className="cp-sub cp-wrap">on {segName(n)}</span>
-              {sig.cohort && <span className="cp-sub">wave {sig.cohort[0] + 1} of {sig.cohort[1]}</span>}
+              {sig.cohort && (
+                <span className="cp-sub">
+                  wave <span data-src="derived" data-from={`state/active/${n}/cohort/0 + 1`} data-val={sig.cohort[0] + 1}>{sig.cohort[0] + 1}</span> of{" "}
+                  <span data-src={`state/active/${n}/cohort/1`} data-val={sig.cohort[1]}>{sig.cohort[1]}</span>
+                </span>
+              )}
               <span className="cp-grow" />
-              <span className="cp-mono cp-count" title={`${sig.valid_from.slice(11, 16)}–${sig.valid_to.slice(11, 16)} UTC`}>
+              <span className="cp-mono cp-count" data-src="axis" title={`${sig.valid_from.slice(11, 16)}–${sig.valid_to.slice(11, 16)} UTC`}>
                 {pending ? `starts in ${clock(a - now)}` : `${clock(b - now)} left`}
               </span>
             </div>
             <div className="cp-bar" aria-hidden><i style={{ width: `${frac * 100}%` }} /></div>
             <div className="cp-sig-bot">
               <span className="cp-sub cp-wrap">
-                signed #{sig.seq} · {fieldLine(signalFields(sig)) || MODE_LABEL[sig.mode]}
-                {env ? ` · ${env.length} time slots` : ""}
+                signed #<span data-src={`state/active/${n}/seq`} data-val={sig.seq}>{sig.seq}</span> ·{" "}
+                <FieldsLine n={n} sig={sig} />
+                {env && (
+                  <>
+                    {" · "}
+                    <span data-src="derived" data-from={`count(state/active/${n}/envelope/${sig.envelope?.import_max_kw ? "import_max_kw" : "export_max_kw"}/*)`} data-val={env.length}>{env.length}</span> time slots
+                  </>
+                )}
               </span>
               {env && <Spark curve={env} w={64} h={18} />}
               <Btn small busy={act.busy === n} disabled={!!act.busy} onClick={() => release(n, sig)} title={`Sign RELEASE for ${n}`}>Release</Btn>
@@ -86,6 +97,14 @@ export function ActiveList({ ops }: { ops: Ops }) {
       <Result out={act.out} />
     </div>
   );
+}
+
+/** The signal's fields in words, tagged with the first field it states (data-truth gate). */
+function FieldsLine({ n, sig }: { n: string; sig: Signal }) {
+  const f = signalFields(sig);
+  const first = Object.entries(f).find(([, v]) => v != null);
+  const text = fieldLine(f) || MODE_LABEL[sig.mode];
+  return first ? <span data-src={`state/active/${n}/${first[0]}`} data-val={String(first[1])}>{text}</span> : <span>{text}</span>;
 }
 
 export function Composer({ ops }: { ops: Ops }) {
