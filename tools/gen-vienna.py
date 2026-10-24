@@ -39,7 +39,7 @@ SUBS = {   # 110/22 kV substations with Wiener Netze names -> 22 kV feeders -> s
                                                                 "feeder:waehring-2": ["waehring", "gersthof", "poetzleinsdorf"],
                                                                 "feeder:brigittenau-3": ["brigittenau", "zwischenbruecken", "nordbahnhof"]}},
 }
-REPRESENTS = 10
+REPRESENTS = 4
 tree = {"region:at": {"parent": None}}
 devices, houses = [], []
 tf_index = 0
@@ -52,8 +52,10 @@ for sub, sd in SUBS.items():
             tf = f"tf:{name}-{tf_index}"
             rating = random.choice([250, 400, 400, 630])
             n = random.choice([3, 4, 4, 5]) if rating >= 400 else 3
-            # ~3.3 kW evening peak per house incl. some EVs: size the street so the transformer sits at ~75-95 % at the peak without signals
-            other = max(10, int(rating / 3.3 * random.uniform(0.75, 0.95)) - n * REPRESENTS)
+            # size the street so the transformer sits at ~80-95 % at the evening peak without signals:
+            # a program house peaks ~6 kW (house + part-time EV + heat), a house outside the program ~3.3 kW (ADMD incl. a few EVs)
+            target = rating * random.uniform(0.80, 0.95)
+            other = max(15, int((target - n * REPRESENTS * 6.0) / 3.3))
             tree[tf] = {"parent": feeder, "rating_kw": rating, "reverse_kw": rating, "other_houses": other}
             for k in range(n):
                 hid = f"sim-{name}-{random.randint(10, 99)}"

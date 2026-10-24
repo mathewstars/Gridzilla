@@ -90,7 +90,9 @@ function profiles(h) {
   const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
   const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
   const plugged = ev.kw && hour >= (ev.plugged?.[0] ?? 17) && hour < (ev.plugged?.[1] ?? 23);
-  return { load, pv, evMax: plugged ? ev.kw : 0 };
+  if (plugged && h.evDay !== Math.floor(h.simMinutes / 1440)) { h.evDay = Math.floor(h.simMinutes / 1440); h.evNeedKwh = 6 + Math.random() * 20; }   // a commute: 6-26 kWh per day
+  const wants = plugged && (h.evNeedKwh || 0) > 0;
+  return { load, pv, evMax: wants ? ev.kw : 0 };
 }
 
 // Envelope curve: per-slot ceilings that replace the flat import/export caps while the signal runs.
@@ -147,6 +149,7 @@ function step(h) {
   h.hp_kw = hp;
   const load = houseLoad + ev + hp;
   h.ev_kw = ev;
+  if (ev > 0) h.evNeedKwh = Math.max(0, (h.evNeedKwh || 0) - ev * dtH);      // the car fills up and stops
   const islanded = e.mode === "STRETCH";
   let chargeMax = Math.min(cfg.kw, o.max_charge_kw, e.charge_max_kw ?? Infinity);
   let dischargeMax = Math.min(cfg.kw, o.max_discharge_kw, e.discharge_max_kw ?? Infinity);

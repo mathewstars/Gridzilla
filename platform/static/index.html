@@ -63,7 +63,7 @@
   .modes button { margin:0; padding:5px 10px; font-size:12px; }
   .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
   .err { color:var(--crit); font-size:12px; margin-top:6px; min-height:16px; }
-  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:8px 10px; margin-top:8px; font-size:12px; display:none; }
+  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:8px 10px; margin-top:8px; font-size:12px; display:none; max-height:220px; overflow:auto; }
 
   table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
   th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
@@ -343,7 +343,9 @@ function drawAutopilot() {
   const ctx = document.getElementById("apctx"); if (document.activeElement !== ctx) ctx.value = ap.context || "";
   document.getElementById("aphint").textContent = `every ${ap.interval_s} s · looks ${ap.horizon_min} grid min ahead · ${ap.cooldown_min} min cooldown · max ${ap.max_per_day}/grid day`;
   const p = ap.pending, r = ap.last_result;
-  let h = ap.last_trigger ? `<span style="color:var(--muted)">last trigger:</span> ${esc(ap.last_trigger)}` : `<span style="color:var(--muted)">Watching the forecast. Nothing to do yet.</span>`;
+  const trig = ap.last_trigger || "";
+  const short = trig.length > 260 ? trig.slice(0, 260).replace(/[^;]*$/, "") + ` … <a href="#" onclick="this.parentElement.querySelector('.full').style.display='block';this.style.display='none';return false" style="color:var(--s1)">${(trig.match(/tf:/g) || []).length} transformers, show all</a><span class="full" style="display:none">${esc(trig)}</span>` : esc(trig);
+  let h = trig ? `<span style="color:var(--muted)">last trigger:</span> ${short}` : `<span style="color:var(--muted)">Watching the forecast. Nothing to do yet.</span>`;
   if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> · ${esc(p.duration_min)} min<br>${esc(p.rationale)}` +
     `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
   else if (r && r.error) h += `<br><span style="color:var(--crit)">DeepSeek error: ${esc(r.error)}</span>`;
