@@ -63,14 +63,14 @@ def _bisect(f, lo, hi, target, rising=True, it=40):
     return hi
 
 
-def plan_tf(tf, info, h0, other_kw, houses, ev_houses, pv_x, batt_kwh_usable, batt_kwh_free, pv_kwp=PV_KWP_AVG):
+def plan_tf(tf, info, h0, other_kw, houses, ev_houses, pv_x, batt_kwh_usable, batt_kwh_free, pv_kwp=PV_KWP_AVG, bias_kw=0.0):
     """other_kw(h) -> kW of the houses outside the program at grid hour h. Returns the plan dict for one transformer."""
     rating = info["rating_kw"]; rev = info.get("reverse_kw", rating)
     hours = [h0 + k * DT for k in range(SLOTS)]
     other = [other_kw(h) for h in hours]
     base = [houses * program_base_kw(h) for h in hours]
     pv = [houses * pv_kwp * 0.7 * sun(h) * pv_x for h in hours]
-    unc = [o + b - p for o, b, p in zip(other, base, pv)]                      # nobody controls this part
+    unc = [o + b - p + bias_kw for o, b, p in zip(other, base, pv)]            # nobody controls this part; bias = what the last plan missed
     ev_mask = [in_window(h, EV_PLUG_H, EV_UNPLUG_H) for h in hours]
     e_ev = ev_houses * EV_KWH_DAY
     cap = MARGIN * rating
@@ -110,7 +110,7 @@ def plan_tf(tf, info, h0, other_kw, houses, ev_houses, pv_x, batt_kwh_usable, ba
     imp = [round(max(BASE_FLOOR_KW, (level - o) / houses), 1) for o in other]
     exp = [round(max(0.0, min(15.0, (le + o) / houses)), 1) for o in other]
     peak_naive = max(naive); peak_plan = max(planned)
-    return {"tf": tf, "rating_kw": rating, "houses": houses, "ev_houses": ev_houses, "start_h": round(h0 % 24, 2),
+    return {"tf": tf, "rating_kw": rating, "houses": houses, "ev_houses": ev_houses, "start_h": round(h0 % 24, 2), "bias_kw": round(bias_kw, 1),
             "level_kw": round(level, 1), "export_level_kw": round(le, 1),
             "ev_kwh": round(e_ev, 1), "batt_kwh_usable": round(batt_kwh_usable, 1), "batt_kwh_free": round(batt_kwh_free, 1),
             "shaved_kwh": round(min(shaved, batt_kwh_usable), 1), "shifted_kwh": round(min(e_ev, fill_room), 1),

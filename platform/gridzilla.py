@@ -445,13 +445,16 @@ def program_houses(tf):
     return sum(d.get("represents", 1) for d in devices_under(tf) if d["id"] in state["telemetry"] and d.get("kwh", 0) > 0)
 
 
-def forecast(node, hours=3.0, step_min=ENV_SLOT_SIM_MIN):
-    """Transformer load ahead, assuming program houses keep their current net power."""
+def forecast(node, hours=3.0, step_min=ENV_SLOT_SIM_MIN, counterfactual=False):
+    """Transformer load ahead, assuming program houses keep their current net power. With counterfactual=True the
+    program houses are taken at what they would draw with no signal at all (owner mode), which is the honest test for
+    "is the event over": the measured load is low *because* the signal holds it."""
     h0, out = sim_hour(), []
     for k in range(int(hours * 60 / step_min) + 1):
         h = h0 + k * step_min / 60
         other = sum(TREE[t].get("other_houses", 0) * other_profile_kw(h) for t in tfs_under(node))
-        prog = (NODE_HIST[node][-1]["program_kw"] if NODE_HIST[node] else 0.0)
+        last = NODE_HIST[node][-1] if NODE_HIST[node] else None
+        prog = 0.0 if not last else ((last["baseline_kw"] - last["other_kw"]) if counterfactual and last.get("baseline_kw") is not None else last["program_kw"])
         out.append({"h": round(h % 24, 2), "other_kw": round(other, 1), "total_kw": round(other + prog, 1)})
     return out
 
@@ -489,7 +492,23 @@ def compute_envelope(node, mode, duration_sim_min, start_in_sim_min=0.0):
 
 # ---------------------------------------------------------------- flattening: the monster's diet (flatten.py)
 SHAPE_EVERY_S = int(os.environ.get("GZ_SHAPE_EVERY_S", "120"))      # re-plan every 2 grid hours
-SHAPE = {"plans": {}, "at": None, "seq": {}, "rounds": 0, "enabled": os.environ.get("GZ_SHAPE", "1") != "0"}
+SHAPE = {"plans": {}, "at": None, "seq": {}, "rounds": 0, "enabled": os.environ.get("GZ_SHAPE", "1") != "0", "bias": {}}
+
+
+def shape_feedback():
+    """Closed loop: how far the measured load sits above (or below) the last plan at this moment, per transformer,
+    smoothed and clamped, becomes extra uncontrolled load in the next plan. Thermal loads and cars the model did not
+    count show up here instead of in an overshoot."""
+    h = sim_hour()
+    for tf, p in SHAPE["plans"].items():
+        if not NODE_HIST[tf]:
+            continue
+        k = int(((h - p["start_h"]) % 24) * 4)
+        if not 0 <= k < len(p["planned_kw"]):
+            continue
+        err = NODE_HIST[tf][-1]["total_kw"] - p["planned_kw"][k]
+        lim = 0.25 * TREE[tf]["rating_kw"]
+        SHAPE["bias"][tf] = max(-lim, min(lim, 0.5 * SHAPE["bias"].get(tf, 0.0) + 0.5 * err))
 
 
 def fleet_under(tf):
@@ -517,7 +536,7 @@ def flatten_plan(node=None):
         if not houses:
             continue
         other = (lambda t: (lambda h: TREE[t].get("other_houses", 0) * other_profile_kw(h)))(tf)
-        plans[tf] = flatten.plan_tf(tf, TREE[tf], h0, other, houses, ev, pv_x, usable, free)
+        plans[tf] = flatten.plan_tf(tf, TREE[tf], h0, other, houses, ev, pv_x, usable, free, bias_kw=SHAPE["bias"].get(tf, 0.0))
     if node is None:
         return plans
     if node.startswith("tf:"):
@@ -529,6 +548,7 @@ def flatten_plan(node=None):
 
 def shape_round():
     """One SHAPE per feeder, carrying every transformer's curves (by_tf); the segment-wide curve is the tightest one."""
+    shape_feedback()
     plans = flatten_plan()
     if not plans:
         return
@@ -803,8 +823,8 @@ def autopilot_trigger():
         if not mine or grid_age_min(mine["at"]) < AP_COOLDOWN_MIN:
             continue
         if sig["mode"] in ("ABSORB", "SUPPORT") and all(
-                max(abs(p["total_kw"]) for p in forecast(tf)[:steps]) < AP_RELEASE_PCT / 100 * TREE[tf]["rating_kw"]
-                for tf in tfs_under(node)):
+                max(abs(p["total_kw"]) for p in forecast(tf, counterfactual=True)[:steps]) < AP_RELEASE_PCT / 100 * TREE[tf]["rating_kw"]
+                for tf in tfs_under(node)):      # judged on what the houses would draw without the signal, so a cap that is holding the peak is not released into it
             return (f"{sig['mode']} seq {sig['seq']} on {node} is active but every transformer under it is forecast below "
                     f"{AP_RELEASE_PCT} % for the next {AP_HORIZON_MIN} grid minutes. Release it if the event is over.",
                     {"node": node, "choices": [node], "release": True})

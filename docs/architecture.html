@@ -338,17 +338,41 @@ li { margin-bottom: 6px; }
 <thead><tr><th>Field</th><th>Meaning</th><th>Security role</th></tr></thead>
 <tbody>
 <tr><td><code>segment_id</code></td><td>Node in the grid tree the signal applies to: street transformer, 22 kV feeder, 110/22 kV substation, or region</td><td>Device accepts only signals for a node it sits under; a signal for one feeder cannot reach the next</td></tr>
-<tr><td><code>mode</code></td><td>ABSORB, SUPPORT or RELEASE</td><td>Closed set, no free-form commands</td></tr>
+<tr><td><code>mode</code></td><td>PREPARE, ABSORB, SUPPORT, STRETCH, RECOVER, RELEASE; and SHAPE, the standing plan (below)</td><td>Closed set, no free-form commands</td></tr>
 <tr><td><code>import_max_kw</code></td><td>Import cap at the grid connection point, the peak tool ("take 3 kW only")</td><td>A ceiling the meter can check, never a setpoint</td></tr>
 <tr><td><code>export_max_kw</code></td><td>Export cap, the PV surplus tool</td><td>A ceiling the meter can check</td></tr>
 <tr><td><code>export_min_kw</code></td><td>Forced feed-in, the only signal that spends the owner's energy for the street ("give at least 2 kW")</td><td>A floor the meter can check; bounded by owner SoC and feed-in limit; paid per kWh</td></tr>
-<tr><td><code>valid_from</code>, <code>valid_to</code></td><td>Window, bounded by platform policy (e.g. max 4 h)</td><td>Expired or future-dated signals are rejected</td></tr>
+<tr><td><code>valid_from</code>, <code>valid_to</code></td><td>Window, bounded by platform policy (max 24 h, renewable; STRETCH up to 3 days)</td><td>Expired or future-dated signals are rejected</td></tr>
 <tr><td><code>ramp_s</code></td><td>Ramp time, randomized per device within a range</td><td>No synchronized step on the grid</td></tr>
 <tr><td><code>seq</code>, <code>issued_at</code></td><td>Monotonic sequence and timestamp</td><td>Replay protection</td></tr>
 <tr><td><code>signature</code></td><td>Platform signature over all fields</td><td>Spoofed signals fail verification</td></tr>
 </tbody>
 </table>
 </div>
+
+<h2>2b. The diet plan: flattening every street, every day</h2>
+<p>Event signals handle what goes wrong. Most of the value is in what happens every evening: cars arriving, heat pumps starting, batteries full from the afternoon. Under the autopilot a deterministic planner flattens every transformer every day and sends the result as a <strong>SHAPE</strong> signal: two ceilings per house for every 15-minute slot of the next 24 hours, on its own channel, kept under any event signal (the tighter ceiling wins), renewed every two hours, no heartbeat needed.</p>
+<div class="grid2">
+  <div class="card">
+    <h3><span class="tag sig">1</span> Sense</h3>
+    <p>Forecast the load nobody controls: houses outside the program (weather-aware), the program houses' own base load, minus their PV.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag sig">2</span> Count the flexibility</h3>
+    <p>Car charging that must be done by morning (a car charges on about half the nights, 6 to 26 kWh), usable battery energy above the owner's reserve for the peak, free battery capacity for the noon surplus.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag sig">3</span> Water-fill</h3>
+    <p>Find the lowest level <em>L</em> such that the cars fit in the valley below it <em>and</em> the peak above it fits in the batteries. <em>L</em> is the flattest shape the street can physically have. Same for the export level <em>Le</em> at noon.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag sig">4</span> Send the ceilings</h3>
+    <p>Per slot and per house: import ≤ (<em>L</em> − uncontrolled) ÷ houses, export ≤ (<em>Le</em> + uncontrolled) ÷ houses. One curve per transformer inside one signed signal per feeder. Owner limits still win on the device.</p>
+  </div>
+</div>
+<p>What the house does with it: a car plugged in at 18:00 trickles through dinner and charges at full power after 22:00, the battery discharges exactly the slice above <em>L</em> and recharges from the noon surplus below <em>Le</em>, the heat pump keeps its setpoints. Nobody notices. The transformer sits at 65 to 75 % at the evening peak instead of over its rating.</p>
+<h3>What it is worth, honestly</h3>
+<p>On a simulated street with 32 program houses (18 with a car), the planner's own forecast is 109 % → 68 % of rating; the measured curves on the running fleet agree within a few percent. Those per-street numbers sit inside what published smart-charging and home-battery pilots report (3 to 6 kW per EV house, 1 to 2 kW per battery at the peak). The city-wide figure on the board is that street effect multiplied by enrolment; it assumes about 2,000 enrolled houses in Vienna and should be presented as such.</p>
 
 <h2>3. Resilience: the outage scenario</h2>
 <p>Congestion is the everyday case. The case that makes Gridzilla matter is the one from the flipchart: a transformer is destroyed, as in Ukraine, or a region runs short of generation and the DSO has to shed load. The platform prepares the street before the event and stretches the batteries through it.</p>
