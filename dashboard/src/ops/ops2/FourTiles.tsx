@@ -25,7 +25,7 @@ function Tile({ n, label, now, tone, value, children }: { n: number; label: stri
   return (
     <div className={`ft-tile${now ? " is-now" : ""}${tone ? ` is-${tone}` : ""}`} aria-current={now ? "step" : undefined}>
       <div className="ft-label">
-        <span className="ft-n" aria-hidden>{n}</span>
+        <span className="ft-n" aria-hidden data-src="axis">{n}</span>
         <span>{label}</span>
         {now && <span className="ft-live">running now</span>}
       </div>
@@ -168,7 +168,7 @@ export default function FourTiles({ ops }: { ops: Ops }) {
             </>
           }
         >
-          {why ? <p className="ft-why">{why}</p> : !d ? "The first review has not run yet" : null}
+          {why ? <p className="ft-why" data-src="state/autopilot">{why}</p> : !d ? "The first review has not run yet" : null}
         </Tile>
         <Tile n={3} label="Rule check" now={lit === 2} tone={v?.tone} value={<div className="ft-big ft-words">{v?.word ?? "Waiting"}</div>}>
           {reason}

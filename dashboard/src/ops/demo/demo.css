@@ -28,7 +28,16 @@
 .demo-curve > * { flex: 1 1 auto; }
 /* projector: curve labels at least 14 px */
 .demo-curve text, .demo-curve [class*="legend"] { font-size: max(14px, 0.875rem) !important; }
-.demo-ring { width: clamp(220px, 23vw, 400px); justify-self: center; } /* the % number is 20 % of the ring: >= 64 px from 1440 wide */
+.demo-ring { width: clamp(220px, 23vw, 400px); justify-self: center; }
+/* from 1240 the ring and the curve share the hero's height with the Tonight strip and the feed: the ring is sized by
+   the window height too, the curve may shrink to 10rem, the feed keeps its two newest lines below 1000 px tall */
+@media (min-width: 1240px) {
+  .demo-ring { width: min(clamp(200px, 23vw, 400px), 26vh); }
+  .demo-curve { min-height: 10rem; }
+}
+@media (min-width: 1240px) and (max-height: 1000px) {
+  .demo .fstrip-row:nth-child(n + 3) { display: none; }
+} /* the % number is 20 % of the ring: >= 64 px from 1440 wide */
 
 /* now */
 .demo-now { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; min-width: 0; }
@@ -41,7 +50,7 @@
 /* city dots */
 .demo-city { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 12px 16px; align-items: center; min-width: 0; }
 .demo-sub { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.demo-sub-name { font-size: max(12px, 0.75rem); color: var(--color-secondary); white-space: nowrap; }
+.demo-sub-name { font-size: max(14px, 0.75rem); color: var(--color-secondary); white-space: nowrap; }
 .demo-dots { display: flex; flex-wrap: wrap; gap: 4px; }
 .demo-dot { width: 12px; height: 12px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; transition: transform 0.12s var(--ease-apple); }
 .demo-dot:hover { transform: scale(1.35); }
@@ -59,15 +68,33 @@
 }
 
 .demo-sigs .cp-sig:nth-child(n + 3) { display: none; }
-.demo-more { margin: 0; font-size: max(13px, 0.8125rem); color: var(--color-secondary); }
+.demo-more { margin: 0; font-size: max(16px, 0.8125rem); color: var(--color-secondary); }
 
 /* short windows with the Tonight strip on top: everything gives a little so the demo stays one screen */
 @media (min-width: 1240px) and (max-height: 760px) {
   .demo .tn { padding: 8px 12px; gap: 4px 18px; }
-  .demo .tn-v { font-size: 1.125rem; }
+  .demo .tn-v { font-size: 24px; }
   .demo .tn-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 4px 12px; }
   .demo-curve { min-height: 7rem; }
   .demo-ring { width: clamp(120px, 11vw, 170px); }
   .demo .fstrip { padding: 8px 14px; gap: 4px; }
   .demo .fstrip-row:nth-child(n + 3) { display: none; }
+}
+
+/* 1240x635-class windows: the Tonight strip goes to one row per group, the feed strip steps aside (it is in Log and
+   Operations) so the hero keeps room for its title, legend and curve. */
+@media (min-width: 1240px) and (max-height: 760px) {
+  .demo .tn { grid-template-columns: minmax(0, 5fr) minmax(0, 2fr); }
+  .demo .tn-group:first-child .tn-row { grid-template-columns: repeat(4, auto); }
+  .demo .tn-group:last-child .tn-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demo .tn-l { font-size: 14px; }
+  .demo-left > .fstrip { display: none; }
+  .demo-hero { min-height: 15rem; padding-bottom: 8px; }
+  .demo .tn { grid-template-columns: minmax(min-content, 3fr) minmax(0, 1fr); padding: 8px 14px; }
+  .demo .tn-group:first-child, .demo .tn-group:first-child .tn-stat { min-width: min-content; }
+  .demo .tn-v { white-space: nowrap; }
+  .demo .tn-l { line-height: 1.2; }
+  .demo .tn-h { font-size: 15px; }
+  .demo-hero-head { gap: 4px 20px; }
+  .demo-where { margin-top: 2px; }
 }

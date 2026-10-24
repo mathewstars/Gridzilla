@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import {
   Broadcast,
+  ChartLineDown,
   CloudSun,
   GridFour,
   HouseLine,
@@ -29,6 +30,7 @@ const SECTIONS: { label: string; items: Item[] }[] = [
     items: [
       { r: "ops", label: "Operations", icon: Broadcast },
       { r: "city", label: "City", icon: GridFour },
+      { r: "plan", label: "Diet plan", icon: ChartLineDown },
       { r: "autopilot", label: "Autopilot", icon: Robot },
       { r: "manual", label: "Manual", icon: SlidersHorizontal },
     ],
@@ -45,7 +47,7 @@ const SECTIONS: { label: string; items: Item[] }[] = [
   {
     label: "Show",
     items: [
-      { r: "demo", label: "Demo", icon: ProjectorScreenChart },
+      { r: "demo", label: "Presentation", icon: ProjectorScreenChart },
     ],
   },
 ];
@@ -85,11 +87,11 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
   const current = SECTIONS.flatMap((x) => x.items).find((i) => i.r === route)?.label ?? "Operations";
 
   const extra = (r: Route) => {
-    if (r === "city" && over) return <span className="sb-badge is-orange" title={`${over} transformers over their limit`}>{over}</span>;
-    if (r === "autopilot" && pending) return <span className="sb-badge is-blue" title="A proposal is waiting for you">1</span>;
-    if (r === "manual" && active) return <span className="sb-badge" title={`${active} signals active`}>{active}</span>;
+    if (r === "city" && over) return <span className="sb-badge is-orange" title={`${over} transformers over their limit`} data-src="derived" data-from="count(state/aggregates/tf:*[abs(load_pct) >= 100])" data-val={over}>{over}</span>;
+    if (r === "autopilot" && pending) return <span className="sb-badge is-blue" title="A proposal is waiting for you" data-src="axis">1</span>;
+    if (r === "manual" && active) return <span className="sb-badge" title={`${active} signals active`} data-src="derived" data-from="count(state/active/*)" data-val={active}>{active}</span>;
     if (r === "plant") return <span className={`sb-dot${plantLive ? " is-green" : ""}`} title={plantLive ? "The plant is reporting" : "Waiting for the plant"} />;
-    if (r === "weather" && warnings) return <span className="sb-badge is-orange" title={`${warnings} weather warnings`}>{warnings}</span>;
+    if (r === "weather" && warnings) return <span className="sb-badge is-orange" title={`${warnings} weather warnings`} data-src="derived" data-from="count(weather/warnings/*)" data-val={warnings}>{warnings}</span>;
     return null;
   };
 
@@ -134,7 +136,7 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
       </LayoutGroup>
       <div className="sb-foot" title={ops.error ? "The platform stopped answering; the last data stays on screen" : "Live from the local platform"}>
         <span className={`sb-dot${ops.error ? "" : " is-green"}`} style={ops.error ? { background: "var(--sh-red)" } : undefined} />
-        <span className="sb-foot-txt">{ops.error ? "Platform not answering" : "Live · updates every 3 s"}</span>
+        <span className="sb-foot-txt">{ops.error ? "Platform not answering" : <>Live · updates every <span data-src="axis">3</span> s</>}</span>
       </div>
     </nav>
   );

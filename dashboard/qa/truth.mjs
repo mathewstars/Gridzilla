@@ -89,6 +89,8 @@ function audit() {
     const src = host.dataset.src;
     if (src === "axis") continue;
     if (src === "deck") { if (!host.dataset.label) F.untraced.push(`deck fact without data-label: ${t.trim().slice(0, 40)}`); continue; }
+    // a count the page keeps itself (e.g. today's signals from the feed): allowed, but it must say so
+    if (src === "page") { if (!host.dataset.label) F.untraced.push(`page count without data-label: ${t.trim().slice(0, 40)}`); continue; }
     if (src === "sample") { if (!sample) F.fixture.push(t.trim().slice(0, 40)); continue; }
     const val = parseFloat(host.dataset.val);
     const truth = src === "derived" ? evalFrom(host.dataset.from || "") : get(src);

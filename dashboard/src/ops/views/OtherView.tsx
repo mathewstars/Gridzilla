@@ -6,6 +6,8 @@ import { BLATNICA_DEVICE, useGridState, type Decision, type Household, type LogE
 import type { Ops } from "../useOps";
 import type { Route } from "../shell/Sidebar";
 import Table, { type Col } from "./Table";
+import HeatGrid from "../city/HeatGrid";
+import "../city/city.css";
 import { MODE_LABEL, clock, kw, minsLeft, nice, signalOver, wall } from "./fmt";
 import "../shell/shell.css";
 
@@ -126,16 +128,19 @@ function City({ ops }: { ops: Ops }) {
     { key: "kw", label: "Power now, kW", right: true, cell: (r) => kw(r.kw), sort: (r) => r.kw },
     { key: "rating", label: "Limit, kW", right: true, cell: (r) => <span className="mut">{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
     { key: "peak", label: "Peak ahead, % of limit", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}>{r.peak.pct} % <span className="dim">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
-    { key: "sig", label: "Active signal", className: "nw", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
+    { key: "sig", label: "Active signal", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
   ];
   return (
-    <div className="vw">
-      <Head title="City" desc="Every transformer in the city, live. Click a row to open it in Operations.">
+    <div className="vw" data-scroll="view">
+      <Head title="City" desc="Every transformer in the city, live. Click a tile to pick it, click a row to open it in Operations.">
         <Stat k="Transformers" v={rows.length} hint="Every street transformer in the simulated Vienna grid" />
         <Stat k="Over limit" v={over} hint="Transformers carrying more than their limit right now, in either direction" tone={over ? "var(--sh-red)" : "var(--sh-green)"} />
         <Stat k="Near limit" v={near} hint="Transformers at 85 % of their limit or more" tone={near ? "var(--sh-orange)" : "var(--sh-green)"} />
         <Stat k="Signals running" v={Object.keys(s.active).length} hint="Signals the grid operator has running right now; each ends on its own" />
       </Head>
+      <div className="vw-heat">
+        <HeatGrid s={s} city={ops.city} selected={ops.tf} onSelect={ops.select} />
+      </div>
       <Card>
         <Table rows={rows} cols={cols} rowKey={(r) => r.tf} onRow={(r) => open(ops, r.tf)} initial={{ key: "pct", dir: -1 }} />
       </Card>

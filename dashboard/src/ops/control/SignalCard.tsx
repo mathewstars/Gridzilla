@@ -64,7 +64,7 @@ export function ActiveList({ ops }: { ops: Ops }) {
             <div className="cp-sig-top">
               <span className="cp-strong">{MODE_LABEL[sig.mode] ?? sig.mode}</span>
               <span className="cp-code">{sig.mode}</span>
-              <span className="cp-sub cp-wrap">on {segName(n)}</span>
+              <span className="cp-sub cp-wrap" data-src={`state/active/${n}/segment`}>on {segName(n)}</span>
               {sig.cohort && (
                 <span className="cp-sub">
                   wave <span data-src="derived" data-from={`state/active/${n}/cohort/0 + 1`} data-val={sig.cohort[0] + 1}>{sig.cohort[0] + 1}</span> of{" "}

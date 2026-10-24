@@ -199,7 +199,11 @@ function NowCard({ ops }: { ops: Ops }) {
       <div className="demo-sigs">
         <ActiveList ops={ops} />
       </div>
-      {Object.keys(s.active).length > 2 && <p className="demo-more">and {Object.keys(s.active).length - 2} more running (all of them in Operations)</p>}
+      {Object.keys(s.active).length > 2 && (
+        <p className="demo-more">
+          and <N src="derived" from="count(state/active/*) - 2" val={Object.keys(s.active).length - 2}>{Object.keys(s.active).length - 2}</N> more running (all of them in Operations)
+        </p>
+      )}
     </section>
   );
 }

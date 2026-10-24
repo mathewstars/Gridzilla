@@ -16,10 +16,11 @@ const fmt = (v: number) => (Math.round(v) || 0).toLocaleString("en-US");
 /** His rating: the node's own rating, else the sum of the transformers under it (the city). */
 function ratingOf(s: State, node: string) {
   const own = s.tree[node]?.rating_kw;
-  if (own) return { kw: own, src: { "data-src": `state/tree/${node}/rating_kw` } };
+  // traced through the aggregates: the state poll only carries the tree on its first answer
+  if (own) return { kw: own, src: { "data-src": `state/aggregates/${node}/rating_kw` } };
   const tfs = Object.keys(s.tree).filter((n) => n.startsWith("tf:") && pathOf(s, n).includes(node));
   const kw = tfs.reduce((a, n) => a + (s.tree[n].rating_kw ?? 0), 0);
-  const src = node === "region:at" ? { "data-src": "derived", "data-from": "sum(state/tree/tf:*/rating_kw)" } : { "data-src": "derived", "data-from": tfs.map((n) => `state/tree/${n}/rating_kw`).join(" + ") || "0" };
+  const src = node === "region:at" ? { "data-src": "derived", "data-from": "sum(state/aggregates/tf:*/rating_kw)" } : { "data-src": "derived", "data-from": tfs.map((n) => `state/aggregates/${n}/rating_kw`).join(" + ") || "0" };
   return { kw, src };
 }
 
@@ -166,9 +167,9 @@ export default function BigCurve({ ops }: { ops: Ops }) {
     <section className="panel bc" aria-label="With and without Gridzilla">
       <header className="bc-head">
         <div className="bc-title">
-          <h2>{titleOf(s, node)}</h2>
+          <h2 {...(node === "region:at" ? { "data-src": "derived", "data-from": "count(state/aggregates/tf:*)", "data-val": Object.keys(s.tree).filter((n) => n.startsWith("tf:")).length } : { "data-src": `state/aggregates/${node}` })}>{titleOf(s, node)}</h2>
           <span aria-hidden>·</span>
-          <span className="bc-rating" {...r.src} data-val={r.kw}>
+          <span className="bc-rating" {...r.src} data-val={r.kw} data-scale={r.kw >= 10000 ? "0.001" : undefined}>
             {r.kw >= 10000 ? `${fmt(r.kw / 1000)} MVA` : `${fmt(r.kw)} kVA`}
             {chart && !chart.ratingNear ? " (rating off scale)" : ""}
           </span>

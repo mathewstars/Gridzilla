@@ -57,7 +57,7 @@ export default function Table<T>({ rows, cols, rowKey, onRow, initial, empty }: 
           {sorted.map((r) => (
             <tr key={rowKey(r)} className={onRow ? "is-click" : undefined} onClick={onRow ? () => onRow(r) : undefined}>
               {cols.map((c) => (
-                <td key={c.key} className={[c.right ? "r" : "", c.className ?? ""].join(" ").trim() || undefined}>
+                <td key={c.key} data-label={c.label} className={[c.right ? "r" : "", c.className ?? ""].join(" ").trim() || undefined}>
                   {c.cell(r)}
                 </td>
               ))}

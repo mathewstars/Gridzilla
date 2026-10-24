@@ -25,11 +25,11 @@ export default function FeedStrip({ ops }: { ops: Ops }) {
         {rows.length === 0 && <li className="fstrip-row fstrip-quiet">Listening to the grid. The first event shows up here.</li>}
         {rows.map((e) => (
           <li key={e.id} className={`fstrip-row tone-${e.tone}`} {...tip(explain(e))}>
-            <time className="fstrip-time" aria-label={`grid time ${yday(e.time) ? "yesterday " : ""}${e.time}`}>
+            <time className="fstrip-time" data-src="axis" aria-label={`grid time ${yday(e.time) ? "yesterday " : ""}${e.time}`}>
               {yday(e.time) && <span className="fstrip-day">yesterday </span>}
               {e.time}
             </time>
-            <span className="fstrip-text">
+            <span className="fstrip-text" data-src="page" data-label="an event from today's feed">
               {e.head.map((p, i) => (typeof p === "string" ? <span key={i}>{p}</span> : <span key={i}>{MODE_WORDS[p.mode]?.title ?? p.mode}</span>))}
               {e.meta.length > 0 && <span className="fstrip-meta"> · {e.meta.join(" · ")}</span>}
             </span>
