@@ -197,3 +197,80 @@
 .s2 .s2-punch.p-head-xl {
   font-size: 82px;
 }
+
+/* Step 0, the story: a night scene, so near-black with white type in both themes. A real trailer still, full-bleed,
+   held at about 30 % under a near-black veil (no blur) so the type stays crisp. */
+.s2 .s2-story {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #0b0b0f;
+  color: #f5f5f7;
+  opacity: 0;
+  visibility: hidden;
+}
+/* Right cuts the story away at once (the headline is there on the cut); Left back to it fades it in. */
+.s2 .s2-story.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s var(--p-ease-state);
+}
+.s2 .s2-story:not(.is-on) .s2-story-line {
+  transition: none;
+}
+/* The window around the canvas goes near-black too while the story is on (light theme letterbox). */
+.p-deck:has(.s2-story.is-on) {
+  background: #0b0b0f;
+}
+.s2 .s2-story-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.s2 .s2-story-dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(11 11 15 / 0.7);
+}
+.s2 .s2-story-text {
+  position: absolute;
+  left: 120px;
+  top: 50%;
+  width: 1560px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 52px;
+}
+.s2 .s2-story-line {
+  margin: 0;
+  font-family: var(--p-font-display);
+  font-size: 68px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  word-spacing: 0.04em;
+  text-wrap: pretty;
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 1.2s var(--p-ease),
+    transform 1.2s var(--p-ease);
+}
+.s2 .s2-story-line.is-on {
+  opacity: 1;
+  transform: none;
+}
+/* Over the limit: red (large type, so red text is allowed). */
+.s2 .s2-story-red {
+  color: var(--p-red);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.s2.s2-still .s2-story,
+.s2.s2-still .s2-story-line {
+  transition: none;
+}
