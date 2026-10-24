@@ -23,13 +23,13 @@ Seven slides presented, the other eight sit in the appendix for questions. The j
 
 ### Script, five minutes
 
-**1. Title (0:00 to 0:30).** Click the speaker. Say nothing until the hard cut. Then:
+**1. Title (0:00 to 0:30).** The jingle has its own slide: this one. Click the speaker. Say nothing until the hard cut. Then one line, deadpan, and move on:
 
-> Gridzilla. A grid signal that home batteries, cars and heat pumps follow. Running tonight on a real plant in Slovakia and a simulated Vienna of two thousand houses.
+> Now you probably wonder what the monster really is.
 
 **2. Problem (0:30 to 1:00).**
 
-> Europe's largest battery is in people's basements: home batteries, cars with a plug, heat pumps. Gigawatt hours of storage, gigawatts of flexible load. The grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
+> It is a grid signal that home batteries, cars and heat pumps follow. Here is why it is needed. Europe's largest battery is in people's basements: home batteries, cars with a plug, heat pumps. Gigawatt hours of storage, gigawatts of flexible load. The grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
 
 **3. The idea (1:00 to 1:45).**
 
