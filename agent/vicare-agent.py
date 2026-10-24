@@ -28,7 +28,8 @@ PLATFORM = os.environ.get("GZ_PLATFORM", "http://127.0.0.1:8080")
 BROKER = urlparse(os.environ.get("GZ_BROKER", "mqtts://mqtt.victronlab.sk:8883"))
 DEVICE = os.environ.get("GZ_DEVICE", "vicare-blatnica")
 FLOOR = float(os.environ.get("VICARE_DHW_FLOOR", "40")); BOOST = float(os.environ.get("VICARE_DHW_BOOST", "60"))
-NOMINAL_KW = float(os.environ.get("VICARE_KW", "3"))   # Vitocal: compressor ~3 kW electrical while heating water; READ_ONLY = os.environ.get("GZ_READ_ONLY", "0") == "1"
+NOMINAL_KW = float(os.environ.get("VICARE_KW", "3"))   # Vitocal: compressor ~3 kW electrical while heating water
+READ_ONLY = os.environ.get("GZ_READ_ONLY", "0") == "1"
 HB_TIMEOUT = 120
 now = lambda: datetime.now(timezone.utc)
 iso = lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -107,7 +108,9 @@ log(f"ViCare device: {d['model']} at installation {d['installation']}")
 
 def read():
     try:
-        feats = {x["feature"]: x for x in call("GET", FEAT).json()["data"]}
+        r = call("GET", FEAT); j = r.json()
+        if "data" not in j: log(f"ViCare read: HTTP {r.status_code} {str(j)[:120]}"); return {}
+        feats = {x["feature"]: x for x in j["data"]}
     except Exception as e:
         log(f"ViCare read failed: {e}"); return {}
     v = lambda f, p="value": ((feats.get(f) or {}).get("properties") or {}).get(p, {}).get("value")
