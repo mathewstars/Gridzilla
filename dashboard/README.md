@@ -36,6 +36,21 @@ checks just a few sizes in both themes.
 - `#/present` The presentation stage.
 - Theme: dark by default; the small sun/moon icon top right, or `?theme=light` / `?theme=dark`.
 
+## Read-only live mode (`?api=`)
+
+Add `?api=<platform base url>` to any page, for example
+`http://localhost:5174/static/new/?api=https://gridzilla.victronlab.sk#/demo`, and every read (state, history, weather, the
+diet plan) comes from that platform instead of the local one. That is how the deck and the console show the real Blatnica
+plant, which only talks to the live server. In this mode nothing can be changed: every write is refused in the page before a
+request is sent, the buttons are switched off and say "read-only, live server", and an orange badge names the server.
+
+- Without `?api=` every call stays relative: same origin on the platform, the Vite proxy (`/api` -> :8081) in `npm run dev`.
+- Test it with a local base only: `?api=http://localhost:8081`.
+- A page opened from another origin can only read the live platform if that platform allows cross-origin reads (CORS for
+  GET on `/api/*` and `/openapi.json`). If it does not, open the page from the platform itself
+  (`https://gridzilla.victronlab.sk/static/new/index.html?api=https://gridzilla.victronlab.sk`, same origin), or ask the
+  platform owner to allow GET from the deck's origin.
+
 ## Phone layouts (<= 768 px)
 
 They live in the CSS of each part, under `@media (max-width: 760px)` and the container queries: `src/ops/ops.css` (frame),

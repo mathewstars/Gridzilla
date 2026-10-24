@@ -338,13 +338,28 @@ export interface Weather {
 }
 
 // ------------------------------------------------------------------ fetching
+/** Read-only live mode: ?api=<base url> (e.g. ?api=https://gridzilla.victronlab.sk) sends every read to that platform and
+ *  refuses every write, so a deck or console can show the live grid (and the real Blatnica plant) without touching it.
+ *  Without it, every call is relative (same origin, or the Vite dev proxy). */
+export const API_BASE = (() => {
+  if (typeof location === "undefined") return "";
+  const b = new URLSearchParams(location.search).get("api");
+  return b ? b.replace(/\/+$/, "") : "";
+})();
+export const READ_ONLY = API_BASE !== "";
+export const READ_ONLY_TEXT = "read-only, live server";
+/** URL of a platform path ("/api/state", "/openapi.json") on the base in use. */
+export const apiUrl = (p: string) => `${API_BASE}${p}`;
+
 async function getJSON<T>(path: string): Promise<T> {
-  const r = await fetch(`/api/${path}`, { cache: "no-store" });
+  const r = await fetch(apiUrl(`/api/${path}`), { cache: "no-store" });
   if (!r.ok) throw Object.assign(new Error(`${path}: ${r.status}`), { status: r.status });
   return r.json() as Promise<T>;
 }
 
 export async function post(path: string, body?: unknown): Promise<unknown> {
+  // live mode never writes: the request is not even sent
+  if (READ_ONLY) throw new Error(`Not sent: ${READ_ONLY_TEXT}`);
   const r = await fetch(`/api/${path}`, {
     method: "POST",
     headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -504,7 +519,7 @@ export function useHasEndpoint(path: string) {
   useEffect(() => {
     let alive = true;
     const check = () =>
-      fetch("/openapi.json", { cache: "no-store" })
+      fetch(apiUrl("/openapi.json"), { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => alive && setHas(!!j && !!j.paths && path in j.paths))
         .catch(() => alive && setHas(false));

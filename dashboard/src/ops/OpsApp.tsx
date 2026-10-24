@@ -9,6 +9,7 @@ import CityColumn from "./cols/CityColumn";
 import NowPanel from "./now/NowPanel";
 import DemoView from "./demo/DemoView";
 import HelpOverlay from "./help/HelpOverlay";
+import { API_BASE, READ_ONLY } from "../api";
 import FeedStrip from "./now/FeedStrip";
 import OtherView from "./views/OtherView";
 import "./ops.css";
@@ -70,6 +71,11 @@ function Console({ route }: { route: Route }) {
         )}
       </div>
       <HelpOverlay route={route} />
+      {READ_ONLY && (
+        <div className="ops-ro" role="status" title={`Reading ${API_BASE}; every button that would change something is off`}>
+          Read-only · live server · {API_BASE.replace(/^https?:\/\//, "")}
+        </div>
+      )}
     </div>
   );
 }

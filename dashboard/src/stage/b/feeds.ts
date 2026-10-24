@@ -1,7 +1,7 @@
 // Stage B's extra feeds: the flattening plan (/api/flatten) and the weather polled straight from /api/weather, so it also
 // works on the dev server where /openapi.json is not passed through. No reading = null, never a made-up value.
 import { useEffect, useState } from "react";
-import type { Weather, WeatherFeed } from "../../api";
+import { apiUrl, type Weather, type WeatherFeed } from "../../api";
 
 export interface FlattenPlan {
   tf: string;
@@ -36,7 +36,7 @@ function usePollJSON<T>(path: string | null, ms: number) {
     if (!path) return;
     let alive = true;
     const get = () =>
-      fetch(`/api/${path}`, { cache: "no-store" })
+      fetch(apiUrl(`/api/${path}`), { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(r.status)))
         .then((j) => {
           if (!alive) return;

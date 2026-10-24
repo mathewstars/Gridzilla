@@ -1,7 +1,7 @@
 // Stage A's own small feeds: the flattening plan (/api/flatten) and the weather read straight from /api/weather, so the
 // stage shows real weather even where /openapi.json is not reachable (the dev server). Nothing here is invented.
 import { useEffect, useState } from "react";
-import type { Weather, WeatherFeed } from "../../api";
+import { apiUrl, type Weather, type WeatherFeed } from "../../api";
 
 export interface FlattenPlan {
   tf: string;
@@ -33,7 +33,7 @@ function usePollJSON<T>(url: string | null, ms: number) {
     if (!url) return;
     let alive = true;
     const get = () =>
-      fetch(url, { cache: "no-store" })
+      fetch(apiUrl(url), { cache: "no-store" })
         .then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(r.status)))
         .then((v) => alive && (setData({ url, v }), setOk(true)))
         .catch(() => alive && setOk(false));
