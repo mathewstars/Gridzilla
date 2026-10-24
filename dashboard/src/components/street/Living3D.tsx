@@ -52,9 +52,12 @@ const ROW0 = 0; // first row of houses
 const LOT = 6.4; // between rows
 const OFFSET = 6.2; // house centre from the road centre
 const ROAD_W = 3.0;
-const TF_Z = ROW0 + 6.2; // the transformer kiosk, at the head of the street
-const TF_TOP = 2.62; // where its wires leave the roof
-const SUB_X = -9; // substation on the left, feeding the kiosk
+const TF_Z = ROW0 + 7.4; // the transformer kiosk, at the head of the street
+/** The kiosk is drawn at about twice a house's footprint so its load colour reads from across the room. */
+const KS: [number, number, number] = [2.3, 1.75, 2.3];
+const TF_TOP = 2.62 * KS[1]; // where its wires leave the roof
+const TF_TAP = 0.55 * KS[0]; // the outer bushings, either side of the centre
+const SUB_X = -10; // substation on the left, feeding the kiosk
 const POLE_X = ROAD_W / 2 + 0.3; // poles along the right road edge
 const POLE_H = 3.7;
 
@@ -113,8 +116,8 @@ const mat = {
   hpBody: clay("#e8e8ed"),
   grille: clay("#c7c7cc"),
   blade: clay("#3a3a3c"),
-  carBody: clay("#fbfbfd", { roughness: 0.45 }),
-  carGlass: clay("#4a4f58", { roughness: 0.25 }),
+  carBody: clay("#48484a", { roughness: 0.45 }), // graphite: reads on the light driveway
+  carGlass: clay("#c7d3e3", { roughness: 0.25 }),
   wheel: clay("#2c2c2e"),
   pole: clay("#c7c7cc"),
   wire: new THREE.MeshBasicMaterial({ color: "#a1a1a6" }),
@@ -253,20 +256,20 @@ function useWires(lots: Lot[]) {
   return useMemo(() => {
     const wires: Wire[] = [];
     const add = (id: string, c: THREE.QuadraticBezierCurve3, r: number) => wires.push({ id, curve: c, len: c.getLength(), r });
-    const tfTap = new THREE.Vector3(0.55, TF_TOP, TF_Z);
-    add("feed", sag(new THREE.Vector3(SUB_X + 1.3, 2.7, TF_Z), new THREE.Vector3(-0.55, TF_TOP, TF_Z), 0.35), 0.11);
+    const tfTap = new THREE.Vector3(TF_TAP, TF_TOP, TF_Z);
+    add("feed", sag(new THREE.Vector3(SUB_X + 1.3, 2.7, TF_Z), new THREE.Vector3(-TF_TAP, TF_TOP, TF_Z), 0.35), 0.26);
     const rows = Math.max(1, ...lots.map((l) => l.row + 1));
     let prev = tfTap;
     for (let r = 0; r < rows; r++) {
       const top = new THREE.Vector3(POLE_X, POLE_H, ROW0 - r * LOT);
-      add(`spine:${r}`, sag(prev, top, 0.3), 0.095);
+      add(`spine:${r}`, sag(prev, top, 0.3), 0.24);
       prev = top;
     }
     for (const l of lots) {
       const eave = new THREE.Vector3(l.x + l.face * (l.d / 2 + 0.05), l.eave, l.z + 0.4);
-      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.08);
+      add(`lot:${l.i}`, sag(new THREE.Vector3(POLE_X, POLE_H, ROW0 - l.row * LOT), eave, 0.35), 0.21);
     }
-    const geo = mergeGeometries(wires.map((w) => new THREE.TubeGeometry(w.curve, 20, w.id === "feed" ? 0.04 : 0.03, 5, false)));
+    const geo = mergeGeometries(wires.map((w) => new THREE.TubeGeometry(w.curve, 20, w.id === "feed" ? 0.05 : 0.035, 5, false)));
     return { wires, geo };
   }, [lots]);
 }
@@ -358,7 +361,7 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
     const ease = (k: number) => (still ? 1 : 1 - Math.exp(-dt * k));
     const get = (i: number) => {
       let v = st.current.get(i);
-      if (!v) st.current.set(i, (v = { soc: -1, ang: 0, spin: 0, car: 0 }));
+      if (!v) st.current.set(i, (v = { soc: -1, ang: 0, spin: 0, car: -1 }));
       return v;
     };
     batt.forEach((l, k) => {
@@ -382,8 +385,9 @@ function LiveParts({ lots, live, still }: { lots: Lot[]; live: MutableRefObject<
     prog.forEach((l, k) => {
       const h = live.current.get(l.house!.key) ?? l.house!;
       const v = get(l.i);
-      v.car += ((h.online && h.ev_kw > 0.05 ? 1 : 0) - v.car) * ease(4);
-      const c = Math.max(HIDE, v.car);
+      const charging = h.online && h.ev_kw > 0.05 ? 1 : 0;
+      v.car = v.car < 0 ? charging : v.car + (charging - v.car) * ease(4); // the first frame shows it as it is
+      const c = Math.max(HIDE, v.car) * 1.2;
       // in the driveway, nose to the road
       const yard = OFFSET - l.d / 2 - ROAD_W / 2;
       const cx = l.side * (ROAD_W / 2 + yard / 2);
@@ -479,6 +483,24 @@ function FrameCount() {
   return null;
 }
 
+/** While the canvas is paused (off-screen, frameloop "demand") it still draws a few frames whenever something it shows
+ *  changes: on mount, when the models arrive, on a resize (a resize clears the canvas) and on new readings. So the card
+ *  is never blank when it scrolls into view or the page is captured whole. Two frames per poll, not a loop. */
+function Kick({ on }: { on: unknown }) {
+  const { invalidate, size } = useThree();
+  useLayoutEffect(() => {
+    let n = 0;
+    let id = 0;
+    const tick = () => {
+      invalidate();
+      if (++n < 2) id = requestAnimationFrame(tick); // a second frame lets the shadows settle
+    };
+    tick();
+    return () => cancelAnimationFrame(id);
+  }, [on, size.width, size.height, invalidate]);
+  return null;
+}
+
 declare global {
   interface Window {
     __gz3d?: { frames: number };
@@ -520,24 +542,56 @@ function firstMesh(o: THREE.Object3D): THREE.Mesh | null {
   return found;
 }
 
+/** The kit's slate roofs and blue-grey walls lifted into Apple's light greys (#d2d2d7 roofs, near-white walls), so the
+ *  green kiosk, the green lots, the cars and the dots are what the eye finds. Dark window and door tones stay. */
+function lightRoofs(t: THREE.Texture): THREE.Texture {
+  const img = t.image as CanvasImageSource & { width: number; height: number };
+  if (typeof document === "undefined" || !img?.width) return t;
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  if (!g) return t;
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height);
+  const px = d.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i],
+      gr = px[i + 1],
+      b = px[i + 2];
+    const lum = 0.299 * r + 0.587 * gr + 0.114 * b;
+    const cool = b >= r && Math.max(r, gr, b) - Math.min(r, gr, b) < 70; // the kit's slate and blue-grey family
+    if (!cool || lum < 72) continue;
+    const v = 168 + lum * 0.33; // slate roof ~ #d2d2d7, walls ~ #e8e8ed to white
+    px[i] = Math.min(255, v);
+    px[i + 1] = Math.min(255, v);
+    px[i + 2] = Math.min(255, v + 5);
+  }
+  g.putImageData(d, 0, 0);
+  const out = new THREE.CanvasTexture(c);
+  return out;
+}
+
 function Kit({ parts, onHover }: { parts: ReturnType<typeof useStaticParts>; onHover?: (owner: number, e: ThreeEvent<PointerEvent | MouseEvent>) => void }) {
   const gltfs = useGLTF(MODELS, false, false);
   const slate = useTexture(SLATE);
   const kit = useMemo(() => {
     const meshes = gltfs.map((g) => firstMesh(g.scene));
     const src = (meshes[0]?.material as THREE.MeshStandardMaterial | undefined)?.map ?? null;
-    slate.flipY = false;
-    slate.colorSpace = THREE.SRGBColorSpace;
-    slate.magFilter = THREE.NearestFilter;
-    slate.minFilter = src?.minFilter ?? THREE.NearestMipmapNearestFilter;
-    slate.needsUpdate = true;
-    const houseMat = new THREE.MeshStandardMaterial({ map: slate, roughness: 0.88, metalness: 0 });
+    const light = lightRoofs(slate);
+    light.flipY = false;
+    light.colorSpace = THREE.SRGBColorSpace;
+    light.magFilter = THREE.NearestFilter;
+    light.minFilter = src?.minFilter ?? THREE.NearestMipmapNearestFilter;
+    light.needsUpdate = true;
+    const houseMat = new THREE.MeshStandardMaterial({ map: light, roughness: 0.88, metalness: 0 });
     const treeMat = new THREE.MeshStandardMaterial({ map: src, roughness: 0.95, metalness: 0 });
     const geo = (i: number) => meshes[i]?.geometry ?? box;
     return { house: Object.fromEntries(KINDS.map((k, i) => [k, geo(i)])) as Record<Kind, THREE.BufferGeometry>, tree: [geo(KINDS.length), geo(KINDS.length + 1)], houseMat, treeMat };
   }, [gltfs, slate]);
   useEffect(
     () => () => {
+      kit.houseMat.map?.dispose();
       kit.houseMat.dispose();
       kit.treeMat.dispose();
     },
@@ -608,7 +662,7 @@ function Transformer({ st, onHover, onSelect, interactive }: { st: StreetModel; 
     : {};
   const front = KD / 2 + 0.02;
   return (
-    <group position={[0, 0, TF_Z]} {...ev}>
+    <group position={[0, 0, TF_Z]} scale={KS} {...ev}>
       <B material={mat.tfBase} s={[KW + 0.4, K0, KD + 0.4]} at={[0, K0 / 2, 0]} />
       <B material={mat.tfBody} s={[KW, KH, KD]} at={[0, K0 + KH / 2, 0]} />
       <B material={mat.tfRoof} s={[KW + 0.24, 0.14, KD + 0.24]} at={[0, K0 + KH + 0.07, 0]} />
@@ -682,8 +736,8 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
       hemi.current.intensity = light.hemi * 0.9;
       hemi.current.color.copy(light.hemiSky);
     }
-    // on a white card the sky sits closer to white, keeping its tint (cooler at night, warmer at dusk)
-    if (scene.background instanceof THREE.Color) scene.background.copy(light.bg).lerp(PAPER, paper ? 0.6 : 0);
+    // on a white card the sky is the card itself; elsewhere it keeps its tint (cooler at night, warmer at dusk)
+    if (scene.background instanceof THREE.Color) scene.background.copy(light.bg).lerp(PAPER, paper ? 1 : 0);
     if (shadowRef.current) shadowRef.current.opacity = light.shadow;
     env.current.sun = light.sun;
     env.current.sunDir.copy(light.sunDir);
@@ -711,6 +765,8 @@ function SkyRig({ hour, cloud, env, centerZ, shadowRef, paper }: { hour: number;
 // ------------------------------------------------------------------ camera: frame the street from further back, sway slowly
 const PHI = 0.98; // from straight above: ~34 degrees above the horizon
 const THETA = 0.4; // from the front right
+/** "across": from the side, so the street runs left to right across the card, turned about 25 degrees toward the kiosk. */
+const ACROSS = { phi: 1.1, theta: Math.PI / 2 - 0.4 };
 const SWAY = 0.2; // radians either way
 const SWAY_S = 56; // seconds for one slow sway
 
@@ -723,7 +779,9 @@ export interface Pad {
 }
 const NO_PAD: Pad = { l: 0, r: 0, t: 0, b: 0 };
 
-function CameraRig({ pts, still, interactive, sway, pad }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean; sway: boolean; pad: Pad }) {
+function CameraRig({ pts, still, interactive, sway, pad, across }: { pts: THREE.Vector3[]; still: boolean; interactive: boolean; sway: boolean; pad: Pad; across: boolean }) {
+  const PHI_ = across ? ACROSS.phi : PHI;
+  const THETA_ = across ? ACROSS.theta : THETA;
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, clock } = useThree();
   const lastTouch = useRef(-100);
@@ -744,7 +802,7 @@ function CameraRig({ pts, still, interactive, sway, pad }: { pts: THREE.Vector3[
     const v = new THREE.Vector3();
     const edge = sway ? 0.86 : 0.92; // room for the sway and some air: houses are context, not giants
     const extent = (r: number) => {
-      cam.position.copy(target).add(v.setFromSphericalCoords(r, PHI, THETA));
+      cam.position.copy(target).add(v.setFromSphericalCoords(r, PHI_, THETA_));
       cam.lookAt(target);
       cam.updateMatrixWorld();
       let x0 = Infinity,
@@ -772,12 +830,12 @@ function CameraRig({ pts, still, interactive, sway, pad }: { pts: THREE.Vector3[
     }
     const e = extent(hi);
     return { radius: hi, offX: ((e.x0 + e.x1) / 2 - (fx0 + fx1) / 2) * (w / 2), offY: ((fy0 + fy1) / 2 - (e.y0 + e.y1) / 2) * (h / 2), w, h };
-  }, [camera, size.width, size.height, pts, target, sway, pad.l, pad.r, pad.t, pad.b]);
+  }, [camera, size.width, size.height, pts, target, sway, pad.l, pad.r, pad.t, pad.b, PHI_, THETA_]);
 
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     cam.setViewOffset(frame.w, frame.h, frame.offX, frame.offY, frame.w, frame.h);
-    cam.position.copy(target).add(off.setFromSphericalCoords(frame.radius, PHI, THETA));
+    cam.position.copy(target).add(off.setFromSphericalCoords(frame.radius, PHI_, THETA_));
     cam.lookAt(target);
     controls.current?.target.copy(target);
     controls.current?.update();
@@ -790,10 +848,10 @@ function CameraRig({ pts, still, interactive, sway, pad }: { pts: THREE.Vector3[
     if (clock.elapsedTime - lastTouch.current < 6) return;
     off.copy(camera.position).sub(target);
     sph.setFromVector3(off);
-    const want = THETA + (still || !sway ? 0 : SWAY * Math.sin((clock.elapsedTime * 2 * Math.PI) / SWAY_S));
+    const want = THETA_ + (still || !sway ? 0 : SWAY * Math.sin((clock.elapsedTime * 2 * Math.PI) / SWAY_S));
     const k = still ? 1 : Math.min(1, Math.min(dt, 0.05) * 1.2);
     sph.theta += (want - sph.theta) * k;
-    sph.phi += (PHI - sph.phi) * k;
+    sph.phi += (PHI_ - sph.phi) * k;
     sph.radius += (frame.radius - sph.radius) * k;
     off.setFromSpherical(sph);
     camera.position.copy(target).add(off);
@@ -839,9 +897,11 @@ export interface LivingProps {
   pad?: Pad;
   /** Sky closer to white, for a white card. */
   paper?: boolean;
+  /** Camera from the side: the street runs left to right across a wide card. */
+  across?: boolean;
 }
 
-export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 12, run = true, sway = true, waves = null, pad = NO_PAD, paper = false }: LivingProps) {
+export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover, onSelect, interactive, still, slots = 12, run = true, sway = true, waves = null, pad = NO_PAD, paper = false, across = false }: LivingProps) {
   const layoutKey = `${st.tf}|${st.houses.map((h) => `${h.house.key}:${h.house.hasPv ? 1 : 0}${h.house.kwh > 0 ? 1 : 0}${h.house.hasHeat ? 1 : 0}`).join(",")}|${slots}`;
   const lots = useMemo(() => lotsOf(st, slots), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const parts = useStaticParts(lots);
@@ -889,7 +949,9 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
   const pts = useMemo(() => {
     const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
     const far = OFFSET + 4.2; // back gardens and their trees
-    return [v(SUB_X - 1.8, 0, TF_Z + 1.6), v(SUB_X - 1.8, 2.4, TF_Z), v(0, 0, TF_Z + 1.4), v(0, TF_TOP + 0.3, TF_Z), v(-far, 0, back), v(far, 0, back), v(-far, 4.2, back), v(far, 4.2, back), v(far, 0, TF_Z), v(-far, 0, TF_Z - 3)];
+    const kx = (KW / 2 + 0.2) * KS[0],
+      kz = (KD / 2 + 0.2) * KS[2];
+    return [v(SUB_X - 1.8, 0, TF_Z + 1.6), v(SUB_X - 1.8, 2.4, TF_Z), v(-kx, 0, TF_Z + kz), v(kx, 0, TF_Z + kz), v(0, TF_TOP + 0.3, TF_Z), v(-far, 0, back), v(far, 0, back), v(-far, 4.2, back), v(far, 4.2, back), v(far, 0, TF_Z), v(-far, 0, TF_Z - 3)];
   }, [back]);
   const roadLen = TF_Z - 1.4 - back;
 
@@ -897,7 +959,7 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
     <Canvas
       flat
       shadows
-      frameloop={run ? "always" : "never"}
+      frameloop={run ? "always" : "demand"}
       dpr={[1, 1.75]}
       camera={{ fov: 24, near: 0.5, far: 600, position: [10, 30, 40] }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
@@ -916,6 +978,7 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
       <Transformer st={st} onHover={onHover} onSelect={onSelect} interactive={interactive} />
       <Suspense fallback={null}>
         <Kit parts={parts} onHover={hov} />
+        <Kick on={layoutKey} />
         <ContactShadows key={layoutKey} frames={1} position={[-2, 0.012, centerZ]} scale={[2 * (OFFSET + 6) + 8, roadLen + 12]} resolution={1024} blur={2.6} far={4} opacity={0.38} color="#1d1d1f" />
       </Suspense>
       <Panels parts={parts.panels} env={env} />
@@ -928,7 +991,8 @@ export default function Living3D({ st, shapeKeys, otherKw, hour, cloud, onHover,
       <PowerDots wires={wires} flow={flow} still={still} />
       <FollowLots lots={lots} follow={follow} still={still} />
       <FrameCount />
-      <CameraRig pts={pts} still={still} interactive={interactive} sway={sway} pad={pad} />
+      <Kick on={st} />
+      <CameraRig pts={pts} still={still} interactive={interactive} sway={sway} pad={pad} across={across} />
     </Canvas>
   );
 }

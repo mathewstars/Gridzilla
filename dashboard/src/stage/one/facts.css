@@ -21,8 +21,10 @@
   min-width: 0;
 }
 
-/* Phones: two columns, the countdown first across both. */
-.gzF-p1 {
+/* Phones: two columns, the countdown first across both, the brand fact (text value) across both too (STAGE.md 5.4). */
+.gzF-p1,
+.gzF-p4,
+.gzF-p5 {
   grid-column: 1 / -1;
 }
 
@@ -99,8 +101,11 @@
 .gzF-quiet {
   color: #86868b;
 }
-.gzF-quiet .gzC-ring {
-  opacity: 0.8;
+/* No signal: the state in words, ink, a little under the number size so it fits one column. */
+.gzF-word {
+  font-size: 0.86em;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .gzF-l {
@@ -109,22 +114,23 @@
   line-height: 1.3;
   letter-spacing: -0.022em;
   color: #1d1d1f;
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 .gzF-s {
   display: grid;
   align-content: start;
   row-gap: 0.15rem;
-  font-size: 0.875rem;
-  line-height: 1.38;
+  font-size: 1rem; /* the proof lines: secondary at 1rem, they carry the judges' evidence */
+  line-height: 1.35;
   letter-spacing: -0.016em;
   color: #6e6e73;
-  text-wrap: pretty;
 }
 .gzF-line {
   display: block;
+  text-wrap: balance;
 }
-.gzF-foot,
-.gzF-wait {
+/* Footnotes only stay tertiary and small. */
+.gzF-foot {
+  font-size: 0.875rem;
   color: #86868b;
 }

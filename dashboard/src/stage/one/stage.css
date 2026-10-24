@@ -224,3 +224,12 @@
   font-size: 1.0625rem;
   color: #86868b;
 }
+
+/* One rolling clock digit: its own slot, one line tall, clipping only the digit's slide (no text block is cut). */
+.gzS-dig {
+  display: inline-block;
+  height: 1.25em;
+  line-height: 1.25;
+  vertical-align: bottom;
+  clip-path: inset(0);
+}

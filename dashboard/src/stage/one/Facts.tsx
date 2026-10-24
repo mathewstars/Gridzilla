@@ -10,8 +10,8 @@
 // count(...) formula from STORY.md (gap a) so the gate can learn it. Layout: container queries in facts.css.
 import type { ReactNode } from "react";
 import { useFlatten, type FlattenPlan, type Household, type Signal, type State } from "../../api";
-import { hhmm, nice, pathOf } from "../../model";
-import { signalOn, type StoryState } from "../useStory";
+import { hhmm, nice } from "../../model";
+import { lastOn, signalOn, type Street, type StoryState } from "../useStory";
 import Counter, { fmtNum } from "../kit/Counter";
 import Countdown, { gridWindow, useServerNow } from "../kit/Countdown";
 import "./facts.css";
@@ -145,6 +145,17 @@ function P1Time({ s, tf, nowMs }: { s: State; tf: string; nowMs: number | null }
       </>
     );
 
+  const capShort =
+    capMin == null ? null : stretch ? (
+      <>
+        max <Inline value={capMin / 1440} src={`state/policy/${capKey}`} scale={1 / 1440} /> days
+      </>
+    ) : (
+      <>
+        max <Inline value={capMin / 60} src={`state/policy/${capKey}`} scale={1 / 60} /> h
+      </>
+    );
+
   if (sig && win && win.leftMin > 0) {
     const key = activeKey(s, sig);
     const S = `state/active/${key}`;
@@ -168,12 +179,11 @@ function P1Time({ s, tf, nowMs }: { s: State; tf: string; nowMs: number | null }
     );
   }
 
-  // No signal on this street (or its window just ran out): owners decide. Say how the last one ended.
-  const path = new Set(pathOf(s, tf));
-  const last = Object.entries(s.recent ?? {})
-    .filter(([n, r]) => path.has(n) && r.ended_at)
-    .sort((a, b) => Date.parse(b[1].ended_at as string) - Date.parse(a[1].ended_at as string))[0];
+  // No signal on this street (or its window just ran out): owners decide. Say how the last one ended (the same newest
+  // ended signal the story and the AI card read, useStory lastOn).
+  const last = lastOn(s, tf);
   let lastLine: ReactNode = null;
+  let endLine: string | null = null;
   if (sig && win) {
     const S = `state/active/${activeKey(s, sig)}`;
     lastLine = (
@@ -182,66 +192,63 @@ function P1Time({ s, tf, nowMs }: { s: State; tf: string; nowMs: number | null }
       </>
     );
   } else if (last) {
-    const [n, r] = last;
+    const { node: n, sig: r } = last;
     const ranMin = ((Date.parse(r.ended_at as string) - Date.parse(r.valid_from)) / 60_000) * x;
     const early = /released/i.test(r.ended ?? "");
     const ran = ranMin >= 90 ? `${(ranMin / 60).toFixed(ranMin >= 600 ? 0 : 1).replace(/\.0$/, "")} h` : `${Math.max(1, Math.round(ranMin))} min`;
     lastLine = (
       <>
-        Last one, <Seq value={r.seq} src={`state/recent/${n}/seq`} />, ran{" "}
-        <Time src={`state/recent/${n}/ended_at`}>{ran}</Time>
-        {early ? " and was released early" : " and ended by itself"}
+        Last one, <Seq value={r.seq} src={`state/recent/${n}/seq`} />, ran <Time src={`state/recent/${n}/ended_at`}>{ran}</Time>
       </>
     );
+    endLine = early ? "ended early" : "ended by itself";
   }
   return (
     <Fact
       k="p1"
-      quiet
-      value={<Countdown leftMin={null} totalMin={null} idle={<span className="gzF-idle">No signal</span>} />}
-      label="every battery is the owner's"
-      small={(lastLine || cap) && <span className="gzF-line">{lastLine ?? <>Each signal is {cap}</>}</span>}
+      value={<span className="gzF-word">Owner mode</span>}
+      label="no signal, owners decide"
+      small={
+        (lastLine || cap) && (
+          <>
+            {lastLine && <span className="gzF-line">{lastLine}</span>}
+            {(endLine || cap) && (
+              <span className="gzF-line">
+                {endLine ?? "each signal"}
+                {cap && <>, {capShort}</>}
+              </span>
+            )}
+          </>
+        )
+      }
     />
   );
 }
 
 // ------------------------------------------------------------------ P2 owner in control
 
-function P2Owner({ s, tf }: { s: State; tf: string }) {
+function P2Owner({ s, tf, street }: { s: State; tf: string; street: Street | null }) {
   const r = ratio(s);
   const sig = signalOn(s, tf);
-  const hs = Object.values(s.households ?? {}).filter((h) => h.tf === tf);
-  const online = hs.filter((h) => h.telemetry);
-  let total = 0;
-  let follow = 0;
+  const hs = Object.values(s.households ?? {}).filter((h) => h.tf === tf && h.telemetry);
   let back = 0;
   const won: Record<string, number> = {};
-  for (const h of online) {
+  for (const h of hs) {
     const w = homes(h, r);
-    total += w;
     const a = h.ack;
     if (!a) continue;
-    if (a.status === "applied" || a.status === "partial") follow += w;
     if (a.status === "reverted") back += w;
     const owner = a.reason && OWNER_WORDS[a.reason] && (a.status === "partial" || a.status === "refused");
     if (owner && (!sig || a.seq === sig.seq)) won[a.reason as string] = (won[a.reason as string] ?? 0) + w;
   }
-  if (!total || !online.some((h) => h.ack)) {
+  if (!street || !street.homes) {
     return <Fact k="p2" quiet value={<span className="gzF-idle">Waiting</span>} label="for the homes on this street to reply" />;
   }
-
-  // Trace through the transformer's aggregate when it says the same thing (it counts devices, so a real home with two
-  // devices on this street breaks the match); else the proposed count() over the households.
-  const a = s.aggregates?.[tf];
-  const sameFollow = a && Math.round(a.applied * r) === Math.round(follow);
-  const sameTotal = a && Math.round(a.online * r) === Math.round(total);
   const HH = `state/households/*[tf=${tf}]`;
-  const followTag = sameFollow
-    ? { src: "derived", from: `${A(tf)}/applied * ${R_FROM}` }
-    : { src: "derived", from: `sum(${HH}[ack/status in applied,partial]/represents)` };
-  const totalTag = sameTotal
-    ? { src: "derived", from: `${A(tf)}/online * ${R_FROM}` }
-    : { src: "derived", from: `sum(${HH}[telemetry]/represents)` };
+  const follow = street.follow;
+  const total = street.homes;
+  const followTag = { src: "derived", from: street.followFrom };
+  const totalTag = { src: "derived", from: street.homesFrom };
 
   const wonTotal = Object.values(won).reduce((x, y) => x + y, 0);
   const reasons = Object.keys(won);
@@ -251,13 +258,12 @@ function P2Owner({ s, tf }: { s: State; tf: string }) {
         Owner limits win: <Inline value={wonTotal} src="derived" from={`sum(${HH}[ack/status in partial,refused; ack/reason in min_soc,owner_limit,opt_out]/represents)`} />{" "}
         {reasons.length === 1 ? OWNER_WORDS[reasons[0]] : "kept their own limits"}
       </>
-    ) : back > 0 ? (
-      <>
-        <Inline value={back} src="derived" from={`sum(${HH}[ack/status = reverted]/represents)`} /> back on their
-        owner's settings
-      </>
-    ) : (
+    ) : street.what === "signal" ? (
       "No owner had to say no"
+    ) : back > 0 ? (
+      "The last signal is over: owner settings are back"
+    ) : (
+      "Owner limits always win"
     );
 
   return (
@@ -270,7 +276,7 @@ function P2Owner({ s, tf }: { s: State; tf: string }) {
           <Num value={total} unit="homes" {...totalTag} />
         </span>
       }
-      label={`follow the ${sig ? "signal" : "diet plan"}`}
+      label={`follow the ${street.what === "signal" ? "signal" : "diet plan"}`}
       small={
         <>
           <span className="gzF-line">{ownerLine}</span>
@@ -344,7 +350,7 @@ function P3Curtail({ s, city }: { s: State; city: FlattenPlan | null }) {
     line = (
       <>
         <Inline value={room.v} d={room.d} scale={room.scale} src={`${FC}/plan/batt_kwh_free`} />{" "}
-        {room.unit === "MW" ? "MWh" : "kWh"} of battery room kept free for noon solar
+        {room.unit === "MW" ? "MWh" : "kWh"} battery room kept for solar
       </>
     );
   return (
@@ -383,10 +389,15 @@ function P4Expansion({ s, city }: { s: State; city: FlattenPlan | null }) {
           label="need no upgrade tonight"
           small={
             <span className="gzF-line">
-              {still === 0 ? (
+              {saved === over ? (
                 <>
                   Without the plan <Inline value={over} src="derived" from={`count(${T}/*[peak_naive_pct > 100])`} /> of{" "}
                   <Inline value={tfs.length} src={`${T}/length`} /> would pass their limit
+                </>
+              ) : still === 0 ? (
+                <>
+                  <Inline value={saved} src="derived" from={`count(${T}/*[peak_naive_pct > 100 and peak_plan_pct <= 100])`} /> of the{" "}
+                  <Inline value={over} src="derived" from={`count(${T}/*[peak_naive_pct > 100])`} /> that would pass their limit are kept inside it
                 </>
               ) : (
                 stillLine
@@ -459,41 +470,33 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
   const live = !!b && b.registered && !!b.telemetry && ageMin != null && ageMin < 5;
 
   let plant: ReactNode;
-  if (!b || !b.registered || !b.telemetry) plant = <span className="gzF-line gzF-wait">Blatnica: waiting for the plant</span>;
+  if (!b || !b.registered || !b.telemetry)
+    plant = <span className="gzF-line">Blatnica's plant: not connected</span>;
   else if (!live)
     plant = (
-      <span className="gzF-line gzF-wait">
-        Blatnica: last heard <Time src={`${B}/telemetry/rx`}>{ageMin != null ? `${Math.round(ageMin)} min` : "a while"}</Time> ago
+      <span className="gzF-line">
+        Blatnica heard <Time src={`${B}/telemetry/rx`}>{ageMin != null ? `${Math.round(ageMin)} min` : "a while"}</Time> ago
       </span>
     );
   else if (b.ack?.seq != null)
     plant = (
       <span className="gzF-line">
-        {b.ack.status === "reverted" ? "Same signal, back to owner after" : "Same signal: answered"}{" "}
-        <Seq value={b.ack.seq} src={`${B}/ack/seq`} />
-        {b.ack.verified ? ", signature verified" : ""}
+        Blatnica {b.ack.status === "reverted" ? "back to owner after" : "answered"} <Seq value={b.ack.seq} src={`${B}/ack/seq`} />
+        {b.ack.verified ? ", signature checked" : ""}
       </span>
     );
-  else plant = <span className="gzF-line">Live on the same signal path</span>;
+  else plant = <span className="gzF-line">Blatnica is live on the same signal path</span>;
 
   // Signatures checked end to end, over the households the platform ships (the feeder on stage + Blatnica).
   const acks = Object.values(s.households ?? {}).filter((h) => h.ack);
   const verified = acks.filter((h) => h.ack?.verified).length;
   const sigLine = acks.length ? (
     <>
-      <span data-src="deck" data-label="protocol v1">
-        Ed25519
-      </span>
-      : <Inline value={verified} src="derived" from="count(state/households/*[ack/verified = true])" /> of{" "}
-      <Inline value={acks.length} src="derived" from="count(state/households/*[ack])" /> replies verified
+      <Inline value={verified} src="derived" from="count(state/households/*[ack/verified = true])" /> of{" "}
+      <Inline value={acks.length} src="derived" from="count(state/households/*[ack])" /> signed replies checked
     </>
   ) : (
-    <>
-      <span data-src="deck" data-label="protocol v1">
-        Ed25519
-      </span>{" "}
-      signed over MQTT, any vendor can join
-    </>
+    "Every signal and reply is signed"
   );
 
   return (
@@ -504,11 +507,11 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
           Victron + Viessmann
         </span>
       }
-      label="a real home in Blatnica"
+      label="open profile, any brand can join"
       small={
         <>
-          {plant}
           <span className="gzF-line">{sigLine}</span>
+          {plant}
         </>
       }
     />
@@ -519,14 +522,14 @@ function P5Vendor({ s, nowMs }: { s: State; nowMs: number | null }) {
 
 /** Fills the shell's "proof" card (Stage.tsx Card area="proof", which carries data-card and the size container). */
 export default function Facts({ st }: { st: StoryState }) {
-  const { s, tf } = st;
+  const { s, tf, story } = st;
   const nowMs = useServerNow(s?.now);
   const city = useFlatten(REGION).plan;
   if (!s || !tf) return null;
   return (
     <div className="gzF" aria-label={`What the judges asked for, live on ${nice(tf)}`}>
       <P1Time s={s} tf={tf} nowMs={nowMs} />
-      <P2Owner s={s} tf={tf} />
+      <P2Owner s={s} tf={tf} street={story?.street ?? null} />
       <P3Curtail s={s} city={city} />
       <P4Expansion s={s} city={city} />
       <P5Vendor s={s} nowMs={nowMs} />

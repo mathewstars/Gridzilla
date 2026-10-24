@@ -13,10 +13,10 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { CheckCircle, XCircle } from "@phosphor-icons/react";
 import type { State } from "../../api";
-import { hhmm, nice } from "../../model";
+import { hhmm, nice, pathOf } from "../../model";
 import { modeTitle, plainReason, worstOf } from "../../components/brain/plain";
 import { P } from "../palette";
-import type { StoryState } from "../useStory";
+import type { Street, StoryState } from "../useStory";
 
 type Node = "done" | "active" | "waiting" | "human" | "refused";
 
@@ -24,6 +24,7 @@ type Node = "done" | "active" | "waiting" | "human" | "refused";
 interface Num {
   t: string;
   src: string;
+  from?: string;
   val?: number;
   scale?: number;
   label?: string;
@@ -58,7 +59,7 @@ function sees(
   if (rel) {
     const pct = +rel[2];
     const relSrc = s.autopilot?.release_pct === pct ? { src: "state/autopilot/release_pct", val: pct } : { src: trigSrc };
-    return { value: ["Peak over"], sub: [`${nice(rel[1])} below `, { t: String(pct), ...relSrc }, "\u00a0%"] };
+    return { value: ["Peak has passed"], sub: [`${nice(rel[1])} under `, { t: String(pct), ...relSrc }, "\u00a0%"] };
   }
   const w = worstOf(trigger);
   if (w) {
@@ -66,7 +67,7 @@ function sees(
     const pct = wv != null && Math.round(wv) === w.pct ? { src: worst!.src, val: wv } : { src: trigSrc };
     return {
       value: [{ t: String(Math.abs(w.pct)), ...pct }, "\u00a0% at ", { t: w.at, src: trigSrc }],
-      sub: [nice(w.tf) + (w.others > 0 ? " and more" : "")],
+      sub: [`forecast on ${nice(w.tf)}` + (w.others > 0 ? " and more" : "")],
     };
   }
   const tg = s.autopilot?.target;
@@ -77,14 +78,26 @@ function sees(
         "\u00a0% at ",
         { t: hhmm(tg.worst_at_h), src: "state/autopilot/target/worst_at_h" },
       ],
-      sub: [nice(tg.worst)],
+      sub: [`forecast on ${nice(tg.worst)}`],
     };
   return { value: ["Every street"], sub: ["watched all the time"] };
 }
 
-/** DeepSeek and how long it took, in seconds. */
+/** How long the AI took for its plan, in seconds (the model name goes in the small line). */
 const thinks = (ms: number | null | undefined, src: string): Part[] =>
-  ms ? ["DeepSeek ", { t: (ms / 1000).toFixed(1), src, val: ms, scale: 0.001 }, "\u00a0s"] : ["DeepSeek"];
+  ms ? ["AI plan in ", { t: (ms / 1000).toFixed(1), src, val: ms, scale: 0.001 }, "\u00a0s"] : ["AI plan"];
+
+/** The plan in plain words, after the model's name. */
+const PLAN_WORDS: Record<string, string> = {
+  SUPPORT: "run on batteries",
+  ABSORB: "store the sun",
+  RELEASE: "end the signal",
+  PREPARE: "fill batteries first",
+  STRETCH: "ration the batteries",
+  RECOVER: "refill slowly",
+  NONE: "no action needed",
+};
+const planSub = (mode: string | null | undefined): Part[] => [mode ? `DeepSeek: ${PLAN_WORDS[mode] ?? modeTitle(mode).toLowerCase()}` : "DeepSeek"];
 
 /** The box the guard checked: "at most 3 kW a home", or with its end "3 kW a home until 22:44" (the limited time). */
 function capParts(fields: Record<string, number | null> | null | undefined, base: string, until?: Part[] | null): Part[] | null {
@@ -97,16 +110,26 @@ function capParts(fields: Record<string, number | null> | null | undefined, base
   return null;
 }
 
-/** Homes under the segment, each simulated household standing for several real homes. */
-function homes(s: State, seg: string | null | undefined): Part[] | null {
+/** Homes under the segment, each simulated household standing for several real homes. On the street on stage it is
+ *  the same count as P2 (useStory streetOf); elsewhere the segment's aggregate, with its name. */
+function homes(s: State, seg: string | null | undefined, ctx: Ctx): Part[] | null {
+  if (seg && seg === ctx.tf && ctx.street?.homes) return [{ t: fmt(ctx.street.homes), src: "derived", from: ctx.street.homesFrom, val: ctx.street.homes }, "\u00a0homes"];
   const a = seg ? s.aggregates?.[seg] : null;
   const r = s.summary?.households ? s.summary.houses / s.summary.households : 1;
   if (!a || !a.online) return null;
-  return [{ t: fmt(Math.round(a.online * r)), src: `state/aggregates/${seg}/online`, val: a.online, scale: r }, "\u00a0homes"];
+  const where = seg && seg !== ctx.tf ? ` on ${nice(seg)}` : "";
+  return [{ t: fmt(Math.round(a.online * r)), src: `state/aggregates/${seg}/online`, val: a.online, scale: r }, `\u00a0homes${where}`];
 }
 
-function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
+interface Ctx {
+  tf: string;
+  path: string[];
+  street: Street | null;
+}
+
+function stepsFor(s: State, ctx: Ctx): { steps: Step[]; key: string; busy: boolean; here: boolean } {
   const ap = s.autopilot;
+  const on = (seg: string | null | undefined, hot?: string[] | null) => (!!seg && ctx.path.includes(seg)) || !!hot?.includes(ctx.tf);
   const mk = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null): Step[] =>
     rows.map(([value, sub], i) => ({ name: NAMES[i], node: nodes[i], value, sub, seal: i === 3 ? seal : null }));
 
@@ -114,6 +137,7 @@ function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
     return {
       key: "off",
       busy: false,
+      here: true,
       steps: mk(["waiting", "waiting", "waiting", "waiting"], [
         [["Autopilot off"], ["a person is in charge"]],
         [["Resting"], null],
@@ -130,11 +154,12 @@ function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
     return {
       key: `busy-${ap.stage}-${ap.last_run}`,
       busy: true,
+      here: on(ap.target?.node, ap.target?.hot),
       steps: mk(nodes, [
         [see.value, see.sub],
-        [["DeepSeek"], [k === 1 ? "thinking" : k > 1 ? "answered" : "next"]],
-        k > 2 ? [["Guard passed"], ["inside every safety rule"]] : k === 2 ? [["Checking"], ["the safety rules"]] : [["Guard"], ["next"]],
-        k === 3 ? [["Signing"], [{ t: "Ed25519", src: "deck", label: "protocol v1" }, " over MQTT"]] : [["Nothing yet"], null],
+        [["AI plan"], [k === 1 ? "DeepSeek is thinking" : k > 1 ? "DeepSeek answered" : "next"]],
+        k > 2 ? [["Guard passed"], ["every safety rule held"]] : k === 2 ? [["Checking"], ["the safety rules"]] : [["Guard"], ["next"]],
+        k === 3 ? [["Signing"], ["the signal for every home"]] : [["Nothing yet"], null],
       ]),
     };
   }
@@ -148,11 +173,12 @@ function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
     return {
       key: `pending-${pend.at ?? ""}`,
       busy: false,
+      here: on(pend.segment),
       steps: mk(["done", "done", guardOk ? "done" : "refused", guardOk ? "human" : "waiting"], [
         [see.value, see.sub],
-        [thinks(pend.latency_ms, `${base}/latency_ms`), [modeTitle(pend.mode)]],
+        [thinks(pend.latency_ms, `${base}/latency_ms`), planSub(pend.mode)],
         guardOk
-          ? [["Guard passed"], capParts(pend.fields, base) ?? ["inside every safety rule"]]
+          ? [["Guard passed"], capParts(pend.fields, base) ?? ["every safety rule held"]]
           : [["Guard refused"], [{ t: plainReason(pend.guard, pend.mode) ?? "", src: `${base}/guard` }]],
         guardOk
           ? [["Waiting for a human OK"], [pend.segment ? `for ${nice(pend.segment)}` : "before anything is sent"]]
@@ -161,50 +187,66 @@ function stepsFor(s: State): { steps: Step[]; key: string; busy: boolean } {
     };
   }
 
-  const d = ap.history?.[0];
+  // The newest decision for the street on stage (its segment covers it or it named the street hot), else the newest one
+  // anywhere, labelled city-wide by the card's title.
+  const hist = ap.history ?? [];
+  let i = hist.findIndex((x) => on(x.segment, x.hot));
+  const here = i >= 0;
+  if (!here) i = 0;
+  const d = hist[i];
   if (!d) {
     const see = sees(s, ap.last_trigger, "state/autopilot/last_trigger");
     return {
       key: "watch",
       busy: false,
-      steps: mk(["active", "waiting", "waiting", "waiting"], [[see.value, see.sub], [["DeepSeek"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]),
+      here: true,
+      steps: mk(["active", "waiting", "waiting", "waiting"], [[see.value, see.sub], [["AI plan"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]),
     };
   }
 
-  const base = "state/autopilot/history/0";
+  const base = `state/autopilot/history/${i}`;
   const key = `d-${d.at}-${d.verdict}`;
   const see = sees(s, d.trigger, `${base}/trigger`, { src: `${base}/worst_pct`, val: d.worst_pct });
   const seeRow: [Part[], Part[] | null] = [see.value, see.sub];
-  const think: [Part[], Part[] | null] = [thinks(d.latency_ms, `${base}/latency_ms`), d.mode ? [modeTitle(d.mode)] : null];
+  const think: [Part[], Part[] | null] = [thinks(d.latency_ms, `${base}/latency_ms`), planSub(d.mode)];
   const until: Part[] | null =
     d.duration_min && d.mode !== "RELEASE" ? ["until ", { t: hhmm(d.sim_h + d.duration_min / 60), src: `${base}/sim_h` }] : null;
-  const passed: [Part[], Part[] | null] = [["Guard passed"], capParts(d.fields, base, until) ?? ["inside every safety rule"]];
+  const passed: [Part[], Part[] | null] = [["Guard passed"], capParts(d.fields, base, until) ?? ["every safety rule held"]];
   const reason = (t: string | null | undefined): Part[] | null => (t ? [{ t, src: `${base}/detail` }] : null);
   const nothing: [Part[], Part[] | null] = [["Nothing sent"], null];
+  const out = (nodes: Node[], rows: [Part[], Part[] | null][], seal: number | null = null) => ({ key, busy: false, here, steps: mk(nodes, rows, seal) });
 
   switch (d.verdict) {
     case "sent": {
+      if (d.mode === "RELEASE") {
+        // The release ends a signal: name the signal it ended (the one P1 reads in state/recent), not the release's own seq.
+        const ended = Object.entries(s.recent ?? {}).find(([, r]) => d.seq != null && r.ended === `released by seq ${d.seq}`);
+        const sub: Part[] = ended
+          ? ["#", { t: String(ended[1].seq), src: `state/recent/${ended[0]}/seq`, val: ended[1].seq }, ", owners decide"]
+          : ["owners decide again"];
+        return out(["done", "done", "done", "done"], [seeRow, think, passed, [["Signal ended"], sub]], d.seq);
+      }
       // "#1217 to 192 homes": the signed message and who got it (its end sits under Checks).
-      const to = homes(s, d.segment);
+      const to = homes(s, d.segment, ctx);
       const sub: Part[] | null = d.seq != null ? ["#", { t: String(d.seq), src: `${base}/seq`, val: d.seq }, ...(to ? [" to ", ...to] : [])] : to;
-      return { key, busy: false, steps: mk(["done", "done", "done", "done"], [seeRow, think, passed, [["Signed and sent"], sub]], d.seq) };
+      return out(["done", "done", "done", "done"], [seeRow, think, passed, [["Signed and sent"], sub]], d.seq);
     }
     case "refused":
-      return { key, busy: false, steps: mk(["done", "done", "refused", "waiting"], [seeRow, think, [["Guard refused"], reason(plainReason(d.detail, d.mode))], nothing]) };
+      return out(["done", "done", "refused", "waiting"], [seeRow, think, [["Guard refused"], reason(plainReason(d.detail, d.mode))], nothing]);
     case "held":
-      return { key, busy: false, steps: mk(["done", "done", "refused", "waiting"], [seeRow, think, [["Held back"], reason(plainReason(d.detail, d.mode))], nothing]) };
+      return out(["done", "done", "refused", "waiting"], [seeRow, think, [["Held back"], reason(plainReason(d.detail, d.mode))], nothing]);
     case "none":
-      return { key, busy: false, steps: mk(["done", "done", "waiting", "waiting"], [seeRow, [think[0], ["no action needed"]], [["Nothing to check"], null], nothing]) };
+      return out(["done", "done", "waiting", "waiting"], [seeRow, [think[0], ["no action needed"]], [["Nothing to check"], null], nothing]);
     case "error":
-      return { key, busy: false, steps: mk(["done", "done", "waiting", "waiting"], [seeRow, [["DeepSeek"], ["no answer in time"]], [["Nothing to check"], null], nothing]) };
+      return out(["done", "done", "waiting", "waiting"], [seeRow, [["AI plan"], ["DeepSeek gave no answer in time"]], [["Nothing to check"], null], nothing]);
     case "pending":
-      return { key, busy: false, steps: mk(["done", "done", "done", "human"], [seeRow, think, passed, [["Waiting for a human OK"], d.mode ? [modeTitle(d.mode)] : null]]) };
+      return out(["done", "done", "done", "human"], [seeRow, think, passed, [["Waiting for a human OK"], d.mode ? [modeTitle(d.mode)] : null]]);
     case "rejected":
-      return { key, busy: false, steps: mk(["done", "done", "done", "done"], [seeRow, think, passed, [["Declined"], ["a person said no"]]]) };
+      return out(["done", "done", "done", "done"], [seeRow, think, passed, [["Declined"], ["a person said no"]]]);
     case "expired":
-      return { key, busy: false, steps: mk(["done", "done", "done", "waiting"], [seeRow, think, passed, [["Expired"], ["nobody approved in time"]]]) };
+      return out(["done", "done", "done", "waiting"], [seeRow, think, passed, [["Expired"], ["nobody approved in time"]]]);
   }
-  return { key, busy: false, steps: mk(["done", "waiting", "waiting", "waiting"], [seeRow, [["DeepSeek"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]) };
+  return out(["done", "waiting", "waiting", "waiting"], [seeRow, [["AI plan"], ["next"]], [["Guard"], ["next"]], [["Nothing yet"], null]]);
 }
 
 /** Text and tagged numbers of one line. */
@@ -218,6 +260,7 @@ function Parts({ parts }: { parts: Part[] }) {
           <span
             key={i}
             data-src={p.src}
+            data-from={p.from}
             data-val={p.val != null ? String(p.val) : undefined}
             data-scale={p.scale != null && p.scale !== 1 ? String(p.scale) : undefined}
             data-label={p.label}
@@ -287,7 +330,7 @@ function StepNode({ node, seal, fresh, pulse }: { node: Node; seal: boolean; fre
 }
 
 const CSS = `
-.gzAi{container-type:inline-size;position:relative;min-width:0;display:flex;flex-direction:column;gap:.5rem;
+.gzAi{container-type:inline-size;position:relative;min-width:0;display:flex;flex-direction:column;gap:.375rem;
   --n:1rem;--v:1.375rem;--s:.9375rem}
 .gzAi ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:.5rem 1.25rem}
 .gzAi li{position:relative;min-width:0}
@@ -301,7 +344,8 @@ const CSS = `
   overflow-wrap:anywhere;text-wrap:balance;transition:color .3s cubic-bezier(0,0,.5,1)}
 .gzAi-s{margin:0;font-size:var(--s);line-height:1.3;font-weight:400;color:#3a3a3c;letter-spacing:-.016em;overflow-wrap:anywhere}
 .gzAi-track{display:none}
-.gzAi-foot{margin:auto 0 0;font-size:var(--s);line-height:1.35;color:${P.secondary};letter-spacing:-.016em}
+.gzAi-title{margin:0;font-size:clamp(1.0625rem,.9rem + .3vw,1.375rem);line-height:1.2;font-weight:600;letter-spacing:-.005em;color:${P.ink};text-wrap:balance}
+.gzAi-foot{margin:auto 0 0;font-size:var(--s);line-height:1.25;color:${P.secondary};letter-spacing:-.016em}
 @container (min-width:20rem){
   .gzAi ol{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -322,7 +366,8 @@ const CSS = `
 /** Sees / Thinks / Checks / Acts card. Props: `st` from useStory. */
 export default function AiCard({ st }: { st: StoryState }) {
   const s = st.s;
-  const view = s ? stepsFor(s) : null;
+  const ctx: Ctx | null = s && st.tf ? { tf: st.tf, path: pathOf(s, st.tf), street: st.story?.street ?? null } : null;
+  const view = s && ctx ? stepsFor(s, ctx) : null;
   const key = view?.key ?? "";
   const reduced = useReducedMotion();
 
@@ -363,6 +408,11 @@ export default function AiCard({ st }: { st: StoryState }) {
   return (
     <div className="gzAi" aria-label="What the AI does">
       <style>{CSS}</style>
+      {view && ctx && (
+        <p className="gzAi-title">
+          {view.here ? `The AI on ${nice(ctx.tf)}` : view.busy ? "The AI, busy elsewhere in the city" : "The AI, last decision elsewhere"}
+        </p>
+      )}
       {view ? (
         <ol>
           {view.steps.map((step, i) => {

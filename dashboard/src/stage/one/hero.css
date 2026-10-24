@@ -86,13 +86,33 @@
   color: #1d1d1f;
   text-wrap: balance;
 }
-.gzH-none {
+/* No help needed right now: the state in words at display size, never a past figure at hero size. */
+.gzH-state {
   margin: 0;
-  font-size: clamp(1.5rem, min(1rem + 1vw, 6.5cqi), 2.5rem);
+  font-size: clamp(2.25rem, min(1.4rem + 2.2vw, 11cqi, 7vh), 4.5rem);
   font-weight: 600;
-  line-height: 1.1;
-  color: #6e6e73;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: #1d1d1f;
   text-wrap: balance;
+}
+/* A number inside a sentence: its unit at 0.7em, never under 12 px. */
+.gzH-u {
+  margin-left: 0.1em;
+  font-size: max(0.7em, 12px);
+  color: #6e6e73;
+}
+.gzH-n {
+  white-space: nowrap;
+}
+/* Proof lines under the claim: secondary, never under 1rem. */
+.gzH-note {
+  margin: 0.5em 0 0;
+  font-size: max(1rem, min(3.4cqi, 1.25rem));
+  line-height: 1.35;
+  letter-spacing: -0.016em;
+  color: #6e6e73;
+  text-wrap: pretty;
 }
 .gzH-strong {
   font-weight: 600;
@@ -145,6 +165,13 @@
   font-size: 0.62em;
   color: #6e6e73;
 }
+/* Numbers under 2rem: units at 0.7em of their own number (12 px floor), not the hero's 0.5em. */
+.gzH-stat-v .gzH-unit {
+  font-size: max(0.62em, 12px);
+}
+.gzH-pct .gzH-unit {
+  font-size: max(0.7em, 12px);
+}
 
 /* Wide card (class b band at 600-1179, big screens): sentence and numbers left, figure and ring right. */
 @container gzhero (min-width: 52rem) {
@@ -173,6 +200,12 @@
   }
   .gzH-cap {
     font-size: clamp(1.0625rem, 2.1cqi, 1.5rem);
+  }
+  .gzH-state {
+    font-size: clamp(2.25rem, min(1.4rem + 2.2vw, 5.6cqi, 7vh), 4.5rem);
+  }
+  .gzH-note {
+    font-size: max(1rem, min(1.7cqi, 1.25rem));
   }
   .gzH-line {
     font-size: clamp(1.625rem, min(1rem + 2vw, 4.2cqi), 3.5rem);

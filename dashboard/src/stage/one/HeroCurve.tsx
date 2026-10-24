@@ -12,12 +12,15 @@ import { signalOn, type StoryState } from "../useStory";
 /** Props: `st` from useStory(). Fills its card (flex column): title, legend, then the plot takes the rest, never less
  *  than 200 px (phone) to 300 px (wide) tall. */
 export default function HeroCurve({ st }: { st: StoryState }) {
-  const { s, tf, history } = st;
+  const { s, tf, history, story } = st;
   const flat = useFlatten(tf || null);
   const still = useReducedMotion();
   const plan = flat.plan;
   const sig = s && tf ? signalOn(s, tf) : null;
-  const title = tf ? curveTitle(tf, plan) : "The street with and without Gridzilla";
+  const title = tf && s ? curveTitle(tf, s.sim_hour, story) : "The street with and without Gridzilla";
+  // Draw only once the history poll has answered for this transformer, so the first picture already holds the last
+  // 6 hours (the poll keeps the previous street's payload until then).
+  const histReady = !!(tf && history?.nodes && tf in history.nodes);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-col">
@@ -27,7 +30,7 @@ export default function HeroCurve({ st }: { st: StoryState }) {
       >
         {title}
       </h2>
-      {s && tf ? (
+      {s && tf && histReady ? (
         // A new transformer crossfades in (0.6 s); its curve starts fresh instead of gliding from the last street.
         <motion.div
           key={tf}
@@ -46,13 +49,13 @@ export default function HeroCurve({ st }: { st: StoryState }) {
             signal={sig}
             span={{ past: 6, future: 18, narrow: { past: 3, future: 9 } }}
             legend="above"
-            minPlot="clamp(200px, 30cqi, 300px)"
+            minPlot="clamp(248px, 30cqi, 300px)"
             planSrc={`flatten:${tf}`}
           />
         </motion.div>
       ) : (
         <p className="flex-1" style={{ fontSize: "1.0625rem", color: P.tertiary }}>
-          Waiting for the first readings
+          {s && tf ? "Loading the last 6 hours" : "Waiting for the first readings"}
         </p>
       )}
     </div>

@@ -8,6 +8,8 @@ import {
   useGridState,
   useHistory,
   useWeather,
+  type Household,
+  type RecentSignal,
   type Signal,
   type State,
 } from "../api";
@@ -32,6 +34,58 @@ export interface Story {
   signal: Signal | null;
   /** Houses here follow the SHAPE flattening plan. */
   shaped: boolean;
+  /** Homes on this street and how many follow the signal (when one covers it) or else the diet plan. ONE count for the
+   *  headline, the hero, P2 and the AI card. Null while the households of this street have not shipped. */
+  street: Street | null;
+  /** Gridzilla is taking load off this street right now: someone follows and the gap is worth saying. */
+  helping: boolean;
+  /** The newest signal on this street (or above it) that has ended, for the small "last one" lines. */
+  last: { node: string; sig: RecentSignal } | null;
+}
+
+export interface Street {
+  homes: number;
+  follow: number;
+  /** What the followers follow: the signal covering the street, else the diet plan. */
+  what: "signal" | "plan";
+  /** G2 formulas (qa/README.md) for the two counts. */
+  homesFrom: string;
+  followFrom: string;
+}
+
+/** Homes per simulated household (8). */
+export const homesRatio = (s: State) => (s.summary && s.summary.households ? s.summary.houses / s.summary.households : 8);
+
+/** Homes on tf: online simulated households x their weight, a real home counts once. Followers follow the active
+ *  signal (acked applied or partial for its seq) or, with no signal, the diet plan (telemetry.shape). */
+export function streetOf(s: State, tf: string, sig: Signal | null): Street | null {
+  const r = homesRatio(s);
+  const hs = Object.values(s.households ?? {}).filter((h) => h.tf === tf && h.telemetry);
+  if (!hs.length) return null;
+  const w = (h: Household) => (h.real ? 1 : h.represents || r);
+  const fol = (h: Household) =>
+    sig ? h.ack?.seq === sig.seq && (h.ack.status === "applied" || h.ack.status === "partial") : !!h.telemetry?.shape;
+  const HH = "state/households/*";
+  const sum = (f: string) => `sum(${HH}[tf = ${tf} and real = false and ${f}]/represents) + count(${HH}[tf = ${tf} and real = true and ${f}])`;
+  const folF = sig ? `telemetry and ack/seq = ${sig.seq} and ack/status in applied,partial` : "telemetry/shape = true";
+  return {
+    homes: hs.reduce((a, h) => a + w(h), 0),
+    follow: hs.filter(fol).reduce((a, h) => a + w(h), 0),
+    what: sig ? "signal" : "plan",
+    homesFrom: sum("telemetry"),
+    followFrom: sum(folF),
+  };
+}
+
+/** Newest ended signal on the transformer or any node above it. */
+export function lastOn(s: State, tf: string): { node: string; sig: RecentSignal } | null {
+  const path = new Set(pathOf(s, tf));
+  let best: { node: string; sig: RecentSignal } | null = null;
+  for (const [n, r] of Object.entries(s.recent ?? {})) {
+    if (!path.has(n) || !r.ended_at) continue;
+    if (!best || Date.parse(r.ended_at) > Date.parse(best.sig.ended_at as string)) best = { node: n, sig: r };
+  }
+  return best;
 }
 
 // Timing of the self-playing stage (real seconds).
@@ -64,7 +118,7 @@ function lastActed(s: State, tf: string): number | null {
   };
   Object.entries(s.active ?? {}).forEach(([n, sig]) => path.has(n) && seen(sig.issued_at));
   Object.entries(s.recent ?? {}).forEach(([n, sig]) => path.has(n) && seen(sig.issued_at));
-  (s.autopilot?.history ?? []).forEach((d) => d.verdict === "sent" && d.segment && path.has(d.segment) && seen(d.at));
+  (s.autopilot?.history ?? []).forEach((d) => d.verdict === "sent" && d.mode !== "RELEASE" && d.segment && path.has(d.segment) && seen(d.at));
   return t || null;
 }
 
@@ -81,10 +135,9 @@ export function storyOf(s: State, tf: string): Story {
   const peakPct = abs(fc) >= abs(nowPct) ? fc ?? nowPct ?? 0 : nowPct ?? 0;
   const gapKw = base != null && total != null ? Math.round((Math.abs(base) - Math.abs(total)) * 10) / 10 : 0;
   const signal = signalOn(s, tf);
-  const tfHouses = Object.values(s.households ?? {}).filter((h) => h.tf === tf && h.telemetry);
-  const shaped = tfHouses.length
-    ? tfHouses.some((h) => h.telemetry?.shape)
-    : !!s.shape?.enabled && (s.summary?.shaped ?? 0) > 0;
+  const street = streetOf(s, tf, signal);
+  const plan = signal ? null : street;
+  const shaped = plan ? plan.follow > 0 : street ? Object.values(s.households ?? {}).some((h) => h.tf === tf && h.telemetry?.shape) : !!s.shape?.enabled && (s.summary?.shaped ?? 0) > 0;
   const actedAt = lastActed(s, tf);
   const nowMs = Date.parse(s.now) || Date.now();
   const ap = s.autopilot;
@@ -95,7 +148,10 @@ export function storyOf(s: State, tf: string): Story {
   if (aiOnIt || (actedAt != null && nowMs - actedAt < ACTING_MS)) phase = "acting";
   else if ((signal || shaped) && gapPct > 3 && abs(nowPct) < 100) phase = "flattened";
   else if (abs(peakPct) >= trigger || abs(basePct) >= 100 || abs(nowPct) >= trigger) phase = "building";
-  return { phase, gapKw, peakPct, limitKw, actedAt, nowPct, basePct, signal, shaped };
+  // Someone on this street follows (households shipped), or the households are not here yet and a signal or the plan runs.
+  const following = street ? street.follow > 0 : !!signal || shaped;
+  const helping = following && gapKw >= Math.max(1, limitKw * 0.02);
+  return { phase, gapKw, peakPct, limitKw, actedAt, nowPct, basePct, signal, shaped, street, helping, last: lastOn(s, tf) };
 }
 
 /** Every transformer by how much of a story it tells right now. The worst peak wins: the higher of tonight's forecast

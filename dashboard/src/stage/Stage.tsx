@@ -63,40 +63,51 @@ function useGridClock(s: State | null) {
 const hhmmMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 /** Text whose changed characters roll in (Animate Digits idea, 21st.dev id 20071): each character is its own span keyed
- *  by position and value, so only a changed digit re-mounts and slides up. No exit copy, so digits never overlap. */
-function Rolling({ text }: { text: string }) {
-  const still = useReducedMotion();
+ *  by position and value, so only a changed digit re-mounts and slides up inside its own clipped slot (never drawn
+ *  below the baseline). With `roll` false (the grid clock runs faster than a minute per 5 real seconds) the digits
+ *  swap in place, so the clock never jitters on a projector. */
+function Rolling({ text, roll }: { text: string; roll: boolean }) {
+  const still = useReducedMotion() || !roll;
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
   }, []);
   return (
     <>
-      {[...text].map((ch, i) => (
-        <motion.span
-          key={`${i}:${ch}`}
-          aria-hidden
-          className="inline-block"
-          initial={mounted.current && !still ? { opacity: 0, y: "0.35em" } : false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: EASE }}
-        >
-          {ch}
-        </motion.span>
-      ))}
+      {[...text].map((ch, i) =>
+        still ? (
+          <span key={i} aria-hidden>
+            {ch}
+          </span>
+        ) : (
+          <span key={i} aria-hidden className="gzS-dig">
+            <motion.span
+              key={ch}
+              className="inline-block"
+              initial={mounted.current ? { y: "100%" } : false}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.25, ease: EASE }}
+            >
+              {ch}
+            </motion.span>
+          </span>
+        ),
+      )}
     </>
   );
 }
 
 // ------------------------------------------------------------------ top bar words
 
-/** Scenario in plain words, only while grid time fits it, so "Cold evening" never sits next to an 11:18 clock. */
+/** The scenario in plain words, always shown, worded to fit the grid clock: the scenarios scale load or sun all day
+ *  (platform SCENARIOS), so "Cold evening" never sits next to an 11:18 clock nor "Sunny noon" next to 23:58. */
 function scenarioWord(name: string | undefined, h: number) {
-  if (name === "cold-evening") return h >= 16 || h < 1 ? "Cold evening" : null;
-  if (name === "sunny-noon") return h >= 9 && h < 16 ? "Sunny noon" : null;
+  const hr = ((h % 24) + 24) % 24;
+  if (name === "cold-evening") return hr >= 16 || hr < 1 ? "Cold evening" : hr < 6 ? "Cold night" : "Cold day";
+  if (name === "sunny-noon") return hr >= 10 && hr < 15 ? "Sunny noon" : hr >= 6 && hr < 20 ? "Sunny day" : "Sunny scenario";
   if (name === "normal") return "Normal day";
   if (name === "live-weather") return "Live weather";
-  return null;
+  return name ? name.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase()) : null;
 }
 
 /** The weather the grid runs on right now: the grid_view hour that matches the grid clock (platform weather.py). */
@@ -142,7 +153,7 @@ function TopBar({ st }: { st: StoryState }) {
       <div className="gzS-clock">
         {min != null && (
           <span className="gzS-time" data-src="state/sim_hour" aria-label={`Grid time ${hhmmMin(min)}`}>
-            <Rolling text={hhmmMin(min)} />
+            <Rolling text={hhmmMin(min)} roll={(s.autopilot?.sim_x || 1) <= 12} />
           </span>
         )}
         {scen && <span className="gzS-scen">{scen}</span>}

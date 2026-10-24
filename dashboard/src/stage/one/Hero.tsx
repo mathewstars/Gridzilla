@@ -30,18 +30,20 @@ interface Taken {
   atSrc: string | null;
 }
 
-/** kW taken off this street: right now when it is worth saying, else the biggest gap of the last 6 grid hours. */
-function takenOff(s: State, history: History | null, tf: string, limitKw: number): Taken | null {
-  const min = Math.max(1, limitKw * 0.02);
+/** kW taken off this street right now (both directions), from the aggregates of this poll. */
+function gapNow(s: State, tf: string, min: number): Taken | null {
   const a = s.aggregates?.[tf];
   const A = `state/aggregates/${tf}`;
-  if (a && a.baseline_kw != null && a.total_kw != null) {
-    // Noon: both are negative (solar pushed back); "taken off" is then the backflow Gridzilla soaked up.
-    const back = a.baseline_kw < 0;
-    const kw = back ? a.total_kw - a.baseline_kw : a.baseline_kw - a.total_kw;
-    if (kw >= min) return { kw, back, from: back ? `${A}/total_kw - ${A}/baseline_kw` : `${A}/baseline_kw - ${A}/total_kw`, at: null, atSrc: null };
-  }
-  // Recent past, by wall clock so a scenario jump of the grid clock cannot pull in an old day.
+  if (!a || a.baseline_kw == null || a.total_kw == null) return null;
+  // Noon: both are negative (solar pushed back); "taken off" is then the backflow Gridzilla soaked up.
+  const back = a.baseline_kw < 0;
+  const kw = back ? a.total_kw - a.baseline_kw : a.baseline_kw - a.total_kw;
+  return kw >= min ? { kw, back, from: back ? `${A}/total_kw - ${A}/baseline_kw` : `${A}/baseline_kw - ${A}/total_kw`, at: null, atSrc: null } : null;
+}
+
+/** The biggest gap of the last 6 grid hours: never the hero, only the small "earlier" line. */
+function gapPast(s: State, history: History | null, tf: string, min: number): Taken | null {
+  // By wall clock so a scenario jump of the grid clock cannot pull in an old day.
   const pts = history?.nodes?.[tf] ?? [];
   const now = Date.parse(s.now);
   const x = s.autopilot?.sim_x || 1;
@@ -60,18 +62,18 @@ function takenOff(s: State, history: History | null, tf: string, limitKw: number
   return best;
 }
 
-/** The big sentence (STORY.md wording): what Gridzilla is doing to this street, else the problem in plain words. */
-function sentence(st: Story, name: string, nowTaken: Taken | null) {
+/** The big sentence (STORY.md wording), from the same story state as the hero figure, P1, P2 and the AI card. */
+function sentence(st: Story, name: string, nowTaken: Taken | null, hour: number) {
   const over = Math.abs(st.nowPct ?? 0) >= 100;
-  if (nowTaken?.back) return `Gridzilla is soaking up ${name}'s noon sun.`;
+  const h = ((hour % 24) + 24) % 24;
+  const sun = h < 11 ? "morning sun" : h < 13 ? "noon sun" : h < 16 ? "midday sun" : "evening sun";
+  if (nowTaken?.back) return `Gridzilla is soaking up ${name}'s ${sun}.`;
   if (nowTaken) return st.signal ? `Gridzilla is flattening the peak on ${name}.` : `Gridzilla is putting ${name} on a diet.`;
   if (st.phase === "acting") return `Gridzilla is stepping in on ${name}.`;
-  if (st.phase === "building") {
-    if ((st.nowPct ?? st.peakPct) < 0) return `Noon sun is pushing ${name} backwards.`;
-    return over ? `${name} is over its limit.` : `The peak is building on ${name}.`;
-  }
   if (over) return `${name} is over its limit.`;
-  return st.shaped ? `${name} is on its diet plan, inside its limit.` : `${name} is inside its limit.`;
+  if (st.phase === "building") return (st.nowPct ?? st.peakPct) < 0 ? `Solar is pushing ${name} backwards.` : `The peak is building on ${name}.`;
+  const plan = st.street?.what === "plan" && st.street.follow > 0;
+  return plan ? `${name} is on its diet plan.` : `${name} needs no help right now.`;
 }
 
 /** Small key glyphs, so colour never stands alone: a ring arc for the two laps, a short line for the limit. */
@@ -127,9 +129,13 @@ export default function Hero({ st }: { st: StoryState }) {
   const pct = agg?.load_pct ?? story.nowPct;
   const basePct = story.basePct;
 
-  const taken = takenOff(s, history, tf, limitKw);
-  const nowTaken = taken && taken.at == null ? taken : null;
-  const line = sentence(story, name, nowTaken);
+  const min = Math.max(1, limitKw * 0.02);
+  // ONE story truth: the hero claims kW "right now" only while someone on this street follows and the gap is real.
+  const nowTaken = story.helping ? gapNow(s, tf, min) : null;
+  const past = nowTaken ? null : gapPast(s, history, tf, min);
+  const line = sentence(story, name, nowTaken, s.sim_hour);
+  const loadAbs = Math.abs(pct ?? 0);
+  const word = loadAbs >= 100 ? "Over its limit" : loadAbs >= (s.autopilot?.trigger_pct ?? 85) ? "Near its limit" : "Inside its limit";
   const fp = s.forecast_peak?.[tf] ?? null;
   const trigger = s.autopilot?.trigger_pct ?? 85;
 
@@ -163,36 +169,43 @@ export default function Hero({ st }: { st: StoryState }) {
           </div>
 
           <div className="gzH-fig">
-            {taken ? (
+            {nowTaken ? (
               <div className="gzH-claim">
                 <div className="gzH-big">
-                  <Counter value={taken.kw} src="derived" from={taken.from} style={{ fontVariantNumeric: "proportional-nums" }} />
+                  <Counter value={nowTaken.kw} src="derived" from={nowTaken.from} style={{ fontVariantNumeric: "proportional-nums" }} />
                   <Unit>kW</Unit>
                 </div>
-                <p className="gzH-cap">
-                  {taken.back ? "less solar pushed back" : "taken off this street"}
-                  {taken.at == null ? (
-                    " right now"
-                  ) : (
-                    <>
-                      {" at "}
-                      <span data-src={taken.atSrc ?? undefined}>{hhmm(taken.at)}</span>
-                    </>
-                  )}
-                </p>
+                <p className="gzH-cap">{nowTaken.back ? "less solar pushed back right now" : "taken off this street right now"}</p>
               </div>
             ) : (
               <div className="gzH-claim">
-                <p className="gzH-none">Nothing to take off right now</p>
-                {fp && Math.abs(fp.pct) >= trigger && (
+                <p className="gzH-state">{word}</p>
+                {pct != null && (
                   <p className="gzH-cap">
+                    <span className="gzH-n">
+                      <Counter value={pct} format={absFmt()} src={agg?.load_pct != null ? `${A}/load_pct` : "derived"} from={agg?.load_pct != null ? undefined : `${A}/total_kw / ${limitSrc} * 100`} />
+                      <span className="gzH-u">%</span>
+                    </span>
+                    {" of its limit right now"}
+                  </p>
+                )}
+                {fp && Math.abs(fp.pct) >= trigger && (
+                  <p className="gzH-note">
                     {"Forecast peak "}
                     <span style={{ color: loadTone(fp.pct) }} className="gzH-strong">
                       <Counter value={fp.pct} format={absFmt()} src={`state/forecast_peak/${tf}/pct`} />
-                      <Unit>%</Unit>
+                      {"\u00a0%"}
                     </span>
                     {" at "}
                     <span data-src={`state/forecast_peak/${tf}/h`}>{hhmm(fp.h)}</span>
+                  </p>
+                )}
+                {past && (
+                  <p className="gzH-note">
+                    {"Earlier: "}
+                    <Counter value={past.kw} src="derived" from={past.from} />
+                    {past.back ? "\u00a0kW less solar pushed back at " : "\u00a0kW taken off at "}
+                    <span data-src={past.atSrc ?? undefined}>{hhmm(past.at as number)}</span>
                   </p>
                 )}
               </div>

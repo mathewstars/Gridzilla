@@ -79,23 +79,15 @@ export function signalWindow(s: State, sig: Signal | null | undefined, tNow: num
   return { t0: toT(a), t1: toT(b), seq: sig.seq, key };
 }
 
-/** Plain card title for the curve: what the plan does to this street, in words. */
-export function curveTitle(node: string, plan: FlattenPlan | null | undefined): string {
+/** Plain card title for the curve, from the same story state as the headline (Hero.tsx): solar flowing back right now
+ *  (with or without Gridzilla) names the backflow limit; otherwise the grid hour names what the plan is about. Never
+ *  from the scenario key, so the title, the headline and the clock always agree. */
+export function curveTitle(node: string, simHour: number, story: { nowPct: number | null; basePct: number | null } | null): string {
   const name = nice(node) || "this street";
-  if (!plan) return `${name} with and without Gridzilla`;
-  // The slot where the plan moves the most energy names the part of the day.
-  let k = -1;
-  let most = 0;
-  for (let i = 0; i < plan.naive_kw.length; i++) {
-    const d = Math.abs(plan.naive_kw[i] - plan.planned_kw[i]);
-    if (d > most + 0.01) {
-      most = d;
-      k = i;
-    }
-  }
-  if (k < 0 || most < Math.max(1, plan.rating_kw * 0.02)) return `The plan for the next 24 hours on ${name}`;
-  const h = ((plan.hours[k] % 24) + 24) % 24;
-  if (plan.naive_kw[k] < 0) return `Keeping the midday solar inside the limit on ${name}`;
-  const part = h >= 16 || h < 1 ? "evening" : h < 5 ? "night" : h < 11 ? "morning" : "midday";
-  return `Flattening the ${part} peak on ${name}`;
+  if (!story) return `${name} with and without Gridzilla`;
+  if ((story.nowPct ?? 0) < 0 || (story.basePct ?? 0) < 0) return `Keeping ${name}'s solar inside the backflow limit`;
+  const h = ((simHour % 24) + 24) % 24;
+  if (h >= 15) return `Flattening the evening peak on ${name}`;
+  if (h < 6) return `Tonight's plan for ${name}`;
+  return `Getting ${name} ready for the evening peak`;
 }
