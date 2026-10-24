@@ -249,7 +249,7 @@
     <div class="steps" id="steps"></div>
   </section>
   <section data-tab="story">
-    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin(false)">follow autopilot</button><button id="pin-blatnica" onclick="storyPin(true)">pin Blatnica</button></span> <span class="hint" id="storydelta"></span></h2>
+    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
     <div class="chartbox"><canvas id="storyChart"></canvas></div>
     <div class="legend"><span><i style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i style="background:var(--crit)"></i>transformer rating</span><span><i style="background:var(--acc)"></i>signal window</span></div>
   </section>
@@ -637,10 +637,11 @@ function drawCity() {
 }
 
 // ---------- presentation view
-let storyChart = null, realChart = null, pinBlatnica = false;
-function storyPin(v) { pinBlatnica = v; document.getElementById("pin-auto").classList.toggle("on", !v); document.getElementById("pin-blatnica").classList.toggle("on", v); drawAll(); }
+let storyChart = null, realChart = null, pinMode = "auto";
+function storyPin(v) { pinMode = v; ["auto", "blatnica", "selected"].forEach(m => document.getElementById("pin-" + m).classList.toggle("on", m === v)); drawAll(); }
 function storyNode() {
-  if (pinBlatnica) return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
+  if (pinMode === "blatnica") return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
+  if (pinMode === "selected") return selNode.startsWith("tf:") ? selNode : (Object.keys(S.tree).find(n => n.startsWith("tf:") && pathOf(n).includes(selNode)) || selNode);
   const sent = (S.autopilot && S.autopilot.history || []).find(d => d.verdict === "sent" && d.segment);
   if (!sent) return selNode.startsWith("tf:") ? selNode : "tf:atzgersdorf-1";
   if (sent.segment.startsWith("tf:")) return sent.segment;
@@ -682,7 +683,7 @@ function drawStory() {
   storyChart.options.scales.y.suggestedMax = rating * 1.2; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
   storyChart.update();
   const lastp = nh[nh.length - 1];
-  document.getElementById("storytitle").textContent = `${node} · ${rating} kVA · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW now" : ""}`;
+  document.getElementById("storytitle").textContent = `${node} · ${(S.tree[node].parent || "").split(":")[1]} · ${rating} kVA · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW now" : ""}`;
   document.getElementById("storydelta").innerHTML = lastp && lastp.baseline_kw != null ? `<span class="delta">${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ${a.load_pct}% of rating${act ? " · " + act[1].mode + " active" : ""}</span>` : "";
   // real plant
   const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
@@ -702,7 +703,7 @@ function drawStory() {
   document.getElementById("realsig").innerHTML = (mine ? `<b style="color:var(--acc)">${mine[1].mode}</b> seq ${mine[1].seq} on ${mine[0]} · ` : "owner mode · ") + (ak.status ? `last ack <span class="st-${ak.status}">${ak.status}${ak.reason ? " (" + ak.reason + ")" : ""}</span>${ak.seq ? " seq " + ak.seq : ""} · signature ${ak.verified === false ? "✗" : "✓"}` : "no ack yet");
   // city strip + ticker
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
-  document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}')">${pct == null ? "–" : pct}</div>`; }).join("");
+  document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}'); storyPin('selected')">${pct == null ? "–" : pct}</div>`; }).join("");
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${S.summary.online} households live`;
   document.getElementById("ticker").innerHTML = ap.history.slice(0, 5).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
