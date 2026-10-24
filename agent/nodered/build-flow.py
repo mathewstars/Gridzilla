@@ -17,6 +17,8 @@ ap.add_argument("--tls", action="store_true", help="MQTT over TLS (8883), server
 ap.add_argument("--mqtt-user", default="")
 ap.add_argument("--mqtt-pass", default="")
 ap.add_argument("--evcharger", default="", help="D-Bus instance of a Victron EV Charging Station, e.g. 40; empty = none")
+ap.add_argument("--ess-defaults", default='{"/Settings/CGwacs/AcPowerSetPoint": 90, "/Settings/CGwacs/MaxFeedInPower": 10000, "/Settings/CGwacs/MaxChargePower": -1, "/Settings/CGwacs/MaxDischargePower": 5000}',
+                help="owner's normal ESS values, restored on revert when no live snapshot exists")
 ap.add_argument("--device", default="real-powerplant-blatnica")
 ap.add_argument("--path", nargs="+", default=["region:at", "sub:wien-sued", "feeder:liesing-3", "tf:atzgersdorf-1"])
 a = ap.parse_args()
@@ -35,6 +37,7 @@ broker = add(type="mqtt-broker", z=None, name="gridzilla broker", broker=a.broke
 vclient = add(type="victron-client", z=None, name="venus", showValues=True)
 
 # ------------------------------------------------------------------ function sources
+ess_defaults = a.ess_defaults
 F_INIT = f"""
 // one-time setup: device key (per boot), config, pin the platform key, register
 const dev = {json.dumps(a.device)};
@@ -50,6 +53,7 @@ flow.set("device_pub", crypto.createPublicKey(priv).export({{ type: "spki", form
 const pp = dir + "/platform.pub.pem"; if (fs.existsSync(pp)) flow.set("platform_pub", fs.readFileSync(pp, "utf8"));
 const st = dir + "/state.json"; if (fs.existsSync(st)) {{ const j = JSON.parse(fs.readFileSync(st, "utf8")); flow.set("last_seq", j.last_seq || 0); flow.set("last_hb_seq", j.last_hb_seq || 0); }}
 if (!flow.get("owner")) flow.set("owner", {{ min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }});
+flow.set("ess_defaults", {ess_defaults});
 msg.url = flow.get("platform") + "/api/pubkey"; msg.method = "GET";
 return msg;
 """
@@ -82,7 +86,7 @@ F_APPLY = """
 const W = { "/Settings/CGwacs/MaxFeedInPower": 0, "/Settings/CGwacs/MaxChargePower": 1, "/Settings/CGwacs/MaxDischargePower": 2, "/Settings/CGwacs/AcPowerSetPoint": 3 };
 const out = [null, null, null, null, null, null, null];
 if (msg.payload === "revert") {
-  const saved = flow.get("saved") || {};
+  const saved = Object.assign({}, flow.get("ess_defaults") || {}, flow.get("saved") || {});   // live snapshot wins, owner defaults fill the gaps
   for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };
   const ev = flow.get("ev_saved");
   if (ev) { out[6] = { payload: ev.mode }; out[4] = { payload: ev.setcurrent }; out[5] = { payload: ev.startstop }; flow.set("ev_saved", null); }

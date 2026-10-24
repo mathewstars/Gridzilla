@@ -10,7 +10,8 @@ Env:   GZ_WEATHER=0 disables fetching (offline demo)   GZ_WEATHER_REFRESH_S=900
 - Forecast: Open-Meteo (global, no key), current values and the next 48 hours.
 - Official warnings: MeteoAlarm (EUMETNET, ~38 European countries) is the primary source, chosen by GZ_WEATHER_COUNTRY and
   filtered to the region of the location. The feed carries no area polygons, so the region is matched by EMMA_ID
-  (GZ_WEATHER_AREA) or by the location name; if neither matches, the country-level list is kept.
+  (GZ_WEATHER_AREA) or by the location name; if neither matches, the country-level list is kept and the summary
+  says those warnings are elsewhere in the country.
   In Austria, GeoSphere Austria's coordinate-based warnings are added as a more local source when they work.
   Never invents a warning: if every source fails, the last known list (or an empty one) is served.
 - A background loop refreshes every GZ_WEATHER_REFRESH_S seconds and keeps the last good result (stale: true on failure).
@@ -45,20 +46,26 @@ MA_FEEDS = {"AT": "austria", "BE": "belgium", "BA": "bosnia-herzegovina", "BG": 
 
 
 def configure(tree=None):
-    """Location: env first, then the top registry node that carries lat/lon, then Wien-Liesing."""
+    """Location: env first, then the top registry node that carries lat/lon, then Wien-Liesing.
+    A value that is not a number is logged and the location stays as it was."""
     global AREA
-    nodes = [(n, v) for n, v in (tree or {}).items() if v.get("lat") is not None and v.get("lon") is not None]
-    if nodes:
-        def depth(n):
-            d = 0
-            while tree[n].get("parent"):
-                n, d = tree[n]["parent"], d + 1
-            return d
-        n, v = min(nodes, key=lambda nv: depth(nv[0]))
-        LOC.update(name=v.get("name") or n, lat=float(v["lat"]), lon=float(v["lon"]))
-    LOC["name"] = os.environ.get("GZ_WEATHER_NAME", LOC["name"])
-    LOC["lat"] = float(os.environ.get("GZ_WEATHER_LAT", LOC["lat"]))
-    LOC["lon"] = float(os.environ.get("GZ_WEATHER_LON", LOC["lon"]))
+    try:
+        loc = dict(LOC)
+        nodes = [(n, v) for n, v in (tree or {}).items() if v.get("lat") is not None and v.get("lon") is not None]
+        if nodes:
+            def depth(n):
+                d = 0
+                while tree[n].get("parent"):
+                    n, d = tree[n]["parent"], d + 1
+                return d
+            n, v = min(nodes, key=lambda nv: depth(nv[0]))
+            loc.update(name=v.get("name") or n.split(":", 1)[-1], lat=float(v["lat"]), lon=float(v["lon"]))
+        loc["name"] = os.environ.get("GZ_WEATHER_NAME", loc["name"])
+        loc["lat"] = float(os.environ.get("GZ_WEATHER_LAT", loc["lat"]))
+        loc["lon"] = float(os.environ.get("GZ_WEATHER_LON", loc["lon"]))
+        LOC.update(loc)
+    except Exception as e:
+        print(f"[weather] bad location setting, staying at {LOC['name']} ({LOC['lat']}, {LOC['lon']}): {e}", flush=True)
     if AREA is None and COUNTRY == "AT" and (LOC["lat"], LOC["lon"]) == (48.14, 16.29):
         AREA = "AT923"                  # EMMA_ID of Wien Liesing, the default location
     return LOC
@@ -80,7 +87,8 @@ def iso(dt):
 
 # ---------------------------------------------------------------- parsing
 def parse_open_meteo(d):
-    """Open-Meteo response -> (utc offset s, now dict, hourly list) in the /api/weather field names."""
+    """Open-Meteo response -> (utc offset s, now dict, hourly list) in the /api/weather field names.
+    Hours without a temperature or apparent temperature (JSON null) are dropped."""
     def row(src, i=None):
         g = (lambda k: src[k][i]) if i is not None else (lambda k: src[k])
         return {"temp_c": g("temperature_2m"), "feels_c": g("apparent_temperature"), "cloud_pct": g("cloud_cover"),
@@ -88,7 +96,8 @@ def parse_open_meteo(d):
                 "precip_mm": g("precipitation")}
     h = d["hourly"]
     hourly = [{"time": t, "hour": int(t[11:13]), **row(h, i)} for i, t in enumerate(h["time"])]
-    return d.get("utc_offset_seconds", 0), row(d["current"]), hourly
+    hourly = [r for r in hourly if r["temp_c"] is not None and r["feels_c"] is not None]
+    return d.get("utc_offset_seconds") or 0, row(d["current"]), hourly
 
 
 GS_TYPES = {1: "wind", 2: "rain", 3: "snow", 4: "ice", 5: "thunder", 6: "heat", 7: "frost"}   # warntypid: 1 = storm
@@ -229,8 +238,12 @@ def factors_at(hour):
     """(load_x, pv_x) at grid hour `hour`, linear between whole hours; None without weather data."""
     key = (CACHE["fetched_at"], local_now(CACHE["offset_s"]).hour)
     if _fx["key"] != key:
-        _fx["by_hour"] = {int(r["h"]): (r["load_x"], r["pv_x"]) for r in grid_view(0)}
-        _fx["key"] = key
+        try:
+            by = {int(r["h"]): (r["load_x"], r["pv_x"]) for r in grid_view(0)}
+        except Exception as e:
+            print(f"[weather] no live-weather factors: {e}", flush=True)
+            by = {}
+        _fx["by_hour"], _fx["key"] = by, key
     by = _fx["by_hour"]
     if not by:
         return None
@@ -244,8 +257,9 @@ def factors_at(hour):
 
 
 # ---------------------------------------------------------------- summary
-def summary(view, warnings):
-    """One plain-English sentence about the next 6 grid hours."""
+def summary(view, warnings, sources=()):
+    """One plain-English sentence about the next 6 grid hours. `sources` as in CACHE["warning_sources"]: a
+    country-level MeteoAlarm warning is said to be elsewhere in the country, with its area."""
     if not view:
         return "No weather data." if ENABLED else "Weather is off (GZ_WEATHER=0)."
     six = [dict(r) for r in view[:6]]
@@ -277,16 +291,22 @@ def summary(view, warnings):
     if (gust["gust_kmh"] or 0) >= 60:
         parts.append(f"gusts up to {gust['gust_kmh']:.0f} km/h around {int(gust['h']):02d}:00")
     if warnings:
-        w = warnings[0]
-        parts.append(f"official {w['level']} {w['type']} warning" + (f" (+{len(warnings) - 1} more)" if len(warnings) > 1 else ""))
+        country_wide = "meteoalarm:country" in sources
+        far = lambda w: country_wide and w["source"] == "meteoalarm"
+        w = next((w for w in warnings if not far(w)), warnings[0])
+        text = f"official {w['level']} {w['type']} warning"
+        if far(w):
+            text += f" elsewhere in {COUNTRY}, for {w['title'].split(', ', 1)[-1]}"
+        parts.append(text + (f" (+{len(warnings) - 1} more)" if len(warnings) > 1 else ""))
     return "; ".join(parts) + "."
 
 
 # ---------------------------------------------------------------- fetch and serve
 def fetch_warnings():
-    """MeteoAlarm for the country (primary), plus GeoSphere for the coordinates in Austria.
+    """MeteoAlarm for the country (primary), plus GeoSphere for the coordinates in Austria. A warning both report once
+    is kept as MeteoAlarm's copy for the region, but as GeoSphere's local copy when MeteoAlarm only gave the country list.
     Returns (warnings, sources that answered); an empty source list means every source failed."""
-    out, ok = [], []
+    out, ok, scope = [], [], None
     feed = MA_FEEDS.get(COUNTRY)
     if feed:
         try:
@@ -300,8 +320,13 @@ def fetch_warnings():
     if COUNTRY == "AT":
         try:
             ws = parse_geosphere(get_json(GEOSPHERE.format(lat=LOC["lat"], lon=LOC["lon"])))
-            seen = {(w["type"], w["from"], w["to"]) for w in out}       # the same warning reaches MeteoAlarm from GeoSphere
-            out += [w for w in ws if (w["type"], w["from"], w["to"]) not in seen]
+            same = lambda w: (w["type"], w["from"], w["to"])      # the same warning reaches MeteoAlarm from GeoSphere
+            if scope == "country":
+                local = {same(w) for w in ws}
+                out = [w for w in out if same(w) not in local] + ws
+            else:
+                seen = {same(w) for w in out}
+                out += [w for w in ws if same(w) not in seen]
             ok.append("geosphere")
         except Exception as e:
             print(f"[weather] GeoSphere warnings failed: {e}", flush=True)
@@ -309,24 +334,28 @@ def fetch_warnings():
 
 
 def refresh():
+    """Forecast and warnings, each kept from the last good fetch when its source fails. True if the forecast came."""
     q = urllib.parse.urlencode({"latitude": LOC["lat"], "longitude": LOC["lon"], "timezone": "auto",
                                 "forecast_hours": 48, "hourly": VARS, "current": VARS})
     try:
         offset, cur, hourly = parse_open_meteo(get_json(f"{FORECAST_URL}?{q}"))
+        error = None
     except Exception as e:
-        with _lock:
-            CACHE["stale"], CACHE["error"] = True, f"forecast: {e}"
+        error = f"forecast: {e}"
         print(f"[weather] forecast fetch failed, serving last good data: {e}", flush=True)
-        return False
     warnings, ok = fetch_warnings()
     with _lock:
-        CACHE.update({"fetched_at": iso(datetime.now(timezone.utc)), "stale": False, "offset_s": offset,
-                      "now": cur, "hourly": hourly, "error": None})
+        if error:
+            CACHE["stale"], CACHE["error"] = True, error
+        else:
+            CACHE.update({"fetched_at": iso(datetime.now(timezone.utc)), "stale": False, "offset_s": offset,
+                          "now": cur, "hourly": hourly, "error": None})
         if ok:                       # every warning source down: keep the last list we know
             CACHE["warnings"], CACHE["warning_sources"] = warnings, ok
-    print(f"[weather] {LOC['name']}: {cur['temp_c']} °C, {len(hourly)} h forecast, {len(warnings)} warnings "
+    forecast = "no forecast" if error else f"{cur['temp_c']} °C, {len(hourly)} h forecast"
+    print(f"[weather] {LOC['name']}: {forecast}, {len(warnings)} warnings "
           f"({', '.join(ok) or 'no warning source answered'})", flush=True)
-    return True
+    return error is None
 
 
 def loop(tree=None):
@@ -354,18 +383,23 @@ def snapshot(sim_h):
         view, warnings = grid_view(sim_h), active_warnings()
         return {"location": dict(LOC), "source": "open-meteo",
                 "fetched_at": CACHE["fetched_at"], "stale": CACHE["stale"], "now": CACHE["now"],
-                "hourly": CACHE["hourly"], "warnings": warnings, "summary": summary(view, warnings),
+                "hourly": CACHE["hourly"], "warnings": warnings,
+                "summary": summary(view, warnings, CACHE["warning_sources"]),
                 "grid_view": [{k: r[k] for k in ("h", "temp_c", "sun_wm2", "cloud_pct", "wind_kmh", "load_x", "pv_x")}
                               for r in view]}
 
 
 def llm_context(sim_h):
-    """Compact weather block for DeepSeek, None without data."""
-    with _lock:
-        view, warnings = grid_view(sim_h), active_warnings()
-        if not view:
-            return None
-        return {"summary": summary(view, warnings), "stale": CACHE["stale"],
-                "next_6_grid_hours": [{k: r[k] for k in ("h", "temp_c", "feels_c", "sun_wm2", "wind_kmh", "load_x", "pv_x")}
-                                      for r in view[:6]],
-                "warnings": [{k: w[k] for k in ("level", "type", "title", "from", "to")} for w in warnings]}
+    """Compact weather block for DeepSeek, None without data or when it cannot be built."""
+    try:
+        with _lock:
+            view, warnings = grid_view(sim_h), active_warnings()
+            if not view:
+                return None
+            return {"summary": summary(view, warnings, CACHE["warning_sources"]), "stale": CACHE["stale"],
+                    "next_6_grid_hours": [{k: r[k] for k in ("h", "temp_c", "feels_c", "sun_wm2", "wind_kmh", "load_x", "pv_x")}
+                                          for r in view[:6]],
+                    "warnings": [{k: w[k] for k in ("level", "type", "title", "from", "to")} for w in warnings]}
+    except Exception as e:
+        print(f"[weather] no weather context for the autopilot: {e}", flush=True)
+        return None

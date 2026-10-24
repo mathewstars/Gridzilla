@@ -90,7 +90,9 @@ function profiles(h) {
   const pv = (h.cfg.pv_kwp ?? 6) * sun * 0.7;
   const ev = h.cfg.ev || {};                                   // {kw, plugged:[from,to]} car at home and wanting charge
   const plugged = ev.kw && hour >= (ev.plugged?.[0] ?? 17) && hour < (ev.plugged?.[1] ?? 23);
-  return { load, pv, evMax: plugged ? ev.kw : 0 };
+  if (plugged && h.evDay !== Math.floor(h.simMinutes / 1440)) { h.evDay = Math.floor(h.simMinutes / 1440); h.evNeedKwh = 6 + Math.random() * 20; }   // a commute: 6-26 kWh per day
+  const wants = plugged && (h.evNeedKwh || 0) > 0;
+  return { load, pv, evMax: wants ? ev.kw : 0 };
 }
 
 // Envelope curve: per-slot ceilings that replace the flat import/export caps while the signal runs.
@@ -103,7 +105,8 @@ function currentLimits(h) {
   const i = clamp(Math.floor((Date.now() - Date.parse(h.signal.valid_from)) / 1000 / env.slot_s), 0, Infinity);
   const pick = a => (Array.isArray(a) && a.length ? a[Math.min(i, a.length - 1)] : null);
   const out = { ...e, slot: i };
-  const imp = pick(env.import_max_kw), exp = pick(env.export_max_kw);
+  const mine = env.by_tf && env.by_tf[h.cfg.path[h.cfg.path.length - 1]];   // per-transformer curve beats the segment-wide one
+  const imp = pick(mine && env.import_max_kw ? mine : env.import_max_kw), exp = pick(mine && env.export_max_kw ? mine : env.export_max_kw);
   if (imp != null) out.import_max_kw = imp;
   if (exp != null) out.export_max_kw = Math.min(exp, h.cfg.feedin_max_kw);
   return out;
@@ -147,6 +150,7 @@ function step(h) {
   h.hp_kw = hp;
   const load = houseLoad + ev + hp;
   h.ev_kw = ev;
+  if (ev > 0) h.evNeedKwh = Math.max(0, (h.evNeedKwh || 0) - ev * dtH);      // the car fills up and stops
   const islanded = e.mode === "STRETCH";
   let chargeMax = Math.min(cfg.kw, o.max_charge_kw, e.charge_max_kw ?? Infinity);
   let dischargeMax = Math.min(cfg.kw, o.max_discharge_kw, e.discharge_max_kw ?? Infinity);
@@ -157,6 +161,14 @@ function step(h) {
   let surplus = pv - load;
   let batt = surplus > 0 ? Math.min(surplus, chargeMax) : -Math.min(-surplus, dischargeMax); // + charge, - discharge
   let grid = load - pv + batt;                                                                // + import, - export
+  // counterfactual "without Gridzilla": full EV, thermal loads at their normal setpoints, battery in plain self-consumption
+  {
+    const evOwner = evMax, hpOwner = heats.reduce((sum, ht, i) => sum + ((h.tanks[i] && h.tanks[i].c < ht.dhw_set_c - 5) || (h.tanks[i] && h.tanks[i].heating && !h.effective) ? ht.kw : 0), 0);
+    const loadOwner = houseLoad + evOwner + hpOwner, sOwner = pv - loadOwner;
+    const cMax = Math.min(cfg.kw, o.max_charge_kw) * (h.soc >= 100 ? 0 : 1), dMax = Math.min(cfg.kw, o.max_discharge_kw) * (h.soc <= o.min_soc ? 0 : 1);
+    const bOwner = sOwner > 0 ? Math.min(sOwner, cMax) : -Math.min(-sOwner, dMax);
+    h.grid_owner_kw = loadOwner - pv + bOwner;
+  }
 
   if (islanded) {
     // street is dead: no grid at all; the battery covers what dischargeMax allows, the rest of the load is shed
@@ -302,7 +314,7 @@ function onSignal(h, env, platformPub) {
     setInterval(() => step(h), 1000);
     setInterval(() => h.mq.publish(`gridzilla/state/${cfg.id}`, JSON.stringify({
       soc: +h.soc.toFixed(1), grid_kw: +h.grid_kw.toFixed(2), load_kw: +h.load_kw.toFixed(2), pv_kw: +h.pv_kw.toFixed(2),
-      batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2),
+      batt_kw: +h.batt_kw.toFixed(2), ev_kw: +(h.ev_kw || 0).toFixed(2), hp_kw: +(h.hp_kw || 0).toFixed(2), grid_owner_kw: +(h.grid_owner_kw ?? h.grid_kw).toFixed(2),
       dhw_c: h.dhw_c != null ? +h.dhw_c.toFixed(1) : null, dhw_set_c: h.dhw_set_c ?? null, boiler_c: h.boiler_c != null ? +h.boiler_c.toFixed(1) : null,
       heat: (Array.isArray(cfg.heat) ? cfg.heat : (cfg.heat ? [cfg.heat] : [])).map(x => x.type).join("+") || null, ev: cfg.ev ? cfg.ev.kw : 0, mode: h.effective ? h.effective.mode : "owner",
       imp_cap_kw: currentLimits(h).import_max_kw ?? null, exp_cap_kw: currentLimits(h).export_max_kw ?? null, sim_hour: +((h.simMinutes / 60) % 24).toFixed(2), ts: nowIso() })), 10000);
