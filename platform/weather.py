@@ -10,8 +10,8 @@ Env:   GZ_WEATHER=0 disables fetching (offline demo)   GZ_WEATHER_REFRESH_S=900 
 - Forecast: Open-Meteo (global, no key), current values and the next 48 hours.
 - Official warnings: MeteoAlarm (EUMETNET, ~38 European countries) is the primary source, chosen by GZ_WEATHER_COUNTRY and
   filtered to the region of the location. The feed carries no area polygons, so the region is matched by EMMA_ID
-  (GZ_WEATHER_AREA) or by the location name; if neither matches, the country-level list is kept and the summary
-  says those warnings are elsewhere in the country.
+  (GZ_WEATHER_AREA) or else by the location name; if the name matches no area, the country-level list is kept and
+  the summary says those warnings are elsewhere in the country.
   In Austria, GeoSphere Austria's coordinate-based warnings are added as a more local source when they work.
   Never invents a warning: if every source fails, the last known list (or an empty one) is served.
 - A background loop refreshes every GZ_WEATHER_REFRESH_S seconds and keeps the last good result (stale: true on failure).
