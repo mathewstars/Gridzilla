@@ -677,16 +677,19 @@ function drawStory() {
   storyChart.data.labels = nh.map(p => hhmm(p.h));
   storyChart.data.datasets[0].data = nh.map(p => p.total_kw);
   storyChart.data.datasets[1].data = nh.map(p => p.baseline_kw ?? p.total_kw);
-  storyChart.data.datasets[2].data = nh.map(() => rating);
+  const dataMax = Math.max(1, ...nh.map(p => Math.max(p.total_kw, p.baseline_kw ?? p.total_kw)));
+  const ratingNear = rating && rating < dataMax * 2.2;                                   // only draw the rating when the load can reach it
+  storyChart.data.datasets[2].data = nh.map(() => ratingNear ? rating : null);
   const act = Object.entries(S.active).find(([n]) => pathOf(node).includes(n));
   const recent = Object.entries(S.recent || {}).filter(([n]) => pathOf(node).includes(n) || pathOf(n).includes(node)).sort((x, y) => Date.parse(y[1].valid_from) - Date.parse(x[1].valid_from))[0];
   const shown = act || recent;
   const win = shown ? [Date.parse(shown[1].valid_from), Date.parse(shown[1].ended_at || shown[1].valid_to)] : null;
-  storyChart.data.datasets[3].data = nh.map(p => { const t = Date.parse(p.ts); return win && t >= win[0] && t <= win[1] ? rating * 1.15 : null; });
-  storyChart.options.scales.y.suggestedMax = rating * 1.2; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
+  const top = ratingNear ? rating * 1.15 : dataMax * 1.15;
+  storyChart.data.datasets[3].data = nh.map(p => { const t = Date.parse(p.ts); return win && t >= win[0] && t <= win[1] ? top : null; });
+  storyChart.options.scales.y.suggestedMax = top; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
   storyChart.update();
+  document.getElementById("storytitle").textContent = (node.startsWith("region") ? `Vienna · all 72 transformers` : `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""}`) + ` · ${rating >= 10000 ? (rating / 1000).toFixed(0) + " MVA" : rating + " kVA"}${ratingNear ? "" : " (rating off scale)"}`;
   const lastp = nh[nh.length - 1];
-  document.getElementById("storytitle").textContent = node.startsWith("region") ? `Vienna · all 72 transformers · ${(rating / 1000).toFixed(1)} MVA` : `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""} · ${rating} kVA`;
   const hr = S.sim_hour, tod = hr < 5 ? "night" : hr < 9 ? "morning ramp" : hr < 16 ? "midday, PV" : hr < 22 ? "evening peak" : "late evening";
   const f = sig => ALL.filter(k => sig[k] != null).map(k => `${k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ")}${sig[k]} kW`).join(", ");
   const sigTxt = act ? `<b style="color:var(--acc)">${act[1].mode} active</b> on ${act[0].split(":")[1]} · seq ${act[1].seq} · ${f(act[1])} · until ${act[1].valid_to.slice(11, 16)}`
