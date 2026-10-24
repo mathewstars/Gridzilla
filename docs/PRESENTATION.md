@@ -1,10 +1,69 @@
-# Gridzilla pitch: 12 minutes, run of show and script
+# Gridzilla pitch: run of show and script
 
 Deck: `docs/Gridzilla-pitch.pptx` (the PDF has no audio). Jingle: embedded on slide 1, also `docs/Gridzilla-jingle.m4a`.
 Three windows open before you start: the deck, the board at https://gridzilla.victronlab.sk, VRM with the Blatnica plant.
 Board: Presentation tab, chip VIENNA, "follow autopilot" on. Check the clock top right says "sim" and the heartbeat pill is green.
 
 Speaker roles are a suggestion: M = Mathew (story, demo), P = Peter (autopilot, guard, diet plan), MT = Matthew (weather, production).
+
+## Five minutes
+
+Seven slides presented, the other eight sit in the appendix for questions. The jingle costs 30 seconds and earns them back: it is the only thing the jury will remember from the first minute.
+
+| time | slide | speaker | beat |
+|---|---|---|---|
+| 0:00 | 1 Title | M | Jingle, 30 s, say nothing. |
+| 0:30 | 2 Problem | M | The storage exists, the signal does not. |
+| 1:00 | 3 The idea | M | One signed, bounded limit. Owner wins. Meter enforces. |
+| 1:45 | 4 The diet | P | Monster on a diet, water-filling in one breath. |
+| 2:30 | 5 Live demo | M + P | Board: Vienna curve, one DeepSeek decision, Flattening tab, Blatnica, heartbeat. 90 s. |
+| 4:00 | 6 Real vs modelled | MT | Measured numbers, honest counterfactual. |
+| 4:30 | 7 Close | M | The ask. "It eats peaks for breakfast." Stop. |
+| appendix | signals, household, autopilot, built, vendors, production, old curve, security | | For questions. |
+
+### Script, five minutes
+
+**1. Title (0:00 to 0:30).** Click the speaker. Say nothing until the hard cut. Then:
+
+> Gridzilla. A grid signal that home batteries, cars and heat pumps follow. Running tonight on a real plant in Slovakia and a simulated Vienna of two thousand houses.
+
+**2. Problem (0:30 to 1:00).**
+
+> Europe's largest battery is in people's basements: home batteries, cars with a plug, heat pumps. Gigawatt hours of storage, gigawatts of flexible load. The grid can use none of it. Slovakia has no signal at all. Germany has a dimmer switch on one device. Ukraine had three gigawatt hours of home storage sitting idle through the blackouts. The storage exists. The signal does not.
+
+**3. The idea (1:00 to 1:45).**
+
+> One signed, bounded signal. The operator says: this street, next three hours, import at most three kilowatts per house. Never "discharge now", never a setpoint. The house decides how: battery first, car second, hot water third. The owner's limits always win; the signal can tighten, never loosen. If the platform goes silent, every house reverts in two minutes. The meter enforces it, because a limit is something a meter can check. Payment follows the meter. Who sends it? DeepSeek proposes every fifteen minutes, a thirty-line deterministic guard disposes, the platform signs.
+
+**4. The diet (1:45 to 2:30).**
+
+> Gridzilla eats peaks. But it is on a diet: it eats exactly the slice above a level L, not a watt more. The algorithm in one breath: forecast what nobody controls, count the flexible energy, the cars that must be full by morning and the batteries, then water-fill: the lowest level where the cars fit in the valley below and the peak above fits in the batteries. Two ceilings per house per fifteen minutes, all night, renewed every two hours from the real weather. A car plugged in at six trickles through dinner and gulps at two a.m. The transformer sleeps at seventy percent instead of one hundred and ten.
+
+**5. Live demo (2:30 to 4:00).** Alt-tab to the board. Talk while clicking.
+
+1. Presentation, VIENNA chip: *"Seventy-two transformers, two hundred seventy-two households live, one of them real. Blue is the city, grey is the same houses without Gridzilla, orange is the peak eaten."*
+2. The four tiles: *"Sense, the forecast. Decide, DeepSeek's signal and its reasoning. Guard, within policy. Signed, on the wire."*
+3. Flattening tab, VIENNA, then click one street: *"Tonight's plan: without, with, the level, cars full by seven."*
+4. Presentation, "pin Blatnica": *"The real plant: grid, battery, the charger, the heat pump's tank, live from the Cerbo and ViCare, last ack signature verified."*
+5. Autopilot tab, "pause heartbeat", watch the pill go red: *"The operator goes dark. Every house reverts to owner mode. Nobody can hold your battery hostage."* Resume.
+
+Back to the deck.
+
+**6. Real vs modelled (4:00 to 4:30).**
+
+> What is real: the signal path, a Victron plant and a Viessmann heat pump moving on a signed message, the algorithm on the fleet. What is modelled: the fleet, two thousand houses, honest counterfactual, same cars, realistic charging. Measured tonight: one street thirty-one percent off its peak, Vienna with two thousand enrolled houses five megawatts off, a street where no car charged, zero. The gap is the cars and the batteries, nothing else.
+
+**7. Close (4:30 to 5:00).**
+
+> What we need is a street transformer to pilot on, this winter. Enrolment is two weeks, a second vendor one week, we own the plant. After that: streets that island on grid-forming inverters, rationed by the same signal. Gridzilla. It eats peaks for breakfast. Thank you.
+
+Stop. Questions. The appendix slides answer most of them: production (effort, cost, saving), security, vendors and incentives, the six signals.
+
+---
+
+## Long version, twelve minutes
+
+Kept for a longer slot. Same deck; the appendix slides come back into the flow in this order.
 
 | time | slide | speaker | beat |
 |---|---|---|---|
