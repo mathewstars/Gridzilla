@@ -37,7 +37,9 @@ Seven slides presented, the other eight sit in the appendix for questions. The j
 
 **4. The diet (1:45 to 2:30).**
 
-> Gridzilla eats peaks. But it is on a diet: it eats exactly the slice above a level L, not a watt more. The algorithm in one breath: forecast what nobody controls, count the flexible energy, the cars that must be full by morning and the batteries, then water-fill: the lowest level where the cars fit in the valley below and the peak above fits in the batteries. Two ceilings per house per fifteen minutes, all night, renewed every two hours from the real weather. A car plugged in at six trickles through dinner and gulps at two a.m. The transformer sleeps at seventy percent instead of one hundred and ten.
+> Gridzilla eats peaks. Every street, every evening. At six the cars come home and the transformer would go to a hundred and ten percent. With Gridzilla it stays at seventy. The cars still charge, just not all at dinner: a car plugged in at six trickles through the evening and fills up at two in the morning, full by seven. The batteries eat the dinner spike. The sun at noon goes into the batteries instead of the feeder. Nobody at home notices. And the operator never buys that bigger transformer. Planned every two hours from the real weather forecast, for the whole city, by thirty lines of code, not by the AI.
+
+If a juror asks how: "valley filling, the textbook method: pour the car charging into the night until it is flat, let the batteries cut the dinner hill to the same level."
 
 **5. Live demo (2:30 to 4:00).** Alt-tab to the board. Talk while clicking.
 
