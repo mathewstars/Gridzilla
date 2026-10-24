@@ -152,9 +152,13 @@
     .views { order:10; flex:1 0 100%; margin:2px 0 0; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
     .views::-webkit-scrollbar { display:none; }
     .views button { flex:0 0 auto; padding:8px 12px; min-height:36px; }
-    main, main[data-view] { display:grid; grid-template-columns:1fr !important; grid-template-rows:none !important; grid-auto-rows:auto; padding:10px 12px 24px; gap:10px; }
+    body { overflow-x:hidden; }
+    main, main[data-view] { display:grid; grid-template-columns:minmax(0, 1fr) !important; grid-template-rows:none !important; grid-auto-rows:auto; padding:10px 12px 24px; gap:10px; overflow-x:hidden; }
     .span3 { grid-column:1; }
-    section { overflow:visible; min-height:auto; }
+    section { overflow:visible; min-height:auto; max-width:100%; min-width:0; }
+    section > * { min-width:0; max-width:100%; }
+    .ticker div, .step .v, .tile .v { white-space:normal; }
+    canvas { max-width:100%; }
     section.scroll { overflow:visible; }
     section[data-tab="homes"] { overflow-x:auto; }
     h2 { flex-wrap:wrap; }
