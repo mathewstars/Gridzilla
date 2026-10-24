@@ -248,7 +248,7 @@
     <div class="steps" id="steps"></div>
   </section>
   <section data-tab="story">
-    <h2><span id="storytitle">Transformer</span> <span class="hint" id="storydelta"></span></h2>
+    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin(false)">follow autopilot</button><button id="pin-blatnica" onclick="storyPin(true)">pin Blatnica</button></span> <span class="hint" id="storydelta"></span></h2>
     <div class="chartbox"><canvas id="storyChart"></canvas></div>
     <div class="legend"><span><i style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i style="background:var(--crit)"></i>transformer rating</span><span><i style="background:var(--acc)"></i>signal window</span></div>
   </section>
@@ -638,8 +638,10 @@ function drawCity() {
 }
 
 // ---------- presentation view
-let storyChart = null, realChart = null;
+let storyChart = null, realChart = null, pinBlatnica = false;
+function storyPin(v) { pinBlatnica = v; document.getElementById("pin-auto").classList.toggle("on", !v); document.getElementById("pin-blatnica").classList.toggle("on", v); drawAll(); }
 function storyNode() {
+  if (pinBlatnica) return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
   const sent = (S.autopilot && S.autopilot.history || []).find(d => d.verdict === "sent" && d.segment);
   if (!sent) return selNode.startsWith("tf:") ? selNode : "tf:atzgersdorf-1";
   if (sent.segment.startsWith("tf:")) return sent.segment;
