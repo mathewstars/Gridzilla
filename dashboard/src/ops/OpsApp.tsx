@@ -7,6 +7,7 @@ import Sidebar, { type Route } from "./shell/Sidebar";
 import TopBar from "./shell/TopBar";
 import CityColumn from "./cols/CityColumn";
 import NowPanel from "./now/NowPanel";
+import DemoView from "./demo/DemoView";
 import FeedStrip from "./now/FeedStrip";
 import OtherView from "./views/OtherView";
 import "./ops.css";
@@ -15,7 +16,7 @@ import { applyTheme, initialTheme } from "./theme";
 // Theme before the first paint, so the console never flashes light.
 applyTheme(initialTheme());
 
-const ROUTES: Route[] = ["ops", "city", "autopilot", "manual", "households", "plant", "weather", "log", "present"];
+const ROUTES: Route[] = ["ops", "demo", "city", "autopilot", "manual", "households", "plant", "weather", "log", "present"];
 const routeOf = (): Route => {
   const r = location.hash.replace(/^#\/?/, "") as Route;
   return ROUTES.includes(r) ? r : "ops";
@@ -48,10 +49,12 @@ function Console({ route }: { route: Route }) {
     );
   return (
     <div className="ops">
-      <Sidebar route={route} ops={ops} />
+      <Sidebar route={route} ops={ops} rail={route === "demo"} />
       <div className="ops-main">
-        <TopBar ops={ops} />
-        {route === "ops" ? (
+        <TopBar ops={ops} compact={route === "demo"} />
+        {route === "demo" ? (
+          <main className="ops-demo"><DemoView ops={ops} /></main>
+        ) : route === "ops" ? (
           // Two-column hierarchy: the city and its curve on the left, one Now panel on the right with the newest three
           // events in a strip under it; the composer opens in a drawer from the Now panel.
           <main className="ops-cols">

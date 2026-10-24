@@ -62,7 +62,8 @@ function Segmented({ id, opts, value, wait, onPick, label }: { id: string; opts:
 
 type Want = { scenario?: string; mode?: string; paused?: boolean };
 
-export default function TopBar({ ops }: { ops: Ops }) {
+/** compact: only the grid clock, scenario, heartbeat with Pause/Resume and the theme icon (demo mode). */
+export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: boolean }) {
   const s = ops.s;
   const [theme, setTheme] = useTheme();
   const [want, setWant] = useState<Want>({});
@@ -126,7 +127,7 @@ export default function TopBar({ ops }: { ops: Ops }) {
   const WxIcon = now && (now.cloud_pct ?? 0) > 60 ? Cloud : CloudSun;
 
   return (
-    <header className="tb">
+    <header className={`tb${compact ? " is-compact" : ""}`}>
       <div className="tb-clock" title="Grid time: the simulated city runs faster than the wall clock">
         <span className="tb-cap">Grid</span>
         <b data-src="state.sim_hour">{clock(s.sim_hour)}</b>
@@ -143,17 +144,19 @@ export default function TopBar({ ops }: { ops: Ops }) {
           onPick={(v) => act("scenario", v, `scenario/${v}`, undefined, "Scenario not changed")}
         />
       </div>
-      <div className="tb-grp">
-        <span className="tb-cap">Autopilot</span>
-        <Segmented
-          id="tb-ap"
-          label="Autopilot mode"
-          opts={MODES}
-          value={mode}
-          wait={busy === "mode" ? want.mode ?? null : null}
-          onPick={(v) => act("mode", v, "autopilot", { mode: v }, "Autopilot mode not changed")}
-        />
-      </div>
+      {!compact && (
+        <div className="tb-grp">
+          <span className="tb-cap">Autopilot</span>
+          <Segmented
+            id="tb-ap"
+            label="Autopilot mode"
+            opts={MODES}
+            value={mode}
+            wait={busy === "mode" ? want.mode ?? null : null}
+            onPick={(v) => act("mode", v, "autopilot", { mode: v }, "Autopilot mode not changed")}
+          />
+        </div>
+      )}
       <span className="tb-sep" />
       <Chip
         className={`hb ${paused ? "is-dark" : "is-ok"}`}
@@ -171,12 +174,14 @@ export default function TopBar({ ops }: { ops: Ops }) {
           {paused ? "Resume" : "Pause"}
         </button>
       </Chip>
-      <Chip title="Signals signed by the platform since it started (sequence number of the last one)">
-        <PenNib size={14} weight="bold" />
-        <span data-src="state.seq">{signed.toLocaleString("en-US")}</span>
-        <span className="t">signed</span>
-      </Chip>
-      {wx.available && now ? (
+      {!compact && (
+        <Chip title="Signals signed by the platform since it started (sequence number of the last one)">
+          <PenNib size={14} weight="bold" />
+          <span data-src="state.seq">{signed.toLocaleString("en-US")}</span>
+          <span className="t">signed</span>
+        </Chip>
+      )}
+      {compact ? null : wx.available && now ? (
         <Chip title={wx.data?.summary ?? `Weather in ${place}`}>
           <WxIcon size={15} weight="bold" />
           <span>{Math.round(now.temp_c)}°C</span>

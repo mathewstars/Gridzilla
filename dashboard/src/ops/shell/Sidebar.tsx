@@ -12,6 +12,7 @@ import {
   List,
   ListBullets,
   PresentationChart,
+  ProjectorScreenChart,
   Robot,
   SlidersHorizontal,
   SolarPanel,
@@ -20,7 +21,7 @@ import {
 import type { Ops } from "../useOps";
 import "./shell.css";
 
-export type Route = "ops" | "city" | "autopilot" | "manual" | "households" | "plant" | "weather" | "log" | "present";
+export type Route = "ops" | "city" | "autopilot" | "manual" | "households" | "plant" | "weather" | "log" | "present" | "demo";
 
 type Item = { r: Route; label: string; icon: Icon };
 const SECTIONS: { label: string; items: Item[] }[] = [
@@ -42,12 +43,25 @@ const SECTIONS: { label: string; items: Item[] }[] = [
       { r: "log", label: "Log", icon: ListBullets },
     ],
   },
-  { label: "Show", items: [{ r: "present", label: "Presentation", icon: PresentationChart }] },
+  {
+    label: "Show",
+    items: [
+      { r: "present", label: "Presentation", icon: PresentationChart },
+      { r: "demo", label: "Demo", icon: ProjectorScreenChart },
+    ],
+  },
 ];
 
 const href = (r: Route) => (r === "ops" ? "#/" : `#/${r}`);
 
-export default function Sidebar({ route, ops }: { route: Route; ops: Ops }) {
+// Key D anywhere in the console flips between the demo view and Operations (never while typing in a field).
+function typing(t: EventTarget | null) {
+  const el = t as HTMLElement | null;
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+}
+
+/** rail: always the thin icon rail (the < 1240 px look) at every width above phones; phones keep their top header. */
+export default function Sidebar({ route, ops, rail = false }: { route: Route; ops: Ops; rail?: boolean }) {
   const s = ops.s;
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -60,6 +74,16 @@ export default function Sidebar({ route, ops }: { route: Route; ops: Ops }) {
 
   // Phones: the menu closes once a section is picked.
   useEffect(() => setOpen(false), [route]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "d" && e.key !== "D") return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || e.defaultPrevented || typing(e.target)) return;
+      e.preventDefault();
+      window.location.hash = /^#\/demo\b/.test(window.location.hash) ? "#/" : "#/demo";
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const current = SECTIONS.flatMap((x) => x.items).find((i) => i.r === route)?.label ?? "Operations";
 
   const extra = (r: Route) => {
@@ -72,7 +96,7 @@ export default function Sidebar({ route, ops }: { route: Route; ops: Ops }) {
   };
 
   return (
-    <nav className={`sb${open ? " is-open" : ""}`} aria-label="Console sections">
+    <nav className={`sb${rail ? " is-rail" : ""}${open ? " is-open" : ""}`} aria-label="Console sections">
       <a className="sb-brand" href="#/" aria-label="Gridzilla operations">
         <span className="sb-logo"><Lightning size={16} weight="fill" /></span>
         <span className="sb-brand-txt">

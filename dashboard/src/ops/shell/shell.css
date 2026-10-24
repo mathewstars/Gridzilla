@@ -94,6 +94,25 @@
   .sb { overflow: visible; }
 }
 
+/* the same rail at every width above phones when the view asks for it (demo mode: <Sidebar rail />) */
+@media (min-width: 761px) {
+  .sb.is-rail { width: 60px; padding: 12px 8px; align-items: stretch; overflow: visible; }
+  .sb.is-rail .sb-brand { justify-content: center; padding: 4px 0 12px; }
+  .sb.is-rail :is(.sb-brand-txt, .sb-lbl, .sb-foot-txt) { display: none; }
+  .sb.is-rail .sb-sec { display: block; height: 10px; padding: 0; font-size: 0; }
+  .sb.is-rail .sb-item { justify-content: center; padding: 0; height: 40px; }
+  .sb.is-rail :is(.sb-badge, .sb-item > .sb-dot) { position: absolute; z-index: 2; top: 3px; right: 3px; min-width: 15px; height: 15px; font-size: max(12px, 0.5625rem); padding: 0 3px; }
+  .sb.is-rail .sb-item > .sb-dot { width: 7px; height: 7px; min-width: 0; padding: 0; top: 6px; right: 8px; }
+  .sb.is-rail .sb-foot { justify-content: center; padding: 10px 0 2px; }
+  .sb.is-rail .sb-item::after {
+    content: attr(data-label); position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%);
+    padding: 4px 9px; border-radius: 7px; background: var(--color-ink); color: var(--color-card);
+    font-size: max(12px, 0.75rem); font-weight: 500; white-space: nowrap; pointer-events: none;
+    opacity: 0; visibility: hidden; transition: opacity 120ms var(--sh-ease), transform 120ms var(--sh-ease);
+  }
+  .sb.is-rail .sb-item:hover::after, .sb.is-rail .sb-item:focus-visible::after { opacity: 1; visibility: visible; transform: translate(0, -50%); }
+}
+
 /* phones: a top bar with the current section and a Menu button that opens the full list in place (no sideways scroll) */
 .sb-menu, .sb-cur { display: none; }
 @media (max-width: 760px) {

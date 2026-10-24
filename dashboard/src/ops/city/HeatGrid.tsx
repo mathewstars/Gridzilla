@@ -1,6 +1,7 @@
 // The city heat grid: every transformer as one cell, grouped by substation (rows) and feeder (three per row). The number
 // is the live load in % of its limit, the tint says what it means (green inside, orange from 85 %, red at or over 100 %
-// in either direction), the bar under the number fills with the load. A dot = an active signal covers it, a ring = the
+// in either direction), the bar under the number fills with the load. The number only shows from 50 % (either direction)
+// or on the selected tile, so a quiet city reads as colour; the tooltip says it in words ("exporting 22 % of its limit"). A dot = an active signal covers it, a ring = the
 // diet plan eats a peak there. Hover or focus shows a plain tooltip, click selects it for the whole console.
 import { useMemo, useRef, useState } from "react";
 import type { Flatten, State } from "../../api";
@@ -15,6 +16,9 @@ function tint(pct: number | null) {
   const amt = p >= 100 ? 30 : p >= 85 ? 24 : 14;
   return `color-mix(in srgb, ${loadTone(pct)} ${amt}%, var(--color-card))`;
 }
+
+/** "taking 46 % of its limit" / "exporting 22 % of its limit" (negative load = the street pushes solar back). */
+const loadWords = (pct: number | null) => (pct == null ? "no load reading" : `${pct < 0 ? "exporting" : "taking"} ${Math.abs(pct)} % of its limit`);
 
 interface Tip { cell: TfCell; x: number; y: number; below: boolean }
 
@@ -71,6 +75,7 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
                   {f.tfs.map((c) => {
                     const sel = c.id === selected;
                     const p = Math.abs(c.pct ?? 0);
+                    const showNum = sel || p >= 50;
                     return (
                       <button
                         key={c.id}
@@ -78,16 +83,18 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
                         role="gridcell"
                         className={`cg-cell num${sel ? " is-sel" : ""}`}
                         style={{ background: tint(c.pct) }}
-                        aria-label={`${nice(c.id)}: ${c.pct ?? "no"} % of its limit${c.signal ? `, signal ${c.signal.mode}` : ""}`}
+                        aria-label={`${nice(c.id)}: ${loadWords(c.pct)}${c.signal ? `, signal ${c.signal.mode}` : ""}`}
                         aria-pressed={sel}
                         onClick={() => onSelect(c.id)}
                         onMouseEnter={(e) => show(c, e.currentTarget)}
                         onFocus={(e) => show(c, e.currentTarget)}
                         onBlur={() => setTip(null)}
                       >
-                        <span className="cg-pct" style={{ color: p >= 100 ? P.red : undefined }}>
-                          {c.pct == null ? "–" : c.pct < 0 ? `−${p}` : p}
-                        </span>
+                        {showNum && (
+                          <span className="cg-pct" style={{ color: p >= 100 ? P.red : undefined }}>
+                            {c.pct == null ? "–" : c.pct < 0 ? `−${p}` : p}
+                          </span>
+                        )}
                         <span className="cg-bar" style={{ width: `calc((100% - 6px) * ${Math.min(100, p) / 100})`, background: loadTone(c.pct) }} />
                         {c.signal && <span className="cg-sig" aria-hidden />}
                       </button>
@@ -117,7 +124,6 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
 function Tooltip({ tip, s }: { tip: Tip; s: State }) {
   const c = tip.cell;
   const back = (c.kw ?? 0) < 0;
-  const p = Math.abs(c.pct ?? 0);
   return (
     <div className={`cg-tip${tip.below ? " is-below" : ""}`} style={{ left: tip.x, top: tip.y }} role="tooltip">
       <div className="cg-tip-name">{nice(c.id)}</div>
@@ -127,7 +133,7 @@ function Tooltip({ tip, s }: { tip: Tip; s: State }) {
         {c.limit != null && ` of ${Math.round(c.limit)} kW`}
       </div>
       <div className="cg-tip-row num" style={{ color: loadTone(c.pct) === P.green ? undefined : loadTone(c.pct) }}>
-        {c.pct == null ? "No load reading" : `${p} % of its ${back ? "backflow " : ""}limit`}
+        {c.pct == null ? "No load reading" : loadWords(c.pct).replace(/^./, (m) => m.toUpperCase())}
       </div>
       <div className="cg-tip-row">
         {c.signal ? `Signal: ${MODE_WORDS[c.signal.mode]?.title ?? c.signal.mode} (${c.signal.mode})` : "No signal on it"}
