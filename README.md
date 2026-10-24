@@ -182,7 +182,7 @@ When DeepSeek is down, slow or answers garbage, fixed safety rules (`platform/fa
 - import peak under the target → `SUPPORT` on the target with its per-transformer envelope; flat `import_max_kw` = the tightest slot (never below the policy floor); duration = until the forecast is back under the release threshold, at most the policy window
 - PV backflow → `ABSORB` with the envelope's export ceiling
 - an autopilot signal no longer needed → `RELEASE`
-- anything else (operator note, `PREPARE`/`STRETCH`/`RECOVER`) → no action, history shows "rules: needs operator"
+- anything else (operator note, `PREPARE`/`STRETCH`/`RECOVER`, no program houses online under the target) → no action, history shows "rules: needs operator"
 
 The LLM call times out after `GZ_LLM_TIMEOUT_S` real seconds (default 15). After two failures in a row a circuit breaker skips DeepSeek for 60 real seconds, then probes it; one good answer closes it. Without `GZ_LLM_URL` the autopilot can still run on the rules alone. Pitch demo: `curl -X POST localhost:8080/api/demo/ai/down` (no LLM call while down) and `.../api/demo/ai/up`. `/api/state` → `autopilot.brain` (`ai` | `rules`, who decided last) and `autopilot.ai` (health, failures, breaker); every history entry has `source`.
 
