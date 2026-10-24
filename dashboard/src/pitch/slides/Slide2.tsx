@@ -1,6 +1,6 @@
-// Slide 2, the problem (0:30, 25 s, Matthew). Step 0 is the story: near-black in both themes, a dimmed still of the
-// street and its transformer from the team's own trailer, and three lines told slowly (the first on entry, the next two
-// on their own 2.5 s apart; the one place text arrives on a timer, because it is the story being told).
+// Slide 2, the problem (0:30, 25 s, Matthew). Step 0 is the story, in the deck's own design: three lines on the moving
+// mesh gradient, told slowly (the first on entry, the next two on their own 2.5 s apart; the one place text arrives on
+// a timer, because it is the story being told). "Nobody knows." and "Nobody has asked them." in secondary so the turns land.
 // Step 1 (Right): the headline is there on the cut. Three stat moments arrive one second apart, each a number that
 // counts up fast beside a small drawing that acts the fact out: Slovakia's basement battery fills but stays cut off from
 // the grid, Germany's dimmer slides down and sticks at 4.2 kW on one device, Ukraine's cells light up and then sit idle.
@@ -247,16 +247,7 @@ const FACTS = PROBLEM.map((f, i) => {
 
 // ------------------------------------------------------------------ step 0, the story
 
-/** A real frame from the team's trailer (8.5 s: the street at dusk, the transformer cabinet on the right). */
-const STORY_IMG = `${import.meta.env.BASE_URL}pitch/story.jpg`;
-// Fetched once the deck has loaded (an image fetched earlier holds back the page load event, which QA times its
-// captures from), so the still is in the cache by the time slide 2 comes on.
-if (typeof window !== "undefined") {
-  const warm = () => void (new Image().src = STORY_IMG);
-  if (document.readyState === "complete") window.setTimeout(warm, 0);
-  else window.addEventListener("load", () => window.setTimeout(warm, 0), { once: true });
-}
-/** Seconds after the story comes on: when each line starts to rise in (1.2 s each). */
+/** Seconds after the story comes on: when each line starts to rise in (0.9 s each). */
 const LINE_AT = [0.2, 2.7, 5.2];
 
 function Story({ on, still }: { on: boolean; still: boolean }) {
@@ -279,19 +270,18 @@ function Story({ on, still }: { on: boolean; still: boolean }) {
   const line = (i: number) => `s2-story-line${i < shown ? " is-on" : ""}`;
   return (
     <div className={`s2-story${on ? " is-on" : ""}`} aria-hidden={!on}>
-      {/* Only in the page on step 0, so steps 1 and 2 never wait on it. */}
-      {on && <img className="s2-story-img" src={STORY_IMG} alt="" decoding="async" />}
-      <div className="s2-story-dim" />
       <div className="s2-story-text">
-        <p className={line(0)}>Six in the evening, a street in Vienna. The cars come home. The heat pumps turn on.</p>
-        <p className={line(1)}>
+        <p className={`${line(0)} p-head`}>Six in the evening, a street in Vienna. The cars come home. The heat pumps turn on.</p>
+        <p className={`${line(1)} p-head`}>
           The transformer at the end of the street is at{" "}
           <span className="s2-story-red" data-src="deck" data-label="script, the typical evening peak" data-val={110}>
             110{"\u00a0"}%
           </span>
-          . Nobody knows.
+          . <span className="p-secondary">Nobody knows.</span>
         </p>
-        <p className={line(2)}>In those same houses, the batteries are full from the midday sun. Nobody has asked them.</p>
+        <p className={`${line(2)} p-head`}>
+          In those same houses, the batteries are full from the midday sun. <span className="p-secondary">Nobody has asked{"\u00a0"}them.</span>
+        </p>
       </div>
     </div>
   );

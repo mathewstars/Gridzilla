@@ -12,3 +12,6 @@ __pycache__/
 # raw video generations and the jingle copy, the final trailer lives in docs/
 video/hf_*.mp4
 video/Gridzilla-2.m4a
+
+# Pitch deck: the trailer is copied from docs/Gridzilla-trailer.mp4 at build time (dashboard/qa/pitch-trailer.mjs)
+dashboard/public/pitch/*.mp4

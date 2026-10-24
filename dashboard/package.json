@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node qa/pitch-trailer.mjs",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "preview": "vite preview",
