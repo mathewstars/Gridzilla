@@ -60,7 +60,7 @@ If asked how: "we pour the car charging into the night until it is flat, and let
 
 **6. Real vs simulated (3:30 to 3:55).**
 
-> Real: the whole path, a Victron plant and a Viessmann heat pump reacting to a signed message, the planning on the fleet. Simulated: the fleet, two thousand houses, same cars with and without, realistic charging. Measured tonight: one street thirty-one percent off its peak, Vienna with two thousand houses five megawatts off, a street where no car charged, zero.
+> Real: the whole path, a Victron plant and a Viessmann heat pump reacting to a signed message, the planning on the fleet. Simulated: the fleet, two thousand houses, same cars with and without, realistic charging. Measured tonight, heat pumps included: one street thirty-six percent off its peak, Vienna with two thousand houses five megawatts off, sixteen percent, a street where no car charged, zero.
 
 **7. Close (3:55 to 4:20).**
 
@@ -147,7 +147,7 @@ Click the speaker icon the moment the slide is up. Thirty seconds of trailer. Do
 >
 > Real: the signal path, end to end. A signed message goes out over a public broker, a Victron plant and a Viessmann heat pump move, verified acks come back. The algorithm and the guard are real and run on the fleet every two hours.
 >
-> Modelled: the fleet. Two hundred seventy-one simulated households, each standing for eight real ones, two thousand program houses, half of them with a car. The counterfactual is honest: the same houses with no signal, a car charges on fifty-five percent of nights, arrivals spread over three hours, full power until full. Measured tonight: one street, Speising, five hundred seventy-four kilowatts down to three hundred ninety-eight, thirty-one percent. Vienna with two thousand enrolled houses, twenty-six point six megawatts down to twenty-one point seven, nineteen percent. A street where no car charged tonight: zero. The gap is the cars and the batteries, nothing else.
+> Modelled: the fleet. Two hundred seventy-one simulated households, each standing for eight real ones, two thousand program houses, half of them with a car. The counterfactual is honest: the same houses with no signal, a car charges on fifty-five percent of nights, arrivals spread over three hours, full power until full. Measured tonight, with the heat pumps shedding floor heating as well: one street, Atzgersdorf, five hundred eleven kilowatts down to three hundred twenty-five, thirty-six percent. Vienna with two thousand enrolled houses, thirty-one point two megawatts down to twenty-six point two, five megawatts, sixteen percent. A street where no car charged tonight: zero. The gap is the cars and the batteries, nothing else.
 
 ### 9. Live demo (6:00 to 9:15)
 
