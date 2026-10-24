@@ -27,7 +27,7 @@
    "user": "gz-devices",
    "password": ""
   },
-  "id": "24f5d1b8c25f4d7e",
+  "id": "ad71277f7ca24688",
   "wires": []
  },
  {
@@ -35,7 +35,7 @@
   "z": null,
   "name": "venus",
   "showValues": true,
-  "id": "5a3d39d7f65549e6",
+  "id": "f2787d5f78f74898",
   "wires": []
  },
  {
@@ -55,18 +55,18 @@
   "payloadType": "date",
   "x": 120,
   "y": 60,
-  "id": "2fe616087d734461",
+  "id": "dbe853a7ed624a1a",
   "z": "gz_tab",
   "wires": [
    [
-    "fa047770309f4031"
+    "d8d0214d47424022"
    ]
   ]
  },
  {
   "type": "function",
   "name": "init + device key",
-  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"real-powerplant-blatnica\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"https://gridzilla.victronlab.sk\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
+  "func": "// one-time setup: device key (per boot), config, pin the platform key, register\nconst dev = \"real-powerplant-blatnica\";\nflow.set(\"device_id\", dev);\nflow.set(\"platform\", \"https://gridzilla.victronlab.sk\");\nflow.set(\"path\", [\"region:at\", \"sub:wien-sued\", \"feeder:liesing-3\", \"tf:atzgersdorf-1\"]);\nconst dir = os.homedir() + \"/.node-red/gridzilla\"; fs.mkdirSync(dir, { recursive: true }); flow.set(\"dir\", dir);\nconst kp = dir + \"/device.key.pem\";\nif (!fs.existsSync(kp)) { const { privateKey } = crypto.generateKeyPairSync(\"ed25519\"); fs.writeFileSync(kp, privateKey.export({ type: \"pkcs8\", format: \"pem\" }), { mode: 0o600 }); }\nconst priv = crypto.createPrivateKey(fs.readFileSync(kp));\nflow.set(\"device_priv\", priv.export({ type: \"pkcs8\", format: \"pem\" }).toString());\nflow.set(\"device_pub\", crypto.createPublicKey(priv).export({ type: \"spki\", format: \"pem\" }).toString());\nconst pp = dir + \"/platform.pub.pem\"; if (fs.existsSync(pp)) flow.set(\"platform_pub\", fs.readFileSync(pp, \"utf8\"));\nconst st = dir + \"/state.json\"; if (fs.existsSync(st)) { const j = JSON.parse(fs.readFileSync(st, \"utf8\")); flow.set(\"last_seq\", j.last_seq || 0); flow.set(\"last_hb_seq\", j.last_hb_seq || 0); }\nif (!flow.get(\"owner\")) flow.set(\"owner\", { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false });\nflow.set(\"ess_defaults\", {\"/Settings/CGwacs/AcPowerSetPoint\": 90, \"/Settings/CGwacs/MaxFeedInPower\": 10000, \"/Settings/CGwacs/MaxChargePower\": -1, \"/Settings/CGwacs/MaxDischargePower\": 5000});\nmsg.url = flow.get(\"platform\") + \"/api/pubkey\"; msg.method = \"GET\";\nreturn msg;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -87,11 +87,11 @@
   ],
   "x": 320,
   "y": 60,
-  "id": "fa047770309f4031",
+  "id": "d8d0214d47424022",
   "z": "gz_tab",
   "wires": [
    [
-    "4406fe7dae474e5c"
+    "b9ae6150006148af"
    ]
   ]
  },
@@ -106,11 +106,11 @@
   "authType": "",
   "x": 540,
   "y": 60,
-  "id": "4406fe7dae474e5c",
+  "id": "b9ae6150006148af",
   "z": "gz_tab",
   "wires": [
    [
-    "1afb8ac7c1534c99"
+    "ae54d2c74fb44317"
    ]
   ]
  },
@@ -138,11 +138,11 @@
   ],
   "x": 760,
   "y": 60,
-  "id": "1afb8ac7c1534c99",
+  "id": "ae54d2c74fb44317",
   "z": "gz_tab",
   "wires": [
    [
-    "c79071709bcf41c4"
+    "bec8826646d14b29"
    ]
   ]
  },
@@ -157,11 +157,11 @@
   "authType": "",
   "x": 980,
   "y": 60,
-  "id": "c79071709bcf41c4",
+  "id": "bec8826646d14b29",
   "z": "gz_tab",
   "wires": [
    [
-    "64110b5d6cbe4237"
+    "dfda1cd34a9042ac"
    ]
   ]
  },
@@ -176,7 +176,7 @@
   "libs": [],
   "x": 1180,
   "y": 60,
-  "id": "64110b5d6cbe4237",
+  "id": "dfda1cd34a9042ac",
   "z": "gz_tab",
   "wires": []
  },
@@ -204,14 +204,14 @@
   ],
   "x": 420,
   "y": 220,
-  "id": "6a7ceef17e31441c",
+  "id": "4dfd22ce89f847b6",
   "z": "gz_tab",
   "wires": [
    [
-    "2b61030c97eb452e"
+    "f2f48633e20945e7"
    ],
    [
-    "e4153a61d1a54b45"
+    "73c25a25cb1e4bc9"
    ],
    []
   ]
@@ -222,7 +222,7 @@
   "topic": "gridzilla/sig/region:at",
   "qos": "1",
   "datatype": "json",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -231,10 +231,10 @@
   "y": 160,
   "wires": [
    [
-    "6a7ceef17e31441c"
+    "4dfd22ce89f847b6"
    ]
   ],
-  "id": "7c9e6ceed6b54c35",
+  "id": "dc15f8fbe8f9439e",
   "z": "gz_tab"
  },
  {
@@ -243,7 +243,7 @@
   "topic": "gridzilla/sig/sub:wien-sued",
   "qos": "1",
   "datatype": "json",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -252,10 +252,10 @@
   "y": 200,
   "wires": [
    [
-    "6a7ceef17e31441c"
+    "4dfd22ce89f847b6"
    ]
   ],
-  "id": "4ae5ca4e363e4af6",
+  "id": "f2811363eafb4788",
   "z": "gz_tab"
  },
  {
@@ -264,7 +264,7 @@
   "topic": "gridzilla/sig/feeder:liesing-3",
   "qos": "1",
   "datatype": "json",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -273,10 +273,10 @@
   "y": 240,
   "wires": [
    [
-    "6a7ceef17e31441c"
+    "4dfd22ce89f847b6"
    ]
   ],
-  "id": "791cf9fb61ad4956",
+  "id": "e5b20f0de2bd421c",
   "z": "gz_tab"
  },
  {
@@ -285,7 +285,7 @@
   "topic": "gridzilla/sig/tf:atzgersdorf-1",
   "qos": "1",
   "datatype": "json",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -294,10 +294,10 @@
   "y": 280,
   "wires": [
    [
-    "6a7ceef17e31441c"
+    "4dfd22ce89f847b6"
    ]
   ],
-  "id": "f1e33150b44745fc",
+  "id": "02d7c920d7484b14",
   "z": "gz_tab"
  },
  {
@@ -306,7 +306,7 @@
   "topic": "gridzilla/hb",
   "qos": "1",
   "datatype": "json",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -315,10 +315,10 @@
   "y": 320,
   "wires": [
    [
-    "6a7ceef17e31441c"
+    "4dfd22ce89f847b6"
    ]
   ],
-  "id": "619abc19ba1c4b5a",
+  "id": "85c9de8402724850",
   "z": "gz_tab"
  },
  {
@@ -332,17 +332,17 @@
   "libs": [],
   "x": 680,
   "y": 220,
-  "id": "2b61030c97eb452e",
+  "id": "f2f48633e20945e7",
   "z": "gz_tab",
   "wires": [
    [
-    "f267292151024856"
+    "d9f5e37444434758"
    ],
    [
-    "e4153a61d1a54b45"
+    "73c25a25cb1e4bc9"
    ],
    [
-    "0e31198cbdb940bd"
+    "391b6e694d7d4cbc"
    ]
   ]
  },
@@ -370,11 +370,11 @@
   ],
   "x": 940,
   "y": 300,
-  "id": "e4153a61d1a54b45",
+  "id": "73c25a25cb1e4bc9",
   "z": "gz_tab",
   "wires": [
    [
-    "66b76365bc3045cf"
+    "054eb5550e4a49a6"
    ]
   ]
  },
@@ -384,17 +384,17 @@
   "topic": "",
   "qos": "1",
   "retain": "false",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "x": 1140,
   "y": 300,
-  "id": "66b76365bc3045cf",
+  "id": "054eb5550e4a49a6",
   "z": "gz_tab",
   "wires": []
  },
  {
   "type": "function",
   "name": "apply plan / revert",
-  "func": "// msg.payload = plan {writes:[{setting,value}], start_at, end_at, watchdog} or \"revert\"\n// outputs 0-3: ESS settings; 4: EV /SetCurrent (A); 5: EV /StartStop (0/1); 6: EV /Mode (0 manual)\nconst W = { \"/Settings/CGwacs/MaxFeedInPower\": 0, \"/Settings/CGwacs/MaxChargePower\": 1, \"/Settings/CGwacs/MaxDischargePower\": 2, \"/Settings/CGwacs/AcPowerSetPoint\": 3 };\nconst out = [null, null, null, null, null, null, null];\nif (msg.payload === \"revert\") {\n  const saved = flow.get(\"saved\") || {};\n  for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };\n  const ev = flow.get(\"ev_saved\");\n  if (ev) { out[6] = { payload: ev.mode }; out[4] = { payload: ev.setcurrent }; out[5] = { payload: ev.startstop }; flow.set(\"ev_saved\", null); }\n  flow.set(\"effective\", null); flow.set(\"plan\", null); flow.set(\"ev_limit\", null);\n  node.status({ fill: \"grey\", shape: \"ring\", text: \"owner mode\" });\n  return out;\n}\nconst plan = msg.payload;\nif (!flow.get(\"saved\")) flow.set(\"saved\", { ...(flow.get(\"current\") || {}) });   // snapshot once, restore on revert\nflow.set(\"plan\", plan);\nconst delay = Math.max(0, plan.start_at - Date.now());\nsetTimeout(() => {\n  const cur = flow.get(\"plan\");\n  if (!cur || cur.seq !== plan.seq || Date.now() >= plan.end_at) return;   // reverted or replaced while waiting: never write a stale plan\n  const o = [null, null, null, null, null, null, null];\n  for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };\n  // EV charger: first lever. Remember mode/current/startstop once, switch to manual, apply a current ceiling.\n  const eff = flow.get(\"effective\") || {}, evp = flow.get(\"ev\") || {};\n  if (flow.get(\"ev_present\")) {\n    if (!flow.get(\"ev_saved\")) flow.set(\"ev_saved\", { mode: evp.mode ?? 0, setcurrent: evp.setcurrent ?? 16, startstop: evp.startstop ?? 1 });\n    o[6] = { payload: 0 };                                                   // manual: our current setting is honoured\n    if (eff.mode === \"STRETCH\") { o[5] = { payload: 0 }; flow.set(\"ev_limit\", 0); }\n    else if (eff.import_max_kw != null) flow.set(\"ev_limit\", \"cap\");        // live loop below keeps grid <= cap by trimming the car first\n    else if (eff.export_max_kw != null) flow.set(\"ev_limit\", \"soak\");       // live loop raises the car to absorb surplus\n  }\n  node.send(o);\n  node.status({ fill: \"yellow\", shape: \"dot\", text: (flow.get(\"effective\") || {}).mode + \" until \" + new Date(plan.end_at).toISOString().slice(11, 16) });\n}, delay);\nreturn null;",
+  "func": "// msg.payload = plan {writes:[{setting,value}], start_at, end_at, watchdog} or \"revert\"\n// outputs 0-3: ESS settings; 4: EV /SetCurrent (A); 5: EV /StartStop (0/1); 6: EV /Mode (0 manual)\nconst W = { \"/Settings/CGwacs/MaxFeedInPower\": 0, \"/Settings/CGwacs/MaxChargePower\": 1, \"/Settings/CGwacs/MaxDischargePower\": 2, \"/Settings/CGwacs/AcPowerSetPoint\": 3 };\nconst out = [null, null, null, null, null, null, null];\nif (msg.payload === \"revert\") {\n  const saved = Object.assign({}, flow.get(\"ess_defaults\") || {}, flow.get(\"saved\") || {});   // live snapshot wins, owner defaults fill the gaps\n  for (const [s, i] of Object.entries(W)) if (saved[s] != null) out[i] = { payload: saved[s] };\n  const ev = flow.get(\"ev_saved\");\n  if (ev) { out[6] = { payload: ev.mode }; out[4] = { payload: ev.setcurrent }; out[5] = { payload: ev.startstop }; flow.set(\"ev_saved\", null); }\n  flow.set(\"effective\", null); flow.set(\"plan\", null); flow.set(\"ev_limit\", null);\n  node.status({ fill: \"grey\", shape: \"ring\", text: \"owner mode\" });\n  return out;\n}\nconst plan = msg.payload;\nif (!flow.get(\"saved\")) flow.set(\"saved\", { ...(flow.get(\"current\") || {}) });   // snapshot once, restore on revert\nflow.set(\"plan\", plan);\nconst delay = Math.max(0, plan.start_at - Date.now());\nsetTimeout(() => {\n  const cur = flow.get(\"plan\");\n  if (!cur || cur.seq !== plan.seq || Date.now() >= plan.end_at) return;   // reverted or replaced while waiting: never write a stale plan\n  const o = [null, null, null, null, null, null, null];\n  for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };\n  // EV charger: first lever. Remember mode/current/startstop once, switch to manual, apply a current ceiling.\n  const eff = flow.get(\"effective\") || {}, evp = flow.get(\"ev\") || {};\n  if (flow.get(\"ev_present\")) {\n    if (!flow.get(\"ev_saved\")) flow.set(\"ev_saved\", { mode: evp.mode ?? 0, setcurrent: evp.setcurrent ?? 16, startstop: evp.startstop ?? 1 });\n    o[6] = { payload: 0 };                                                   // manual: our current setting is honoured\n    if (eff.mode === \"STRETCH\") { o[5] = { payload: 0 }; flow.set(\"ev_limit\", 0); }\n    else if (eff.import_max_kw != null) flow.set(\"ev_limit\", \"cap\");        // live loop below keeps grid <= cap by trimming the car first\n    else if (eff.export_max_kw != null) flow.set(\"ev_limit\", \"soak\");       // live loop raises the car to absorb surplus\n  }\n  node.send(o);\n  node.status({ fill: \"yellow\", shape: \"dot\", text: (flow.get(\"effective\") || {}).mode + \" until \" + new Date(plan.end_at).toISOString().slice(11, 16) });\n}, delay);\nreturn null;",
   "outputs": 7,
   "noerr": 0,
   "initialize": "",
@@ -402,29 +402,29 @@
   "libs": [],
   "x": 940,
   "y": 200,
-  "id": "f267292151024856",
+  "id": "d9f5e37444434758",
   "z": "gz_tab",
   "wires": [
    [
-    "a9f645d31a0a455e"
+    "32b0a97c96794f0a"
    ],
    [
-    "379a8a3b0b9c4d71"
+    "94d66487c66b4340"
    ],
    [
-    "9f262dfab21944e4"
+    "c07a1d6aac504b9c"
    ],
    [
-    "27b2ba5eb1584409"
+    "be37bc5b975441da"
    ],
    [
-    "7fdc1874a24f4d02"
+    "ecc7054a4e5c4ced"
    ],
    [
-    "453740e71a1b41fc"
+    "596ba512de624433"
    ],
    [
-    "a145c1a490ab4031"
+    "fc7abb29274f413e"
    ]
   ]
  },
@@ -446,10 +446,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 160,
-  "id": "a9f645d31a0a455e",
+  "id": "32b0a97c96794f0a",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-output-custom",
@@ -469,10 +469,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 200,
-  "id": "379a8a3b0b9c4d71",
+  "id": "94d66487c66b4340",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-output-custom",
@@ -492,10 +492,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 240,
-  "id": "9f262dfab21944e4",
+  "id": "c07a1d6aac504b9c",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-output-custom",
@@ -515,10 +515,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 280,
-  "id": "27b2ba5eb1584409",
+  "id": "be37bc5b975441da",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "function",
@@ -531,7 +531,7 @@
   "libs": [],
   "x": 940,
   "y": 380,
-  "id": "0e31198cbdb940bd",
+  "id": "391b6e694d7d4cbc",
   "z": "gz_tab",
   "wires": []
  },
@@ -553,10 +553,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 340,
-  "id": "7fdc1874a24f4d02",
+  "id": "ecc7054a4e5c4ced",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-output-custom",
@@ -576,10 +576,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 380,
-  "id": "453740e71a1b41fc",
+  "id": "596ba512de624433",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-output-custom",
@@ -599,10 +599,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 420,
-  "id": "a145c1a490ab4031",
+  "id": "fc7abb29274f413e",
   "z": "gz_tab",
   "wires": [],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "inject",
@@ -621,11 +621,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 480,
-  "id": "7aa4a146ffe74ac1",
+  "id": "42063e0d9e904313",
   "z": "gz_tab",
   "wires": [
    [
-    "ee8c01395ca74c16"
+    "926fc1e265a54533"
    ]
   ]
  },
@@ -640,20 +640,20 @@
   "libs": [],
   "x": 420,
   "y": 480,
-  "id": "ee8c01395ca74c16",
+  "id": "926fc1e265a54533",
   "z": "gz_tab",
   "wires": [
    [
-    "f267292151024856"
+    "d9f5e37444434758"
    ],
    [
-    "e4153a61d1a54b45"
+    "73c25a25cb1e4bc9"
    ],
    [
-    "7fdc1874a24f4d02"
+    "ecc7054a4e5c4ced"
    ],
    [
-    "453740e71a1b41fc"
+    "596ba512de624433"
    ]
   ]
  },
@@ -668,7 +668,7 @@
   "libs": [],
   "x": 420,
   "y": 1120,
-  "id": "f85c363252c24864",
+  "id": "89b0338be7724b98",
   "z": "gz_tab",
   "wires": []
  },
@@ -691,14 +691,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1100,
-  "id": "16c34b073ba04f62",
+  "id": "d679b5ea25ce4d50",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -719,14 +719,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1140,
-  "id": "d5ffd2537fc5488c",
+  "id": "c3bb4b375a514c64",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -747,14 +747,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1180,
-  "id": "6c56d628fb544274",
+  "id": "7f111f0020ed4ed7",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -775,14 +775,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1220,
-  "id": "bf7739b963ae45e5",
+  "id": "408df154abbe4e33",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -803,14 +803,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1260,
-  "id": "33aa3bf2b4d8457c",
+  "id": "134a11c2dcf942b3",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -831,14 +831,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1300,
-  "id": "105a268710464263",
+  "id": "ee768cdd33394886",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -859,14 +859,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1340,
-  "id": "dd3c3170196a4561",
+  "id": "3c1bef96997c4436",
   "z": "gz_tab",
   "wires": [
    [
-    "f85c363252c24864"
+    "89b0338be7724b98"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -887,14 +887,14 @@
   "roundValues": "1",
   "x": 140,
   "y": 580,
-  "id": "7cd85718d2654a81",
+  "id": "6171d1636df7440d",
   "z": "gz_tab",
   "wires": [
    [
-    "03fb460eb8224002"
+    "5fb73f20d09d4684"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "function",
@@ -907,7 +907,7 @@
   "libs": [],
   "x": 380,
   "y": 580,
-  "id": "03fb460eb8224002",
+  "id": "5fb73f20d09d4684",
   "z": "gz_tab",
   "wires": []
  },
@@ -922,7 +922,7 @@
   "libs": [],
   "x": 380,
   "y": 640,
-  "id": "0f862d81344a48eb",
+  "id": "e06d6c9a66db4aa4",
   "z": "gz_tab",
   "wires": []
  },
@@ -945,14 +945,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 640,
-  "id": "ddcf9120243a4aa7",
+  "id": "bb71111f78cc41ce",
   "z": "gz_tab",
   "wires": [
    [
-    "0f862d81344a48eb"
+    "e06d6c9a66db4aa4"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -973,14 +973,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 680,
-  "id": "d63283229b7147d8",
+  "id": "ae968a89c43b45c2",
   "z": "gz_tab",
   "wires": [
    [
-    "0f862d81344a48eb"
+    "e06d6c9a66db4aa4"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -1001,14 +1001,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 720,
-  "id": "bc1c0e2a08cf4b0f",
+  "id": "65f8116f14484c1f",
   "z": "gz_tab",
   "wires": [
    [
-    "0f862d81344a48eb"
+    "e06d6c9a66db4aa4"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "function",
@@ -1021,7 +1021,7 @@
   "libs": [],
   "x": 420,
   "y": 800,
-  "id": "9a5406266198461c",
+  "id": "71154e7195f6496d",
   "z": "gz_tab",
   "wires": []
  },
@@ -1044,14 +1044,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 780,
-  "id": "23188001a15f4957",
+  "id": "542cff0b00534f9d",
   "z": "gz_tab",
   "wires": [
    [
-    "9a5406266198461c"
+    "71154e7195f6496d"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -1072,14 +1072,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 820,
-  "id": "afe5dc12068145e4",
+  "id": "f48b0136b24f47dd",
   "z": "gz_tab",
   "wires": [
    [
-    "9a5406266198461c"
+    "71154e7195f6496d"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -1100,14 +1100,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 860,
-  "id": "34473600957b4a92",
+  "id": "3c3a2bab21bd4a79",
   "z": "gz_tab",
   "wires": [
    [
-    "9a5406266198461c"
+    "71154e7195f6496d"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -1128,14 +1128,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 900,
-  "id": "c8cb219d2d854285",
+  "id": "1df43fc12c404b1e",
   "z": "gz_tab",
   "wires": [
    [
-    "9a5406266198461c"
+    "71154e7195f6496d"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "victron-input-custom",
@@ -1156,14 +1156,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 960,
-  "id": "b580695cba0e41e1",
+  "id": "5db35b755f864ee4",
   "z": "gz_tab",
   "wires": [
    [
-    "c9900263120543d1"
+    "394b96d5c5394225"
    ]
   ],
-  "client": "5a3d39d7f65549e6"
+  "client": "f2787d5f78f74898"
  },
  {
   "type": "function",
@@ -1176,7 +1176,7 @@
   "libs": [],
   "x": 420,
   "y": 960,
-  "id": "c9900263120543d1",
+  "id": "394b96d5c5394225",
   "z": "gz_tab",
   "wires": []
  },
@@ -1197,11 +1197,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 1040,
-  "id": "9c85c929886d42ea",
+  "id": "1972657f968d4f6a",
   "z": "gz_tab",
   "wires": [
    [
-    "951cc03b86d0430c"
+    "dba8947330f2451f"
    ]
   ]
  },
@@ -1216,11 +1216,11 @@
   "libs": [],
   "x": 380,
   "y": 1040,
-  "id": "951cc03b86d0430c",
+  "id": "dba8947330f2451f",
   "z": "gz_tab",
   "wires": [
    [
-    "c2cda7464a0d4176"
+    "25e024ac671a42a1"
    ]
   ]
  },
@@ -1230,10 +1230,10 @@
   "topic": "",
   "qos": "0",
   "retain": "false",
-  "broker": "24f5d1b8c25f4d7e",
+  "broker": "ad71277f7ca24688",
   "x": 600,
   "y": 1040,
-  "id": "c2cda7464a0d4176",
+  "id": "25e024ac671a42a1",
   "z": "gz_tab",
   "wires": []
  }
