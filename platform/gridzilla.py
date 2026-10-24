@@ -184,12 +184,13 @@ if STATE_FILE.exists():
         saved = json.loads(STATE_FILE.read_text())
         state["seq"] = saved.get("seq", 0)
         state["pubkeys"] = saved.get("pubkeys", {})
+        state["recent"] = saved.get("recent", {})
     except Exception:
         pass
 
 
 def persist():
-    STATE_FILE.write_text(json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"]}))
+    STATE_FILE.write_text(json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"], "recent": state.get("recent", {})}))
 
 
 def log(kind, msg, **extra):
@@ -338,9 +339,11 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
             doc["envelope"] = curve
         if mode == "RELEASE":     # devices under the segment drop whatever they ran, so do the signals of the nodes below it
             for n in [n for n in state["active"] if segment in path_of(n)]:
-                state["active"].pop(n)
+                doc_old = state["active"].pop(n)
+                state.setdefault("recent", {})[n] = {**doc_old, "ended_at": iso(now()), "ended": f"released by seq {seq}"}
         else:
             state["active"][segment] = doc
+            state.setdefault("recent", {})[segment] = {**doc, "ended_at": None, "ended": None}
         if mode == "SUPPORT":
             key = f"{segment}:{sim_day()}"
             state["support_count"][key] = state["support_count"].get(key, 0) + 1
@@ -573,7 +576,8 @@ def prune_expired():
     with _lock:
         for n in [n for n, s in state["active"].items() if s["valid_to"] <= t]:
             log("signal", f"seq {state['active'][n]['seq']} {state['active'][n]['mode']} on {n} ended (window over)")
-            state["active"].pop(n)
+            doc = state["active"].pop(n)
+            state.setdefault("recent", {})[n] = {**doc, "ended_at": doc["valid_to"], "ended": "window over"}
 
 
 def covered(tf):
@@ -877,7 +881,7 @@ def get_state(hh: str = "", fc: str = "", tree: int = 1):
                 if best is None or abs(pct) > abs(best["pct"]): best = {"pct": pct, "h": p["h"]}
             if best: peaks[n] = best
         out = {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "aggregates": aggregates(), "summary": tot,
-               "households": sel, "active": state["active"], "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
+               "households": sel, "active": state["active"], "recent": state.get("recent", {}), "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
                "forecast_peak": peaks, "forecast": {fc: forecast(fc)} if fc in TREE and not fc.startswith("region") else {}}
         if tree: out["tree"] = TREE

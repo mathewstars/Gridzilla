@@ -117,6 +117,7 @@
   .step .v { font-family:var(--mono); font-size:22px; font-weight:600; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .step .d { font-size:12px; color:var(--fg); margin-top:3px; max-height:34px; overflow:hidden; }
   .step .s { font-size:10.5px; color:var(--muted); margin-top:3px; }
+  #storydelta { white-space:normal; line-height:1.35; }
   .countdown { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:6px 16px; background:var(--panel2); border-radius:6px; min-width:140px; }
   .countdown .v { font-family:var(--mono); font-size:30px; font-weight:600; color:var(--acc); }
   .countdown .l { font-size:10.5px; color:var(--muted); }
@@ -678,13 +679,20 @@ function drawStory() {
   storyChart.data.datasets[1].data = nh.map(p => p.baseline_kw ?? p.total_kw);
   storyChart.data.datasets[2].data = nh.map(() => rating);
   const act = Object.entries(S.active).find(([n]) => pathOf(node).includes(n));
-  const win = act ? [Date.parse(act[1].valid_from), Date.parse(act[1].valid_to)] : null;
+  const recent = Object.entries(S.recent || {}).filter(([n]) => pathOf(node).includes(n) || pathOf(n).includes(node)).sort((x, y) => Date.parse(y[1].valid_from) - Date.parse(x[1].valid_from))[0];
+  const shown = act || recent;
+  const win = shown ? [Date.parse(shown[1].valid_from), Date.parse(shown[1].ended_at || shown[1].valid_to)] : null;
   storyChart.data.datasets[3].data = nh.map(p => { const t = Date.parse(p.ts); return win && t >= win[0] && t <= win[1] ? rating * 1.15 : null; });
   storyChart.options.scales.y.suggestedMax = rating * 1.2; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
   storyChart.update();
   const lastp = nh[nh.length - 1];
   document.getElementById("storytitle").textContent = node.startsWith("region") ? `Vienna · all 72 transformers · ${(rating / 1000).toFixed(1)} MVA` : `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""} · ${rating} kVA`;
-  document.getElementById("storydelta").innerHTML = lastp && lastp.baseline_kw != null ? `<span class="delta">${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla${a.load_pct != null ? " · " + a.load_pct + "% of rating" : rating ? " · " + Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""}${act ? " · " + act[1].mode + " active" : ""}</span>` : "";
+  const hr = S.sim_hour, tod = hr < 5 ? "night" : hr < 9 ? "morning ramp" : hr < 16 ? "midday, PV" : hr < 22 ? "evening peak" : "late evening";
+  const f = sig => ALL.filter(k => sig[k] != null).map(k => `${k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ")}${sig[k]} kW`).join(", ");
+  const sigTxt = act ? `<b style="color:var(--acc)">${act[1].mode} active</b> on ${act[0].split(":")[1]} · seq ${act[1].seq} · ${f(act[1])} · until ${act[1].valid_to.slice(11, 16)}`
+    : recent ? `<span style="color:var(--muted)">no active signal · last: <b>${recent[1].mode}</b> seq ${recent[1].seq} on ${recent[0].split(":")[1]} · ${f(recent[1])} · ${recent[1].valid_from.slice(11, 16)}–${(recent[1].ended_at || recent[1].valid_to).slice(11, 16)} · ${recent[1].ended || "running"}</span>`
+    : `<span style="color:var(--muted)">no signal has touched this node yet</span>`;
+  document.getElementById("storydelta").innerHTML = `<span class="delta">${lastp && lastp.baseline_kw != null ? `${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ` : ""}${a.load_pct != null ? a.load_pct + "% of rating" : rating && lastp ? Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""} · ${hhmm(hr)} ${tod}</span><br>${sigTxt}`;
   // real plant
   const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
   document.getElementById("realage").textContent = age == null ? "offline" : `live · updated ${age} s ago · Cerbo GX + Vitocal via Gridzilla agents`;
