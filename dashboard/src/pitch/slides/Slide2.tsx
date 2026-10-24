@@ -4,8 +4,8 @@
 // Step 1 (Right): the headline is there on the cut. Three stat moments arrive one second apart, each a number that
 // counts up fast beside a small drawing that acts the fact out: Slovakia's basement battery fills but stays cut off from
 // the grid, Germany's dimmer slides down and sticks at 4.2 kW on one device, Ukraine's cells light up and then sit idle.
-// Step 2 (Right): the closing line lands below them; nothing dims, everything stays readable until the next slide
-// (captain: every beat is a key press).
+// The closing line rises in below them by itself, a second after the third number lands. Nothing dims; everything stays
+// readable until the next slide (captain: a slide's content appears with one key press, or by itself on arrival).
 // The counter is the odometer "slide" digit effect from 21st.dev "Count Up" by @unlumen (id 20068), adapted: no
 // react-use-measure (the digit height is measured with a ref), an eased tween instead of a spring (no overshoot), digits
 // that carry correctly on decimals, and plain text at rest so print and QA see "4.2", not a wheel of ten digits.
@@ -21,6 +21,9 @@ const EASE = [0.25, 0.1, 0.3, 1] as const;
 const START = 0.8;
 const GAP = 1.0;
 const COUNT = 0.8;
+/** The closing line starts to rise this long after the third number lands. */
+const PUNCH_AFTER = 1.0;
+const PUNCH_AT = START + GAP * 2 + COUNT + PUNCH_AFTER;
 
 const mod = (x: number, m: number) => ((x % m) + m) % m;
 
@@ -253,7 +256,7 @@ const LINE_AT = [0.2, 2.7, 5.2];
 function Story({ on, still }: { on: boolean; still: boolean }) {
   const [shown, setShown] = useState(still ? LINE_AT.length : 0);
   useEffect(() => {
-    // Off (steps 1 and 2): the story is cut at once and its lines reset unseen, so coming back tells it again.
+    // Off (step 1): the story is cut at once and its lines reset unseen, so coming back tells it again.
     if (!on) {
       setShown(0);
       return;
@@ -287,9 +290,10 @@ function Story({ on, still }: { on: boolean; still: boolean }) {
   );
 }
 
-// ------------------------------------------------------------------ steps 1 and 2, the problem
+// ------------------------------------------------------------------ step 1, the problem
 
-/** The headline, the three stat moments and the closing line. Mounted when step 1 begins, so the counts start then. */
+/** The headline, the three stat moments and the closing line. Mounted when step 1 begins, so the counts start then;
+ *  the closing line follows by itself once the third number has landed. */
 function Problem({ still }: { still: boolean }) {
   const m0 = useMotionValue(still ? FACTS[0].to : FACTS[0].from);
   const m1 = useMotionValue(still ? FACTS[1].to : FACTS[1].from);
@@ -298,6 +302,7 @@ function Problem({ still }: { still: boolean }) {
 
   const [shown, setShown] = useState(still ? FACTS.length : 0);
   const [rolling, setRolling] = useState<boolean[]>(() => FACTS.map(() => false));
+  const [punch, setPunch] = useState(still);
 
   useEffect(() => {
     const mv = [m0, m1, m2];
@@ -305,11 +310,13 @@ function Problem({ still }: { still: boolean }) {
       mv.forEach((m, i) => m.set(FACTS[i].to));
       setShown(FACTS.length);
       setRolling(FACTS.map(() => false));
+      setPunch(true);
       return;
     }
     mv.forEach((m, i) => m.set(FACTS[i].from));
     setShown(0);
     setRolling(FACTS.map(() => false));
+    setPunch(false);
     const timers: number[] = [];
     const anims: { stop: () => void }[] = [];
     const roll = (i: number, on: boolean) => setRolling((r) => r.map((x, j) => (j === i ? on : x)));
@@ -322,6 +329,7 @@ function Problem({ still }: { still: boolean }) {
         }, (START + GAP * i) * 1000),
       );
     });
+    timers.push(window.setTimeout(() => setPunch(true), PUNCH_AT * 1000));
     return () => {
       timers.forEach((t) => clearTimeout(t));
       anims.forEach((a) => a.stop());
@@ -355,7 +363,7 @@ function Problem({ still }: { still: boolean }) {
         ))}
       </div>
 
-      <p className="s2-punch p-head-xl">
+      <p className={`s2-punch p-head-xl${punch ? " is-on" : ""}`}>
         <span className="p-secondary">The storage exists. </span>
         <span className="p-ink">The signal does not.</span>
       </p>
@@ -366,10 +374,9 @@ function Problem({ still }: { still: boolean }) {
 export default function Slide2({ freeze, step }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
-  const punch = step >= 2;
 
   return (
-    <div className={`p-slide s2${still ? " s2-still" : ""}${punch ? " is-punch" : ""}`} data-slide="2">
+    <div className={`p-slide s2${still ? " s2-still" : ""}`} data-slide="2">
       <Story on={step === 0} still={still} />
       {step >= 1 && <Problem still={still} />}
     </div>

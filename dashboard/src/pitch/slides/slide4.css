@@ -11,6 +11,21 @@
   top: 210px;
   margin: 0;
 }
+/* Behind the chart only: the calm mesh gradient brightens in places, which pulls the ticks and the dashed line under
+   3:1. 40 px around the plot on both sides, from above the peak label to under the clock. */
+.s4-scrim {
+  position: absolute;
+  left: 120px;
+  top: 300px;
+  width: 1200px;
+  height: 625px;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.55);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .s4-scrim {
+  background: rgb(11 11 15 / 0.45);
+}
 .s4-chart {
   position: absolute;
   left: 120px;

@@ -88,7 +88,8 @@
   text-wrap: balance;
 }
 
-/* The closing line: its own beat (Right), below the three moments. Nothing else changes; everything stays readable. */
+/* The closing line, below the three moments: it rises in by itself a second after the third number lands (Slide2.tsx,
+   PUNCH_AT). Nothing else changes; everything stays readable. */
 .s2 .s2-punch {
   position: absolute;
   left: 120px;
@@ -102,7 +103,7 @@
     opacity 0.8s var(--p-ease),
     transform 0.8s var(--p-ease);
 }
-.s2.is-punch .s2-punch {
+.s2 .s2-punch.is-on {
   opacity: 1;
   transform: none;
 }

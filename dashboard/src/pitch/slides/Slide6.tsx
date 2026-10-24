@@ -1,24 +1,25 @@
 // Slide 6, real and simulated (3:30, 25 s, dad). A split screen, both halves live. Left, real: the Victron plant and
-// the Viessmann heat pump in Blatnica, Slovakia, straight from /api/state (or "Blatnica: waiting for the plant" and
-// never a made-up value), with the signed message path under it. Right, simulated: the city heat grid, one cell per
+// the Viessmann heat pump in Blatnica, Slovakia, read from the LIVE server's /api/state (the only server dad's plant
+// talks to; see useLivePlant), or "Blatnica: waiting for the plant" and never a made-up value, with the signed message
+// path under it. Right, simulated: the city heat grid, one cell per
 // street transformer in the simulated Vienna, coloured by its load every poll, with the three measured numbers under it.
 // The two tiles share their rows (CSS subgrid), so the hero, the bottom row and the foot line up across the split.
 // Count up adapted from 21st.dev "Count Up" (@unlumen, id 20068): its no-effect mode (a motion value writing the text
 // through a ref), with our ease instead of its spring, a real minus sign, and a hidden copy of the end text holding the width.
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { animate, useReducedMotion } from "motion/react";
 import { BatteryCharging, CheckCircle, HourglassMedium, ShieldCheck, Signature } from "@phosphor-icons/react";
 import { useGridState, type State } from "../../api";
 import Counter from "../../stage/kit/Counter";
-import { useServerNow } from "../../stage/kit/Countdown";
 import { loadTone } from "../../stage/palette";
-import { MEASURED, MEASURED_ON } from "../facts";
+import { MEASURED, MEASURED_NOTE } from "../facts";
+import { READ_ONLY } from "../liveMode";
 import type { SlideProps } from "../types";
 import "./slide6.css";
 
 const EASE: [number, number, number, number] = [0.25, 0.1, 0.3, 1];
 const MINUS = "−";
-const B = "state/households/blatnica";
+const B = "live/households/blatnica";
 const COLS = 12;
 
 const fmt = (v: number, d: number) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -80,6 +81,65 @@ function Cell({ top, line, rise, delay }: { top: ReactNode; line: ReactNode; ris
 
 // ------------------------------------------------------------------ left: real
 
+/** Where the real plant is read: the live server (dad's plant only talks to it). On the live server itself, its own
+ *  /api; with ?api=<base>, that base; otherwise the Vite proxy /live-api -> https://gridzilla.victronlab.sk/api (the
+ *  live server sends no CORS header, so the page cannot read it cross-origin). tree=0 is the lightest answer that
+ *  still carries households.blatnica (the platform always ships the real homes). GET only. */
+const LIVE_URL =
+  location.hostname === "gridzilla.victronlab.sk"
+    ? "/api/state?tree=0"
+    : READ_ONLY?.base
+      ? `${READ_ONLY.base}/api/state?tree=0`
+      : "/live-api/state?tree=0";
+const LIVE_EVERY_MS = 5000;
+
+/** The live server's answer, polled every 5 s (plain GET, no cache). Kept on window.__gz.live for the G2 checker,
+ *  which traces each live number's data-src ("live/households/blatnica/...") back to it. Any failure: no data. */
+function useLivePlant() {
+  const [r, setR] = useState<{ data: State | null; error: boolean }>({ data: null, error: false });
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+    let ctl: AbortController | null = null;
+    const tick = async () => {
+      ctl = new AbortController();
+      try {
+        const res = await fetch(LIVE_URL, { method: "GET", cache: "no-store", signal: ctl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = (await res.json()) as State;
+        if (!alive) return;
+        const w = window as unknown as { __gz?: Record<string, unknown> };
+        const gz = (w.__gz ??= {});
+        gz.live = d;
+        gz["live@"] = Date.now();
+        setR({ data: d, error: false });
+      } catch {
+        if (!alive) return;
+        setR({ data: null, error: true });
+      }
+      if (alive) timer = window.setTimeout(tick, LIVE_EVERY_MS);
+    };
+    tick();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+      ctl?.abort();
+    };
+  }, []);
+  return r;
+}
+
+/** The real home is live while it is registered and its last reading is under five minutes old on the live server's
+ *  own clock (both times come from the same answer). */
+function plantOf(s: State | null) {
+  const b = s?.households?.blatnica ?? null;
+  const t = b?.telemetry ?? null;
+  const rx = t?.rx ? Date.parse(t.rx) : NaN;
+  const now = s?.now ? Date.parse(s.now) : NaN;
+  const live = !!b && !!b.registered && !!t && Number.isFinite(rx) && Number.isFinite(now) && now - rx < 5 * 60_000;
+  return { b, t: live ? t : null, live };
+}
+
 /** One reading of the real plant: what it is, then the live number, or "waiting" when the plant is silent. */
 function Reading({ name, value, unit }: { name: string; value: ReactNode | null; unit: string }) {
   return (
@@ -97,15 +157,10 @@ function Reading({ name, value, unit }: { name: string; value: ReactNode | null;
   );
 }
 
-function RealHero({ s, nowMs, loading }: { s: State | null; nowMs: number | null; loading: boolean }) {
-  const b = s?.households?.blatnica;
-  const t = b?.telemetry ?? null;
-  const rx = t?.rx ? Date.parse(t.rx) : NaN;
-  const ageMs = nowMs != null && Number.isFinite(rx) ? nowMs - rx : null;
-  const live = !!b && b.registered && !!t && ageMs != null && ageMs < 5 * 60_000;
+function RealHero({ s, loading }: { s: State | null; loading: boolean }) {
+  const { b, t: L, live } = plantOf(s);
   if (loading) return <div className="s6-hero" />;
   const ack = b?.ack;
-  const L = live && t ? t : null;
   return (
     <div className="s6-hero" data-live={live ? "1" : "0"}>
       <div className="s6-plant">
@@ -119,7 +174,7 @@ function RealHero({ s, nowMs, loading }: { s: State | null; nowMs: number | null
           {ack?.verified ? <CheckCircle weight="fill" size={36} className="s6-ok" aria-hidden /> : null}
           {ack?.seq != null ? (
             <span>
-              {ack.status === "reverted" ? "Back to its owner after message " : "Answered message "}
+              {ack.status === "reverted" ? "Back to its owner after message #" : "Answered message #"}
               <span className="p-num" data-src={`${B}/ack/seq`} data-val={String(ack.seq)}>
                 {ack.seq}
               </span>
@@ -233,14 +288,13 @@ function HeatGrid({ s, wave }: { s: State | null; wave: boolean }) {
 export default function Slide6({ freeze }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
-  // Empty hh: the cheapest board payload. It still ships every street transformer's aggregate and the real home.
-  const { data, error } = useGridState("", "");
-  const nowMs = useServerNow(data?.now);
+  // The heat grid: the deck's own platform. Empty hh: the cheapest board payload, every street transformer's aggregate.
+  const { data } = useGridState("", "");
+  // The real plant: the live server.
+  const plant = useLivePlant();
+  const real = plantOf(plant.data);
   const M = MEASURED;
-  const b = data?.households?.blatnica;
-  const t = b?.telemetry;
-  const rx = t?.rx ? Date.parse(t.rx) : NaN;
-  const verified = !!b?.registered && !!t && !!b?.ack?.verified && nowMs != null && Number.isFinite(rx) && nowMs - rx < 5 * 60_000;
+  const verified = real.live && !!real.b?.ack?.verified;
   // The grid builds in once: its cells mount with the first payload and play a quick wave (CSS, once per cell, keyed by
   // transformer), then only their colours move.
   const wave = !still;
@@ -252,7 +306,7 @@ export default function Slide6({ freeze }: SlideProps) {
           {/* Two lines of heading; the plant tiles and the footnote say the rest (real, Victron + Viessmann). */}
           <h2 className="p-head">Our family home in Blatnica</h2>
         </header>
-        <RealHero s={data} nowMs={nowMs} loading={!data && !error} />
+        <RealHero s={plant.data} loading={!plant.data && !plant.error} />
         <div className="s6-row s6-path">
           {PATH.map(({ Icon, word, line }, i) => (
             <Cell
@@ -286,7 +340,7 @@ export default function Slide6({ freeze }: SlideProps) {
           <p className="p-small p-secondary s6-say">Two thousand houses, the same cars with and without Gridzilla, realistic charging.</p>
         </header>
         <HeatGrid s={data} wave={wave} />
-        <div className="s6-row">
+        <div className="s6-row s6-measured">
           <Cell
             rise={!still}
             delay={0.8}
@@ -297,7 +351,7 @@ export default function Slide6({ freeze }: SlideProps) {
               </span>
             }
             line={
-              <span data-src="deck" data-label="Speising evening peak">
+              <span data-src="deck" data-label={`${M.street.name} evening peak`}>
                 <span className="s6-word">one street</span>
                 <span className="s6-l">{M.street.name},</span>
                 <span className="s6-l">
@@ -311,14 +365,14 @@ export default function Slide6({ freeze }: SlideProps) {
             delay={1.3}
             top={
               <span className="p-head s6-n">
-                <CountUp to={M.city.offMw} decimals={1} sign={MINUS} delay={1.5} still={still} label="Vienna, measured on the simulated fleet" />
+                <CountUp to={M.city.offMw} decimals={Number.isInteger(M.city.offMw) ? 0 : 1} sign={MINUS} delay={1.5} still={still} label="Vienna, measured on the simulated fleet" />
                 <span className="p-unit">MW</span>
               </span>
             }
             line={
               <span data-src="deck" data-label="Vienna houses and peak">
                 <span className="s6-word">Vienna</span>
-                <span className="s6-l">{M.city.houses.toLocaleString("en-US")} houses,</span>
+                <span className="s6-l">{M.city.housesWords} houses,</span>
                 <span className="s6-l">
                   {M.city.withoutMw} to {M.city.withMw} MW
                 </span>
@@ -344,7 +398,7 @@ export default function Slide6({ freeze }: SlideProps) {
           />
         </div>
         <p className="p-small p-tertiary s6-foot" data-src="deck" data-label="measured on">
-          Measured on the simulated fleet, {MEASURED_ON}
+          {MEASURED_NOTE}
         </p>
       </section>
     </div>

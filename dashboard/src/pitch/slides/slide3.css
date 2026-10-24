@@ -1,4 +1,5 @@
-/* Slide 3, the idea: one signed message, four boxes that each sort it out by themselves. Canvas px (1920x1080). */
+/* Slide 3, the idea: one signed message, three boxes that each sort it out by themselves, then (step 1) the AI's loop.
+   Canvas px (1920x1080). */
 
 .s3 .s3-enter {
   opacity: 0;
@@ -21,22 +22,12 @@
   box-sizing: border-box;
   z-index: 2;
 }
-.s3-headers {
-  display: grid;
-  height: 40px;
-}
 .s3-header {
-  grid-area: 1 / 1;
   display: flex;
   align-items: center;
   gap: 14px;
+  height: 40px;
   color: var(--p-secondary);
-  opacity: 0;
-  transition: opacity 0.3s var(--p-ease);
-}
-.s3-header.is-on {
-  opacity: 1;
-  transition: opacity 0.5s var(--p-ease) 0.3s;
 }
 .s3-header svg {
   flex: none;
@@ -85,7 +76,7 @@
   fill: var(--p-ink);
 }
 
-/* The four boxes. */
+/* The three boxes. */
 .s3-box {
   position: absolute;
   top: 464px;
@@ -155,12 +146,8 @@
   color: var(--p-ink);
   white-space: nowrap;
 }
-.s3-box-acts {
-  display: grid;
-  margin-top: 10px;
-}
 .s3-box-act {
-  grid-area: 1 / 1;
+  margin-top: 10px;
   text-wrap: balance;
   color: var(--p-ink);
   opacity: 0;
@@ -173,22 +160,24 @@
   transition: opacity 0.7s var(--p-ease) 0.3s, transform 0.7s var(--p-ease) 0.3s;
 }
 
-/* The line under the boxes, then the slide's last word. */
+/* Under the boxes: the foot line once they are lit, then the slide's last word under it. Both stay; nothing dims. */
 .s3-foot {
   position: absolute;
   left: 120px;
   width: 1680px;
   top: 784px;
   height: 200px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-items: center;
+  justify-content: center;
+  gap: 28px;
   text-align: center;
   z-index: 2;
 }
 .s3-foot-line {
-  grid-area: 1 / 1;
   margin: 0;
+  white-space: nowrap;
   color: var(--p-ink);
   opacity: 0;
   transform: translateY(14px);
@@ -199,10 +188,11 @@
   transform: none;
   transition-delay: 0.35s;
 }
-.s3-foot-line.is-gone {
-  opacity: 0;
-  transform: translateY(-10px);
-  transition-duration: 0.45s;
+/* The closing line: one line in the display weight so it reads as the slide's last word; Clash Display is wide, so it
+   is set a step smaller (48 px) to keep the 120 px side margins. */
+.s3 .s3-close {
+  font-size: 48px;
+  font-weight: 600;
 }
 
 /* Freeze and reduced motion: final state at once. */
@@ -211,33 +201,7 @@
   transition: none !important;
 }
 
-/* Noon: the changed words slide to the noon version in place (no second typing): the old words slide up and out,
-   then the new ones slide up into their place, so the two are never both visible. */
-.s3 .s3-swap {
-  display: inline-grid;
-  justify-items: start;
-  vertical-align: bottom;
-}
-.s3 .s3-swap > span {
-  grid-area: 1 / 1;
-  opacity: 0;
-  transform: translateY(-70%);
-  transition:
-    opacity 0.22s var(--p-ease-state),
-    transform 0.22s var(--p-ease-state);
-}
-.s3 .s3-swap > span.is-on {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.3s var(--p-ease) 0.22s,
-    transform 0.4s var(--p-ease) 0.22s;
-}
-.s3 .s3-swap > span:not(.is-on):last-child {
-  transform: translateY(70%);
-}
-
-/* Step 2, the loop: the message scene leaves, the ring scene comes. */
+/* Step 1, the loop: the message scene leaves, the ring scene comes. */
 .s3.s3-looping .s3-card,
 .s3.s3-looping .s3-box,
 .s3.s3-looping .s3-wires,
@@ -322,8 +286,7 @@
 .s3.s3-still .s3-card,
 .s3.s3-still .s3-box,
 .s3.s3-still .s3-foot,
-.s3.s3-still .s3-wires,
-.s3.s3-still .s3-swap > span {
+.s3.s3-still .s3-wires {
   transition: none;
 }
 

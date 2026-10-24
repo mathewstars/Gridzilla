@@ -2,7 +2,8 @@
 // (/api/flatten?node=region:at), snapshotted once at mount: the next 24 hours from now, one continuous line (the plan
 // starts at the sim's now, which can be any hour, so a fixed clock window would stitch two days together). Without
 // Gridzilla the evening heads past the limit; the orange slice is the peak Gridzilla eats and stays on screen; green
-// is the car charging the plan moves into the night; the plan draws over it in ink.
+// is the car charging the plan moves into the night; the plan draws over it in ink. One step: the curve draws, then
+// Gridzilla acts by itself (no key press), timed from the chart's mount.
 // Line draw-in adapted from 21st.dev "Line graph" by @motiondotdev (id 24687): pathLength draw-in, hover dropped.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { animate, motion, useReducedMotion } from "motion/react";
@@ -13,6 +14,11 @@ import type { SlideProps } from "../types";
 import "./slide4.css";
 
 const EASE = [0.25, 0.1, 0.3, 1] as const;
+
+// The Without curve draws in from DRAW_AT for DRAW_S seconds; Gridzilla acts by itself ACT_AFTER seconds later.
+const DRAW_AT = 0.6;
+const DRAW_S = 2.6;
+const ACT_AT = DRAW_AT + DRAW_S + 1.2;
 
 // The illustration's window (only when the plan is not reachable): clock 15:30 to 08:30, 17 hours.
 const IL_START = 15.5;
@@ -119,7 +125,7 @@ function band(xs: number[], a: number[], b: number[], yOf: (v: number) => number
     .join("");
 }
 
-export default function Slide4({ freeze, step }: SlideProps) {
+export default function Slide4({ freeze }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
   const { plan, failed } = useFlatten("region:at");
@@ -145,15 +151,25 @@ export default function Slide4({ freeze, step }: SlideProps) {
     <div className="p-slide" data-slide="4">
       <h1 className="p-head-xl s4-head">The monster eats peaks.</h1>
       <p className="p-sub p-secondary s4-sub">Every street, every evening.</p>
-      {snap && <Chart key={snap.live ? "live" : "illustration"} snap={snap} still={still} withG={step >= 1} />}
+      {snap && <Chart key={snap.live ? "live" : "illustration"} snap={snap} still={still} />}
     </div>
   );
 }
 
-/** Step 0: the street without Gridzilla heads past the limit (red). Step 1 (Right): the Gridzilla line bends under it,
- *  the eaten peak and the moved charging fill in, and the big number drops from red to green. */
-function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: boolean }) {
+/** First the street without Gridzilla heads past the limit (red). ACT_AT seconds after mount, by itself, the Gridzilla
+ *  line bends under it, the eaten peak and the moved charging fill in, and the big number drops from red to green.
+ *  Frozen or reduced motion: the final state at once. */
+function Chart({ snap, still }: { snap: Snap; still: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const [withG, setWithG] = useState(still);
+  useEffect(() => {
+    if (still) {
+      setWithG(true);
+      return;
+    }
+    const t = window.setTimeout(() => setWithG(true), ACT_AT * 1000);
+    return () => window.clearTimeout(t);
+  }, [still]);
   const g = useMemo(() => {
     const all = snap.runs.flat();
     const hi = Math.max(100, ...all.map((p) => p.naive), ...all.map((p) => p.planned)) + 14;
@@ -193,7 +209,9 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
     const showSeven = snap.carsFull && sevenOff > 0.6 && sevenOff < H - 0.6;
     const sevenX = x(sevenOff);
     const sevenY = y(valueAt(sevenOff, "planned"));
-    const fullRight = Math.min(X1, Math.max(X0 + 330, sevenX + 70));
+    // The label hangs from its dot: right-aligned to just past it, or left-aligned from it when 07:00 is near the left edge.
+    const fullStart = sevenX + 70 - 330 < X0;
+    const fullRight = fullStart ? Math.max(X0, sevenX - 24) : Math.min(X1, sevenX + 70);
     const fullSpan = 310 / pxPerH;
     const fullY = y(maxIn(sevenOff - fullSpan + 1, sevenOff + 1.2)) - 34;
     // Clock ticks every three hours, never on the very edges.
@@ -206,26 +224,28 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
     const peakNote = peakClock >= 16 && peakClock < 21.5 ? `${hhmm(peakClock)}, the cars come home` : `${hhmm(peakClock)}, the peak`;
     return {
       x, y, hi, lo, naive: line("naive"), planned: line("planned"), orange, green, peak, peakX, peakLabelX, peakNote,
-      withX, withY, showSeven, sevenX, sevenY, fullRight, fullY, ticks,
+      withX, withY, showSeven, sevenX, sevenY, fullRight, fullStart, fullY, ticks,
     };
   }, [snap]);
 
   const T = (delay: number, duration: number) => (still ? { duration: 0 } : { delay, duration, ease: EASE });
-  // Step 1's moves, timed from the key press.
+  // Gridzilla's moves, timed from the moment it acts (ACT_AT).
   const on = (v: number) => (withG ? v : 0);
   const init = <V,>(v: V) => (still ? false : v);
   const peakFrac = (g.peakX - X0) / (X1 - X0);
-  const tPeak = 0.6 + 2.6 * Math.min(1, peakFrac * 0.9) + 0.25;
+  const tPeak = DRAW_AT + DRAW_S * Math.min(1, peakFrac * 0.9) + 0.25;
   const limitY = g.y(100);
   const zeroY = g.y(0);
   const src = "flatten:region:at/plan";
 
   return (
     <>
+      {/* A soft scrim keeps the greys of the chart readable over the deck's moving calm gradient; it comes with the axes. */}
+      <motion.div className="s4-scrim" aria-hidden initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(0, 0.6)} />
       <svg className="s4-chart" viewBox="0 0 1180 620" width={1180} height={620} aria-label={`Load on the grid in percent of its limit, the next ${Math.round(snap.hours)} hours from ${hhmm(snap.start)}`}>
         <defs>
           <clipPath id={`s4r${uid}`}>
-            <motion.rect x={0} y={0} height={620} initial={init({ width: X0 })} animate={{ width: 1180 }} transition={T(0.6, 2.6)} />
+            <motion.rect x={0} y={0} height={620} initial={init({ width: X0 })} animate={{ width: 1180 }} transition={T(DRAW_AT, DRAW_S)} />
           </clipPath>
           <clipPath id={`s4a${uid}`}>
             <rect x={0} y={0} width={1180} height={limitY} />
@@ -310,7 +330,7 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
         {g.showSeven && (
           <motion.g initial={{ opacity: 0 }} animate={{ opacity: on(1) }} transition={T(2.4, 0.6)}>
             <circle cx={g.sevenX} cy={g.sevenY} r={11} fill={P.green} stroke="var(--p-bg)" strokeWidth={4} />
-            <text className="s4-note" data-src="axis" x={g.fullRight} y={g.fullY} textAnchor="end">
+            <text className="s4-note" data-src="axis" x={g.fullRight} y={g.fullY} textAnchor={g.fullStart ? "start" : "end"}>
               07:00, every car full
             </text>
           </motion.g>
@@ -332,7 +352,7 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
             <span className="p-num" data-src={`${src}/houses`} data-val={snap.houses}>
               {snap.houses.toLocaleString("en-US")}
             </span>{" "}
-            homes, renewed every two hours from the real weather. Live.
+            homes, cars and heat pumps, renewed every two hours from the real weather. Live.
           </>
         ) : (
           <>Illustration: the live plan is not reachable right now. The shapes are drawn by hand.</>
@@ -342,8 +362,8 @@ function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: bool
   );
 }
 
-/** The moment of the slide: the peak without Gridzilla, red, counts down to the plan's peak and turns green when the
- *  presenter brings in the Gridzilla line (`go`, step 1). The way down stays as a small line. */
+/** The moment of the slide: the peak without Gridzilla, red, counts down to the plan's peak and turns green when
+ *  Gridzilla acts (`go`). The way down stays as a small line. */
 function Morph({ from, to, live, still, go, src }: { from: number; to: number; live: boolean; still: boolean; go: boolean; src: string }) {
   const num = useRef<HTMLSpanElement>(null);
   const [withG, setWithG] = useState(go && still);

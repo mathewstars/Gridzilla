@@ -12,40 +12,36 @@ export interface Notes {
 export const NOTES: Notes[] = [
   {
     who: "Matthew",
-    time: "0:00, 30 s",
+    time: "0:00, 32 s",
     steps: ["Before you walk up: F for full screen, 2 for the cold evening. Space plays the trailer; say nothing until the title."],
   },
   { who: "Matthew", time: "0:30", steps: ["Flat: Now you probably wonder what the monster really is."] },
   {
     who: "Matthew",
-    time: "0:30, 30 s",
+    time: "0:30, 20 s",
     steps: [
       "Slowly: six in the evening, a street in Vienna. The transformer is at a hundred and ten percent. Nobody knows. The batteries are full. Nobody has asked them.",
-      "It is a grid signal that home batteries, cars and heat pumps follow. Slovakia: no signal. Germany: a dimmer on one device. Ukraine: three gigawatt hours idle.",
-      "The storage exists. The signal does not.",
+      "It is a grid signal that home batteries, cars and heat pumps follow. Slovakia: no signal. Germany: a dimmer on one device. Ukraine: three gigawatt hours idle. The storage exists. The signal does not.",
     ],
   },
   {
     who: "Matthew",
-    time: "0:55, 40 s",
+    time: "0:50, 35 s",
     steps: [
-      "One message does the whole job. Every box reads the same line and sorts it out by itself: battery first, car second, hot water third.",
-      "Same message at noon: give at most two. The sun goes into the batteries instead of the feeder.",
-      "The operator only ever sends a limit, never a command. The house decides. The owner can always say no.",
+      "One message does the whole job. Every box reads the same line and sorts it out by itself: battery first, car second, hot water third. The operator asks, the house decides, the owner can always say no.",
       "Every fifteen minutes the AI reads the city and writes the message. Thirty lines of rules check it, the platform signs it, the houses reply, signed.",
     ],
   },
   {
     who: "Peter",
-    time: "1:35, 40 s",
+    time: "1:25, 30 s",
     steps: [
-      "Gridzilla eats peaks, every street, every evening. At six the cars come home and the transformer would hit a hundred and ten percent.",
-      "With Gridzilla it stays at seventy. The cars charge through the night, full by seven. Planned every two hours from the real weather, not by the AI.",
+      "Gridzilla eats peaks, every street, every evening. At six the cars come home and the transformer would go past its limit; with Gridzilla it stays well under. Cars and heat pumps move into the night, every car full by seven.",
     ],
   },
   {
     who: "Matthew",
-    time: "2:15, 75 s",
+    time: "1:55, 60 s",
     steps: [
       "This is one street in Vienna, tonight, live. Talk while it runs; never wait for the screen.",
       "The curve: with Gridzilla against without, the limit, tonight's plan, the peak it eats.",
@@ -59,18 +55,18 @@ export const NOTES: Notes[] = [
   },
   {
     who: "Dad",
-    time: "3:30, 25 s",
+    time: "2:55, 25 s",
     steps: [
-      "Real: our family home in Blatnica, a Victron plant and a Viessmann heat pump following a signed message. Simulated: two thousand houses, the same cars with and without. Thirty-one percent off one street, five megawatts off Vienna.",
+      "Real: our family home in Blatnica, live right now, following a signed message. Simulated: two thousand houses, the same cars with and without. Tonight, with the heat pumps too: thirty-six percent off one street, five megawatts off Vienna.",
     ],
   },
   {
     who: "Matthew",
-    time: "3:55, 25 s",
+    time: "3:20, 25 s",
     steps: [
-      "We need one street transformer to pilot on. This winter. Sign-up two weeks, a second maker one week, we own the plant.",
-      "So at six tomorrow, when the cars come home, the batteries answer before anyone notices.",
-      "Gridzilla. It eats peaks for breakfast. Thank you. Stop at 4:20.",
+      "We need one street transformer to pilot on, this winter. So at six tomorrow, when the cars come home, the batteries answer before anyone notices.",
+      "Gridzilla. It eats peaks for breakfast. Thank you.",
     ],
   },
+  { who: "Matthew", time: "3:42", steps: ["Stop at 3:50. Questions."] },
 ];

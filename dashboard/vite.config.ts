@@ -17,5 +17,13 @@ export default defineConfig({
       output: { manualChunks: { three: ["three", "@react-three/fiber", "@react-three/drei"], charts: ["recharts"] } },
     },
   },
-  server: { port: 5174, proxy: { "/api": process.env.GZ_API || "http://localhost:8081", "/openapi.json": process.env.GZ_API || "http://localhost:8081" } },
+  server: {
+    port: 5174,
+    proxy: {
+      "/api": process.env.GZ_API || "http://localhost:8081",
+      "/openapi.json": process.env.GZ_API || "http://localhost:8081",
+      // The pitch's Blatnica tile reads the real plant from the live server (GET only; the server sends no CORS header).
+      "/live-api": { target: "https://gridzilla.victronlab.sk", changeOrigin: true, rewrite: (p) => p.replace(/^\/live-api/, "/api") },
+    },
+  },
 });

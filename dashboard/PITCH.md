@@ -107,16 +107,23 @@ One memorable thing per slide; everything around it quiet.
 
 ## Slides
 
+Four minutes, stop at 3:50 (dad's docs/PRESENTATION.md); our deck keeps slide 6 visible. One key press per slide's
+content: what a slide shows arrives on arrival or with one Right.
+
 | # | Beat | Who | What is on screen | Steps |
 |---|---|---|---|---|
-| 0 | 0:00, 30 s | | Dad's trailer full-bleed on black, with its jingle; hard cut into slide 1 at its end. | Space plays it |
-| 1 | 0:30 | Matthew | One centred column on the moving hero background: GRIDZILLA, "A grid signal for home batteries, cars and heat pumps.", team and track. Reveal under 0.7 s. | 1 |
-| 2 | 0:32, 25 s | Matthew | "Europe's largest battery is in people's basements. The grid can use none of it." Three cards with living drawings and fast count-ups: Slovakia 0 signals (a battery cut off from the grid), Germany 4.2 kW (a dimmer stuck on one device), Ukraine 3 GWh (cells gone idle). Right: "The storage exists. The signal does not." below them. | 2 |
-| 3 | 0:55, 40 s | Matthew | The one message typed out as a signed card (the only typing in the deck): "This street, next three hours, take at most 3 kW per house." It travels to four boxes (Victron, GoodWe, Viessmann, car charger) that light in turn: battery first, car second, hot water third. Step 2: the changed words slide to "give at most 2 kW", the boxes re-light, "The operator asks. The house decides. The owner can always say no." Step 3: "The loop, every 15 minutes": a ring of five stations lit in turn with live numbers (gathers, thinks, checks, signs and sends, houses reply), one lap, then it rests. | 4 (Right = noon, Right = closing line, Right = loop) |
-| 4 | 1:35, 40 s | Peter | One big curve from the live diet plan (`/api/flatten?node=region:at`), the next 24 hours in one continuous line. On entry: the evening without Gridzilla heads past the limit, the big number in red. Right: the Gridzilla line bends under the limit, the orange slice is the peak eaten, green is the charging moved, the number drops to the green plan peak. Clean ground, no background. Labelled illustration only if the API is down. | 2 (Right = with Gridzilla) |
-| 5 | 2:15, 75 s | Matthew | The console's demo mode (`DemoView`, `src/ops/demo`), full-bleed, imported, warm from the first frame; then the seven-step walkthrough. | 8 (Right = next area) |
-| 6 | 3:30, 25 s | Dad | Split screen, both live. Real: the Blatnica plant (or "waiting for the plant", honestly). Simulated: the city heat grid of all 72 street transformers. Measured numbers under each, labelled "measured on 24 Oct 2026". | 1 |
-| 7 | 3:55, 25 s | Matthew | "One street transformer to pilot on. This winter." alone. Step 2: "It eats peaks for breakfast." alone on the hero background. | 3 (Right = six o'clock line, Right = last line) |
+| 0 | 0:00, 32 s | | Dad's trailer full-bleed on black, with its jingle; hard cut into slide 1 at its end. | Space plays it |
+| 1 | 0:30 | Matthew | GRIDZILLA, the tagline, team and track, centred on the moving gradient. | 1 |
+| 2 | 0:30, 20 s | Matthew | The six o'clock street story (three lines). Right: headline, three facts with living drawings, the closing line by itself. | 2 |
+| 3 | 0:50, 35 s | Matthew | The typed signed message, three boxes lighting in turn, battery first, then "The operator asks..." by itself. Right: the AI loop. | 2 |
+| 4 | 1:25, 30 s | Peter | The live 24 h plan on the gradient: without, then Gridzilla acts by itself (eaten peak, cars and heat pumps into the night, red to green). | 1 |
+| 5 | 1:55, 60 s | Matthew | The console's demo mode, then the seven-step spotlight walkthrough. | 8 |
+| 6 | 2:55, 25 s | Dad | Our family home in Blatnica, live from the live server, against a simulated Vienna; dad's measured numbers with the heat pumps. | 1 |
+| 7 | 3:20, 25 s | Matthew | "So at six tomorrow..." Right: "It eats peaks for breakfast." | 2 |
+| 8 | 3:42 | | GRIDZILLA and the names, nothing else. | 1 |
+
+The Blatnica tile reads the live server through the dev/preview proxy `/live-api` (vite.config.ts, GET only), or the
+same origin on gridzilla.victronlab.sk, or the `?api=` base.
 
 ## Files
 

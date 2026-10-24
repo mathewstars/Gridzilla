@@ -141,6 +141,13 @@
 .s6-cell {
   min-width: 0;
 }
+/* Simulated: each column as wide as its own text, spread across the tile, so "two thousand houses," (the deck says
+   the number in words) never runs into the next column. */
+.s6-measured {
+  grid-template-columns: repeat(3, max-content);
+  justify-content: space-between;
+  column-gap: 24px;
+}
 .s6-top {
   height: 72px;
   display: flex;

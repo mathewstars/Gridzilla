@@ -11,7 +11,7 @@ const [W, H] = String(arg("size", "1920x1080")).split("x").map(Number);
 const secs = Number(arg("secs", 10));
 const out = String(arg("out", "/tmp/gzpitch/motion"));
 fs.mkdirSync(out, { recursive: true });
-const ALL = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [7, 0], [7, 1], [7, 2]];
+const ALL = [[0, 0], [1, 0], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [5, 0], [5, 1], [6, 0], [7, 0], [7, 1], [8, 0]];
 const only = arg("slides") ? String(arg("slides")).split(",").map(Number) : null;
 const CELLS = only ? ALL.filter(([n]) => only.includes(n)) : ALL;
 
