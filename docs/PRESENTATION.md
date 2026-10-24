@@ -1,6 +1,6 @@
 # Gridzilla pitch: run of show and script
 
-Deck: `docs/Gridzilla-pitch.pptx` (the PDF has no audio). Jingle: embedded on slide 1, also `docs/Gridzilla-jingle.m4a`.
+Deck: `docs/Gridzilla-pitch.pptx` (the PDF has no media). Trailer: embedded full-slide on slide 1, also `docs/Gridzilla-trailer.mp4`; jingle alone in `docs/Gridzilla-jingle.m4a`.
 Three windows open before you start: the deck, the board at https://gridzilla.victronlab.sk, VRM with the Blatnica plant.
 Board: Presentation tab, chip VIENNA, "follow autopilot" on. Check the clock top right says "sim" and the heartbeat pill is green.
 
@@ -12,7 +12,7 @@ Seven slides presented, eight in the appendix for questions. The jingle costs 30
 
 | time | slide | speaker | beat |
 |---|---|---|---|
-| 0:00 | 1 Title | M | Jingle, 30 s, say nothing, then one line. |
+| 0:00 | 1 Title | M | Trailer, 32 s, say nothing, then one line. |
 | 0:30 | 2 Problem | M | The storage exists, the signal does not. |
 | 0:55 | 3 The idea | M | One message, three everyday jobs, any box. A limit, never a command. |
 | 1:35 | 4 The monster eats peaks | P | Outcome first, no mechanism. |
@@ -201,7 +201,7 @@ Stop. Take questions.
 Open all of them before the talk, logged in, each on its own desktop or browser window so alt-tab goes deck → board → VRM → Node-RED and back.
 
 ### 1. The deck
-`docs/Gridzilla-pitch.pptx` in PowerPoint. Slide 1 has the jingle; test the sound through the room speakers.
+`docs/Gridzilla-pitch.pptx` in PowerPoint. Slide 1 is the trailer; test picture and sound through the room system before the session.
 
 ### 2. Gridzilla board: https://gridzilla.victronlab.sk
 One page, five tabs, nothing to log in to. The tab you were on is remembered per browser.
@@ -253,5 +253,5 @@ The long-form version: problem, signals, the diet plan, resilience, enforcement,
 - Autopilot tab: mode is "autonomous", "Review now" works.
 - Blatnica tiles update, last ack "applied" with a signature check.
 - VRM logged in, Blatnica plant open on the dashboard.
-- Deck opened in PowerPoint (not the PDF), slide 1 speaker icon plays sound through the room speakers.
+- Deck opened in PowerPoint (not the PDF), slide 1 trailer plays with sound through the room system.
 - Nobody restarts anything on turboprop after this point.
