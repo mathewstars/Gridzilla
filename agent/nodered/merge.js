@@ -52,8 +52,8 @@ if (eff.export_min_kw != null && eff.export_min_kw > 0)
   writes.push({ setting: "/Settings/CGwacs/AcPowerSetPoint", value: -eff.export_min_kw * W });   // forced feed-in
 else if (eff.import_max_kw != null)
   writes.push({ setting: "/Settings/CGwacs/AcPowerSetPoint", value: 0, cap_import_w: eff.import_max_kw * W }); // keep grid <= cap; a small loop node enforces the cap
-if (eff.target_soc != null)
-  writes.push({ setting: "/Settings/CGwacs/BatteryLife/Schedule/Charge/0/Soc", value: eff.target_soc, note: "scheduled charging slot until valid_to" });
+if (eff.target_soc != null)                                               // PREPARE: pull charge power from the grid until target SoC (watchdog ends it)
+  writes.push({ setting: "/Settings/CGwacs/AcPowerSetPoint", value: Math.round((eff.charge_max_kw ?? o.max_charge_kw) * W) });
 
 const ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);
 const live = ["ABSORB", "SUPPORT"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to

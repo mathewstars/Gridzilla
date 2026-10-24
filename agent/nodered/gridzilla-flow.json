@@ -27,7 +27,7 @@
    "user": "gz-devices",
    "password": ""
   },
-  "id": "6363029228424e53",
+  "id": "24f5d1b8c25f4d7e",
   "wires": []
  },
  {
@@ -35,7 +35,7 @@
   "z": null,
   "name": "venus",
   "showValues": true,
-  "id": "6a68ce8dcd9e4f9f",
+  "id": "5a3d39d7f65549e6",
   "wires": []
  },
  {
@@ -55,11 +55,11 @@
   "payloadType": "date",
   "x": 120,
   "y": 60,
-  "id": "4ea9f0dcf0e94b18",
+  "id": "2fe616087d734461",
   "z": "gz_tab",
   "wires": [
    [
-    "84a1209953954d77"
+    "fa047770309f4031"
    ]
   ]
  },
@@ -87,11 +87,11 @@
   ],
   "x": 320,
   "y": 60,
-  "id": "84a1209953954d77",
+  "id": "fa047770309f4031",
   "z": "gz_tab",
   "wires": [
    [
-    "cbceaed6907e4564"
+    "4406fe7dae474e5c"
    ]
   ]
  },
@@ -106,11 +106,11 @@
   "authType": "",
   "x": 540,
   "y": 60,
-  "id": "cbceaed6907e4564",
+  "id": "4406fe7dae474e5c",
   "z": "gz_tab",
   "wires": [
    [
-    "169471b68002404b"
+    "1afb8ac7c1534c99"
    ]
   ]
  },
@@ -138,11 +138,11 @@
   ],
   "x": 760,
   "y": 60,
-  "id": "169471b68002404b",
+  "id": "1afb8ac7c1534c99",
   "z": "gz_tab",
   "wires": [
    [
-    "c6e5f1a186dd45c0"
+    "c79071709bcf41c4"
    ]
   ]
  },
@@ -157,11 +157,11 @@
   "authType": "",
   "x": 980,
   "y": 60,
-  "id": "c6e5f1a186dd45c0",
+  "id": "c79071709bcf41c4",
   "z": "gz_tab",
   "wires": [
    [
-    "2302404d26ee49e2"
+    "64110b5d6cbe4237"
    ]
   ]
  },
@@ -176,7 +176,7 @@
   "libs": [],
   "x": 1180,
   "y": 60,
-  "id": "2302404d26ee49e2",
+  "id": "64110b5d6cbe4237",
   "z": "gz_tab",
   "wires": []
  },
@@ -204,14 +204,14 @@
   ],
   "x": 420,
   "y": 220,
-  "id": "34d2c94941dc4b5f",
+  "id": "6a7ceef17e31441c",
   "z": "gz_tab",
   "wires": [
    [
-    "5a325a242a744819"
+    "2b61030c97eb452e"
    ],
    [
-    "dc44c770bec94db9"
+    "e4153a61d1a54b45"
    ],
    []
   ]
@@ -222,7 +222,7 @@
   "topic": "gridzilla/sig/region:at",
   "qos": "1",
   "datatype": "json",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -231,10 +231,10 @@
   "y": 160,
   "wires": [
    [
-    "34d2c94941dc4b5f"
+    "6a7ceef17e31441c"
    ]
   ],
-  "id": "a45177ec428c4cb0",
+  "id": "7c9e6ceed6b54c35",
   "z": "gz_tab"
  },
  {
@@ -243,7 +243,7 @@
   "topic": "gridzilla/sig/sub:wien-sued",
   "qos": "1",
   "datatype": "json",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -252,10 +252,10 @@
   "y": 200,
   "wires": [
    [
-    "34d2c94941dc4b5f"
+    "6a7ceef17e31441c"
    ]
   ],
-  "id": "9d434d88c3c24dcf",
+  "id": "4ae5ca4e363e4af6",
   "z": "gz_tab"
  },
  {
@@ -264,7 +264,7 @@
   "topic": "gridzilla/sig/feeder:liesing-3",
   "qos": "1",
   "datatype": "json",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -273,10 +273,10 @@
   "y": 240,
   "wires": [
    [
-    "34d2c94941dc4b5f"
+    "6a7ceef17e31441c"
    ]
   ],
-  "id": "b16ee71368824aa4",
+  "id": "791cf9fb61ad4956",
   "z": "gz_tab"
  },
  {
@@ -285,7 +285,7 @@
   "topic": "gridzilla/sig/tf:atzgersdorf-1",
   "qos": "1",
   "datatype": "json",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -294,10 +294,10 @@
   "y": 280,
   "wires": [
    [
-    "34d2c94941dc4b5f"
+    "6a7ceef17e31441c"
    ]
   ],
-  "id": "b51b0bba2661457d",
+  "id": "f1e33150b44745fc",
   "z": "gz_tab"
  },
  {
@@ -306,7 +306,7 @@
   "topic": "gridzilla/hb",
   "qos": "1",
   "datatype": "json",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "nl": false,
   "rap": true,
   "rh": 0,
@@ -315,16 +315,16 @@
   "y": 320,
   "wires": [
    [
-    "34d2c94941dc4b5f"
+    "6a7ceef17e31441c"
    ]
   ],
-  "id": "888220511f33401f",
+  "id": "619abc19ba1c4b5a",
   "z": "gz_tab"
  },
  {
   "type": "function",
   "name": "merge with owner limits",
-  "func": "// Node-RED function node: MERGE WITH OWNER LIMITS + APPLY PLAN\n// Wire: [verify.js out 1] -> this -> out 1: Victron writes, out 2: ack, out 3: schedule revert\n//\n// Owner limits come from the ESS settings on the GX (read once with victron nodes or set in flow context):\n//   flow.owner = { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }\n// Saved ESS values for revert (read before the first write):\n//   flow.saved = { AcPowerSetPoint, MaxChargePower, MaxDischargePower, MaxFeedInPower }\n//\n// Output 1 is a list of {setting, value} pairs for the Victron \"ESS control\" / settings nodes:\n//   /Settings/CGwacs/MaxFeedInPower, /Settings/CGwacs/MaxChargePower, /Settings/CGwacs/MaxDischargePower, /Settings/CGwacs/AcPowerSetPoint\n\nconst sig = msg.signal;\nconst o = flow.get(\"owner\");\nconst soc = flow.get(\"soc\") || 0;\nconst dev = flow.get(\"device_id\");\nconst ts = () => new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = (status, reason, applied) => ({ topic: `gridzilla/ack/${dev}`,\n  ackdoc: { v: 1, device: dev, path: flow.get(\"path\"), seq: sig.seq, status, reason, applied: applied || {},\n            soc, grid_kw: flow.get(\"grid_kw\") || 0, ts: ts() } });\n\nif (sig.mode === \"RELEASE\") {\n  flow.set(\"effective\", null);\n  return [{ payload: \"revert\" }, ack(\"applied\", null, {}), null];\n}\nif (o.opt_out) return [null, ack(\"refused\", \"opt_out\"), null];\n\nconst eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null,\n              charge_max_kw: null, discharge_max_kw: null, target_soc: null };\nlet status = \"applied\", reason = null;\n\nif (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;\nif (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, o.feedin_max_kw);  // never above the owner's feed-in limit\nif (sig.mode === \"STRETCH\") eff.export_max_kw = 0;                            // street is dark: lock export, no backfeed\nif (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);\nif (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);\nif (sig.target_soc != null) eff.target_soc = sig.target_soc;                 // only ever raises SoC\nif (sig.export_min_kw != null) {\n  const cap = Math.min(o.feedin_max_kw, o.max_discharge_kw);\n  if (soc <= o.min_soc)            { eff.export_min_kw = 0;   status = \"partial\"; reason = \"min_soc\"; }\n  else if (sig.export_min_kw > cap) { eff.export_min_kw = cap; status = \"partial\"; reason = \"owner_limit\"; }\n  else                              { eff.export_min_kw = sig.export_min_kw; }\n}\nflow.set(\"effective\", eff);\n\n// Translate the envelope into ESS writes. Everything is a limit; the grid setpoint is the one \"push\".\nconst W = 1000;\nconst writes = [];\nif (eff.export_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxFeedInPower\", value: eff.export_max_kw * W });\nif (eff.charge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxChargePower\", value: eff.charge_max_kw * W });\nif (eff.discharge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxDischargePower\", value: eff.discharge_max_kw * W });\nif (eff.export_min_kw != null && eff.export_min_kw > 0)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: -eff.export_min_kw * W });   // forced feed-in\nelse if (eff.import_max_kw != null)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: 0, cap_import_w: eff.import_max_kw * W }); // keep grid <= cap; a small loop node enforces the cap\nif (eff.target_soc != null)\n  writes.push({ setting: \"/Settings/CGwacs/BatteryLife/Schedule/Charge/0/Soc\", value: eff.target_soc, note: \"scheduled charging slot until valid_to\" });\n\nconst ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);\nconst live = [\"ABSORB\", \"SUPPORT\"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to\nconst maxEnd = Date.parse(sig.valid_from) + (sig.mode === \"STRETCH\" ? 4320 : 240) * 60 * 1000;   // protocol: 4 h max, STRETCH 3 days\nconst endAt = Math.min(Date.parse(sig.valid_to), maxEnd);                                        // device enforces it, not only the platform\nconst plan = { writes, start_at: Math.max(Date.now(), Date.parse(sig.valid_from)) + ramp * 1000,\n               end_at: endAt, watchdog: live, hb_timeout_s: 120 };\n\nreturn [{ payload: plan }, ack(status, reason, eff), { payload: { end_at: plan.end_at, watchdog: live } }];",
+  "func": "// Node-RED function node: MERGE WITH OWNER LIMITS + APPLY PLAN\n// Wire: [verify.js out 1] -> this -> out 1: Victron writes, out 2: ack, out 3: schedule revert\n//\n// Owner limits come from the ESS settings on the GX (read once with victron nodes or set in flow context):\n//   flow.owner = { min_soc: 20, max_charge_kw: 5, max_discharge_kw: 5, feedin_max_kw: 10, opt_out: false }\n// Saved ESS values for revert (read before the first write):\n//   flow.saved = { AcPowerSetPoint, MaxChargePower, MaxDischargePower, MaxFeedInPower }\n//\n// Output 1 is a list of {setting, value} pairs for the Victron \"ESS control\" / settings nodes:\n//   /Settings/CGwacs/MaxFeedInPower, /Settings/CGwacs/MaxChargePower, /Settings/CGwacs/MaxDischargePower, /Settings/CGwacs/AcPowerSetPoint\n\nconst sig = msg.signal;\nconst o = flow.get(\"owner\");\nconst soc = flow.get(\"soc\") || 0;\nconst dev = flow.get(\"device_id\");\nconst ts = () => new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = (status, reason, applied) => ({ topic: `gridzilla/ack/${dev}`,\n  ackdoc: { v: 1, device: dev, path: flow.get(\"path\"), seq: sig.seq, status, reason, applied: applied || {},\n            soc, grid_kw: flow.get(\"grid_kw\") || 0, ts: ts() } });\n\nif (sig.mode === \"RELEASE\") {\n  flow.set(\"effective\", null);\n  return [{ payload: \"revert\" }, ack(\"applied\", null, {}), null];\n}\nif (o.opt_out) return [null, ack(\"refused\", \"opt_out\"), null];\n\nconst eff = { mode: sig.mode, import_max_kw: null, export_max_kw: null, export_min_kw: null,\n              charge_max_kw: null, discharge_max_kw: null, target_soc: null };\nlet status = \"applied\", reason = null;\n\nif (sig.import_max_kw != null) eff.import_max_kw = sig.import_max_kw;\nif (sig.export_max_kw != null) eff.export_max_kw = Math.min(sig.export_max_kw, o.feedin_max_kw);  // never above the owner's feed-in limit\nif (sig.mode === \"STRETCH\") eff.export_max_kw = 0;                            // street is dark: lock export, no backfeed\nif (sig.charge_max_kw != null) eff.charge_max_kw = Math.min(sig.charge_max_kw, o.max_charge_kw);\nif (sig.discharge_max_kw != null) eff.discharge_max_kw = Math.min(sig.discharge_max_kw, o.max_discharge_kw);\nif (sig.target_soc != null) eff.target_soc = sig.target_soc;                 // only ever raises SoC\nif (sig.export_min_kw != null) {\n  const cap = Math.min(o.feedin_max_kw, o.max_discharge_kw);\n  if (soc <= o.min_soc)            { eff.export_min_kw = 0;   status = \"partial\"; reason = \"min_soc\"; }\n  else if (sig.export_min_kw > cap) { eff.export_min_kw = cap; status = \"partial\"; reason = \"owner_limit\"; }\n  else                              { eff.export_min_kw = sig.export_min_kw; }\n}\nflow.set(\"effective\", eff);\n\n// Translate the envelope into ESS writes. Everything is a limit; the grid setpoint is the one \"push\".\nconst W = 1000;\nconst writes = [];\nif (eff.export_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxFeedInPower\", value: eff.export_max_kw * W });\nif (eff.charge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxChargePower\", value: eff.charge_max_kw * W });\nif (eff.discharge_max_kw != null) writes.push({ setting: \"/Settings/CGwacs/MaxDischargePower\", value: eff.discharge_max_kw * W });\nif (eff.export_min_kw != null && eff.export_min_kw > 0)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: -eff.export_min_kw * W });   // forced feed-in\nelse if (eff.import_max_kw != null)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: 0, cap_import_w: eff.import_max_kw * W }); // keep grid <= cap; a small loop node enforces the cap\nif (eff.target_soc != null)                                               // PREPARE: pull charge power from the grid until target SoC (watchdog ends it)\n  writes.push({ setting: \"/Settings/CGwacs/AcPowerSetPoint\", value: Math.round((eff.charge_max_kw ?? o.max_charge_kw) * W) });\n\nconst ramp = sig.ramp_s[0] + Math.random() * (sig.ramp_s[1] - sig.ramp_s[0]);\nconst live = [\"ABSORB\", \"SUPPORT\"].includes(sig.mode);     // needs heartbeat; PREPARE/STRETCH/RECOVER run offline to valid_to\nconst maxEnd = Date.parse(sig.valid_from) + (sig.mode === \"STRETCH\" ? 4320 : 240) * 60 * 1000;   // protocol: 4 h max, STRETCH 3 days\nconst endAt = Math.min(Date.parse(sig.valid_to), maxEnd);                                        // device enforces it, not only the platform\nconst plan = { writes, start_at: Math.max(Date.now(), Date.parse(sig.valid_from)) + ramp * 1000,\n               end_at: endAt, watchdog: live, hb_timeout_s: 120 };\n\nreturn [{ payload: plan }, ack(status, reason, eff), { payload: { end_at: plan.end_at, watchdog: live } }];",
   "outputs": 3,
   "noerr": 0,
   "initialize": "",
@@ -332,17 +332,17 @@
   "libs": [],
   "x": 680,
   "y": 220,
-  "id": "5a325a242a744819",
+  "id": "2b61030c97eb452e",
   "z": "gz_tab",
   "wires": [
    [
-    "f745ca47144f4a07"
+    "f267292151024856"
    ],
    [
-    "dc44c770bec94db9"
+    "e4153a61d1a54b45"
    ],
    [
-    "af5936f4d1e04b5b"
+    "0e31198cbdb940bd"
    ]
   ]
  },
@@ -370,11 +370,11 @@
   ],
   "x": 940,
   "y": 300,
-  "id": "dc44c770bec94db9",
+  "id": "e4153a61d1a54b45",
   "z": "gz_tab",
   "wires": [
    [
-    "74edd8a8612a4a74"
+    "66b76365bc3045cf"
    ]
   ]
  },
@@ -384,10 +384,10 @@
   "topic": "",
   "qos": "1",
   "retain": "false",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "x": 1140,
   "y": 300,
-  "id": "74edd8a8612a4a74",
+  "id": "66b76365bc3045cf",
   "z": "gz_tab",
   "wires": []
  },
@@ -402,29 +402,29 @@
   "libs": [],
   "x": 940,
   "y": 200,
-  "id": "f745ca47144f4a07",
+  "id": "f267292151024856",
   "z": "gz_tab",
   "wires": [
    [
-    "bfb735c208144212"
+    "a9f645d31a0a455e"
    ],
    [
-    "204b2ed3ad9c4631"
+    "379a8a3b0b9c4d71"
    ],
    [
-    "94e17b9d6e4d4ce5"
+    "9f262dfab21944e4"
    ],
    [
-    "c3400a37a7d147c8"
+    "27b2ba5eb1584409"
    ],
    [
-    "5124b8a5ff524ff0"
+    "7fdc1874a24f4d02"
    ],
    [
-    "0b164c3099ee430c"
+    "453740e71a1b41fc"
    ],
    [
-    "c4053f4f3bf141fc"
+    "a145c1a490ab4031"
    ]
   ]
  },
@@ -446,10 +446,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 160,
-  "id": "bfb735c208144212",
+  "id": "a9f645d31a0a455e",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-output-custom",
@@ -469,10 +469,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 200,
-  "id": "204b2ed3ad9c4631",
+  "id": "379a8a3b0b9c4d71",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-output-custom",
@@ -492,10 +492,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 240,
-  "id": "94e17b9d6e4d4ce5",
+  "id": "9f262dfab21944e4",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-output-custom",
@@ -515,10 +515,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 280,
-  "id": "c3400a37a7d147c8",
+  "id": "27b2ba5eb1584409",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "function",
@@ -531,7 +531,7 @@
   "libs": [],
   "x": 940,
   "y": 380,
-  "id": "af5936f4d1e04b5b",
+  "id": "0e31198cbdb940bd",
   "z": "gz_tab",
   "wires": []
  },
@@ -553,10 +553,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 340,
-  "id": "5124b8a5ff524ff0",
+  "id": "7fdc1874a24f4d02",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-output-custom",
@@ -576,10 +576,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 380,
-  "id": "0b164c3099ee430c",
+  "id": "453740e71a1b41fc",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-output-custom",
@@ -599,10 +599,10 @@
   "onlyChanges": false,
   "x": 1200,
   "y": 420,
-  "id": "c4053f4f3bf141fc",
+  "id": "a145c1a490ab4031",
   "z": "gz_tab",
   "wires": [],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "inject",
@@ -621,18 +621,18 @@
   "payloadType": "date",
   "x": 130,
   "y": 480,
-  "id": "2ec59f78f4de49bb",
+  "id": "7aa4a146ffe74ac1",
   "z": "gz_tab",
   "wires": [
    [
-    "17cbe2d4e2a44b16"
+    "ee8c01395ca74c16"
    ]
   ]
  },
  {
   "type": "function",
   "name": "watchdog + EV loop",
-  "func": "// every 5 s: (a) EV current loop while a cap is active, (b) window end or heartbeat loss -> revert\nconst plan = flow.get(\"plan\"); if (!plan) return null;\nconst eff = flow.get(\"effective\") || {};\nconst lim = flow.get(\"ev_limit\"), ev = flow.get(\"ev\") || {};\nif (lim === \"cap\" || lim === \"soak\") {\n  const perAmp = (ev.power > 100 && ev.setcurrent > 0) ? ev.power / ev.setcurrent : 230 * (ev.phases || 1);   // W per ampere, measured when charging\n  const gridW = (flow.get(\"grid_kw\") || 0) * 1000, evW = ev.power || 0;\n  let targetW = lim === \"cap\" ? Math.max(0, eff.import_max_kw * 1000 - (gridW - evW)) : Math.max(0, evW + (-(eff.export_max_kw * 1000) - gridW) * -1);\n  let amps = Math.floor(targetW / perAmp);\n  amps = Math.min(amps, ev.maxcurrent || 16);\n  if (amps < 6) amps = 0;                                                     // below 6 A the car stops anyway: pause instead of a dead band\n  if (amps !== (ev.last_amps ?? -1)) { ev.last_amps = amps; flow.set(\"ev\", ev);\n    node.send([null, null, { payload: amps > 0 ? amps : 6 }, { payload: amps > 0 ? 1 : 0 }]); }\n}\nconst hbAge = (Date.now() - (flow.get(\"last_hb\") || 0)) / 1000;\nlet reason = null;\nif (Date.now() >= plan.end_at) reason = \"window_end\";\nelse if (plan.watchdog && hbAge > plan.hb_timeout_s) reason = \"heartbeat_lost\";\nif (!reason) return null;\nconst ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = { topic: `gridzilla/ack/${flow.get(\"device_id\")}`, ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq: null,\n  status: \"reverted\", reason, applied: {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, ts } };\nnode.warn(\"REVERT: \" + reason);\nreturn [{ payload: \"revert\" }, ack, null, null];",
+  "func": "// every 5 s: (a) EV current loop while a cap is active, (b) window end or heartbeat loss -> revert\nconst plan = flow.get(\"plan\"); if (!plan) return null;\nconst eff = flow.get(\"effective\") || {};\nconst lim = flow.get(\"ev_limit\"), ev = flow.get(\"ev\") || {};\nif (lim === \"cap\" || lim === \"soak\") {\n  const perAmp = (ev.power > 100 && ev.setcurrent > 0) ? ev.power / ev.setcurrent : 230 * (ev.phases || 1);   // W per ampere, measured when charging\n  const gridW = (flow.get(\"grid_kw\") || 0) * 1000, evW = ev.power || 0;\n  let targetW = lim === \"cap\" ? Math.max(0, eff.import_max_kw * 1000 - (gridW - evW)) : Math.max(0, evW + (-(eff.export_max_kw * 1000) - gridW) * -1);\n  let amps = Math.floor(targetW / perAmp);\n  amps = Math.min(amps, ev.maxcurrent || 16);\n  if (amps < 6) amps = 0;                                                     // below 6 A the car stops anyway: pause instead of a dead band\n  if (amps !== (ev.last_amps ?? -1)) { ev.last_amps = amps; flow.set(\"ev\", ev);\n    node.send([null, null, { payload: amps > 0 ? amps : 6 }, { payload: amps > 0 ? 1 : 0 }]); }\n}\nconst hbAge = (Date.now() - (flow.get(\"last_hb\") || 0)) / 1000;\nlet reason = null;\nif (Date.now() >= plan.end_at) reason = \"window_end\";\nelse if (eff.target_soc != null && (flow.get(\"soc\") || 0) >= eff.target_soc) reason = \"window_end\";   // PREPARE target reached\nelse if (plan.watchdog && hbAge > plan.hb_timeout_s) reason = \"heartbeat_lost\";\nif (!reason) return null;\nconst ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, \"Z\");\nconst ack = { topic: `gridzilla/ack/${flow.get(\"device_id\")}`, ackdoc: { v: 1, device: flow.get(\"device_id\"), path: flow.get(\"path\"), seq: null,\n  status: \"reverted\", reason, applied: {}, soc: flow.get(\"soc\") || 0, grid_kw: flow.get(\"grid_kw\") || 0, ts } };\nnode.warn(\"REVERT: \" + reason);\nreturn [{ payload: \"revert\" }, ack, null, null];",
   "outputs": 4,
   "noerr": 0,
   "initialize": "",
@@ -640,20 +640,20 @@
   "libs": [],
   "x": 420,
   "y": 480,
-  "id": "17cbe2d4e2a44b16",
+  "id": "ee8c01395ca74c16",
   "z": "gz_tab",
   "wires": [
    [
-    "f745ca47144f4a07"
+    "f267292151024856"
    ],
    [
-    "dc44c770bec94db9"
+    "e4153a61d1a54b45"
    ],
    [
-    "5124b8a5ff524ff0"
+    "7fdc1874a24f4d02"
    ],
    [
-    "0b164c3099ee430c"
+    "453740e71a1b41fc"
    ]
   ]
  },
@@ -668,7 +668,7 @@
   "libs": [],
   "x": 420,
   "y": 1120,
-  "id": "cb1018dc59fa47bc",
+  "id": "f85c363252c24864",
   "z": "gz_tab",
   "wires": []
  },
@@ -691,14 +691,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1100,
-  "id": "69927024644e4e7d",
+  "id": "16c34b073ba04f62",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -719,14 +719,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1140,
-  "id": "11cc2207a00746d1",
+  "id": "d5ffd2537fc5488c",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -747,14 +747,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1180,
-  "id": "cc059603075f41d7",
+  "id": "6c56d628fb544274",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -775,14 +775,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1220,
-  "id": "cd5f2ee8b6014431",
+  "id": "bf7739b963ae45e5",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -803,14 +803,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1260,
-  "id": "d38dc4eac7034bf8",
+  "id": "33aa3bf2b4d8457c",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -831,14 +831,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1300,
-  "id": "bb6889b921a24384",
+  "id": "105a268710464263",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -859,14 +859,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 1340,
-  "id": "79aa4b0130284da9",
+  "id": "dd3c3170196a4561",
   "z": "gz_tab",
   "wires": [
    [
-    "cb1018dc59fa47bc"
+    "f85c363252c24864"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -887,14 +887,14 @@
   "roundValues": "1",
   "x": 140,
   "y": 580,
-  "id": "6e1eaa2d37084ea6",
+  "id": "7cd85718d2654a81",
   "z": "gz_tab",
   "wires": [
    [
-    "b5d0feda78494c0f"
+    "03fb460eb8224002"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "function",
@@ -907,7 +907,7 @@
   "libs": [],
   "x": 380,
   "y": 580,
-  "id": "b5d0feda78494c0f",
+  "id": "03fb460eb8224002",
   "z": "gz_tab",
   "wires": []
  },
@@ -922,7 +922,7 @@
   "libs": [],
   "x": 380,
   "y": 640,
-  "id": "d0cc062f8248471b",
+  "id": "0f862d81344a48eb",
   "z": "gz_tab",
   "wires": []
  },
@@ -945,14 +945,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 640,
-  "id": "a65ec966b95b4f62",
+  "id": "ddcf9120243a4aa7",
   "z": "gz_tab",
   "wires": [
    [
-    "d0cc062f8248471b"
+    "0f862d81344a48eb"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -973,14 +973,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 680,
-  "id": "bae357d5e23648e7",
+  "id": "d63283229b7147d8",
   "z": "gz_tab",
   "wires": [
    [
-    "d0cc062f8248471b"
+    "0f862d81344a48eb"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -1001,14 +1001,14 @@
   "roundValues": "0",
   "x": 140,
   "y": 720,
-  "id": "7bf69fada3e54e49",
+  "id": "bc1c0e2a08cf4b0f",
   "z": "gz_tab",
   "wires": [
    [
-    "d0cc062f8248471b"
+    "0f862d81344a48eb"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "function",
@@ -1021,7 +1021,7 @@
   "libs": [],
   "x": 420,
   "y": 800,
-  "id": "35cc8417b1c14ed8",
+  "id": "9a5406266198461c",
   "z": "gz_tab",
   "wires": []
  },
@@ -1044,14 +1044,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 780,
-  "id": "8cbf04fc0fb7468e",
+  "id": "23188001a15f4957",
   "z": "gz_tab",
   "wires": [
    [
-    "35cc8417b1c14ed8"
+    "9a5406266198461c"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -1072,14 +1072,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 820,
-  "id": "05b40f31775f4a61",
+  "id": "afe5dc12068145e4",
   "z": "gz_tab",
   "wires": [
    [
-    "35cc8417b1c14ed8"
+    "9a5406266198461c"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -1100,14 +1100,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 860,
-  "id": "be731327176a4691",
+  "id": "34473600957b4a92",
   "z": "gz_tab",
   "wires": [
    [
-    "35cc8417b1c14ed8"
+    "9a5406266198461c"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -1128,14 +1128,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 900,
-  "id": "432aa38b715342a3",
+  "id": "c8cb219d2d854285",
   "z": "gz_tab",
   "wires": [
    [
-    "35cc8417b1c14ed8"
+    "9a5406266198461c"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "victron-input-custom",
@@ -1156,14 +1156,14 @@
   "roundValues": "0",
   "x": 160,
   "y": 960,
-  "id": "9c93cc76c3a04fe1",
+  "id": "b580695cba0e41e1",
   "z": "gz_tab",
   "wires": [
    [
-    "f310f9eab7e24810"
+    "c9900263120543d1"
    ]
   ],
-  "client": "6a68ce8dcd9e4f9f"
+  "client": "5a3d39d7f65549e6"
  },
  {
   "type": "function",
@@ -1176,7 +1176,7 @@
   "libs": [],
   "x": 420,
   "y": 960,
-  "id": "f310f9eab7e24810",
+  "id": "c9900263120543d1",
   "z": "gz_tab",
   "wires": []
  },
@@ -1197,11 +1197,11 @@
   "payloadType": "date",
   "x": 130,
   "y": 1040,
-  "id": "eaca68476042406b",
+  "id": "9c85c929886d42ea",
   "z": "gz_tab",
   "wires": [
    [
-    "74428a91069145b1"
+    "951cc03b86d0430c"
    ]
   ]
  },
@@ -1216,11 +1216,11 @@
   "libs": [],
   "x": 380,
   "y": 1040,
-  "id": "74428a91069145b1",
+  "id": "951cc03b86d0430c",
   "z": "gz_tab",
   "wires": [
    [
-    "0c999d7448a845ed"
+    "c2cda7464a0d4176"
    ]
   ]
  },
@@ -1230,10 +1230,10 @@
   "topic": "",
   "qos": "0",
   "retain": "false",
-  "broker": "6363029228424e53",
+  "broker": "24f5d1b8c25f4d7e",
   "x": 600,
   "y": 1040,
-  "id": "0c999d7448a845ed",
+  "id": "c2cda7464a0d4176",
   "z": "gz_tab",
   "wires": []
  }

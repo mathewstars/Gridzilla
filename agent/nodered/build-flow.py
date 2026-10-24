@@ -129,6 +129,7 @@ if (lim === "cap" || lim === "soak") {
 const hbAge = (Date.now() - (flow.get("last_hb") || 0)) / 1000;
 let reason = null;
 if (Date.now() >= plan.end_at) reason = "window_end";
+else if (eff.target_soc != null && (flow.get("soc") || 0) >= eff.target_soc) reason = "window_end";   // PREPARE target reached
 else if (plan.watchdog && hbAge > plan.hb_timeout_s) reason = "heartbeat_lost";
 if (!reason) return null;
 const ts = new Date().toISOString().replace(/\\.\\d{3}Z$/, "Z");

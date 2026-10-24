@@ -88,9 +88,15 @@ def token():
     _tok.update(access=t["access_token"], exp=time.time() + int(t.get("expires_in", 3600))); return _tok["access"]
 
 H = lambda: {"Authorization": "Bearer " + token()}
+def call(method, url, **kw):
+    """Viessmann cloud is slow and flaky: 3 tries, 60 s each."""
+    for i in range(3):
+        try: return requests.request(method, url, headers=H(), timeout=60, **kw)
+        except Exception as e: last = e; time.sleep(3)
+    raise last
 d = json.loads((KEYS / "vicare-device.json").read_text()) if (KEYS / "vicare-device.json").exists() else None
 if d is None:
-    inst = requests.get(f"{API}/equipment/installations", params={"includeGateways": "true"}, headers=H(), timeout=30).json()["data"]
+    inst = call("GET", f"{API}/equipment/installations", params={"includeGateways": "true"}).json()["data"]
     for i in inst:
         for g in i.get("gateways", []):
             for dv in g.get("devices", []):
@@ -101,7 +107,7 @@ log(f"ViCare device: {d['model']} at installation {d['installation']}")
 
 def read():
     try:
-        feats = {x["feature"]: x for x in requests.get(FEAT, headers=H(), timeout=30).json()["data"]}
+        feats = {x["feature"]: x for x in call("GET", FEAT).json()["data"]}
     except Exception as e:
         log(f"ViCare read failed: {e}"); return {}
     v = lambda f, p="value": ((feats.get(f) or {}).get("properties") or {}).get(p, {}).get("value")
@@ -111,10 +117,10 @@ def read():
 
 def apply_dhw(setpoint, one_time=False):
     if READ_ONLY: log(f"READ-ONLY: would set DHW {setpoint} °C one_time={one_time}"); return
-    r = requests.post(f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", json={"temperature": int(setpoint)}, headers=H(), timeout=30)
+    r = call("POST", f"{FEAT}/heating.dhw.temperature.main/commands/setTargetTemperature", json={"temperature": int(setpoint)})
     log(f"ViCare: DHW setpoint -> {setpoint} °C: HTTP {r.status_code}")
     if one_time:
-        r2 = requests.post(f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}, headers=H(), timeout=30); log(f"ViCare: one-time charge: HTTP {r2.status_code}")
+        r2 = call("POST", f"{FEAT}/heating.dhw.oneTimeCharge/commands/activate", json={}); log(f"ViCare: one-time charge: HTTP {r2.status_code}")
 
 # ------------------------------------------------------------------ agent state
 saved = None; effective = None; sig_active = None; end_at = 0; watchdog = False; last_hb = time.time(); lock = threading.Lock()
