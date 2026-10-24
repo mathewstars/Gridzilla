@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+
+/* Projector-first dark theme. One accent (Gridzilla teal) for everything the platform does; blue = taking power,
+   yellow = giving power back; green / amber / red only for transformer load. */
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #05080d;
+  --color-deck: #0b111a;
+  --color-deck-2: #111926;
+  --color-deck-3: #182233;
+  --color-edge: rgb(255 255 255 / 0.07);
+  --color-fg: #eef3f9;
+  --color-dim: #8a97ab;
+  --color-faint: #5b6779;
+  --color-signal: #33e1c9;
+  --color-take: #58a6ff;
+  --color-give: #ffc93c;
+  --color-ok: #3ddc84;
+  --color-warn: #ffb020;
+  --color-crit: #ff4d5e;
+}
+
+:root {
+  color-scheme: dark;
+  /* 14px at 1440 wide, 16px at 1920, ~19px at 2560: readable from the back of the room */
+  font-size: clamp(14px, calc(0.42vw + 8px), 22px);
+}
+@media (max-width: 640px) {
+  :root { font-size: 14px; }
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgb(51 225 201 / 0.07), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgb(88 166 255 / 0.06), transparent 60%),
+    var(--color-ink);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A raised instrument panel: soft top highlight, tinted shadow, no hairline grid. */
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0) 40%), var(--color-deck);
+  border-radius: 1.1rem;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 0 0 1px rgb(255 255 255 / 0.045),
+    0 24px 60px -24px rgb(0 0 0 / 0.7);
+  min-width: 0;
+  min-height: 0;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 0.45rem; white-space: nowrap;
+  padding: 0.5rem 0.9rem; border-radius: 999px; font-weight: 550; font-size: 0.86rem; line-height: 1;
+  color: var(--color-fg);
+  background: linear-gradient(180deg, #1c2738, #141c29);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 6px 16px -8px rgb(0 0 0 / 0.8);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  cursor: pointer; user-select: none;
+}
+.btn:hover { background: linear-gradient(180deg, #24324a, #182233); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 10px 22px -10px rgb(0 0 0 / 0.9); }
+.btn:active { transform: translateY(1px) scale(0.98); }
+.btn:focus-visible { outline: 2px solid var(--color-signal); outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-primary { color: #032521; background: linear-gradient(180deg, #5af0db, #24c7b0); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 8px 24px -8px rgb(51 225 201 / 0.55); }
+.btn-primary:hover { background: linear-gradient(180deg, #7af5e4, #2fd6be); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), 0 10px 30px -8px rgb(51 225 201 / 0.7); }
+.btn-danger { color: #ffd9dc; background: linear-gradient(180deg, #4a1d24, #321419); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 77 94 / 0.35); }
+.btn-danger:hover { background: linear-gradient(180deg, #5d232c, #3d181e); }
+
+.label { color: var(--color-dim); font-size: 0.8rem; font-weight: 500; }
+.tech { color: var(--color-faint); font-size: 0.7rem; letter-spacing: 0.01em; }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+@keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 0.8 } 100% { transform: scale(1.8); opacity: 0 } }
+.live-dot { position: relative; width: 0.55rem; height: 0.55rem; border-radius: 999px; background: currentColor; }
+.live-dot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: currentColor; animation: pulse-ring 1.6s ease-out infinite; }
+
+@keyframes sweep { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+
+.scroll-thin { scrollbar-width: thin; scrollbar-color: #253247 transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
