@@ -69,7 +69,7 @@ function makeHouse(cfg, keys) {
   return {
     cfg, keys,
     soc: cfg.soc ?? 60,
-    simMinutes: (cfg.start_hour ?? 16) * 60,
+    simMinutes: (process.env.GZ_START_HOUR != null ? +process.env.GZ_START_HOUR : (cfg.start_hour ?? 16)) * 60,   // GZ_START_HOUR jumps the simulated clock
     lastSeq: loadSeq(cfg.id),
     lastHb: Date.now(),
     signal: null,          // active parsed signal
