@@ -1,7 +1,7 @@
 # Gridzilla operations console
 
 The new front end: the operator's console (Operations, City, Autopilot, Manual, Households, Real plant, Weather, Log), a demo
-mode for the pitch, and the presentation stage. Vite + React + TypeScript + Tailwind, three.js for the 3D street.
+mode for the pitch. Vite + React + TypeScript + Tailwind, three.js for the 3D street.
 The built files go to `platform/static/new/` and are committed, so the platform serves them with no Node on the server:
 `http://<platform>/static/new/index.html`.
 
@@ -33,7 +33,7 @@ checks just a few sizes in both themes.
 - `#/` Operations: the live city, the selected transformer's curve, the Now panel, the composer in a drawer.
 - `#/city`, `#/autopilot`, `#/manual`, `#/households`, `#/plant`, `#/weather`, `#/log`: the other sections.
 - `#/demo` Demo mode for the pitch and the projector (key D toggles it).
-- `#/present` The presentation stage.
+- The old presentation stage is retired: `#/present` opens demo mode. The pitch deck embeds `DemoView` (`src/ops/demo/DemoView.tsx`).
 - Theme: dark by default; the small sun/moon icon top right, or `?theme=light` / `?theme=dark`.
 
 ## Read-only live mode (`?api=`)
