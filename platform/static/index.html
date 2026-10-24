@@ -270,7 +270,7 @@ function drawCharts() {
 }
 
 // ---------- schematic
-function statusColor(pct) { return pct == null ? css("--muted") : pct >= 100 ? css("--crit") : pct >= 85 ? css("--warn") : css("--ok"); }
+function statusColor(pct) { const p = Math.abs(pct); return pct == null ? css("--muted") : p >= 100 ? css("--crit") : p >= 85 ? css("--warn") : css("--ok"); } // negative = reverse flow (PV), loads the transformer just the same
 function modeColor(t, a) { if (!t) return "#3a414a"; const st = a && a.status; if (st === "refused") return css("--crit"); if (st === "partial") return css("--warn"); return t.mode && t.mode !== "owner" ? css("--acc") : css("--muted"); }
 function drawSchem() {
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
@@ -289,7 +289,7 @@ function drawSchem() {
       <text x="${x + 10}" y="114">${tf}</text><text x="${x + w - 10}" y="114" text-anchor="end" class="muted">${S.tree[tf].rating_kw} kVA</text>
       <text x="${x + 10}" y="134" class="muted">load</text><text x="${x + w - 10}" y="134" text-anchor="end" style="fill:${c}">${a.total_kw != null ? a.total_kw.toFixed(0) + " kW · " + pct + "%" : "–"}</text>
       <rect class="bar-bg" x="${x + 10}" y="142" width="${w - 20}" height="10" rx="3"/>
-      <rect x="${x + 10}" y="142" width="${Math.min(1, (pct || 0) / 120) * (w - 20)}" height="10" rx="3" fill="${c}"/>
+      <rect x="${x + 10}" y="142" width="${Math.min(1, Math.abs(pct || 0) / 120) * (w - 20)}" height="10" rx="3" fill="${c}"/>
       <line x1="${x + 10 + (100 / 120) * (w - 20)}" y1="138" x2="${x + 10 + (100 / 120) * (w - 20)}" y2="156" stroke="${css("--fg")}" stroke-width="1"/>
       <text x="${x + 10}" y="176" class="muted">program ${a.program_kw != null ? (a.program_kw >= 0 ? "+" : "") + a.program_kw.toFixed(0) + " kW" : "–"} · ${a.kwh_available} kWh stored</text>
       ${a.active ? `<text x="${x + w - 10}" y="176" text-anchor="end" style="fill:${css("--acc")}">${a.active}</text>` : ""}
@@ -313,8 +313,8 @@ function drawSchem() {
 function drawKpis() {
   const root = S.aggregates["region:at"];
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
-  const worst = Math.max(...tfs.map(n => S.aggregates[n].load_pct || 0));
-  const over = tfs.filter(n => (S.aggregates[n].load_pct || 0) >= 100).length;
+  const worst = Math.max(...tfs.map(n => Math.abs(S.aggregates[n].load_pct || 0)));
+  const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   const active = Object.keys(S.active).length;
   const online = Object.values(S.devices).filter(d => d.telemetry).length, total = Object.keys(S.devices).length;
   const rep = Object.values(S.devices).reduce((a, d) => a + (d.represents || 1), 0);
