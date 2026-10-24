@@ -54,3 +54,17 @@ Following Gridzilla is ink (a solid dark marker / filled shape); not following i
 Gradients, glows, neon, coloured or glowing borders, glass/blur, pulsing or sonar rings, dark theme, more than one hue,
 chips everywhere (max one small status badge per card), eyebrow labels, decorative hairlines, emoji-like icons,
 ellipsis truncation, sample data shown as real (sample weather only with `?weather=sample`).
+
+## Round 3: the one stage (resources used)
+
+- Skills: website-design, design-taste-frontend, frontend-design, ui-ux-pro-max, dataviz (spec in `design/STAGE.md`).
+- 21st.dev components adapted (reference sources and notes in `design/COMPONENTS.md`, `design/21st/`):
+  Apple Activity Ring (@kokonutd, 3223) -> `src/stage/kit/LoadRing.tsx`; Circle Progress countdown (@hihahihahoho, 1737) ->
+  `src/stage/kit/Countdown.tsx`; Stats Bento (@uilayout.contact, 25311) -> the facts strip `src/stage/one/Facts.tsx`; stepper-03
+  (@shadcnspace, 28558) -> `src/stage/one/AiCard.tsx`; Animate Digits (@unlumen, 20071) -> the top-bar clock digits; Chart Area
+  (@uiable, 30819) -> pattern for the gap fill in `src/stage/kit/LiveCurve.tsx` (own engine kept for label collision avoidance).
+- Real Apple references: apple.com production CSS (tokens above), iOS Home Grid Forecast / Electricity, Weather app, Watch rings.
+- 3D: Kenney City Kit (Suburban), CC0, `public/models/` with its License.txt.
+- Round 2/3 colour rule: Apple system colours with one meaning each (`src/stage/palette.ts`); on the curve the pitch script's words:
+  blue with Gridzilla, grey dashed without, orange the peak eaten, green the plan, red the limit.
+- Gates: `qa/README.md` (`npm run qa`).
