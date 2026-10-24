@@ -113,7 +113,7 @@ STATE_FILE = HERE / "state.json"
 _lock = threading.Lock()
 state = {
     "seq": 0,
-    "hb_seq": 0,
+    "hb_seq": int(time.time()),   # devices refuse a heartbeat seq at or below the last one seen: start above any earlier run
     "active": {},          # node -> signal
     "acks": {},            # device -> last ack (parsed) + verified flag
     "telemetry": {},       # device -> {soc, grid_kw, ts}
