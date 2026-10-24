@@ -4,7 +4,7 @@
     python3 tools/gen-vienna.py
 
 Deterministic (seeded). The real Blatnica plant and its heat pump stay on the first transformer of the first feeder.
-Each simulated household stands for 10 real ones on the board (represents: 10). Households may have a battery,
+Each simulated household stands for 8 real ones on the board (represents: 8). Households may have a battery,
 an EV charger, and a heat pump or an electric boiler; every one of them is a Gridzilla device with the same agent logic.
 """
 import json, random, pathlib, yaml
@@ -39,7 +39,7 @@ SUBS = {   # 110/22 kV substations with Wiener Netze names -> 22 kV feeders -> s
                                                                 "feeder:waehring-2": ["waehring", "gersthof", "poetzleinsdorf"],
                                                                 "feeder:brigittenau-3": ["brigittenau", "zwischenbruecken", "nordbahnhof"]}},
 }
-REPRESENTS = 4
+REPRESENTS = 8
 tree = {"region:at": {"parent": None}}
 devices, houses = [], []
 tf_index = 0

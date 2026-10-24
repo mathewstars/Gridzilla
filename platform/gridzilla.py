@@ -1006,7 +1006,7 @@ def get_state(hh: str = "", fc: str = "", tree: int = 1):
         hist = ap.get("history") or []
         ap["history"] = [h if i < 4 else {k: v for k, v in h.items() if k != "envelope"} for i, h in enumerate(hist[:25])]
         allh = households()
-        tot = {"households": len(allh), "online": sum(1 for h in allh.values() if h["telemetry"]),
+        tot = {"households": len(allh), "online": sum(1 for h in allh.values() if h["telemetry"]), "shaped": sum(1 for h in allh.values() if h["telemetry"] and h["telemetry"].get("shape")),
                "houses": sum(h.get("represents", 1) for h in allh.values()),
                "ev_kw": round(sum(((h["telemetry"] or {}).get("ev_kw") or 0) * h.get("represents", 1) for h in allh.values()), 1),
                "hp_kw": round(sum(((h["telemetry"] or {}).get("hp_kw") or 0) * h.get("represents", 1) for h in allh.values()), 1)}
@@ -1064,6 +1064,7 @@ def households():
             m["heat"] = "+".join(dict.fromkeys("+".join(kinds).split("+"))) if kinds else None
             m["ev"] = max(m["ev"], t.get("ev") or (d.get("ev_kw") or 0))
             if t.get("mode") and t["mode"] != "owner": m["mode"] = t["mode"]
+            if t.get("shape"): m["shape"] = True
             m["rx"] = max(m["rx"] or "", t.get("rx") or "")
             h["telemetry"] = m
         if a:
