@@ -59,23 +59,31 @@ export interface Street {
 export const homesRatio = (s: State) => (s.summary && s.summary.households ? s.summary.houses / s.summary.households : 8);
 
 /** Homes on tf: online simulated households x their weight, a real home counts once. Followers follow the active
- *  signal (acked applied or partial for its seq) or, with no signal, the diet plan (telemetry.shape). */
+ *  signal (telemetry mode under a signal, or acked applied/partial for its seq) or, with no signal, the diet plan
+ *  (telemetry.shape). */
 export function streetOf(s: State, tf: string, sig: Signal | null): Street | null {
   const r = homesRatio(s);
   const hs = Object.values(s.households ?? {}).filter((h) => h.tf === tf && h.telemetry);
   if (!hs.length) return null;
   const w = (h: Household) => (h.real ? 1 : h.represents || r);
-  const fol = (h: Household) =>
-    sig ? h.ack?.seq === sig.seq && (h.ack.status === "applied" || h.ack.status === "partial") : !!h.telemetry?.shape;
+  // Under the signal: the house's own telemetry says it runs a signal mode (not "owner"), or it acked this very seq
+  // applied/partial. The ack alone is not enough: houses also ack the SHAPE plan (another seq), which overwrites it.
+  const under = (h: Household) => h.telemetry?.mode != null && h.telemetry.mode !== "owner";
+  const acked = (h: Household) => !!sig && h.ack?.seq === sig.seq && (h.ack.status === "applied" || h.ack.status === "partial");
+  const fol = (h: Household) => (sig ? under(h) || acked(h) : !!h.telemetry?.shape);
   const HH = "state/households/*";
   const sum = (f: string) => `sum(${HH}[tf = ${tf} and real = false and ${f}]/represents) + count(${HH}[tf = ${tf} and real = true and ${f}])`;
-  const folF = sig ? `telemetry and ack/seq = ${sig.seq} and ack/status in applied,partial` : "telemetry/shape = true";
+  // The same "or" as two disjoint parts for qa/truth.mjs: in a signal mode, plus owner-or-no-mode houses that acked it.
+  const ack = sig ? `ack/seq = ${sig.seq} and ack/status in applied,partial` : "";
+  const folF = sig
+    ? `${sum("telemetry/mode and telemetry/mode != owner")} + ${sum(`telemetry and telemetry/mode = owner and ${ack}`)} + ${sum(`telemetry and telemetry/mode = null and ${ack}`)}`
+    : sum("telemetry/shape = true");
   return {
     homes: hs.reduce((a, h) => a + w(h), 0),
     follow: hs.filter(fol).reduce((a, h) => a + w(h), 0),
     what: sig ? "signal" : "plan",
     homesFrom: sum("telemetry"),
-    followFrom: sum(folF),
+    followFrom: folF,
   };
 }
 
