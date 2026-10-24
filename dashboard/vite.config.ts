@@ -12,6 +12,8 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
+      // The pitch deck (pitch.html) is built next to the console (index.html).
+      input: { index: "index.html", pitch: "pitch.html" },
       output: { manualChunks: { three: ["three", "@react-three/fiber", "@react-three/drei"], charts: ["recharts"] } },
     },
   },

@@ -1,0 +1,38 @@
+/* The deck shell: a white window, the 1920x1080 canvas scaled to fit, full-bleed slides at window size. */
+html,
+body {
+  margin: 0;
+  background: #ffffff;
+  overflow: hidden;
+  height: 100%;
+}
+.p-deck {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  overflow: hidden;
+}
+.p-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+}
+.p-bleed {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f5f5f7;
+}
+/* Kept mounted but off-screen: the stage keeps its data warm and its 3D street pauses (it watches visibility). */
+.p-bleed.p-off {
+  transform: translateX(200vw);
+  visibility: hidden;
+  pointer-events: none;
+}
+.p-stage {
+  min-height: 100%;
+}
