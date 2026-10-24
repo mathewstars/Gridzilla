@@ -123,7 +123,10 @@ async function cell(state, p, size) {
     const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
     f.console = errors;
     const shot = `${out}/${state}-${p}-${size}.png`;
-    await page.screenshot({ path: shot, fullPage: true });
+    // Grow the window to the whole page so below-the-fold parts (the 3D street pauses off-screen) render for the capture.
+    const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
+    if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }
+    await page.screenshot({ path: shot });
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
     results.push({ state, page: p, size, count, f, shot });
   } catch (e) {
