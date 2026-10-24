@@ -154,14 +154,15 @@ def sample_history():
     h = sim_hour()
     with _lock:
         for n in TREE:
-            prog = 0.0
+            prog = 0.0; base = 0.0
             for d in devices_under(n):
                 t = state["telemetry"].get(d["id"])
                 if t and t.get("grid_kw") is not None:
                     prog += t["grid_kw"] * d.get("represents", 1)
+                    base += (t.get("grid_owner_kw") if t.get("grid_owner_kw") is not None else t["grid_kw"]) * d.get("represents", 1)
             other = sum(TREE[t].get("other_houses", 0) * other_profile_kw(h)
                         for t in TREE if n in path_of(t) and t.startswith("tf:"))
-            NODE_HIST[n].append({"ts": iso(now()), "h": round(h, 2), "program_kw": round(prog, 1),
+            NODE_HIST[n].append({"ts": iso(now()), "h": round(h, 2), "program_kw": round(prog, 1), "baseline_kw": round(base + other, 1),
                                  "other_kw": round(other, 1), "total_kw": round(prog + other, 1)})
         for d in DEVICES:
             t = state["telemetry"].get(d)
@@ -372,7 +373,7 @@ def aggregates():
         out[node] = {"devices": len(devs), "online": sum(1 for d in devs if d["id"] in state["telemetry"]),
                      "kwh_available": round(kwh_avail, 1), "kw": kw, "applied": applied,
                      "active": state["active"].get(node, {}).get("mode"),
-                     "total_kw": last.get("total_kw"), "program_kw": last.get("program_kw"), "other_kw": last.get("other_kw"),
+                     "total_kw": last.get("total_kw"), "program_kw": last.get("program_kw"), "other_kw": last.get("other_kw"), "baseline_kw": last.get("baseline_kw"),
                      "rating_kw": rating, "load_pct": round(100 * last["total_kw"] / rating) if rating and last else None}
     return out
 
