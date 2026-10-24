@@ -20,6 +20,8 @@
   color: var(--p-ink);
 }
 .s1-tag {
+  width: 100%;
+  text-align: center;
   margin: 44px 0 0;
   font-size: 44px;
   font-weight: 500;
@@ -27,6 +29,8 @@
   opacity: 0.92;
 }
 .s1-credits {
+  width: 100%;
+  text-align: center;
   margin-top: 56px;
   display: flex;
   flex-direction: column;

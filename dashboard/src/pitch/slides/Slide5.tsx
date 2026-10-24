@@ -6,6 +6,7 @@
 // number key never changes the live scenario. Left, Right and F are the shell's (it stops them first).
 import { useEffect, useRef, useState } from "react";
 import Stage from "../../stage/Stage";
+import Tour5 from "./Tour5";
 import type { SlideProps } from "../types";
 import "./slide5.css";
 
@@ -29,7 +30,8 @@ function stageFollowsTheme(): boolean {
   return true;
 }
 
-export default function Slide5({ active }: SlideProps) {
+export default function Slide5({ active, step, tourOff }: SlideProps) {
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const on = useRef(active);
   on.current = active;
   // In the dark deck, a stage that still paints white cards keeps its light tokens (slide5.css), so no white-on-white text.
@@ -53,8 +55,9 @@ export default function Slide5({ active }: SlideProps) {
   }, []);
 
   return (
-    <div className={`p-stage${light ? " p-stage-light" : ""}`} data-slide="5">
+    <div ref={setRoot} className={`p-stage${light ? " p-stage-light" : ""}`} data-slide="5">
       <Stage />
+      {active && step >= 1 && !tourOff && <Tour5 step={step} root={root} />}
     </div>
   );
 }

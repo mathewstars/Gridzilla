@@ -1,7 +1,8 @@
 // Slide 3, the idea (0:55, 40 s, Matthew). One signed message is typed out, travels down four wires and each box
-// sorts it out by itself. Step 1 (Right): the same message at noon: only the changed words swap (no second typing),
-// the message travels again, then the slide's last word. Step 2 (Right): the AI's loop, every 15 minutes, as a ring of
-// five stations (gathers, thinks, checks, signs and sends, houses reply) lit in turn with live numbers, one loop.
+// sorts it out by itself. Step 1 (Right): the same message at noon: only the changed words slide (no second typing),
+// the message travels again. Step 2 (Right): the slide's last word. Step 3 (Right): the AI's loop, every 15 minutes, as
+// a ring of five stations (gathers, thinks, checks, signs and sends, houses reply) lit in turn with live numbers, one
+// lap. Every beat is a key press; nothing dims or moves on by itself.
 // Typing engine adapted from 21st.dev "Typewriter Text" by @educalvolpz (id 18768): its recursive per-character
 // timeout, the final text laid out invisibly so nothing reflows, and freeze or reduced motion showing the full text.
 import { useEffect, useRef, useState } from "react";
@@ -54,7 +55,7 @@ const wirePath = (i: number) => {
 
 // Timeline, seconds. Step 0 builds inside 8.2 s; step 1 inside 7 s (the closing line at 6 s).
 const T0 = { type: 0.6, wires: 3.4, stagger: 0.75, travel: 0.9, foot: 7.3 };
-const T1 = { header: 0, type: 0.35, dots: 2.7, stagger: 0.6, travel: 0.8, foot: 6.0 };
+const T1 = { header: 0, type: 0.35, dots: 1.2, stagger: 0.6, travel: 0.8 };
 const SPEED = { type: 40, erase: 22 };
 // Step 2, the loop: the old scene leaves, the ring comes, then one lap lights the five stations in turn.
 const T2 = { ring: 0.3, lap: 1.1, lapDur: 5.6 };
@@ -74,7 +75,7 @@ interface View {
 }
 
 const finalView = (step: number): View =>
-  step >= 1 ? { in: true, header: 1, lit: 4, noon: 4, foot: 2 } : { in: true, header: 0, lit: 4, noon: 0, foot: 1 };
+  step >= 1 ? { in: true, header: 1, lit: 4, noon: 4, foot: step >= 2 ? 2 : 1 } : { in: true, header: 0, lit: 4, noon: 0, foot: 1 };
 const finalTyped = (): Typed => ({ base: MSG[0], n: MSG[0].length, typing: false });
 
 // The loop ring, canvas px: five stations clockwise from the top.
@@ -94,14 +95,14 @@ const commonPrefix = (a: string, b: string) => {
 export default function Slide3({ step, freeze }: SlideProps) {
   const reduce = useReducedMotion();
   const still = freeze === "end" || !!reduce;
-  const s = Math.min(Math.max(step, 0), 2);
+  const s = Math.min(Math.max(step, 0), 3);
 
   const [view, setView] = useState<View>(() => (still ? finalView(s) : s >= 1 ? finalView(s - 1) : { in: false, header: 0, lit: 0, noon: 0, foot: 0 }));
   const [typed, setTyped] = useState<Typed>(() => (still || s >= 1 ? finalTyped() : { base: MSG[0], n: 0, typing: false }));
   const [wiresDrawn] = useState(() => still || s >= 1);
   // Noon: the changed words swap in place. Loop: the ring scene is on, and how many stations are lit (0-5).
   const [swap, setSwap] = useState(() => s >= 2 || (still && s >= 1));
-  const [loop, setLoop] = useState(() => ({ on: s >= 2 && still, lit: s >= 2 && still ? 5 : 0 }));
+  const [loop, setLoop] = useState(() => ({ on: s >= 3 && still, lit: s >= 3 && still ? 5 : 0 }));
   const lapRef = useRef<SVGPathElement | null>(null);
   const live = useGridState("", "").data;
   const wireRefs = useRef<(SVGPathElement | null)[]>([]);
@@ -178,8 +179,8 @@ export default function Slide3({ step, freeze }: SlideProps) {
       setView(finalView(s));
       setTyped(finalTyped());
       setSwap(s >= 1);
-      setLoop({ on: s >= 2, lit: s >= 2 ? 5 : 0 });
-      setLap(s >= 2 ? 1 : 0);
+      setLoop({ on: s >= 3, lit: s >= 3 ? 5 : 0 });
+      setLap(s >= 3 ? 1 : 0);
       for (let i = 0; i < 4; i++) {
         setWire(i, 1);
         setDot(i, null);
@@ -215,10 +216,21 @@ export default function Slide3({ step, freeze }: SlideProps) {
       BOXES.forEach((_, i) =>
         travel(i, T1.dots + i * T1.stagger, T1.travel, false, () => setView((v) => ({ ...v, noon: Math.max(v.noon, i + 1) }))),
       );
-      at(T1.foot, () => setView((v) => ({ ...v, foot: 2 })));
+    } else if (s === 2) {
+      // The slide's last word: the closing line takes the foot's place, on its own key press.
+      setView(finalView(1));
+      setTyped(finalTyped());
+      setSwap(true);
+      setLoop({ on: false, lit: 0 });
+      setLap(0);
+      for (let i = 0; i < 4; i++) {
+        setWire(i, 1);
+        setDot(i, null);
+      }
+      at(0.05, () => setView((v) => ({ ...v, foot: 2 })));
     } else {
       // The loop: the message scene leaves, the ring comes, one lap lights the five stations in turn, then it rests.
-      setView(finalView(1));
+      setView(finalView(2));
       setTyped(finalTyped());
       setSwap(true);
       setLap(0);
@@ -248,7 +260,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
   const ghost = typed.base.slice(typed.n);
 
   return (
-    <div className={`p-slide s3${view.in ? " s3-in" : ""}${still ? " s3-still" : ""}${s >= 2 ? " s3-looping" : ""}`} data-slide="3">
+    <div className={`p-slide s3${view.in ? " s3-in" : ""}${still ? " s3-still" : ""}${s >= 3 ? " s3-looping" : ""}`} data-slide="3">
       <svg className="s3-wires s3-enter" viewBox="0 0 1920 1080" aria-hidden="true">
         {BOXES.map((b, i) => (
           <path
@@ -299,10 +311,9 @@ export default function Slide3({ step, freeze }: SlideProps) {
             {"“This street, next three hours,"}
             <br />
             <span className="s3-swap" aria-hidden="true">
-              <span className={swap ? "" : "is-on"}>take at most 3 kW</span>
-              <span className={swap ? "is-on" : ""}>give at most 2 kW</span>
+              <span className={swap ? "" : "is-on"}>take at most 3 kW per house.”</span>
+              <span className={swap ? "is-on" : ""}>give at most 2 kW per house.”</span>
             </span>
-            {" per house.”"}
           </p>
         )}
       </div>
@@ -342,7 +353,7 @@ export default function Slide3({ step, freeze }: SlideProps) {
         </p>
       </div>
 
-      {s >= 2 && <Loop lit={loop.lit} on={loop.on} live={live} lapRef={lapRef} />}
+      {s >= 3 && <Loop lit={loop.lit} on={loop.on} live={live} lapRef={lapRef} />}
     </div>
   );
 }

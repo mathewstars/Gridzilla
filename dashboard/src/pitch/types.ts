@@ -15,8 +15,10 @@ export interface SlideProps {
   active: boolean;
   /** QA and print: "end" renders the final state of the current step at once, with no animation. null = live. */
   freeze: "end" | null;
-  /** Slide 1 only: the jingle, which the shell plays (browsers need a key press for audio). */
+  /** The trailer on slide 0 (it carries the jingle): "playing" while it runs, else "ended". */
   jingle: JingleState;
+  /** Slide 5: the presenter skipped the walkthrough with Esc, so no step shows its overlay. */
+  tourOff?: boolean;
 }
 
 export interface SlideDef {
@@ -34,4 +36,6 @@ export interface SlideDef {
   keepMounted?: boolean;
   /** Background behind the slide (default "none"). */
   bg?: BgKind;
+  /** Steps 1..n are a walkthrough (slide 5): Esc skips the rest of it instead of opening the overview. */
+  tour?: boolean;
 }

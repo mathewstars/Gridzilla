@@ -215,6 +215,7 @@
    then the new ones slide up into their place, so the two are never both visible. */
 .s3 .s3-swap {
   display: inline-grid;
+  justify-items: start;
   vertical-align: bottom;
 }
 .s3 .s3-swap > span {

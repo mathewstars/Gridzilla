@@ -46,14 +46,14 @@ export const NOTES: Notes[] = [
       "(Right) Every fifteen minutes the AI reads the whole city. Seventy-two transformers, the weather, the plan, every house's reply.",
       "It writes the message. Thirty lines of rules check it. The platform signs it. The houses reply, signed.",
     ],
-    keys: "Right: the same message at noon. Right: the loop. Next press goes to the peaks.",
+    keys: "Right: the same message at noon. Right: the closing line. Right: the loop. Next press goes to the peaks.",
   },
   {
     who: "Peter",
     time: "1:35, 40 s",
     lines: [
       "Gridzilla eats peaks. Every street, every evening.",
-      "At six the cars come home and the transformer would hit a hundred and ten percent. With Gridzilla it stays at seventy.",
+      "At six the cars come home and the transformer would hit a hundred and ten percent. (Right) With Gridzilla it stays at seventy.",
       "The cars still charge, just not at dinner. Plugged in at six, trickle through the evening, full by seven in the morning.",
       "The batteries eat the dinner spike. The noon sun fills them again.",
       "Nobody at home notices. The operator never buys the bigger transformer.",

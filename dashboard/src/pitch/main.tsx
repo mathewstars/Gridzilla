@@ -1,3 +1,4 @@
+import "./liveMode"; // first: ?api=<base> read-only live mode wraps fetch before anything polls
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../index.css";

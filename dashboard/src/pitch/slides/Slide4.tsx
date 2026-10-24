@@ -119,7 +119,7 @@ function band(xs: number[], a: number[], b: number[], yOf: (v: number) => number
     .join("");
 }
 
-export default function Slide4({ freeze }: SlideProps) {
+export default function Slide4({ freeze, step }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
   const { plan, failed } = useFlatten("region:at");
@@ -145,12 +145,14 @@ export default function Slide4({ freeze }: SlideProps) {
     <div className="p-slide" data-slide="4">
       <h1 className="p-head-xl s4-head">The monster eats peaks.</h1>
       <p className="p-sub p-secondary s4-sub">Every street, every evening.</p>
-      {snap && <Chart key={snap.live ? "live" : "illustration"} snap={snap} still={still} />}
+      {snap && <Chart key={snap.live ? "live" : "illustration"} snap={snap} still={still} withG={step >= 1} />}
     </div>
   );
 }
 
-function Chart({ snap, still }: { snap: Snap; still: boolean }) {
+/** Step 0: the street without Gridzilla heads past the limit (red). Step 1 (Right): the Gridzilla line bends under it,
+ *  the eaten peak and the moved charging fill in, and the big number drops from red to green. */
+function Chart({ snap, still, withG }: { snap: Snap; still: boolean; withG: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const g = useMemo(() => {
     const all = snap.runs.flat();
@@ -209,6 +211,8 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
   }, [snap]);
 
   const T = (delay: number, duration: number) => (still ? { duration: 0 } : { delay, duration, ease: EASE });
+  // Step 1's moves, timed from the key press.
+  const on = (v: number) => (withG ? v : 0);
   const init = <V,>(v: V) => (still ? false : v);
   const peakFrac = (g.peakX - X0) / (X1 - X0);
   const tPeak = 0.6 + 2.6 * Math.min(1, peakFrac * 0.9) + 0.25;
@@ -254,17 +258,17 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           d={g.orange}
           fill={P.orange}
           fillOpacity={0.35}
-          initial={init({ opacity: 0 })}
-          animate={{ opacity: 1 }}
-          transition={T(3.6, 0.8)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: on(1) }}
+          transition={T(0.1, 0.6)}
         />
         <motion.path
           d={g.green}
           fill={P.green}
           fillOpacity={0.35}
-          initial={init({ opacity: 0 })}
-          animate={{ opacity: 1 }}
-          transition={T(6.4, 0.8)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: on(1) }}
+          transition={T(1.6, 0.8)}
         />
 
         {/* Without Gridzilla: tertiary dashed, its stretch over the limit red. Drawn left to right. */}
@@ -283,9 +287,9 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
           strokeWidth={4}
           strokeLinejoin="round"
           strokeLinecap="round"
-          initial={init({ pathLength: 0 })}
-          animate={{ pathLength: 1 }}
-          transition={T(4.8, 1.8)}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: on(1), opacity: on(1) }}
+          transition={T(0.2, 1.8)}
         />
 
         {/* Direct labels. */}
@@ -297,13 +301,13 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
             {g.peakNote}
           </text>
         </motion.g>
-        <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(6.6, 0.6)}>
+        <motion.g initial={{ opacity: 0 }} animate={{ opacity: on(1) }} transition={T(1.8, 0.6)}>
           <text className="s4-label" x={g.withX} y={g.withY}>
             With Gridzilla
           </text>
         </motion.g>
         {g.showSeven && (
-          <motion.g initial={init({ opacity: 0 })} animate={{ opacity: 1 }} transition={T(7.4, 0.6)}>
+          <motion.g initial={{ opacity: 0 }} animate={{ opacity: on(1) }} transition={T(2.4, 0.6)}>
             <circle cx={g.sevenX} cy={g.sevenY} r={11} fill={P.green} stroke="var(--p-bg)" strokeWidth={4} />
             <text className="s4-note" data-src="axis" x={g.fullRight} y={g.fullY} textAnchor="end">
               07:00, every car full
@@ -316,7 +320,7 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
 
       <div className="s4-nums">
         <motion.div initial={init({ opacity: 0, y: 24 })} animate={{ opacity: 1, y: 0 }} transition={T(tPeak, 0.7)}>
-          <Morph from={snap.peakNaive} to={snap.peakPlan} live={snap.live} still={still} start={4.8} src={src} />
+          <Morph from={snap.peakNaive} to={snap.peakPlan} live={snap.live} still={still} go={withG} src={src} />
         </motion.div>
       </div>
 
@@ -337,29 +341,33 @@ function Chart({ snap, still }: { snap: Snap; still: boolean }) {
   );
 }
 
-/** The moment of the slide: the peak without Gridzilla, red, counts down to the plan's peak and turns green as the
- *  Gridzilla line bends under the limit (it starts drawing at `start` s). The way down stays as a small line. */
-function Morph({ from, to, live, still, start, src }: { from: number; to: number; live: boolean; still: boolean; start: number; src: string }) {
+/** The moment of the slide: the peak without Gridzilla, red, counts down to the plan's peak and turns green when the
+ *  presenter brings in the Gridzilla line (`go`, step 1). The way down stays as a small line. */
+function Morph({ from, to, live, still, go, src }: { from: number; to: number; live: boolean; still: boolean; go: boolean; src: string }) {
   const num = useRef<HTMLSpanElement>(null);
-  const [withG, setWithG] = useState(still);
+  const [withG, setWithG] = useState(go && still);
   useEffect(() => {
     const show = (v: number) => {
       if (num.current) num.current.textContent = String(Math.round(v));
     };
+    if (!go) {
+      show(from);
+      setWithG(false);
+      return;
+    }
     if (still) {
       show(to);
       setWithG(true);
       return;
     }
     show(from);
-    setWithG(false);
-    const t = window.setTimeout(() => setWithG(true), start * 1000);
-    const a = animate(from, to, { delay: start, duration: 1.6, ease: EASE, onUpdate: show });
+    const t = window.setTimeout(() => setWithG(true), 200);
+    const a = animate(from, to, { delay: 0.2, duration: 1.6, ease: EASE, onUpdate: show });
     return () => {
       window.clearTimeout(t);
       a.stop();
     };
-  }, [from, to, still, start]);
+  }, [from, to, still, go]);
   return (
     <>
       <div

@@ -1,7 +1,8 @@
 // Slide 2, the problem (0:30, 25 s, Matthew). The headline is there on the cut. Three stat moments arrive one second
 // apart, each a number that counts up fast beside a small drawing that acts the fact out: Slovakia's basement battery
 // fills but stays cut off from the grid, Germany's dimmer slides down and sticks at 4.2 kW on one device, Ukraine's
-// cells light up and then sit idle. Then the three step back and the punchline lands alone.
+// cells light up and then sit idle. Step 1 (Right): the closing line lands below them; nothing dims, everything stays
+// readable until the next slide (captain: every beat is a key press).
 // The counter is the odometer "slide" digit effect from 21st.dev "Count Up" by @unlumen (id 20068), adapted: no
 // react-use-measure (the digit height is measured with a ref), an eased tween instead of a spring (no overshoot), digits
 // that carry correctly on decimals, and plain text at rest so print and QA see "4.2", not a wheel of ten digits.
@@ -13,11 +14,10 @@ import { PROBLEM } from "../facts";
 import "./slide2.css";
 
 const EASE = [0.25, 0.1, 0.3, 1] as const;
-/** Seconds after the slide comes on: first moment, gap between moments, length of a count, the punchline. */
+/** Seconds after the slide comes on: first moment, gap between moments, length of a count. */
 const START = 0.8;
 const GAP = 1.0;
 const COUNT = 0.8;
-const PUNCH = 5.0;
 
 const mod = (x: number, m: number) => ((x % m) + m) % m;
 
@@ -242,7 +242,7 @@ const FACTS = PROBLEM.map((f, i) => {
   return { ...f, ...MOMENTS[i], unit: f.unit || MOMENTS[i].unit, text: f.value.toFixed(f.decimals), from, to };
 });
 
-export default function Slide2({ freeze }: SlideProps) {
+export default function Slide2({ freeze, step }: SlideProps) {
   const reduced = useReducedMotion();
   const still = freeze === "end" || !!reduced;
 
@@ -253,7 +253,7 @@ export default function Slide2({ freeze }: SlideProps) {
 
   const [shown, setShown] = useState(still ? FACTS.length : 0);
   const [rolling, setRolling] = useState<boolean[]>(() => FACTS.map(() => false));
-  const [punch, setPunch] = useState(still);
+  const punch = step >= 1;
 
   useEffect(() => {
     const mv = [m0, m1, m2];
@@ -261,13 +261,11 @@ export default function Slide2({ freeze }: SlideProps) {
       mv.forEach((m, i) => m.set(FACTS[i].to));
       setShown(FACTS.length);
       setRolling(FACTS.map(() => false));
-      setPunch(true);
       return;
     }
     mv.forEach((m, i) => m.set(FACTS[i].from));
     setShown(0);
     setRolling(FACTS.map(() => false));
-    setPunch(false);
     const timers: number[] = [];
     const anims: { stop: () => void }[] = [];
     const roll = (i: number, on: boolean) => setRolling((r) => r.map((x, j) => (j === i ? on : x)));
@@ -280,7 +278,6 @@ export default function Slide2({ freeze }: SlideProps) {
         }, (START + GAP * i) * 1000),
       );
     });
-    timers.push(window.setTimeout(() => setPunch(true), PUNCH * 1000));
     return () => {
       timers.forEach((t) => clearTimeout(t));
       anims.forEach((a) => a.stop());

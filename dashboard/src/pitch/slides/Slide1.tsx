@@ -25,7 +25,7 @@ export default function Slide1({ freeze }: SlideProps) {
           A grid signal for home batteries, cars and heat pumps.
         </motion.p>
         <motion.div className="s1-credits p-small" data-src="deck" data-label="team and event" {...show(0.24, { y: 8 })}>
-          <span>Mathew Stafurik · Peter Mikeška · Matthew</span>
+          <span>Mathew Stafurik · Peter Mikeška · Matthew · Tedi</span>
           <span>Grid-Serving Storage · Energy Bridge Vienna 2026</span>
         </motion.div>
       </div>

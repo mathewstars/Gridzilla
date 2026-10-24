@@ -105,6 +105,13 @@ export default function Deck() {
   const uiRef = useRef(ui);
   const [t0, setT0] = useState<number | null>(null);
   const t0Ref = useRef<number | null>(null);
+  // Slide 5's walkthrough: Esc skips the rest of it (the next Right then leaves the slide).
+  const [tourOff, setTourOffRaw] = useState(false);
+  const tourOffRef = useRef(false);
+  const setTourOff = useCallback((v: boolean) => {
+    tourOffRef.current = v;
+    setTourOffRaw(v);
+  }, []);
   const afterTrailer = useRef(() => {});
   const trailer = useTrailer(!freeze, () => afterTrailer.current());
   const size = useWindowSize();
@@ -126,9 +133,10 @@ export default function Deck() {
   const go = useCallback(
     (p: Pos) => {
       if (p.i !== 0) stopTrailer();
+      if (p.i !== posRef.current.i) setTourOff(false);
       setPos(p);
     },
-    [setPos, stopTrailer],
+    [setPos, stopTrailer, setTourOff],
   );
   // The trailer's last frame: hard cut to the title.
   afterTrailer.current = () => go({ i: 1, step: 0 });
@@ -206,12 +214,18 @@ export default function Deck() {
         prev();
       } else if (k === "Escape") {
         take();
-        if (!e.repeat) setUi({ ...u, overview: true, sel: posRef.current.i });
+        if (e.repeat) return;
+        const p = posRef.current;
+        const d = SLIDES[p.i];
+        if (d.tour && p.step > 0 && !tourOffRef.current) {
+          setTourOff(true);
+          go({ i: p.i, step: d.steps - 1 });
+        } else setUi({ ...u, overview: true, sel: p.i });
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [jump, next, prev, setUi, setTheme]);
+  }, [jump, next, prev, setUi, setTheme, go, setTourOff]);
 
   // Keep the slide and step in the URL (freeze and anything else untouched), so a reload stays on this slide.
   useEffect(() => {
@@ -279,7 +293,7 @@ export default function Deck() {
         if (!on && !d.keepMounted) return null;
         return (
           <div key={d.id} className={`p-bleed${on ? "" : " p-off"}`} aria-hidden={!on}>
-            <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} jingle={trailer.state === "playing" ? "playing" : "ended"} />
+            <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} tourOff={tourOff} jingle={trailer.state === "playing" ? "playing" : "ended"} />
           </div>
         );
       })}
