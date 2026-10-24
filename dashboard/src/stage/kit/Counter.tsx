@@ -16,6 +16,10 @@ export default function Counter({
   duration = 800,
   format,
   style,
+  src,
+  from,
+  scale,
+  label,
 }: {
   value: number | null | undefined;
   decimals?: number;
@@ -25,6 +29,14 @@ export default function Counter({
   /** Own text for a value, e.g. (v) => `+${fmtNum(v)}`. */
   format?: (v: number) => string;
   style?: CSSProperties;
+  /** G2 data truth (qa/README.md): where the number comes from, e.g. "state/aggregates/tf:x/total_kw", "derived", "deck". */
+  src?: string;
+  /** For src="derived": the formula over endpoint paths, e.g. "state/aggregates/tf:x/baseline_kw - state/aggregates/tf:x/total_kw". */
+  from?: string;
+  /** Shown value = raw value x scale (kW shown as MW: 0.001). The raw value goes in data-val. */
+  scale?: number;
+  /** For src="deck": the on-screen label of the static fact. */
+  label?: string;
 }) {
   const has = value != null && Number.isFinite(value);
   // The first real value (or the first after a gap) lands at once instead of counting up from zero.
@@ -39,6 +51,11 @@ export default function Counter({
       className={className}
       style={{ display: "inline-grid", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", ...style }}
       aria-label={end}
+      data-src={src}
+      data-from={from}
+      data-val={src && has ? String((value as number) / (scale ?? 1)) : undefined}
+      data-scale={scale != null && scale !== 1 ? String(scale) : undefined}
+      data-label={label}
     >
       <span aria-hidden style={{ gridArea: "1 / 1", visibility: "hidden" }}>
         {end}
