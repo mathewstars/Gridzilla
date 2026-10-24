@@ -1327,7 +1327,7 @@ def hb(action: str):
 
 @app.post("/api/replay/{seq}")
 def replay(seq: int):
-    """re-publish an old signal unchanged: the agents must reject it (stale_seq)"""
+    """re-publish the stored active signal (for a staggered decision it carries the whole plan, for the board): the agents must reject it (stale_seq)"""
     for node, doc in list(state["active"].items()):
         if doc["seq"] == seq:
             mq.publish(f"gridzilla/sig/{node}", envelope(doc), qos=1)
