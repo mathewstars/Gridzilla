@@ -11,7 +11,9 @@ import AiSteps from "../../stage/kit/AiSteps";
 import { ActiveList } from "../control/SignalCard";
 import { Btn, Result, useAction } from "../control/ui";
 import FeedStrip from "../now/FeedStrip";
-import { cellOf, cityGroups } from "../city/cityData";
+import Tonight from "../tonight/Tonight";
+import { cellOf } from "../city/cityData";
+import CityDots from "../ops2/Dots";
 import { loadTone } from "../../stage/palette";
 import { useOps, type Ops } from "../useOps";
 import "../control/control.css";
@@ -60,6 +62,7 @@ function Demo({ ops }: { ops: Ops }) {
   return (
     <div className="demo">
       <div className="demo-left">
+        <Tonight ops={ops} compact />
         <Hero ops={ops} tf={tf} />
         <FeedStrip ops={ops} />
       </div>
@@ -167,25 +170,3 @@ function NowCard({ ops }: { ops: Ops }) {
   );
 }
 
-/** The whole city as dots, grouped by substation: colour only, the number on hover / tap. */
-function CityDots({ s, ops, selected, onPick }: { s: State; ops: Ops; selected: string; onPick: (tf: string) => void }) {
-  const groups = cityGroups(s, ops.city);
-  return (
-    <section className="panel demo-city" aria-label="Every street transformer in the city">
-      {groups.map((g) => (
-        <div key={g.id} className="demo-sub">
-          <span className="demo-sub-name">{nice(g.id)}</span>
-          <span className="demo-dots">
-            {g.feeders.flatMap((f) => f.tfs).map((c) => {
-              const p = c.pct == null ? null : Math.round(c.pct);
-              const words = p == null ? "no reading" : `${p < 0 ? "exporting" : "taking"} ${Math.abs(p)} % of its limit`;
-              return (
-                <button key={c.id} type="button" className={`demo-dot${c.id === selected ? " is-sel" : ""}`} style={{ background: loadTone(c.pct) }} title={`${nice(c.id)}: ${words}`} aria-label={`${nice(c.id)}, ${words}`} onClick={() => onPick(c.id)} />
-              );
-            })}
-          </span>
-        </div>
-      ))}
-    </section>
-  );
-}

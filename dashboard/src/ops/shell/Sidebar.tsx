@@ -20,7 +20,7 @@ import {
 import type { Ops } from "../useOps";
 import "./shell.css";
 
-export type Route = "ops" | "city" | "autopilot" | "manual" | "households" | "plant" | "weather" | "log" | "demo";
+export type Route = "ops" | "city" | "autopilot" | "manual" | "households" | "plant" | "weather" | "log" | "demo" | "plan";
 
 type Item = { r: Route; label: string; icon: Icon };
 const SECTIONS: { label: string; items: Item[] }[] = [

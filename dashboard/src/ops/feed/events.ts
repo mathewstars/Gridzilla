@@ -380,7 +380,16 @@ export function useFeed(s: State | null, hist?: History | null) {
     const top = act.filter((n) => !act.some((m) => m !== n && under(s, n, m)));
     const following = Math.round(top.reduce((a, n) => a + (s.aggregates[n]?.applied ?? 0), 0) * r);
     const waiting = !!s.autopilot?.pending;
-    return { rows, signals, since, refusals, following, waiting, dark: s.hb_paused };
+    // what the AI did today: every decision it took, the ones sent, the ones the guard refused or held back
+    const decided = rows.filter((e) => isToday(e) && e.decision);
+    const ai = {
+      decisions: decided.length,
+      sent: decided.filter((e) => e.decision?.verdict === "sent").length,
+      refused: decided.filter((e) => e.decision?.verdict === "refused" || e.decision?.verdict === "held").length,
+    };
+    const plans = rows.filter((e) => isToday(e) && e.actor === "plan").length;
+    const lastSigned = rows.find((e) => e.decision?.verdict === "sent" || e.id.startsWith("sig|")) ?? null;
+    return { rows, signals, since, refusals, following, waiting, dark: s.hb_paused, ai, plans, lastSigned };
   }, [s, hist]);
 }
 

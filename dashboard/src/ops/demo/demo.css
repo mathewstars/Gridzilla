@@ -60,3 +60,14 @@
 
 .demo-sigs .cp-sig:nth-child(n + 3) { display: none; }
 .demo-more { margin: 0; font-size: max(13px, 0.8125rem); color: var(--color-secondary); }
+
+/* short windows with the Tonight strip on top: everything gives a little so the demo stays one screen */
+@media (min-width: 1240px) and (max-height: 760px) {
+  .demo .tn { padding: 8px 12px; gap: 4px 18px; }
+  .demo .tn-v { font-size: 1.125rem; }
+  .demo .tn-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 4px 12px; }
+  .demo-curve { min-height: 7rem; }
+  .demo-ring { width: clamp(120px, 11vw, 170px); }
+  .demo .fstrip { padding: 8px 14px; gap: 4px; }
+  .demo .fstrip-row:nth-child(n + 3) { display: none; }
+}
