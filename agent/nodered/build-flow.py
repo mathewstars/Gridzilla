@@ -95,6 +95,8 @@ if (!flow.get("saved")) flow.set("saved", { ...(flow.get("current") || {}) });  
 flow.set("plan", plan);
 const delay = Math.max(0, plan.start_at - Date.now());
 setTimeout(() => {
+  const cur = flow.get("plan");
+  if (!cur || cur.seq !== plan.seq || Date.now() >= plan.end_at) return;   // reverted or replaced while waiting: never write a stale plan
   const o = [null, null, null, null, null, null, null];
   for (const w of plan.writes) if (W[w.setting] != null) o[W[w.setting]] = { payload: w.value };
   // EV charger: first lever. Remember mode/current/startstop once, switch to manual, apply a current ceiling.

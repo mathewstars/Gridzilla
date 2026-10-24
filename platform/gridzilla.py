@@ -274,8 +274,9 @@ def guard(segment, mode, fields, duration_min, envelope=None):
     if extra:
         return f"{mode} may not carry {sorted(extra)}"
     limit = POLICY["max_stretch_window_min"] if mode == "STRETCH" else POLICY["max_window_min"]
-    if not (0 < duration_min <= limit):
-        return f"window must be 0..{limit} min for {mode}"
+    floor_s = 30 if mode == "RELEASE" else POLICY["ramp_s"][1] + 30      # real seconds: a device must finish its ramp inside the window
+    if not (floor_s <= duration_min * 60 and duration_min <= limit):
+        return f"window must be {floor_s} s .. {limit} min (real time) for {mode}"
     if envelope is not None:
         if mode not in ("ABSORB", "SUPPORT"):
             return "only ABSORB and SUPPORT may carry an envelope"
@@ -331,8 +332,9 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
         }
         if curve is not None:
             doc["envelope"] = curve
-        if mode == "RELEASE":
-            state["active"].pop(segment, None)
+        if mode == "RELEASE":     # devices under the segment drop whatever they ran, so do the signals of the nodes below it
+            for n in [n for n in state["active"] if segment in path_of(n)]:
+                state["active"].pop(n)
         else:
             state["active"][segment] = doc
         if mode == "SUPPORT":
@@ -398,12 +400,12 @@ def forecast(node, hours=3.0, step_min=ENV_SLOT_SIM_MIN):
     return out
 
 
-def compute_envelope(node, mode, duration_sim_min):
+def compute_envelope(node, mode, duration_sim_min, start_in_sim_min=0.0):
     """Dynamic operating envelope: per-house import (SUPPORT) or export (ABSORB) ceiling per 15-min slot,
     from forecast headroom = 90 % of the transformer rating minus the load of the houses not in the program,
     shared over the program houses. For a feeder or substation the tightest transformer under it wins."""
     n = max(1, min(96, round(duration_sim_min / ENV_SLOT_SIM_MIN)))
-    h0, curve = sim_hour(), []
+    h0, curve = sim_hour() + start_in_sim_min / 60, []
     for k in range(n):
         h = h0 + k * ENV_SLOT_SIM_MIN / 60
         caps = []
@@ -454,6 +456,24 @@ def real_min(sim_min):
     return sim_min / SIM_X
 
 
+REAL_MIN_WINDOW_MIN = POLICY.get("autopilot_real_min_window_min", 5)    # real devices run in real time, not at GZ_SIM_X
+REAL_COOLDOWN_MIN = POLICY.get("autopilot_real_cooldown_min", 5)
+REAL_MAX_PER_HOUR = POLICY.get("autopilot_real_max_per_hour", 6)
+
+
+def has_real(node):
+    """True if a device under node that is not simulated is online: it needs real-time windows and brakes."""
+    return any(not d["id"].startswith("sim-") and d["id"] in state["telemetry"] for d in devices_under(node))
+
+
+def real_window(segment, mode, sim_dur):
+    """Real minutes for a window DeepSeek gave in grid minutes, floored so every device can finish its ramp."""
+    if mode == "RELEASE":
+        return max(real_min(sim_dur), 1.0)
+    floor = REAL_MIN_WINDOW_MIN if has_real(segment) else (POLICY["ramp_s"][1] + 30) / 60
+    return max(real_min(sim_dur), floor)
+
+
 def ask_llm(situation: str):
     if not LLM_URL:
         raise HTTPException(503, "GZ_LLM_URL not set")
@@ -487,10 +507,15 @@ def ask_llm(situation: str):
         return proposal
     sim_dur = float(proposal.get("duration_min") or (ENV_SLOT_SIM_MIN if proposal.get("mode") == "RELEASE" else 0))
     proposal["duration_min"] = sim_dur
-    if proposal.get("mode") in ("ABSORB", "SUPPORT") and proposal.get("segment") in TREE and sim_dur > 0:
-        proposal["envelope"] = compute_envelope(proposal["segment"], proposal["mode"], sim_dur)
-    proposal["guard"] = guard(proposal.get("segment"), proposal.get("mode"), proposal.get("fields") or {},
-                              real_min(sim_dur), proposal.get("envelope"))
+    mode, seg = proposal.get("mode"), proposal.get("segment")
+    grid_limit = POLICY["max_stretch_window_min"] if mode == "STRETCH" else POLICY["max_window_min"]
+    if seg in TREE and mode in ("ABSORB", "SUPPORT") and sim_dur > 0:
+        proposal["envelope"] = compute_envelope(seg, mode, sim_dur, float(proposal.get("start_in_min") or 0))
+    if not (0 < sim_dur <= grid_limit):        # the policy window is in grid minutes, check it before converting
+        proposal["guard"] = f"window must be 0..{grid_limit} grid minutes for {mode}"
+    else:
+        proposal["guard"] = guard(seg, mode, proposal.get("fields") or {},
+                                  real_window(seg, mode, sim_dur) if seg in TREE else real_min(sim_dur), proposal.get("envelope"))
     log("advisor", f"proposed {proposal.get('mode')} -> {proposal.get('segment')} for {sim_dur:g} grid min ({latency} ms): "
         f"{proposal.get('rationale', '')}" + (f" | GUARD: {proposal['guard']}" if proposal["guard"] else " | guard ok"))
     return proposal
@@ -561,7 +586,28 @@ def autopilot_trigger():
     return None
 
 
+def overlaps(a, b):
+    return a in path_of(b) or b in path_of(a)
+
+
+def needs_operator(p):
+    """Auto mode only sends everyday congestion control on its own. Everything else waits for one click."""
+    if p["mode"] not in ("ABSORB", "SUPPORT", "RELEASE"):
+        return f"{p['mode']} is never sent autonomously"
+    mine = {s["seq"] for s in AP["sent"]}
+    for n, sig in state["active"].items():
+        if overlaps(n, p["segment"]) and sig["seq"] not in mine:
+            return f"operator signal seq {sig['seq']} on {n} overlaps {p['segment']}"
+    return None
+
+
 def autopilot_allowed(segment):
+    if has_real(segment):     # real devices run in real time: brakes on the wall clock too
+        real = [s for s in AP["sent"] if s.get("real")]
+        if len([s for s in real if (now() - s["at"]).total_seconds() < 3600]) >= REAL_MAX_PER_HOUR:
+            return f"limit {REAL_MAX_PER_HOUR} signals per real hour to segments with real devices"
+        if real and (now() - real[-1]["at"]).total_seconds() < REAL_COOLDOWN_MIN * 60:
+            return f"real-time cooldown: a segment with real devices was signalled less than {REAL_COOLDOWN_MIN} real minutes ago"
     recent = [s for s in AP["sent"] if grid_age_min(s["at"]) < 24 * 60]
     if len(recent) >= AP_MAX_PER_DAY:
         return f"autopilot limit {AP_MAX_PER_DAY} signals per grid day reached"
@@ -573,13 +619,17 @@ def autopilot_allowed(segment):
 
 def send_proposal(p, by):
     fields = {k: (p.get("fields") or {}).get(k) for k in ALL_FIELDS}
+    start_sim = float(p.get("start_in_min") or 0)
+    dur_real = real_window(p["segment"], p["mode"], float(p.get("duration_min") or ENV_SLOT_SIM_MIN))
+    if p.get("envelope"):     # recompute at send time for the window actually sent (floor, approval delay)
+        p["envelope"] = compute_envelope(p["segment"], p["mode"], dur_real * SIM_X, start_sim)
     if p.get("envelope"):     # flat fallback for devices that ignore the curve: the tightest slot
         curve = p["envelope"].get("import_max_kw") or p["envelope"].get("export_max_kw")
         key = "import_max_kw" if p["envelope"].get("import_max_kw") else "export_max_kw"
         fields[key] = min(curve) if fields.get(key) is None else min(fields[key], min(curve))
-    doc = send_signal(p["segment"], p["mode"], fields, real_min(p.get("duration_min") or ENV_SLOT_SIM_MIN),
-                      p.get("note") or "", real_min(float(p.get("start_in_min") or 0)), curve=p.get("envelope"))
-    AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"]})
+    doc = send_signal(p["segment"], p["mode"], fields, dur_real,
+                      p.get("note") or "", real_min(start_sim), curve=p.get("envelope"))
+    AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"], "real": has_real(p["segment"])})
     log("autopilot", f"{by}: sent seq {doc['seq']} {p['mode']} -> {p['segment']}")
     return doc
 
@@ -621,7 +671,8 @@ def autopilot_step():
     if p["guard"]:
         record(p, "refused", p["guard"])
         return
-    if AP["mode"] == "auto":
+    hand = needs_operator(p) if AP["mode"] == "auto" else None
+    if AP["mode"] == "auto" and not hand:
         why = autopilot_allowed(p["segment"])
         if why:
             p["guard"] = why
@@ -637,8 +688,8 @@ def autopilot_step():
             record(p, "refused", e.detail)
     else:
         AP["pending"] = p
-        record(p, "pending")
-        log("autopilot", f"waiting for operator: {p['mode']} -> {p['segment']}")
+        record(p, "pending", hand or "")
+        log("autopilot", f"waiting for operator: {p['mode']} -> {p['segment']}" + (f" ({hand})" if hand else ""))
 
 
 def autopilot_loop():
