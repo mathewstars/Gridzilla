@@ -101,6 +101,33 @@ export function housesOf(s: State, tf: string): House[] {
     const under = online.some((d) => d.telemetry?.mode && d.telemetry.mode !== "owner");
     const ack = devs.map((d) => d.ack).find((a) => a) ?? null;
     const real = devs.some((d) => !d.id.startsWith("sim-"));
+    // Prefer the platform's merged household (one meter, one truth); fall back to merging devices here on older platforms.
+    const hh = s.households?.[key];
+    if (hh) {
+      const ht = hh.telemetry;
+      return {
+        key,
+        devices: devs,
+        tf,
+        name: devs[0].household ? nice(devs[0].household) : `House ${key.replace(/^sim-[a-z]+-/, "")}`,
+        represents: hh.represents ?? 1,
+        online: !!ht,
+        real: hh.real,
+        soc: ht?.soc ?? null,
+        kwh: hh.kwh,
+        grid_kw: ht?.grid_kw ?? 0,
+        pv_kw: pv,
+        ev_kw: ht?.ev_kw ?? 0,
+        hp_kw: ht?.hp_kw ?? 0,
+        hasPv: seenPv.has(key) || hh.kwh > 0,
+        hasEv: devs.some((d) => d.ev_kw) || (ht?.ev ?? 0) > 0,
+        hasHeat: devs.some((d) => d.heat) || !!ht?.heat,
+        underSignal: !!ht && ht.mode !== "owner",
+        ackStatus: hh.ack?.status ?? null,
+        ackReason: hh.ack?.reason ?? null,
+        mode: ht ? ht.mode : "offline",
+      };
+    }
     return {
       key,
       devices: devs,

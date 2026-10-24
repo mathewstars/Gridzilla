@@ -86,6 +86,36 @@ export interface Device {
   registered: boolean;
 }
 
+/** One house = everything behind one meter (platform `households()`): battery owns SoC and the grid reading,
+ *  EV and heat kW add up, the ack is the weakest member's. */
+export interface HouseholdTelemetry {
+  soc: number | null;
+  grid_kw: number;
+  ev_kw: number;
+  hp_kw: number;
+  dhw_c: number | null;
+  dhw_set_c: number | null;
+  boiler_c: number | null;
+  heat: string | null;
+  ev: number;
+  mode: string;
+  rx?: string;
+}
+
+export interface Household {
+  id: string;
+  tf: string;
+  path: string[];
+  devices: string[];
+  real: boolean;
+  kw: number;
+  kwh: number;
+  represents: number;
+  telemetry: HouseholdTelemetry | null;
+  ack: { status: Ack["status"]; reason: string | null; seq: number | null; verified?: boolean; applied?: unknown } | null;
+  registered: boolean;
+}
+
 export interface Aggregate {
   devices: number;
   online: number;
@@ -174,6 +204,7 @@ export interface State {
   tree: Record<string, TreeNode>;
   aggregates: Record<string, Aggregate>;
   devices: Record<string, Device>;
+  households?: Record<string, Household>;
   active: Record<string, Signal>;
   log: LogEntry[];
   hb_paused: boolean;
@@ -329,3 +360,6 @@ export function useWeather() {
   if (sample) return { data: fixture, available: true, sample: true };
   return { data: has ? live.data : null, available: has === true && !live.error, sample: false, checking: has === null };
 }
+
+/** What the weather hook hands to views: `available` false = show "weather offline", `sample` = bundled fixture. */
+export type WeatherFeed = { data: Weather | null; available: boolean; sample: boolean; checking?: boolean };
