@@ -1,0 +1,26 @@
+/* Operations console frame (ops.md): sidebar | top bar over three columns at >= 1240 wide; stacks below. Apple-white tokens
+   from index.css; density over drama. Columns scroll inside themselves only at >= 1240 so the console fills one screen. */
+.ops { display: grid; grid-template-columns: auto minmax(0, 1fr); min-height: 100vh; background: var(--color-ground); }
+.ops-main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; }
+.ops-cols { display: grid; gap: 12px; padding: 12px; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.ops-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ops-col > * { flex-shrink: 0; } /* cards keep their height; the column scrolls */
+.ops-view { padding: 12px; min-width: 0; }
+.ops-demo { min-width: 0; min-height: 0; }
+.ops-splash { display: grid; place-content: center; gap: 6px; min-height: 100vh; text-align: center; }
+@media (min-width: 1240px) {
+  .ops { height: 100vh; }
+  .ops-main { min-height: 0; }
+  .ops-cols { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); min-height: 0; }
+  .ops-col { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+}
+@media (max-width: 760px) {
+  .ops { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Projector floor (firstmate): nothing under 12 px, and 13 px for what a judge must read: the city tile numbers, the feed
+   lines and their times, the active signal rows. */
+.ops .cg-pct, .ops .feed-time, .ops .feed-head, .ops .feed .nw, .ops .cp-sig, .ops .cp-sig .cp-sub { font-size: max(13px, 0.8125rem); }
+
+/* live mode (?api=): a quiet badge so nobody wonders why the buttons are off */
+.ops-ro { position: fixed; right: 12px; bottom: 12px; z-index: 50; padding: 6px 12px; border-radius: 980px; font-size: max(13px, 0.8125rem); font-weight: 600; color: #fff; background: #ff9500; }

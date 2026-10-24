@@ -1,0 +1,5 @@
+/* Counter's invisible width copy is drawn from an attribute, so it is never page text (the G2 truth gate and screen
+   readers read only the live number). */
+.gzCounter-w::before {
+  content: attr(data-w);
+}

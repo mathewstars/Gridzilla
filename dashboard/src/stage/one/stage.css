@@ -1,0 +1,280 @@
+/* The ONE stage shell (design/STAGE.md section 5). One page grid inside a size container. Rows are auto or fr, never a
+   fixed height, nothing that holds text hides overflow: a short window scrolls, never clips. At >= 1440x900 the fr rows
+   fill exactly one screen; below that the card minimums win and the page scrolls. */
+
+.gzS {
+  container: stage / inline-size;
+  --gut: clamp(16px, 2.2vw, 56px);
+  --gap: clamp(12px, 1.1vw, 24px);
+  --pad: clamp(16px, 1.6vw, 36px);
+  --pad-y: var(--pad); /* a card's top and bottom padding; one-screen windows cap it by the height */
+  --r: 18px;
+  --r-big: 28px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* A grid, not a flex column: the page row then has a definite height, so the stage grid's fr rows share out the
+     screen (a tall AI card no longer drags the hero row up with it by the 5:3 ratio). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  background: #f5f5f7;
+  color: #1d1d1f;
+}
+
+/* ------------------------------------------------------------ frosted top bar */
+.gzS-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 1.25rem;
+  min-height: 3.25rem;
+  padding: 0.375rem var(--gut);
+  font-size: clamp(1rem, 0.85rem + 0.3vw, 1.5rem);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  background: rgba(245, 245, 247, 0.8);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.gzS-brand {
+  letter-spacing: 0.011em;
+}
+.gzS-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 0.75rem;
+}
+.gzS-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gzS-scen {
+  color: #6e6e73;
+}
+.gzS-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  column-gap: 1.25rem;
+  text-align: right;
+}
+.gzS-wx {
+  color: #6e6e73;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ page grid, class (c) phones first */
+.gzS-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "story" "curve" "proof" "ai" "plan" "street";
+  align-content: start;
+  gap: var(--gap);
+  padding: var(--gap) var(--gut) var(--gut);
+  min-width: 0;
+}
+
+/* A card: white, soft shadow, no border. It is the size container its part queries. The single grid row lets the part
+   fill the card height without ever being shorter than its own content. The card's minimum height (--min) lives on
+   that row, not in min-height: a min-height would replace the content minimum, so a fr page row could squeeze the card
+   below its text. --py is the card's vertical padding the row minimum leaves room for. */
+.gzS-card {
+  --min: 0px;
+  --py: var(--pad-y);
+  container-type: inline-size;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(max(0px, calc(var(--min) - 2 * var(--py))), 1fr);
+  min-width: 0;
+  padding: var(--py) var(--pad);
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+}
+.gzS-story { grid-area: story; }
+.gzS-curve { grid-area: curve; --min: 19rem; }
+.gzS-proof { grid-area: proof; }
+.gzS-ai { grid-area: ai; }
+.gzS-plan { grid-area: plan; }
+/* The 3D street runs edge to edge: no padding, and the card rounds the canvas. Its text overlay sits inside the card
+   (use var(--pad) for its inset), so the clip never cuts text. */
+.gzS-street {
+  grid-area: street;
+  --py: 0px;
+  --min: 13rem;
+  padding: 0;
+  overflow: hidden;
+  isolation: isolate;
+  aspect-ratio: 16 / 10;
+}
+
+/* The bottom row's three card titles (AI, street, plan) share one size, leading and top inset, so they sit on one
+   baseline across the row. The street card runs edge to edge with its own padding; its top inset follows the other
+   cards' (--pad-y), which the one-screen windows cap by the height. */
+.gzS-ai .gzAi-title,
+.gzS-street .gzs-title,
+.gzS-plan .gzPlan-title {
+  font-size: clamp(1.0625rem, 0.9rem + 0.3vw, 1.5rem);
+  line-height: 1.14;
+  letter-spacing: 0.007em;
+}
+.gzS-street .gzs {
+  padding-top: var(--pad-y);
+}
+
+/* Below 1180 wide the page scrolls, so a height-capped chart minimum only makes the page grow when the window grows
+   (a full-page capture then ends inside the last row). The plot keeps the floor it has in every real window here. */
+@container stage (max-width: 1179px) {
+  .gzS-curve [style*="min-height"] {
+    min-height: 248px !important;
+  }
+}
+
+/* Phones: 44px bar with the name and the clock only. */
+@container stage (max-width: 599px) {
+  .gzS-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 44px;
+    padding-block: 0.25rem;
+    font-size: 1.0625rem;
+  }
+  .gzS-scen,
+  .gzS-status {
+    display: none;
+  }
+}
+
+/* Class (b), 600-1179 wide: 6 columns, the chart full width, the page scrolls. */
+@container stage (min-width: 600px) and (max-width: 1179px) {
+  .gzS-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "story  story  story  story  story  story"
+      "curve  curve  curve  curve  curve  curve"
+      "proof  proof  proof  proof  proof  proof"
+      "ai     ai     ai     ai     ai     ai"
+      "street street street plan   plan   plan";
+  }
+  .gzS-story,
+  .gzS-curve {
+    border-radius: var(--r-big);
+  }
+  .gzS-curve { --min: 22rem; }
+  .gzS-street,
+  .gzS-plan {
+    --min: 15rem;
+  }
+  .gzS-street { aspect-ratio: auto; }
+  .gzS-wx { display: none; }
+}
+@container stage (min-width: 900px) and (max-width: 1179px) {
+  .gzS-wx { display: inline; }
+}
+
+/* Class (a), >= 1180 wide: 12 columns. The fr rows fill one screen when the minimums fit (1440x900 and larger) and
+   grow, so the page scrolls, when they do not (1280x800, 1240x635). */
+@container stage (min-width: 1180px) {
+  .gzS-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: 5fr auto 3fr;
+    grid-template-areas:
+      "story story story story story curve curve curve curve curve curve curve"
+      "proof proof proof proof proof proof proof proof proof proof proof proof"
+      "ai    ai    ai    ai    street street street street plan plan plan plan";
+    align-content: stretch;
+    padding-bottom: var(--gap);
+  }
+  .gzS-story,
+  .gzS-curve {
+    border-radius: var(--r-big);
+    --min: 25rem;
+  }
+  .gzS-ai,
+  .gzS-street,
+  .gzS-plan {
+    --min: 13.5rem;
+  }
+  .gzS-street { aspect-ratio: auto; }
+}
+
+/* A big, tall window (1440x900 and up) is one screen: the page is exactly the window, so the stage grid has a definite
+   height and its fr rows share out the space left after the cards' content minimums. With an indefinite height they
+   would instead scale up from the tallest card by the 5:3 ratio and push the page past the screen. Shorter windows
+   keep min-height and scroll. */
+@media (min-width: 1180px) and (min-height: 860px) {
+  .gzS {
+    height: 100vh;
+    height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr);
+    /* Vertical spacing follows the height too. The gaps and card paddings grow with the width, and a 16:9 window
+       (1920x1080) is wide for its height: with width-only spacing its three rows of content minimums ran 16 px past
+       the screen and ate the bottom gap. The side padding stays width-based. */
+    --gap: clamp(12px, min(1.1vw, 1.8vh), 24px);
+    --pad-y: clamp(16px, min(1.6vw, 2.2vh), 36px);
+  }
+}
+/* Safety margin below 1000 px tall (1440x900 sat 3 px over one screen): the bar, the gaps, the card paddings and the
+   top row's minimum tighten a little, which gives the three rows ~15 px of slack, and the grid's bottom padding can
+   absorb ~13 px more before the page would scroll. The fr rows still fill the screen, so the slack never shows as a
+   gap; it only takes up a longer line in a card. */
+@media (min-width: 1180px) and (min-height: 860px) and (max-height: 999px) {
+  .gzS {
+    --gap: clamp(12px, min(1.1vw, 1.45vh), 24px);
+    --pad-y: clamp(16px, min(1.6vw, 1.75vh), 36px);
+  }
+  .gzS-bar {
+    min-height: 3rem;
+  }
+  .gzS-story,
+  .gzS-curve {
+    --min: min(25rem, 43vh);
+  }
+}
+
+/* ------------------------------------------------------------ splash */
+.gzS-splash {
+  display: grid;
+  place-items: center;
+  padding: var(--gut);
+  text-align: center;
+}
+.gzS-splash-in {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+.gzS-splash-brand {
+  font-size: clamp(1.125rem, 0.9rem + 0.45vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: 0.007em;
+}
+.gzS-splash-line {
+  font-size: clamp(1.75rem, 1rem + 2vw, 3.5rem);
+  line-height: 1.07;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #6e6e73;
+  text-wrap: balance;
+}
+.gzS-splash-small {
+  font-size: 1.0625rem;
+  color: #86868b;
+}
+
+/* One rolling clock digit: its own slot, one line tall, clipping only the digit's slide (no text block is cut). */
+.gzS-dig {
+  display: inline-block;
+  height: 1.25em;
+  line-height: 1.25;
+  vertical-align: bottom;
+  clip-path: inset(0);
+}

@@ -1,0 +1,138 @@
+/* Direction A layout. Fluid at every size: a grid with minmax(), clamp() type, a size container per text column and
+   per fact. Nothing has a fixed height around text and nothing hides overflow, so a short window scrolls, never clips.
+   When the content fits (1440x900 and larger) the hero grows to fill the screen, which makes it one screen. */
+
+.gzA {
+  --gut: clamp(16px, 4.5vw, 7rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gzA-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 1.5rem;
+  min-height: clamp(3rem, 5.5vh, 5rem);
+  padding: 0.5rem var(--gut);
+  font-size: clamp(1.125rem, 1.5vw, 2.125rem);
+  line-height: 1.2;
+  background: rgba(250, 250, 252, 0.8);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.gzA-heading,
+.gzA-scen {
+  display: none;
+}
+@media (min-width: 560px) {
+  .gzA-scen {
+    display: inline;
+  }
+}
+@media (min-width: 900px) {
+  .gzA-heading {
+    display: block;
+  }
+}
+
+.gzA-main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 3.2vh, 3rem);
+  padding: clamp(1.25rem, 3vh, 2.5rem) var(--gut) clamp(1.75rem, 3vh, 2.75rem);
+  min-width: 0;
+}
+
+/* Hero: stacked on phones and narrow windows, story | curve side by side from 960 px. */
+.gzA-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  min-width: 0;
+}
+.gzA-story {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.4vh, 2rem);
+  min-width: 0;
+}
+.gzA-curve {
+  min-width: 0;
+  height: clamp(280px, 68vw, 460px);
+}
+@media (min-width: 960px) {
+  .gzA-main {
+    gap: clamp(1.5rem, 2.8vh, 3rem);
+  }
+  .gzA-hero {
+    flex: 1 0 auto;
+    grid-template-columns: minmax(19rem, 4fr) minmax(0, 8fr);
+    column-gap: clamp(2rem, 3vw, 5rem);
+  }
+  /* The curve fills the hero row; it never gets shorter than a chart that still reads. */
+  .gzA-curve {
+    height: auto;
+    min-height: clamp(300px, 38vh, 600px);
+  }
+}
+
+.gzA-h1 {
+  font-size: clamp(2rem, min(10cqi, 6vh), 5.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+.gzA-sub {
+  font-size: clamp(1.125rem, min(5.2cqi, 2.6vh), 2.25rem);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.gzA-big {
+  font-size: clamp(2.75rem, min(16cqi, 7vh), 6.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.gzA-peak {
+  font-size: clamp(1.375rem, min(6.5cqi, 3vh), 2.75rem);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* Keynote facts: as many columns as fit, each at least 15rem; the number scales with its own column. */
+.gzA-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: clamp(1.25rem, 2.4vh, 2rem) clamp(1.5rem, 3vw, 5rem);
+}
+.gzA-fact {
+  container-type: inline-size;
+}
+.gzA-fact-v {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: clamp(2rem, min(13cqi, 5.2vh), 4.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.gzA-fact-l {
+  margin-top: 0.375rem;
+  color: #3a3a3c;
+  font-size: clamp(1.0625rem, min(6.5cqi, 2.2vh), 2rem);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.gzA-quiet {
+  font-size: clamp(1.0625rem, 1.3vw, 1.875rem);
+  line-height: 1.3;
+}
