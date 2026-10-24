@@ -333,16 +333,13 @@ async function setAp(body) { err(); try { await api("autopilot", body); } catch 
 async function decideAp(d) { err(); try { await api("autopilot/" + d); } catch (e) { err(e.message); } refresh(); }
 function selectNode(n) { selNode = n; const sel = document.getElementById("segment"); if (sel && sel.options.length) sel.value = n; drawAll(); }
 function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
+function feederOf0(n) { if (!TREE) return n; while (n && !n.startsWith("feeder:") && TREE[n] && TREE[n].parent) { if (n.startsWith("tf:")) return TREE[n].parent; n = TREE[n].parent; } return n; }
 
 // ---------- DeepSeek control loop
 const VERDICT = {sent: "--ok", held: "--warn", refused: "--crit", error: "--crit", none: "--muted", pending: "--s1", rejected: "--muted", expired: "--muted"};
 function worstForecast() {
-  const ap = S.autopilot, steps = Math.floor(ap.horizon_min / 15) + 1;
   let best = null;
-  Object.keys(S.tree).filter(n => n.startsWith("tf:")).forEach(tf => (S.forecast[tf] || []).slice(0, steps).forEach(p => {
-    const lim = p.total_kw >= 0 ? S.tree[tf].rating_kw : (S.tree[tf].reverse_kw || S.tree[tf].rating_kw), pct = Math.round(100 * p.total_kw / lim);
-    if (!best || Math.abs(pct) > Math.abs(best.pct)) best = {tf, pct, h: p.h};
-  }));
+  Object.entries(S.forecast_peak || {}).forEach(([tf, p]) => { if (!best || Math.abs(p.pct) > Math.abs(best.pct)) best = {tf, pct: p.pct, h: p.h}; });
   return best;
 }
 function drawLoop() {
@@ -486,7 +483,7 @@ function hhmm(h) { const m = Math.round(h * 60); return `${String(Math.floor(m /
 function drawCharts() {
   if (!H || !S) return;
   const nh = H.nodes[selNode] || [], rating = S.tree[selNode].rating_kw, rev = S.tree[selNode].reverse_kw;
-  const fc = (S.forecast[selNode] || []).slice(1), pad = a => a.concat(fc.map(() => null));
+  const fc = ((S.forecast || {})[selNode] || []).slice(1), pad = a => a.concat(fc.map(() => null));
   loadChart.data.labels = nh.map(p => hhmm(p.h)).concat(fc.map(p => hhmm(p.h)));
   loadChart.data.datasets[0].data = pad(nh.map(p => p.total_kw));
   loadChart.data.datasets[1].data = pad(nh.map(p => p.program_kw));
@@ -520,6 +517,7 @@ function feederOf(n) {
   return Object.keys(S.tree).find(f => f.startsWith("feeder:") && pathOf(f).includes(n)) || Object.keys(S.tree).find(f => f.startsWith("feeder:"));
 }
 function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
+function feederOf0(n) { if (!TREE) return n; while (n && !n.startsWith("feeder:") && TREE[n] && TREE[n].parent) { if (n.startsWith("tf:")) return TREE[n].parent; n = TREE[n].parent; } return n; }
 function drawSchem() {
   const feeder = feederOf(selNode), sub = S.tree[feeder].parent;
   const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
@@ -569,10 +567,10 @@ function drawKpis() {
   const worst = Math.abs(S.aggregates[worstTf].load_pct || 0);
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   const active = Object.keys(S.active).length;
-  const online = Object.values(HH).filter(d => d.telemetry).length, total = Object.keys(HH).length;
-  const rep = Object.values(HH).reduce((a, d) => a + (d.represents || 1), 0);
-  const ev = Object.values(HH).reduce((a, d) => a + ((d.telemetry || {}).ev_kw || 0) * (d.represents || 1), 0);
-  const hp = Object.values(HH).reduce((a, d) => a + ((d.telemetry || {}).hp_kw || 0) * (d.represents || 1), 0);
+  const online = S.summary.online, total = S.summary.households;
+  const rep = S.summary.houses;
+  const ev = S.summary.ev_kw;
+  const hp = S.summary.hp_kw;
   const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   document.getElementById("kpis").innerHTML =
     k(`${(root.kwh_available * rep1()).toFixed(0)} kWh`, "stored in program batteries") +
@@ -597,7 +595,7 @@ function drawDevices() {
   const q = (document.getElementById("hsearch").value || "").toLowerCase();
   let rows = [...devOrder].filter(d => homesMode === "all" || HH[d].path.includes(selNode)).filter(d => !q || d.includes(q) || HH[d].tf.includes(q));
   rows.sort((a, b) => (HH[b].real ? 1 : 0) - (HH[a].real ? 1 : 0) || (HH[a].path.join("/") + a).localeCompare(HH[b].path.join("/") + b));
-  document.getElementById("homeshint").textContent = `${rows.length} of ${devOrder.length} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
+  document.getElementById("homeshint").textContent = `${rows.length} of ${S.summary.households} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
   document.getElementById("devices").innerHTML = rows.slice(0, 400).map(d => {
     const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
     const heat = t.heat ? t.heat.replace("heatpump", "HP").replace("boiler", "boiler") : "";
@@ -705,7 +703,7 @@ function drawStory() {
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
   document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}')">${pct == null ? "–" : pct}</div>`; }).join("");
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
-  document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${Object.values(HH).filter(h => h.telemetry).length} households live`;
+  document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${S.summary.online} households live`;
   document.getElementById("ticker").innerHTML = ap.history.slice(0, 5).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
 }
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
@@ -718,8 +716,13 @@ function wanted() {
   devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12).forEach(d => (HH[d].devices || [d]).forEach(x => devs.add(x)));
   return { nodes: [...nodes].join(","), devices: [...devs].join(",") };
 }
+let TREE = null;
 async function refresh() {
-  try { S = await fetch("/api/state").then(r => r.json()); } catch { return; }
+  const view = document.querySelector("main").dataset.view;
+  const hh = view === "homes" && homesMode === "all" ? "all" : (view === "homes" ? selNode : feederOf0(selNode));
+  let n;
+  try { n = await fetch(`/api/state?hh=${encodeURIComponent(hh)}&fc=${encodeURIComponent(selNode)}&tree=${TREE ? 0 : 1}`).then(r => r.json()); } catch { return; }
+  if (n.tree) TREE = n.tree; n.tree = TREE; S = n;
   devOrder = Object.keys(S.households); HH = S.households;
   for (const h of Object.values(HH)) h.path = pathOf(h.tf);                       // derived here instead of shipped 272 times
   S.devices = {}; for (const h of Object.values(HH)) for (const id of (h.devices || [h.id])) S.devices[id] = h;   // older code paths index by device id

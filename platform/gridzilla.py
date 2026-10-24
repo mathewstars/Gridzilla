@@ -830,17 +830,38 @@ def pubkey():
 
 
 @app.get("/api/state")
-def get_state():
+def get_state(hh: str = "", fc: str = "", tree: int = 1):
+    """hh: node whose households to include ("all" = every one; blatnica and real devices always); fc: node that gets its full
+    forecast (every tf gets only its forecast peak); tree=0 skips the static tree after the first load."""
     prune_expired()
     with _lock:
         ap = autopilot_public()
         hist = ap.get("history") or []
-        ap["history"] = [h if i < 4 else {k: v for k, v in h.items() if k != "envelope"} for i, h in enumerate(hist[:25])]   # curves only for the latest few
-        return {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "tree": TREE, "aggregates": aggregates(),
-                "households": households(),
-                "active": state["active"], "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
-                "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
-                "forecast": {n: forecast(n) for n in TREE if n.startswith("tf:")}}
+        ap["history"] = [h if i < 4 else {k: v for k, v in h.items() if k != "envelope"} for i, h in enumerate(hist[:25])]
+        allh = households()
+        tot = {"households": len(allh), "online": sum(1 for h in allh.values() if h["telemetry"]),
+               "houses": sum(h.get("represents", 1) for h in allh.values()),
+               "ev_kw": round(sum(((h["telemetry"] or {}).get("ev_kw") or 0) * h.get("represents", 1) for h in allh.values()), 1),
+               "hp_kw": round(sum(((h["telemetry"] or {}).get("hp_kw") or 0) * h.get("represents", 1) for h in allh.values()), 1)}
+        if hh == "all":
+            sel = allh
+        else:
+            sel = {k: h for k, h in allh.items() if h["real"] or (hh and hh in path_of(h["tf"]))}
+        peaks = {}
+        for n in TREE:
+            if not n.startswith("tf:"): continue
+            f = forecast(n); best = None
+            for p in f:
+                lim = TREE[n]["rating_kw"] if p["total_kw"] >= 0 else (TREE[n].get("reverse_kw") or TREE[n]["rating_kw"])
+                pct = round(100 * p["total_kw"] / lim)
+                if best is None or abs(pct) > abs(best["pct"]): best = {"pct": pct, "h": p["h"]}
+            if best: peaks[n] = best
+        out = {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "aggregates": aggregates(), "summary": tot,
+               "households": sel, "active": state["active"], "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
+               "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
+               "forecast_peak": peaks, "forecast": {fc: forecast(fc)} if fc in TREE and not fc.startswith("region") else {}}
+        if tree: out["tree"] = TREE
+        return out
 
 
 @app.get("/api/devices")
