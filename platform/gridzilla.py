@@ -573,6 +573,7 @@ def shape_loop():
 
 
 # ---------------------------------------------------------------- LLM advisor (DeepSeek, OpenAI-compatible)
+import fallback   # AI-offline safety rules and the circuit breaker around DeepSeek
 ADVISOR_SYSTEM = """You are the control brain of Gridzilla, a DSO platform that sends bounded signals to home batteries.
 You choose one signal or none. A deterministic policy guard checks it; if it passes, the platform signs and sends it without a human.
 Signal modes and allowed fields:
@@ -666,7 +667,7 @@ def ask_llm(situation: str, focus=None):
                                  headers={"Content-Type": "application/json", "X-Session-Id": "gridzilla-advisor",
                                           "Authorization": f"Bearer {os.environ.get('GZ_LLM_KEY', 'none')}"})
     t0 = time.time()
-    with urllib.request.urlopen(req, timeout=120) as r:
+    with urllib.request.urlopen(req, timeout=fallback.TIMEOUT_S) as r:
         text = json.loads(r.read())["choices"][0]["message"]["content"]
     latency = round((time.time() - t0) * 1000)
     text = text.strip().strip("`")
@@ -675,9 +676,15 @@ def ask_llm(situation: str, focus=None):
     start, end = text.find("{"), text.rfind("}")
     proposal = json.loads(text[start:end + 1])
     proposal["latency_ms"] = latency
+    return vet_proposal(proposal, focus)
+
+
+def vet_proposal(proposal, focus=None):
+    """Envelope, allowed segments and guard for a proposal, shared by DeepSeek and the AI-offline rules (fallback.py)."""
+    latency, who = proposal.get("latency_ms"), "rules" if proposal.get("source") == "rules" else "advisor"
     if proposal.get("mode") == "NONE":
         proposal["guard"] = None
-        log("advisor", f"no signal needed ({latency} ms): {proposal.get('rationale', '')}")
+        log(who, f"no signal needed ({latency} ms): {proposal.get('rationale', '')}")
         return proposal
     sim_dur = float(proposal.get("duration_min") or (ENV_SLOT_SIM_MIN if proposal.get("mode") == "RELEASE" else 0))
     proposal["duration_min"] = sim_dur
@@ -692,7 +699,7 @@ def ask_llm(situation: str, focus=None):
     else:
         proposal["guard"] = guard(seg, mode, proposal.get("fields") or {},
                                   real_window(seg, mode, sim_dur) if seg in TREE else real_min(sim_dur), proposal.get("envelope"))
-    log("advisor", f"proposed {proposal.get('mode')} -> {proposal.get('segment')} for {sim_dur:g} grid min ({latency} ms): "
+    log(who, f"proposed {proposal.get('mode')} -> {proposal.get('segment')} for {sim_dur:g} grid min ({latency} ms): "
         f"{proposal.get('rationale', '')}" + (f" | GUARD: {proposal['guard']}" if proposal["guard"] else " | guard ok"))
     return proposal
 
@@ -877,7 +884,7 @@ def record(p, verdict, detail="", seq=None):
                               "fields": p.get("fields"), "duration_min": p.get("duration_min"), "envelope": p.get("envelope"),
                               "latency_ms": p.get("latency_ms"), "verdict": verdict, "detail": detail, "seq": seq,
                               "target": (p.get("focus") or {}).get("node"), "hot": (p.get("focus") or {}).get("hot"),
-                              "worst_pct": (p.get("focus") or {}).get("worst_pct")})
+                              "worst_pct": (p.get("focus") or {}).get("worst_pct"), "source": p.get("source") or fallback.brain(LLM_URL)})
     try:
         AP_HIST_FILE.write_text(json.dumps(list(AP["history"])))
     except Exception:
@@ -904,13 +911,14 @@ def autopilot_step():
     elif AP["context"]:
         situation += " Standing operator warning: " + AP["context"]
     log("autopilot", f"trigger: {situation}")
-    AP["stage"] = "deepseek"
-    p = ask_llm(situation, focus)
+    p = fallback.decide(sys.modules[__name__], situation, focus)   # DeepSeek, or the safety rules if it is down
     p["situation"], p["at"], p["focus"] = situation, iso(now()), focus
     AP["last_result"] = p
     AP["stage"] = "guard"
     if p.get("mode") == "NONE":
-        record(p, "none")
+        if p.get("needs_operator"):
+            log("autopilot", f"rules: needs operator ({situation})")
+        record(p, "none", "rules: needs operator" if p.get("needs_operator") else "")
         return
     if p["guard"]:
         record(p, "refused", p["guard"])
@@ -939,7 +947,7 @@ def autopilot_step():
 def autopilot_loop():
     while True:
         time.sleep(AP_INTERVAL_S)
-        if AP["mode"] == "off" or not LLM_URL or AP["busy"]:
+        if AP["mode"] == "off" or AP["busy"]:      # no GZ_LLM_URL: the safety rules run alone
             continue
         AP["busy"] = True
         try:
@@ -957,7 +965,7 @@ def autopilot_public():
     return {k: AP[k] for k in ("mode", "context", "last_run", "last_trigger", "last_result", "pending", "busy", "stage", "target", "hotspots")} | {
         "history": list(AP["history"]), "trigger_pct": AP_TRIGGER_PCT, "release_pct": AP_RELEASE_PCT,
         "horizon_min": AP_HORIZON_MIN, "cooldown_min": AP_COOLDOWN_MIN, "max_per_day": AP_MAX_PER_DAY,
-        "interval_s": AP_INTERVAL_S, "sim_x": SIM_X}
+        "interval_s": AP_INTERVAL_S, "sim_x": SIM_X, "brain": fallback.brain(LLM_URL), "ai": fallback.BRAIN.public(LLM_URL)}
 
 
 # ---------------------------------------------------------------- api
@@ -1128,6 +1136,8 @@ def set_shape(onoff: str):
 
 @app.post("/api/advise")
 def advise(a: Advise):
+    if fallback.BRAIN.simulated_down:
+        raise HTTPException(503, "AI outage simulated (demo)")
     return ask_llm(a.situation)
 
 
@@ -1141,8 +1151,6 @@ def set_autopilot(a: Autopilot):
     if a.mode is not None:
         if a.mode not in ("off", "propose", "auto"):
             raise HTTPException(400, "mode must be off, propose or auto")
-        if a.mode != "off" and not LLM_URL:
-            raise HTTPException(503, "GZ_LLM_URL not set")
         AP["mode"] = a.mode
         log("autopilot", f"mode {a.mode}")
     if a.context is not None and a.context != AP["context"]:
@@ -1189,6 +1197,16 @@ def hb(action: str):
     (HB_PAUSED.set if action == "pause" else HB_PAUSED.clear)()
     log("demo", f"heartbeat {'PAUSED (platform outage)' if action == 'pause' else 'resumed'}")
     return {"paused": HB_PAUSED.is_set()}
+
+
+@app.post("/api/demo/ai/{action}")
+def demo_ai(action: str):
+    """down|up: simulate a DeepSeek outage; the safety rules in fallback.py steer meanwhile (no LLM call while down)"""
+    if action not in ("down", "up"):
+        raise HTTPException(400, "action must be down or up")
+    fallback.BRAIN.simulate(action == "down")
+    log("demo", "AI DOWN (simulated outage): safety rules steer" if action == "down" else "AI back up: DeepSeek decides again")
+    return autopilot_public()
 
 
 @app.post("/api/replay/{seq}")
