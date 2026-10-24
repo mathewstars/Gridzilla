@@ -1,50 +1,58 @@
 // Slide 5's walkthrough: each Right lights one area of the live demo with a crisp outline and a one-line caption the
-// presenter talks over. The rest stays readable (dimmed 15 %, no blur). Anchored by element ids that the console's
-// DemoView carries (#gz-tour-curve, -ring, -ai, -signals, -city, -feed, -heartbeat); until it lands, each step falls
-// back to the matching part of the stage, with a caption that fits what it points at. A step with no anchor on
-// screen shows nothing. Captions in the run of show's plain words (firstmate data/gz-ui/pitch-script.md).
+// presenter talks over. The rest stays readable (dimmed 15 %, no blur). Anchors, tried in order: #gz-tour-* ids (if
+// the console adds them), DemoView's own parts (.demo-curve, .demo-ring, .gz-steps, .demo-sigs, .demo-city, .fstrip),
+// then the presentation stage's (if slide 5 ever shows the stage again). The Pause lives on dad's board, not in the
+// demo, so step 7 is a caption alone. Captions in the run of show's plain words (firstmate data/gz-ui/pitch-script.md).
 import { useEffect, useLayoutEffect, useState } from "react";
 import "./tour5.css";
 
 interface Stop {
-  /** [selector, caption] tried in order: DemoView first, then the stage. */
+  /** [selector, caption] tried in order. */
   try: [string, string][];
+  /** Shown as a caption card alone (bottom centre) when no anchor is on screen. */
+  alone?: string;
 }
 
 export const TOUR: Stop[] = [
   {
     try: [
       ["#gz-tour-curve", "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
+      [".demo-curve", "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
       ['[data-card="curve"]', "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
     ],
   },
   {
     try: [
       ["#gz-tour-ring", "How full this transformer is right now, against its limit."],
+      [".demo-ring", "How full this transformer is right now, against its limit."],
       [".gzH-ring", "How full this transformer is right now, against its limit."],
     ],
   },
   {
     try: [
       ["#gz-tour-ai", "The AI saw the peak coming and wrote the message in about a second. The rules checked it, the platform signed it and sent it."],
+      [".demo-now .gz-steps", "Sees, thinks, checks, acts: the AI wrote the message in about a second, the rules checked it, the platform signed and sent it."],
       ['[data-card="ai"]', "The AI saw the peak coming and wrote the message in about a second. The rules checked it, the platform signed it and sent it."],
     ],
   },
   {
     try: [
       ["#gz-tour-signals", "A limit for a limited time: every message runs out by itself, then the owners decide again."],
+      [".demo-sigs", "Signals running, each with its countdown: a limit for a limited time, then the owners decide again."],
       [".gzF > :nth-child(1)", "A limit for a limited time: every message runs out by itself, then the owners decide again."],
     ],
   },
   {
     try: [
       ["#gz-tour-city", "The whole city: 72 transformers, the colour is how close each one is to its limit."],
+      [".demo-city", "The whole city: 72 transformers, the colour is how close each one is to its limit."],
       ['[data-card="street"]', "One street: every home here follows the plan, and nobody gets cut off."],
     ],
   },
   {
     try: [
       ["#gz-tour-feed", "What just happened: signed messages out, signed replies back from the houses."],
+      [".fstrip", "What just happened: signed messages out, signed replies back from the houses."],
       [".gzF > :nth-child(5)", "Any maker of the box can join: every message is signed, every reply comes back signed and checked."],
     ],
   },
@@ -53,6 +61,7 @@ export const TOUR: Stop[] = [
       ["#gz-tour-heartbeat", "Pause: the operator goes dark. Every house is back to owner mode within two minutes."],
       [".gzF > :nth-child(2)", "The owner always wins: if the operator goes dark, every house is back to owner mode within two minutes."],
     ],
+    alone: "Now the operator goes dark (Peter pauses it on the board). Every house is back to owner mode within two minutes.",
   },
 ];
 
@@ -85,7 +94,7 @@ export default function Tour5({ step, root }: { step: number; root: HTMLElement 
     }
     const measure = () => {
       const f = find(root, stop);
-      if (!f) return setHit(null);
+      if (!f) return setHit(stop.alone ? { box: { l: 0, t: 0, w: 0, h: 0 }, caption: stop.alone } : null);
       const r = f.el.getBoundingClientRect();
       setHit((h) =>
         h && h.caption === f.caption && Math.abs(h.box.l - r.left) < 1 && Math.abs(h.box.t - r.top) < 1 && Math.abs(h.box.w - r.width) < 1 && Math.abs(h.box.h - r.height) < 1
@@ -103,6 +112,20 @@ export default function Tour5({ step, root }: { step: number; root: HTMLElement 
   }, [stop, root]);
 
   if (!stop || !hit) return null;
+  if (hit.box.w === 0) {
+    // No area to point at: the caption alone, bottom centre.
+    const cw = Math.min(640, window.innerWidth * 0.5);
+    return (
+      <div className="t5" aria-live="polite">
+        <div className="t5-card" style={{ left: (window.innerWidth - cw) / 2, top: window.innerHeight - 200, width: cw }}>
+          <p className="t5-text">{hit.caption}</p>
+          <p className="t5-step">
+            {step} of {TOUR.length}
+          </p>
+        </div>
+      </div>
+    );
+  }
   const pad = 8;
   const { l, t, w, h } = hit.box;
   const W = window.innerWidth;

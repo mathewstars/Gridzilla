@@ -200,7 +200,20 @@ async function cell(slide, step, size, phase, theme) {
     const url = `${base}${sep}theme=${theme}&slide=${slide}&step=${step}${phase === "end" ? "&freeze=end" : ""}`;
     await page.goto(url, { waitUntil: "load", timeout: 30000 });
     await page.waitForTimeout(phase === "start" ? 400 : slide === LIVE ? 8000 : 2500);
+    // The slide 5 walkthrough is an overlay that sits over the demo by design: judge the demo with it hidden, then
+    // check the overlay on its own (its caption card fully inside the window).
+    const tour = slide === LIVE && step > 0;
+    if (tour) await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "hidden")));
     const f = await page.evaluate(detect, [false, W]);
+    if (tour) {
+      await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "")));
+      f.tour = await page.evaluate(() => {
+        const card = document.querySelector(".t5-card");
+        if (!card) return [];
+        const r = card.getBoundingClientRect();
+        return r.left < 0 || r.top < 0 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1 ? [`tour caption outside the window`] : [];
+      });
+    }
     delete f.notOneScreen;
     if (slide === LIVE) delete f.innerScroll;
     const here = await page.evaluate(onScreen);

@@ -30,16 +30,21 @@ await page.waitForFunction(() => !!window.__pitch?.slides, null, { timeout: 3000
 const slides = await page.evaluate(() => window.__pitch.slides);
 
 const pngs = [];
+// One page per slide at its final step, with three exceptions: the trailer (a film) has no page, the live demo is
+// printed without its walkthrough overlay, and slide 3 gets two pages (the message, then the loop that replaces it).
+const pages = [];
 for (const [k, s] of slides.entries()) {
-  // Slide k is ?slide=k (0 = the trailer, a film: it has no page in the PDF).
   if (s.id === "trailer") continue;
-  const n = k;
-  const step = Math.max(0, s.steps - 1);
-  label = `slide ${n}`;
+  if (s.id === "demo") pages.push([k, 0, s.id]);
+  else if (s.id === "idea") pages.push([k, Math.max(0, s.steps - 2), s.id], [k, s.steps - 1, s.id]);
+  else pages.push([k, Math.max(0, s.steps - 1), s.id]);
+}
+for (const [n, step, id] of pages) {
+  label = `slide ${n} step ${step}`;
   await page.goto(url(n, step), { waitUntil: "domcontentloaded" });
   await page.waitForFunction((want) => window.__pitch?.slide === want, n, { timeout: 30000 });
-  await page.waitForTimeout(s.id === "demo" ? 10000 : 2500);
-  const file = path.join(shotsDir, `slide${n}.png`);
+  await page.waitForTimeout(id === "demo" ? 10000 : 2500);
+  const file = path.join(shotsDir, `slide${n}-step${step}.png`);
   await page.screenshot({ path: file });
   pngs.push(file);
 }

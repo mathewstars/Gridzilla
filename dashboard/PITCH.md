@@ -4,6 +4,19 @@ Dad's 30 s trailer, then seven slides, for the Energy Bridge hackathon in Vienna
 `/Users/matthewstafurik/firstmate/data/gz-ui/pitch-script.md` (notes copied into `src/pitch/script.ts`).
 Dad's deck numbers (checked): `docs/Gridzilla-pitch.pdf`, `docs/PRESENTATION.md` on main (copied into `src/pitch/facts.ts`).
 
+## Handoff (state at 19:35, 24 Oct)
+
+1. Branch fm/gz-pitch, rebased on fm/gz-ui 64b87ce; dev server `npm run pitch:dev` (5175), preview `npm run pitch:preview` (4175).
+2. Deck = slide 0 trailer + slides 1-7 (`src/pitch/slides/index.ts`); every beat is a Right press; nothing auto-dims.
+3. Slide 5 embeds `DemoView` (src/ops/demo, stage worker's) + `Tour5.tsx` walkthrough (steps 1-7, Esc skips).
+4. Background: Paper Shaders Mesh Gradient (21st.dev @paper-design, `bg/mesh-gradient.tsx`) via `shell/Backdrop.tsx`.
+5. Fonts: Clash Display + General Sans in `public/pitch/fonts`; slide 5 keeps the console's own type (`slide5.css`).
+6. Read-only live mode: `src/pitch/liveMode.ts` (`?api=<base>` or `?api=proxy` + `GZ_API`); POSTs refused in the page.
+7. Gates: `qa/pitch.mjs` (G1+G3, both themes), `qa/pitch-truth.mjs` (G2), `qa/pitch-motion.mjs` (G5), `qa/pitch-pdf.mjs`.
+8. Last results: G1 0 errors, G3 0/252 cells, G2 clean except DemoView's untagged numbers (not ours), G5 ~60 fps.
+9. Open: final art-director read of every capture; DemoView fills only ~70 % of 1920x1080 and its legend wraps (stage worker).
+10. Trailer is copied at build time (`qa/pitch-trailer.mjs`), never committed; do not commit platform/static/new/pitch/trailer.mp4.
+
 ## Run
 
     npm run pitch:dev        # http://localhost:5175/pitch.html, /api proxied to the local platform on :8081
@@ -18,6 +31,44 @@ pitch:preview copy it first. Gate scripts: qa/pitch.mjs (G1, G3), qa/pitch-truth
 URL: `?slide=N` (0 = the trailer, 1-7 the slides), `&step=S` (0-based build step), `&freeze=end` (final state at once,
 for QA and print), `&theme=dark|light` (dark is the default, like the rest of the product).
 Swap the trailer: replace docs/Gridzilla-trailer.mp4 (it carries the jingle; there is no separate audio any more).
+
+## Every beat is a key press
+
+Nothing dims, moves on or changes content by itself: each spoken beat is one Right. Slide 2: Right brings the closing
+line under the three facts. Slide 3: Right for noon, Right for "The operator asks...", Right for the AI loop.
+Slide 4: Right draws the Gridzilla line and drops the big number from red to green. Slide 5: Right walks the demo
+(seven areas). Slide 7: Right for the last line. The only automatic move is the trailer's hard cut into the title at
+its last frame, which the captain asked for. Entry builds (a typed message, numbers counting, a ring lighting once)
+finish within a few seconds and then hold.
+
+## Slide 5 walkthrough
+
+Steps 1-7 of slide 5 light one area of the live demo at a time, with a crisp blue outline, the rest dimmed 15 % (no
+blur) and a one-line caption beside it: the street curve, the ring, the AI steps, the signals running, the city dots,
+what just happened, and the Pause (a caption alone: Peter pauses it on dad's board). The last Right leaves the slide;
+Esc skips the rest of the walkthrough. Anchors (`src/pitch/slides/Tour5.tsx`): `#gz-tour-*` ids if the console adds
+them, then DemoView's parts (`.demo-curve`, `.demo-ring`, `.gz-steps`, `.demo-sigs`, `.demo-city`, `.fstrip`).
+
+## Read-only live mode (the real Blatnica plant)
+
+The real plant talks only to the live server, never to a local copy. To show the live server's data without ever
+writing to it:
+
+    GZ_API=https://gridzilla.victronlab.sk npm run pitch:dev    # the Vite proxy reads the live server
+    open http://localhost:5175/pitch.html?api=proxy             # every POST is refused in the page
+
+`?api=<base url>` sends every GET to `<base>/api/...`; `?api=proxy` keeps GETs on `/api/...` (the Vite proxy, target
+`$GZ_API`). In both, every non-GET is refused before it leaves the browser with "read-only, live server"
+(`src/pitch/liveMode.ts`), so scenario keys and console buttons cannot change anything. A base on another origin needs
+cross-origin headers, which the platform does not send today, so for a live server use `?api=proxy`. Without `?api`
+the deck reads and writes its own origin as before. Tested only against the local platform.
+
+## Fonts
+
+Clash Display (500, 600) for titles, headlines and big numbers; General Sans (400, 500, 600) for body, captions and
+labels; both from Fontshare (free), self-hosted in `public/pitch/fonts` (no CDN at show time). Neither font has
+tabular figures, so numbers that count hold their width with hidden copies. The demo on slide 5 keeps the console's
+own type.
 
 ## Presenter keys (nothing visible on the slides)
 
@@ -60,10 +111,10 @@ One memorable thing per slide; everything around it quiet.
 |---|---|---|---|---|
 | 0 | 0:00, 30 s | | Dad's trailer full-bleed on black, with its jingle; hard cut into slide 1 at its end. | Space plays it |
 | 1 | 0:30 | Matthew | One centred column on the moving hero background: GRIDZILLA, "A grid signal for home batteries, cars and heat pumps.", team and track. Reveal under 0.7 s. | 1 |
-| 2 | 0:30, 25 s | Matthew | "Europe's largest battery is in people's basements. The grid can use none of it." Three facts counting up: Slovakia 0 signals, Germany 4.2 kW one-device dimmer, Ukraine 3 GWh idle. End: "The storage exists. The signal does not." | 1 |
-| 3 | 0:55, 40 s | Matthew | The one message typed out as a signed card (the only typing in the deck): "This street, next three hours, take at most 3 kW per house." It travels to four boxes (Victron, GoodWe, Viessmann, car charger) that light in turn: battery first, car second, hot water third. Step 2: the changed words slide to "give at most 2 kW", the boxes re-light, "The operator asks. The house decides. The owner can always say no." Step 3: "The loop, every 15 minutes": a ring of five stations lit in turn with live numbers (gathers, thinks, checks, signs and sends, houses reply), one lap, then it rests. | 3 (Right = noon, Right = loop) |
-| 4 | 1:35, 40 s | Peter | One big curve from the live diet plan (`/api/flatten?node=region:at`), the next 24 hours in one continuous line: the evening heads past the limit, the orange slice is the peak eaten, green is the charging moved; the big red peak drops to the green plan peak as the Gridzilla line bends under the limit. Clean ground, no background. Labelled illustration only if the API is down. | 1 |
-| 5 | 2:15, 75 s | Matthew | The live stage (`src/stage/Stage.tsx`), full-bleed, imported, its keys working. | 1 |
+| 2 | 0:32, 25 s | Matthew | "Europe's largest battery is in people's basements. The grid can use none of it." Three cards with living drawings and fast count-ups: Slovakia 0 signals (a battery cut off from the grid), Germany 4.2 kW (a dimmer stuck on one device), Ukraine 3 GWh (cells gone idle). Right: "The storage exists. The signal does not." below them. | 2 |
+| 3 | 0:55, 40 s | Matthew | The one message typed out as a signed card (the only typing in the deck): "This street, next three hours, take at most 3 kW per house." It travels to four boxes (Victron, GoodWe, Viessmann, car charger) that light in turn: battery first, car second, hot water third. Step 2: the changed words slide to "give at most 2 kW", the boxes re-light, "The operator asks. The house decides. The owner can always say no." Step 3: "The loop, every 15 minutes": a ring of five stations lit in turn with live numbers (gathers, thinks, checks, signs and sends, houses reply), one lap, then it rests. | 4 (Right = noon, Right = closing line, Right = loop) |
+| 4 | 1:35, 40 s | Peter | One big curve from the live diet plan (`/api/flatten?node=region:at`), the next 24 hours in one continuous line. On entry: the evening without Gridzilla heads past the limit, the big number in red. Right: the Gridzilla line bends under the limit, the orange slice is the peak eaten, green is the charging moved, the number drops to the green plan peak. Clean ground, no background. Labelled illustration only if the API is down. | 2 (Right = with Gridzilla) |
+| 5 | 2:15, 75 s | Matthew | The console's demo mode (`DemoView`, `src/ops/demo`), full-bleed, imported, warm from the first frame; then the seven-step walkthrough. | 8 (Right = next area) |
 | 6 | 3:30, 25 s | Dad | Split screen, both live. Real: the Blatnica plant (or "waiting for the plant", honestly). Simulated: the city heat grid of all 72 street transformers. Measured numbers under each, labelled "measured on 24 Oct 2026". | 1 |
 | 7 | 3:55, 25 s | Matthew | "One street transformer to pilot on. This winter." alone. Step 2: "It eats peaks for breakfast." alone on the hero background. | 2 (Right = last line) |
 

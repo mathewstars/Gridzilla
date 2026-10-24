@@ -1,30 +1,15 @@
-/* Slide 5: the live stage at the real window size. The shell's .p-bleed (deck.css) is the one scroll container: the
-   stage fills the window at 1180x860 and up and grows taller on short windows, where .p-bleed scrolls. Nothing here
-   may scroll or clip on its own, so there is never a second scrollbar. */
+/* Slide 5: the console's demo mode at the real window size, on the console's own ground (it follows the theme).
+   The shell's .p-bleed (deck.css) is the one outer scroll container; the demo fits one screen from 1240 wide up. */
 .p-stage {
   min-height: 100%;
   overflow: visible;
+  background: var(--color-ground);
 }
-
-/* Dark deck, stage not yet dark: while the stage's own CSS still paints white cards (src/stage/one/stage.css), its
-   text would follow the dark tokens and turn white on white. Slide5.tsx then adds .p-stage-light, which gives the
-   stage the light tokens it was drawn for. It switches itself off as soon as the stage's cards read the theme. */
-:root[data-theme="dark"] .p-stage.p-stage-light {
-  color-scheme: light;
-  --color-ground: #f5f5f7;
-  --color-card: #ffffff;
-  --color-ink: #1d1d1f;
-  --color-secondary: #6e6e73;
-  --color-tertiary: #86868b;
-  --color-fill: #e8e8ed;
-  --color-fill-2: #ededf2;
-  --color-fill-press: #d2d2d7;
-  --color-fg: #1d1d1f;
-  --color-dim: #6e6e73;
-  --color-faint: #86868b;
-  --color-edge: #e8e8ed;
-  --color-hairline: transparent;
-  --shadow-card: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
-  background: #f5f5f7;
-  color: #1d1d1f;
+/* The console keeps its own type (index.css body): the deck's Clash Display / General Sans stop here. */
+.p-stage {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.4705;
+  letter-spacing: -0.022em;
+  color: var(--color-ink);
 }

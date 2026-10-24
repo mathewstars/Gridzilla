@@ -453,8 +453,8 @@ function Loop({ lit, on, live, lapRef }: { lit: number; on: boolean; live: Live;
           side === "top"
             ? { left: p.x - 560, top: p.y - 154, width: 1120 }
             : side === "right"
-              ? { left: p.x + 48, top: p.y - 44, width: 620 }
-              : { left: p.x - 48 - 620, top: p.y - 44, width: 620 };
+              ? { left: p.x + (k === 2 ? 64 : 52), top: p.y - 44, width: 620 }
+              : { left: p.x - (k === 3 ? 64 : 52) - 620, top: p.y - 44, width: 620 };
         return (
           <div key={st.name} className={`s3-station s3-station-${side}${lit > k ? " is-lit" : ""}`} style={style}>
             <div className="s3-station-name p-title">{st.name}</div>
