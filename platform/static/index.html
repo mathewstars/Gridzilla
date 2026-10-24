@@ -642,10 +642,10 @@ let storyChart = null, realChart = null, pinMode = "auto";
 function storyPin(v) { pinMode = v; ["auto", "blatnica", "selected"].forEach(m => document.getElementById("pin-" + m).classList.toggle("on", m === v)); drawAll(); }
 function storyNode() {
   if (pinMode === "blatnica") return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
-  if (pinMode === "selected") return selNode.startsWith("region") ? Object.keys(S.tree).find(n => n.startsWith("sub:")) : selNode;
+  if (pinMode === "selected") return selNode;
   const sent = (S.autopilot && S.autopilot.history || []).find(d => d.verdict === "sent" && d.segment);
   if (!sent) return selNode.startsWith("tf:") ? selNode : "tf:atzgersdorf-1";
-  return sent.segment.startsWith("region") ? Object.keys(S.tree).find(n => n.startsWith("sub:")) : sent.segment;   // the curve of whatever DeepSeek addressed: transformer, feeder or substation
+  return sent.segment;   // the curve of whatever DeepSeek addressed: transformer, feeder, substation or the whole city
 }
 function drawStory() {
   const ap = S.autopilot || {history: []}, last = ap.history[0], sent = ap.history.find(d => d.verdict === "sent");
@@ -666,7 +666,7 @@ function drawStory() {
     `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
   document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger.slice(0, 160))}</span>` : ""}` : "";
   // curve with vs without
-  const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw;
+  const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw || Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(node)).reduce((a, n) => a + S.tree[n].rating_kw, 0);
   if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [
       {label: "with Gridzilla (measured)", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "26", fill: "origin", borderWidth: 3, order: 3},
       {label: "without Gridzilla (what the houses would draw)", data: [], borderColor: css("--muted"), backgroundColor: css("--acc") + "55", fill: "-1", borderDash: [6, 4], borderWidth: 2.5, order: 2},
@@ -683,8 +683,8 @@ function drawStory() {
   storyChart.options.scales.y.suggestedMax = rating * 1.2; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
   storyChart.update();
   const lastp = nh[nh.length - 1];
-  document.getElementById("storytitle").textContent = `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""} · ${rating} kVA`;
-  document.getElementById("storydelta").innerHTML = lastp && lastp.baseline_kw != null ? `<span class="delta">${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ${a.load_pct}% of rating${act ? " · " + act[1].mode + " active" : ""}</span>` : "";
+  document.getElementById("storytitle").textContent = node.startsWith("region") ? `Vienna · all 72 transformers · ${(rating / 1000).toFixed(1)} MVA` : `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""} · ${rating} kVA`;
+  document.getElementById("storydelta").innerHTML = lastp && lastp.baseline_kw != null ? `<span class="delta">${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla${a.load_pct != null ? " · " + a.load_pct + "% of rating" : rating ? " · " + Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""}${act ? " · " + act[1].mode + " active" : ""}</span>` : "";
   // real plant
   const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
   document.getElementById("realage").textContent = age == null ? "offline" : `live · updated ${age} s ago · Cerbo GX + Vitocal via Gridzilla agents`;
@@ -704,7 +704,7 @@ function drawStory() {
   // city strip + ticker
   const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
   const pctOf = n => { const g = S.aggregates[n]; return g && g.load_pct != null ? g.load_pct : null; };
-  document.getElementById("feederchips").innerHTML = Object.keys(S.tree).filter(n => n.startsWith("sub:")).map(sub =>
+  document.getElementById("feederchips").innerHTML = `<button class="${node === "region:at" ? "on" : ""}" style="font-weight:700;color:var(--acc)" onclick="selectNode('region:at'); storyPin('selected')">VIENNA</button><span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(n => n.startsWith("sub:")).map(sub =>
     `<button class="${node === sub ? "on" : ""}" style="font-weight:600" onclick="selectNode('${sub}'); storyPin('selected')" title="${sub}">${sub.split(":")[1]}${S.active[sub] ? " ●" : ""}</button>` +
     Object.keys(S.tree).filter(f => S.tree[f].parent === sub).map(f => `<button class="${node === f ? "on" : ""}" style="color:${statusColor(pctOf(f))}" onclick="selectNode('${f}'); storyPin('selected')" title="${f}">${f.split(":")[1]}${S.active[f] ? " ●" : ""}</button>`).join("")).join(`<span style="color:var(--muted)">·</span>`);
   document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}'); storyPin('selected')">${pct == null ? "–" : pct}</div>`; }).join("");
@@ -740,7 +740,7 @@ async function refresh() {
   document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
   const focus = document.querySelector("main").dataset.view === "story" ? storyNode() : selNode;
   const chain = pathOf(focus).filter(n => !n.startsWith("region")).map(n => n.split(":")[1]).join(" › ");
-  document.getElementById("subtitle").textContent = `DSO control · Vienna · ${chain}`;
+  document.getElementById("subtitle").textContent = `DSO control · Vienna${chain ? " · " + chain : " · whole city"}`;
   document.getElementById("seqpill").textContent = "seq " + S.seq;
   const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
   document.getElementById("llmpill").textContent = S.autopilot ? `DeepSeek · ${S.autopilot.mode === "auto" ? "autonomous" : S.autopilot.mode === "propose" ? "operator approves" : "off"}` : (S.llm ? "advisor: DeepSeek" : "advisor off");
