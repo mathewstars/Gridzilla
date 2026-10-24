@@ -165,7 +165,7 @@
       <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
       <button onclick="decideAp('review')" style="margin:0">Review now</button>
       <span style="flex:1"></span>
-      <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button></span>
+      <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button><button data-sc="live-weather" onclick="demo('scenario/live-weather')">Live weather</button></span>
     </div>
     <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses" style="flex:0 0 auto"></svg>
     <div class="prop" id="apstatus" style="display:block; flex:0 0 auto; max-height:132px"></div>
@@ -249,6 +249,7 @@
   <section class="span3" data-tab="story" style="padding:10px 12px">
     <div class="steps" id="steps"></div>
     <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px; max-height:64px; overflow:auto"></div>
+    <div id="weather" style="font-size:12px; color:var(--muted); margin-top:4px"></div>
   </section>
   <section data-tab="story">
     <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
@@ -739,8 +740,19 @@ function wanted() {
   devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12).forEach(d => (HH[d].devices || [d]).forEach(x => devs.add(x)));
   return { nodes: [...nodes].join(","), devices: [...devs].join(",") };
 }
-let TREE = null;
+let TREE = null, WX = null, wxTick = 0;
+async function loadWeather() {
+  try { WX = await fetch("/api/weather").then(r => r.json()); } catch { WX = null; }
+  const el = document.getElementById("weather"); if (!el) return;
+  if (!WX || !WX.now) { el.textContent = ""; return; }
+  const n = WX.now, warns = (WX.warnings || []);
+  const sc = S && S.scenario ? S.scenario.name : "";
+  el.innerHTML = `<span style="color:var(--fg)">Weather ${esc(WX.location.name)}:</span> ${n.temp_c} °C, feels ${n.feels_c} °C · cloud ${n.cloud_pct} % · sun ${Math.round(n.sun_wm2)} W/m² · wind ${Math.round(n.wind_kmh)} km/h, gusts ${Math.round(n.gust_kmh)} · ` +
+    (warns.length ? `<span style="color:var(--warn)">${warns.length} official warning${warns.length > 1 ? "s" : ""}: ${esc(warns.map(w => (w.level || "") + " " + (w.type || "")).join(", "))}</span>` : "no official warnings") +
+    ` · ${WX.summary ? esc(String(WX.summary).slice(0, 160)) : ""}` + (sc === "live-weather" ? ` · <span style="color:var(--ok)">live weather drives the simulated city</span>` : ` · scenario: ${esc(sc || "normal")}`);
+}
 async function refresh() {
+  if (wxTick++ % 20 === 0) loadWeather();
   const view = document.querySelector("main").dataset.view;
   const hh = view === "homes" && homesMode === "all" ? "all" : (view === "homes" ? selNode : feederOf0(selNode));
   let n;

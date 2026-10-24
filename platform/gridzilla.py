@@ -348,9 +348,26 @@ def devices_under(node):
 
 
 # ---------------------------------------------------------------- compose and send
-def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None, curve=None):
+STAGGER_N = int(POLICY.get("stagger_cohorts", 4))
+
+
+def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None, curve=None, stagger=None):
+    """A PREPARE, RECOVER or make-room ABSORB without an explicit cohort is split into STAGGER_N cohorts whose windows start
+    one after the other and all end at the same deadline: the fleet fills in waves instead of all at once (titration).
+    The first cohort's document is returned; the others are sent right after it."""
     if cohort is not None and not (len(cohort) == 2 and 0 <= cohort[0] < cohort[1] <= 16):
         raise HTTPException(400, "cohort must be [k, n] with k < n <= 16")
+    n = STAGGER_N if stagger is None else int(stagger)
+    fills = mode in ("PREPARE", "RECOVER") or (mode == "ABSORB" and fields.get("max_soc_by") is not None)
+    if cohort is None and fills and n > 1 and duration_min >= 2 * n:
+        step = duration_min / n
+        first = None
+        for k in range(n):
+            off = int(round(k * step))
+            doc = send_signal(segment, mode, fields, int(duration_min - off), note, start_in_min + off, [k, n], curve, stagger=1)
+            first = first or doc
+        log("signal", f"{mode} -> {segment} staggered over {n} cohorts, {step:.0f} min apart, all done by the same deadline")
+        return first
     err = guard(segment, mode, fields, duration_min, curve)
     if err:
         log("guard", f"REFUSED {mode} for {segment}: {err}")
@@ -476,7 +493,7 @@ Signal modes and allowed fields:
 - ABSORB: export_max_kw, charge_max_kw. PV surplus / reverse flow: cap export, batteries and EVs soak it up.
 - SUPPORT: import_max_kw ("take N kW only"), export_min_kw ("give at least N kW"). Load peak or deficit while the grid is up.
 - STRETCH: discharge_max_kw. Street is dead; ration batteries until expected restoration (duration = expected restoration).
-- RECOVER: charge_max_kw. After restoration, staggered recharge.
+- RECOVER: charge_max_kw. After restoration, recharge. (PREPARE, RECOVER and make-room ABSORB are automatically staggered over cohorts by the platform, so the fleet fills in waves.)
 - RELEASE: end the event on that segment.
 For ABSORB and SUPPORT the platform attaches a dynamic operating envelope: a per-house ceiling for every 15-minute slot,
 computed from the forecast headroom of each transformer. Your flat import_max_kw / export_max_kw is the fallback for devices
