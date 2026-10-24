@@ -39,10 +39,12 @@
 .cg-sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex: none; }
 .cg-selsw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex: none; box-shadow: inset 0 0 0 1.5px #0071e3; }
 
-/* narrow (phones): the substation name goes above its three feeders */
-@container cg (max-width: 340px) {
+/* narrow (phones up to 390 wide and more): the substation name goes above its three feeders, so feeder names keep whole
+   words and the tiles get a thumb-sized width */
+@container cg (max-width: 420px) {
   .cg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cg-subname { grid-column: 1 / -1; flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 6px; margin-top: 2px; }
+  .cg-cell { height: 30px; }
 }
 
 .cg-tip {
