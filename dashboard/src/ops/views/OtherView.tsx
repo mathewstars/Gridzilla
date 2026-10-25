@@ -2,7 +2,7 @@
 // straight from the data the console already polls (useOps), so switching views never waits for a fetch.
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
-import { BLATNICA_DEVICE, useGridState, type Decision, type Household, type LogEntry, type RecentSignal, type Signal, type WeatherHour } from "../../api";
+import { useGridState, type Decision, type Household, type LogEntry, type RecentSignal, type Signal, type WeatherHour } from "../../api";
 import type { Ops } from "../useOps";
 import type { Route } from "../shell/Sidebar";
 import Table, { type Col } from "./Table";
@@ -12,6 +12,7 @@ import Flex from "../city/Flex";
 import "../city/city.css";
 import { MODE_LABEL, clock, kw, minsLeft, nice, signalOver, wall } from "./fmt";
 import "../shell/shell.css";
+import PlantPage from "../plant/PlantPage";
 
 export default function OtherView({ route, ops }: { route: Route; ops: Ops }) {
   if (!ops.s) return null;
@@ -20,7 +21,7 @@ export default function OtherView({ route, ops }: { route: Route; ops: Ops }) {
     case "autopilot": return <Autopilot ops={ops} />;
     case "manual": return <Manual ops={ops} />;
     case "households": return <Households ops={ops} />;
-    case "plant": return <Plant ops={ops} />;
+    case "plant": return <PlantPage />;
     case "weather": return <WeatherView ops={ops} />;
     case "log": return <Log ops={ops} />;
     default: return null;
@@ -284,68 +285,6 @@ function Households({ ops }: { ops: Ops }) {
         <Table rows={rows} cols={cols} rowKey={(h) => h.id} onRow={(h) => setPick(h.id)} empty={q ? "No home matches that filter." : "No homes yet."} />
       </Card>
       <HouseDetail h={picked} ops={ops} onClose={close} />
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------ Real plant
-function Plant({ ops }: { ops: Ops }) {
-  const s = ops.s!;
-  const h = s.households?.blatnica;
-  const t = h?.telemetry;
-  const pts = (ops.history?.devices?.[BLATNICA_DEVICE] ?? []).slice(-12).reverse();
-  const KV = ({ k, v, u }: { k: string; v: ReactNode; u?: string }) => (
-    <div className="vw-kv"><div className="k">{k}</div><div className="v">{v}{u && <small>{u}</small>}</div></div>
-  );
-  return (
-    <div className="vw">
-      <Head title="Real plant" desc="The captain's family home in Blatnica: a real Victron battery and a Viessmann heat pump that follow Gridzilla's signals like every simulated home.">
-        <Stat k="Status" v={t ? "Reporting" : "Silent"} tone={t ? "var(--sh-green)" : "var(--color-tertiary)"} />
-        {h && <Stat k="On" v={nice(h.tf)} />}
-        {t?.rx && <Stat k="Last reading" v={wall(t.rx)} />}
-      </Head>
-      {!t ? (
-        <Card>
-          <div className="vw-empty"><b>Waiting for the plant</b>Blatnica has not reported yet. Its numbers appear here the moment it does.</div>
-        </Card>
-      ) : (
-        <Card title="Right now">
-          <div className="vw-grid">
-            <KV k="Battery" v={t.soc != null ? Math.round(t.soc) : "–"} u="%" />
-            <KV k="Grid" v={kw(t.grid_kw)} u={t.grid_kw < 0 ? "kW out" : "kW in"} />
-            <KV k="Heat pump" v={kw(t.hp_kw)} u="kW" />
-            <KV k="Car" v={kw(t.ev_kw)} u="kW" />
-            <KV k="Hot water" v={t.dhw_c != null ? t.dhw_c.toFixed(1) : "–"} u={t.dhw_set_c != null ? `°C (set ${t.dhw_set_c})` : "°C"} />
-            <KV k="Mode" v={t.mode === "owner" ? "Owner" : t.mode} />
-            <KV k="Follows the plan" v={t.shape ? "Yes" : "No"} />
-          </div>
-        </Card>
-      )}
-      {h?.ack && (
-        <Card title="Last reply to a signal">
-          <div style={{ padding: "10px 14px", fontSize: "0.8125rem", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span className={`tag ${h.ack.status === "applied" ? "g" : h.ack.status === "refused" ? "r" : "o"}`}>{h.ack.status}</span>
-            {h.ack.seq != null && <span>signal #{h.ack.seq}</span>}
-            {h.ack.reason && <span className="t-small">{h.ack.reason}</span>}
-            <span className={`tag ${h.ack.verified ? "g" : ""}`}>{h.ack.verified ? "Signature checked" : "Signature not checked"}</span>
-          </div>
-        </Card>
-      )}
-      {pts.length > 0 && (
-        <Card title="Recent readings">
-          <Table
-            rows={pts}
-            rowKey={(p) => p.ts}
-            cols={[
-              { key: "t", label: "Grid time", cell: (p) => clock(p.h) },
-              { key: "soc", label: "Battery, % full", right: true, phone: "aside", phoneLabel: "Battery", cell: (p) => (p.soc != null ? `${Math.round(p.soc)} %` : "–") },
-              { key: "g", label: "From grid, kW", right: true, cell: (p) => kw(p.grid_kw) },
-              { key: "m", label: "Mode", cell: (p) => <span className="mut">{p.mode ?? "–"}</span> },
-              { key: "c", label: "Import limit, kW", right: true, cell: (p) => kw(p.imp_cap) },
-            ]}
-          />
-        </Card>
-      )}
     </div>
   );
 }

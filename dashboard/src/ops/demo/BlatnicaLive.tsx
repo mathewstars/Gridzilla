@@ -132,7 +132,7 @@ function useNow(ms: number) {
 export type LivePlant = ReturnType<typeof useLiveBlatnica>;
 
 /** What the card and the hero both read from one live poll: the plant (or the labelled sample), its age, its points. */
-function usePlant({ state, stateFailed, history }: LivePlant) {
+export function usePlant({ state, stateFailed, history }: LivePlant) {
   const now = useNow(1000);
   const liveH = state?.households?.[LIVE_HH] ?? null;
   const live = !stateFailed && liveH?.telemetry ? liveH : null;

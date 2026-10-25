@@ -119,3 +119,6 @@
 .plant-l [data-src] { white-space: nowrap; }
 @media (min-width: 1240px) and (max-height: 1000px) { .plant-more { display: none; } }
 @media (min-width: 1240px) and (max-height: 760px) { .plant-v { font-size: 28px; } }
+/* a narrow chart column (the Real plant page at 1240, phones) puts the four readings in two rows instead of squeezing them */
+.plant-curve { container-type: inline-size; }
+@container (max-width: 560px) { .plant-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -4,7 +4,7 @@
 // GET only (never a POST from here). Each payload stays on window.__gz as "live:state" / "live:history" so the G2
 // truth gate can trace every number the card shows (data-src="live:state/...").
 import { useEffect, useState } from "react";
-import { API_BASE, type Ack, type DevPoint, type Signal } from "../../api";
+import { API_BASE, type Ack, type DevPoint, type LogEntry, type Signal } from "../../api";
 
 export const LIVE_HH = "blatnica";
 export const LIVE_DEVICE = "real-powerplant-blatnica";
@@ -42,6 +42,7 @@ export interface LiveHousehold {
 export interface LiveState {
   households?: Record<string, LiveHousehold>;
   active?: Record<string, Pick<Signal, "seq" | "mode" | "segment">>;
+  log?: LogEntry[];
 }
 export interface LiveHistory {
   devices?: Record<string, DevPoint[]>;
