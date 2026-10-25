@@ -1,83 +1,94 @@
-/* Diet plan view (dad's Flattening tab, our theme). Head + node chooser, six number tiles, then the chart (left, wide)
-   beside "how it works" and the transformer list. One screen from 1240 wide; stacked on phones. Theme tokens only. */
-.pl { --pl-nobody: #8e8e93; gap: 12px; }
-:root[data-theme="dark"] .pl { --pl-nobody: #6e6e73; }
-.pl-head { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.pl-titles { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
-.pl-title { margin: 0; font-size: max(24px, 1.5rem); font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--color-ink); }
-.pl-desc { margin: 0; font-size: max(16px, 1rem); color: var(--color-secondary); line-height: 1.4; }
-.pl-desc b { color: #ff9500; font-weight: 600; }
+/* Diet plan view (dad's Flattening tab, our theme): one row of five number tiles, the 24-hour chart big (chips above
+   the plot, legend chips under it), then "how it works" as one row of four step cards. One screen from 1240 wide
+   (the chart takes what is left); stacked on phones. Theme tokens only. */
+.pl > * { flex: none; }
+.pl { --pl-nobody: #8e8e93; --pl-grid: var(--color-fill); --pl-lift: 0 10px 30px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.05); gap: 12px; }
+:root[data-theme="dark"] .pl { --pl-nobody: #7c7c82; --pl-grid: #2f2f34; --pl-lift: 0 0 0 1px #3a3a3e, 0 12px 32px rgb(0 0 0 / 0.45); }
+/* the orange slice keeps its colour on the dark card (at half strength it reads brown) */
+:root[data-theme="dark"] .pl-eaten { fill-opacity: 0.78; }
 
-/* chooser: one labelled row per level, chips like the top bar's segmented buttons */
-.pl-chooser { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.pl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.pl-rowlabel { width: 7.5rem; flex: none; font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-tertiary); }
+/* ---- tiles: label small uppercase, value 28-32 px tabular, one subline */
+.pl-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 760px) { .pl-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .pl-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.pl-tile {
+  padding: 14px 18px 15px; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  transition: box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pl-tile:hover { box-shadow: var(--pl-lift); transform: translateY(-1px); }
+.pl-tile-t {
+  font-size: max(12px, 0.75rem); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-tertiary); line-height: 1.3;
+}
+.pl-tile-v {
+  font-size: clamp(28px, 1.2rem + 0.6vw, 32px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;
+  color: var(--color-ink); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.pl-tile-d { font-size: max(14px, 0.875rem); color: var(--color-secondary); line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pl-tile.is-wait .pl-tile-v { width: 60%; border-radius: 8px; background: var(--color-fill); }
+.pl-tile.is-wait:hover { box-shadow: var(--shadow-card); transform: none; }
+
+/* ---- chart card */
+.pl-chart { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 16px; min-width: 0; }
+.pl-chart-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-h2 { margin: 0; font-size: max(19px, 1.1875rem); font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); line-height: 1.3; }
+.pl-delta { margin: 0; font-size: max(16px, 1rem); color: #ff9500; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.4; }
+.pl-wait { padding: 48px 8px; font-size: max(16px, 1rem); color: var(--color-secondary); }
+
+/* chips above the plot: Vienna and the substations, then the chosen substation's feeders and transformers */
+.pl-chips { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pl-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; min-height: 32px; }
+.pl-sep { width: 1px; height: 18px; margin: 0 4px; background: var(--color-fill-press); flex: none; }
+.pl-chiplabel { font-size: max(14px, 0.875rem); color: var(--color-tertiary); margin-right: 2px; }
 .pl-chip {
-  height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--color-fill); color: var(--color-ink);
-  font: inherit; font-size: max(15px, 0.9375rem); font-weight: 500; letter-spacing: -0.01em; cursor: pointer; white-space: nowrap;
-  transition: background-color 100ms linear, color 100ms linear, transform 100ms linear;
+  height: 32px; padding: 0 13px; border: 0; border-radius: 16px; background: var(--color-fill); color: var(--color-ink);
+  font: inherit; font-size: max(14px, 0.875rem); font-weight: 500; letter-spacing: -0.01em; cursor: pointer; white-space: nowrap;
+  transition: background-color 120ms linear, color 120ms linear, transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 120ms linear;
 }
 .pl-chip:hover { background: var(--color-fill-press); }
-.pl-chip:active { transform: scale(0.97); }
+.pl-chip:active { transform: scale(0.96); }
 .pl-chip:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
-.pl-chip.is-city { font-weight: 700; }
-.pl-chip.is-on { background: var(--color-ink); color: var(--color-card); }
+.pl-chip.is-on { background: var(--color-ink); color: var(--color-card); box-shadow: 0 2px 6px rgb(0 0 0 / 0.18); }
 
-.pl-wait { padding: 28px 20px; font-size: max(16px, 1rem); color: var(--color-secondary); }
-
-/* tiles */
-.pl-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-@media (min-width: 760px) { .pl-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1240px) { .pl-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-.pl-tile { padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pl-tile-t { font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-secondary); line-height: 1.25; }
-.pl-tile-v { font-size: max(24px, 1.75rem); font-weight: 600; letter-spacing: -0.015em; line-height: 1.15; color: var(--color-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pl-tile-d { font-size: max(14px, 0.875rem); color: var(--color-secondary); line-height: 1.3; overflow-wrap: anywhere; }
-
-/* chart + side */
-.pl-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
-.pl-chart { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-width: 0; }
-.pl-chart-head { display: flex; flex-direction: column; gap: 2px; }
-.pl-h2 { margin: 0; font-size: max(17px, 1.0625rem); font-weight: 600; color: var(--color-ink); line-height: 1.3; }
-.pl-delta { margin: 0; font-size: max(16px, 1rem); color: #ff9500; font-weight: 500; font-variant-numeric: tabular-nums; }
-.pl-plot { position: relative; height: 22rem; min-height: 14rem; min-width: 0; }
-.pl-plot svg { position: absolute; inset: 0; display: block; }
+.pl-plot { position: relative; height: 22rem; min-height: 15rem; min-width: 0; }
+.pl-plot svg { position: absolute; inset: 0; display: block; cursor: crosshair; touch-action: pan-y; }
 .pl-axis text { font-size: 14px; fill: var(--color-secondary); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-.pl-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: max(14px, 0.875rem); color: var(--color-secondary); line-height: 1.35; }
-.pl-legend li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.pl-key { flex: none; display: inline-block; width: 18px; height: 0; border-top: 3px solid var(--k); }
-.pl-key.is-dash { border-top-style: dashed; }
-.pl-key.is-box { height: 10px; border: 0; border-radius: 3px; background: var(--k); opacity: 0.7; }
-
-.pl-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
-.pl-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.pl-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: max(16px, 1rem); line-height: 1.38; color: var(--color-ink); }
-.pl-steps b { font-weight: 600; }
-.pl-steps b > span {
-  display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; margin-right: 4px; border-radius: 50%;
-  background: var(--color-fill); font-size: 0.875em; font-variant-numeric: tabular-nums;
+.pl-tip {
+  position: absolute; top: 8px; z-index: 1; pointer-events: none; display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px; border-radius: 12px; background: var(--color-card); box-shadow: var(--pl-lift);
+  font-size: max(14px, 0.875rem); color: var(--color-secondary); white-space: nowrap; font-variant-numeric: tabular-nums;
 }
-.pl-sub { margin: 0; font-size: max(15px, 0.9375rem); color: var(--color-secondary); }
-.pl-tfs {
-  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 2px 16px;
-  font-size: max(15px, 0.9375rem); font-variant-numeric: tabular-nums;
-}
-.pl-tfs li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--color-fill); min-width: 0; }
-.pl-tf-n { color: var(--color-ink); min-width: 0; overflow-wrap: anywhere; }
-.pl-tf-v { color: var(--color-secondary); white-space: nowrap; }
-.pl-arrow { color: var(--color-tertiary); }
+.pl-tip > div { display: flex; align-items: center; gap: 6px; }
+.pl-tip b { margin-left: auto; padding-left: 12px; color: var(--color-ink); font-weight: 600; }
+.pl-tip-t { color: var(--color-ink); font-weight: 600; }
 
-@media (min-width: 1240px) {
-  .pl.vw > .pl-main { flex: 1 1 auto; min-height: 30rem; }
-  .pl-main { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
-  .pl-chart { min-height: 0; }
+/* legend chips, in words */
+.pl-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; min-width: 0; }
+.pl-legend li {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 5px 12px 5px 10px; border-radius: 14px;
+  background: var(--color-fill-2); font-size: max(14px, 0.875rem); line-height: 1.3; color: var(--color-secondary);
+}
+.pl-legend li.is-muted { opacity: 0.55; }
+
+/* ---- how it works: four numbered steps in one row */
+.pl-steps ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 760px) { .pl-steps ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .pl-steps ol { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pl-step { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pl-step-h { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pl-step-n {
+  flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--color-ink); color: var(--color-card); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.pl-step-t { font-size: max(17px, 1.0625rem); font-weight: 600; color: var(--color-ink); letter-spacing: -0.01em; line-height: 1.25; }
+.pl-step-d { margin: 0; font-size: max(15px, 0.9375rem); line-height: 1.42; color: var(--color-secondary); font-variant-numeric: tabular-nums; }
+
+/* one screen from 1240x760: the chart takes what the tiles and steps leave; shorter windows scroll the page */
+@media (min-width: 1240px) and (min-height: 760px) {
+  .pl.vw > .pl-chart { flex: 1 1 auto; min-height: 24rem; }
   .pl-plot { flex: 1 1 auto; height: auto; }
-  .pl-side { min-height: 0; }
-  .pl-tfcard { flex: 1 1 auto; min-height: 0; }
 }
-@media (min-width: 1240px) {
-  .pl-tfcard .pl-tfs { flex: 1 1 auto; min-height: 6rem; overflow-y: auto; scrollbar-width: thin; align-content: start; padding-right: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .pl-tile, .pl-chip { transition: none; }
+  .pl-tile:hover { transform: none; }
 }
-.pl-side > .pl-card:not(.pl-tfcard) { flex: none; }
-.pl-tfs { grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); }
-.pl-tf-n { overflow-wrap: normal; }
