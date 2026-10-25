@@ -52,14 +52,34 @@ export const STEPS = [
   },
 ];
 
+/** A step's console capture, filling its tile edge to edge (owner, round 4): no padding, the tile's radius clips it. */
 function Shot({ s, className = "" }: { s: (typeof STEPS)[number]; className?: string }) {
-  return <img src={asset(s.shot)} width={s.w} height={s.h} alt={s.alt} loading="lazy" decoding="async" className={`block h-auto max-h-full w-auto max-w-full rounded-[14px] shadow-card ${className}`} />;
+  return <img src={asset(s.shot)} width={s.w} height={s.h} alt={s.alt} loading="lazy" decoding="async" className={`block ${className}`} />;
+}
+
+/** The pinned frame's height for a capture: its own shape at the frame's width, at most 56 % of the screen (then the
+ *  capture is cropped from the top, never letterboxed). */
+function useFrameHeight(ratio: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [h, setH] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => setH(Math.min(el.clientWidth / ratio, innerHeight * 0.56));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    addEventListener("resize", fit);
+    return () => { ro.disconnect(); removeEventListener("resize", fit); };
+  }, [ratio]);
+  return { ref, h };
 }
 
 export default function HowItWorks() {
   const [active, setActive] = useState(0);
   const still = !!useReducedMotion();
   const items = useRef<(HTMLLIElement | null)[]>([]);
+  const frame = useFrameHeight(STEPS[active].w / STEPS[active].h);
 
   // the active step is the one crossing the horizontal middle of the screen
   useEffect(() => {
@@ -78,7 +98,7 @@ export default function HowItWorks() {
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
-      <div className="mt-12 lg:mt-0 lg:grid lg:grid-cols-2 lg:gap-14">
+      <div className="mt-12 lg:grid lg:grid-cols-2 lg:gap-14">
         <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-2" : ""}`}>
           {STEPS.map((s, i) => (
             <li
@@ -97,9 +117,11 @@ export default function HowItWorks() {
                 <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
               </Reveal>
               {/* phone and tablet (and every width under reduced motion): the screenshot with its own step */}
-              <figure className={`tile m-0 mt-8 p-6 md:p-8 ${still ? "lg:mt-0" : "lg:hidden"}`}>
-                <Shot s={s} className="mx-auto" />
-                <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
+              <figure className={`m-0 mt-8 ${still ? "lg:mt-0" : "lg:hidden"}`}>
+                <div className="overflow-hidden rounded-card shadow-card">
+                  <Shot s={s} className="h-auto w-full" />
+                </div>
+                <figcaption className="mt-4 text-[14px] text-secondary">{s.caption}</figcaption>
               </figure>
             </li>
           ))}
@@ -110,14 +132,19 @@ export default function HowItWorks() {
           {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
           <div className="sticky top-[20svh] flex h-[60svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
-              <div className="tile relative aspect-[5/4] max-h-[48svh] w-full">
+              {/* the frame takes the active capture's own shape (its height eases over 0.4 s), every capture fills it */}
+              <div
+                ref={frame.ref}
+                className="relative w-full overflow-hidden rounded-card bg-surface shadow-card transition-[height] duration-[400ms] ease-[var(--ease-out-expo)] motion-reduce:transition-none"
+                style={{ height: frame.h ?? undefined, aspectRatio: frame.h == null ? `${STEPS[active].w} / ${STEPS[active].h}` : undefined }}
+              >
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}
-                    className={`absolute inset-8 flex items-center justify-center transition-opacity duration-[400ms] ease-out motion-reduce:transition-none ${active === i ? "opacity-100" : "opacity-0"}`}
+                    className={`absolute inset-0 transition-opacity duration-[400ms] ease-out motion-reduce:transition-none ${active === i ? "opacity-100" : "opacity-0"}`}
                     aria-hidden={active === i ? undefined : true}
                   >
-                    <Shot s={s} />
+                    <Shot s={s} className="size-full object-cover object-top" />
                   </div>
                 ))}
               </div>

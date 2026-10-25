@@ -16,7 +16,7 @@ let server = null;
 let url = arg("url");
 if (!url) {
   const port = Number(process.env.GZ_DEAD_PORT || PORT + 1);
-  server = spawn("npx", ["vite", "preview", "--port", String(port), "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GZ_LIVE_API: "http://127.0.0.1:9" } });
+  server = spawn("npx", ["vite", "preview", "--port", String(port), "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GZ_LIVE_API: "http://127.0.0.1:9" }, detached: true });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error("vite preview (dead live api) did not start")), 20000);
     server.stdout.on("data", (d) => { if (/Local/.test(String(d))) { clearTimeout(t); res(); } });
@@ -58,7 +58,7 @@ for (let i = 1; i <= steps; i++) {
 }
 await page.waitForTimeout(10000);
 await browser.close();
-server?.kill();
+if (server) try { process.kill(-server.pid); } catch {} // only this gate's own server (its process group)
 
 process.exit(report("G9", [
   ["the Real plant section is on the page", hasPlant, ""],

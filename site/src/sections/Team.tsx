@@ -1,6 +1,6 @@
 // Team + links (spec section 10): the three people in a row, each with their real GitHub avatar, name, role and
-// handle (the handle links to the profile); under them one tile with the four pills and the hackathon
-// line. Colours come from the tokens only (the page theme decides them). Phone: one column, the pills full width.
+// handle (the handle links to the profile); under them, straight on the page ground (no tile, owner round 4), the
+// four pills centred in a row and the hackathon line centred under them. Colours come from the tokens only (the page theme decides them). Phone: one column, the pills full width.
 // People rise in once, 80 ms apart; under reduced motion they are there.
 import { GithubLogo } from "@phosphor-icons/react";
 import { Section, Title } from "../ui/Section";
@@ -11,7 +11,7 @@ import { LINKS } from "../lib/links";
 export const PEOPLE = [
   { name: "Matej Stafurik (Mathew)", org: "victronlab.sk / Coderama", handle: "mathewstars", role: "Lead: protocol, real-device integration (Victron, Viessmann), infrastructure" },
   { name: "Peter Mikeska", org: "", handle: "petermikeska67", role: "Platform, policy guard, tests" },
-  { name: "Matthew Stafurik", org: "", handle: "matixacik-cell", role: "Dashboard, demo mode, pitch deck and trailer" },
+  { name: "Matthew Stafurik", org: "", handle: "matixacik-cell", role: "Fallback checks and security checks, tests and fallback systems; dashboard, demo mode, pitch deck and trailer." },
 ];
 
 // the first two labels are shared intents with the rest of the page: keep them exactly as written
@@ -57,7 +57,7 @@ export default function Team() {
         ))}
       </ul>
 
-      <Reveal className="tile mt-12 flex flex-col items-center p-6 text-center md:p-8">
+      <Reveal className="mt-12 flex flex-col items-center text-center">
         <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center">
           {TEAM_LINKS.map((l) => (
             <PillLink key={l.label} href={l.href} tone="secondary" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">

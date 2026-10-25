@@ -87,17 +87,26 @@ for (const size of ["1440x900", "390x844"]) {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(400);
   }
-  // which buttons open the trailer: click each visible one, look for a <video>, close it again
+  // which buttons start the trailer: click each visible one and see whether a <video> appears or starts playing (the
+  // trailer plays inline in its strip under the hero), then stop it again. The strip's own play control is part of
+  // the player, not a page CTA: listed, not judged.
+  const playing = () => page.evaluate(() => [...document.querySelectorAll("video")].some((v) => !v.paused));
+  const stopAll = () => page.evaluate(() => document.querySelectorAll("video").forEach((v) => v.pause()));
   for (const b of dom.buttons) {
     const loc = page.locator(`[data-g4="${b.i}"]`);
     if (!(await loc.isVisible().catch(() => false))) continue;
     if (/close|menu/i.test(b.name)) continue;
+    if (await loc.evaluate((e) => !!e.closest(".trailer-tile")).catch(() => false)) {
+      notes.add(`player control "${b.name}" (${b.where}) plays the trailer in its tile`);
+      continue;
+    }
     const before = await page.locator("video").count();
     await loc.click({ timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(350);
-    const opened = (await page.locator("video").count()) > before;
+    await page.waitForTimeout(800);
+    const opened = (await page.locator("video").count()) > before || (await playing());
     if (opened) {
-      ctaRows.push({ size, name: b.name, href: "(opens the trailer)", where: b.where, kind: "button", intent: "trailer" });
+      ctaRows.push({ size, name: b.name, href: "(starts the trailer)", where: b.where, kind: "button", intent: "trailer" });
+      await stopAll();
       await page.keyboard.press("Escape");
       await page.waitForTimeout(350);
     } else ctaRows.push({ size, name: b.name, href: "", where: b.where, kind: "button" });

@@ -17,7 +17,7 @@ if (!arg("no-build") && !ext) {
 
 let server = null;
 if (!ext) {
-  server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env });
+  server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env, detached: true });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error("vite preview did not start")), 20000);
     server.stdout.on("data", (d) => { if (/Local/.test(String(d))) { clearTimeout(t); res(); } });
@@ -37,6 +37,7 @@ if (!only) {
   console.log("\n== shots");
   spawnSync("node", [path.join(here, "shots.mjs"), ...(ext ? ["--url", String(ext)] : [])], { cwd: root, stdio: "inherit", env: process.env });
 }
-server?.kill();
+// stop only the server this run started: its own process group (npx and the vite under it), never other previews
+if (server) try { process.kill(-server.pid); } catch {}
 console.log(`\n${failed ? `FAIL: ${failed} of ${gates.length} gates` : `PASS: all ${gates.length} gates`}`);
 process.exit(failed ? 1 : 0);

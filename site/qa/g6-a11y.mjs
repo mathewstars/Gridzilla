@@ -56,6 +56,9 @@ for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
   for (let i = 0; i < n; i++) {
     const info = await page.evaluate((i) => {
       const el = document.querySelector(`[data-g6="${i}"]`);
+      // a scroll-driven section (Six words) re-renders its text as it scrolls: an element tagged earlier may be gone;
+      // its replacement is tagged on the next size's pass and judged there
+      if (!el) return null;
       el.scrollIntoView({ block: "center", behavior: "instant" });
       const rects = [];
       for (const c of el.childNodes) {
@@ -82,11 +85,31 @@ for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
       let blk = el;
       while (blk.parentElement && getComputedStyle(blk).display.startsWith("inline")) blk = blk.parentElement;
       blk.setAttribute("data-g6-hide", ""); // an attribute, not a class: a React re-render would drop the class
+      // a crossfade can hold two copies of the same text in one place (Six words' panels): hide the twin too, or the
+      // text would be measured against itself
+      const txt = el.textContent.trim();
+      for (const o of document.querySelectorAll(el.tagName)) if (o !== el && o.textContent.trim() === txt) o.setAttribute("data-g6-hide", "");
       const px = parseFloat(cs.fontSize), weight = parseInt(cs.fontWeight);
       return { clip: { x, y, width: w, height: h }, fg: m.slice(0, 3), alpha, px, large: px >= 24 || (weight >= 700 && px >= 18.66), text: (el.innerText || el.textContent).replace(/\s+/g, " ").trim().slice(0, 50), where: `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : ""} in #${el.closest("[id]")?.id || "page"}` };
     }, i);
     if (!info) continue;
     await page.waitForTimeout(30);
+    // a scroll-driven section may have swapped the text out while it scrolled into view: then the hidden box is not
+    // the text's box any more, and there is nothing honest to measure
+    // Six words is scroll-driven: scrolling a text to the middle can move it to another word, and the text then fades
+    // out (0.25 s). Wait that out and judge only text that is still there and fully shown.
+    if (await page.evaluate((i) => !!document.querySelector(`[data-g6="${i}"]`)?.closest("#words"), i)) await page.waitForTimeout(400);
+    const still = await page.evaluate((i) => {
+      const el = document.querySelector(`[data-g6="${i}"]`);
+      if (!el?.closest("[data-g6-hide]")) return false;
+      let a = 1;
+      for (let e = el; e; e = e.parentElement) a *= parseFloat(getComputedStyle(e).opacity);
+      return a > 0.95;
+    }, i);
+    if (!still) {
+      await page.evaluate(() => document.querySelectorAll("[data-g6-hide]").forEach((e) => e.removeAttribute("data-g6-hide")));
+      continue;
+    }
     const png = await page.screenshot({ clip: info.clip, animations: "disabled" });
     await page.evaluate(() => document.querySelectorAll("[data-g6-hide]").forEach((e) => e.removeAttribute("data-g6-hide")));
     const r = await page.evaluate(async ({ b64, fg, alpha }) => {
