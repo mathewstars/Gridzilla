@@ -118,7 +118,7 @@ the tightest of them, for devices that do not know their transformer.
 {"seq": 9001, "ts": "2026-10-24T17:00:30Z"}
 ```
 
-Every 30 s, with a monotonic `seq` and a timestamp. A device accepts a heartbeat only if `seq` is greater than the last one it saw and `ts` is within 90 s, so a captured heartbeat cannot be replayed to keep a device in a live mode. A device in `ABSORB` or `SUPPORT` reverts to owner mode after 120 s without a valid heartbeat. `PREPARE`, `STRETCH` and `RECOVER` are schedules: they run to `valid_to` without heartbeats, because they are owner-favourable and the link is expected to die in exactly those situations.
+Every 30 s, with a monotonic `seq` and a timestamp. The platform starts `seq` at the current Unix time, so it keeps rising across a platform restart. A device accepts a heartbeat only if `seq` is greater than the last one it saw and `ts` is within 90 s, so a captured heartbeat cannot be replayed to keep a device in a live mode. A device in `ABSORB` or `SUPPORT` reverts to owner mode after 120 s without a valid heartbeat. `PREPARE`, `STRETCH` and `RECOVER` are schedules: they run to `valid_to` without heartbeats, because they are owner-favourable and the link is expected to die in exactly those situations.
 
 ## Ack
 

@@ -12,7 +12,7 @@ What it does
 - serves a one-page operator dashboard
 - optional: asks a local OpenAI-compatible LLM (DeepSeek) to PROPOSE a signal; the guard and a human decide
 """
-import base64, json, os, sys, threading, time, random, collections, urllib.request
+import base64, hmac, json, os, sys, threading, time, random, collections, urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -21,8 +21,8 @@ import yaml
 import paho.mqtt.client as mqtt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -40,6 +40,7 @@ MQTT_PASS = os.environ.get("GZ_MQTT_PASS")
 PORT = int(os.environ.get("GZ_PORT", "8080"))
 LLM_URL = os.environ.get("GZ_LLM_URL")            # e.g. http://spark-1:8000/v1
 LLM_MODEL = os.environ.get("GZ_LLM_MODEL", "deepseek-v4.1")
+OPERATOR_KEY = os.environ.get("GZ_OPERATOR_KEY", "")   # set: every operator POST needs it (header X-GZ-Key or the /login cookie); empty: no auth
 
 MODE_FIELDS = {
     "PREPARE": {"target_soc", "charge_max_kw"},
@@ -116,7 +117,8 @@ state = {
     "seq": 0,
     "hb_seq": int(time.time()),   # devices refuse a heartbeat seq at or below the last one seen: start above any earlier run
     "active": {},          # node -> signal
-    "acks": {},            # device -> last ack (parsed) + verified flag
+    "acks": {},            # device -> last event ack (parsed) + verified flag
+    "shape_acks": {},      # device -> last SHAPE ack, kept apart so the daily plan never hides the event ack
     "telemetry": {},       # device -> {soc, grid_kw, ts}
     "pubkeys": {},         # device -> pem
     "support_count": {},   # f"{node}:{sim day}" -> n
@@ -226,20 +228,35 @@ def sampler_loop():
             print("[sampler]", e)
         time.sleep(5)
 
-if STATE_FILE.exists():
+STATE_TMP, STATE_BAK = HERE / "state.json.tmp", HERE / "state.json.bak"
+for _f in (STATE_FILE, STATE_BAK) if STATE_FILE.exists() else ():       # a lost seq makes every device refuse every signal as stale_seq: never reset it silently
+    if not _f.exists():
+        continue
     try:
-        saved = json.loads(STATE_FILE.read_text())
-        state["seq"] = saved.get("seq", 0)
-        state["pubkeys"] = saved.get("pubkeys", {})
-        state["recent"] = saved.get("recent", {})
-        if saved.get("scenario") in SCENARIOS:
-            SCENARIO["name"] = saved["scenario"]; SCENARIO["load_x"], SCENARIO["pv_x"] = SCENARIOS[saved["scenario"]]
-    except Exception:
-        pass
+        saved = json.loads(_f.read_text())
+    except Exception as _e:
+        print(f"[state] !!! {_f.name} is unreadable ({_e})" + (", trying state.json.bak" if _f == STATE_FILE else ""), flush=True)
+        continue
+    state["seq"] = saved.get("seq", 0)
+    state["pubkeys"] = saved.get("pubkeys", {})
+    state["recent"] = saved.get("recent", {})
+    if saved.get("scenario") in SCENARIOS:
+        SCENARIO["name"] = saved["scenario"]; SCENARIO["load_x"], SCENARIO["pv_x"] = SCENARIOS[saved["scenario"]]
+    if _f == STATE_BAK:
+        print(f"[state] !!! restored seq {state['seq']} from {_f.name}", flush=True)
+    break
+else:
+    if STATE_FILE.exists():
+        print("[state] !!! no readable state file: seq starts at 0 and devices will refuse signals as stale_seq", flush=True)
 
 
 def persist():
-    STATE_FILE.write_text(json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"], "recent": state.get("recent", {}), "scenario": SCENARIO["name"]}))
+    """Call under _lock. Written to a temp file and renamed, so a crash never leaves half a state.json; a copy of every
+    good write is kept in state.json.bak."""
+    data = json.dumps({"seq": state["seq"], "pubkeys": state["pubkeys"], "recent": state.get("recent", {}), "scenario": SCENARIO["name"]})
+    STATE_TMP.write_text(data)
+    STATE_TMP.replace(STATE_FILE)
+    STATE_BAK.write_text(data)
 
 
 def log(kind, msg, **extra):
@@ -289,7 +306,8 @@ def on_message(client, userdata, m):
             log("ack", f"{dev}: bad ack signature ({e})")
             return
         with _lock:
-            state["acks"][dev] = {**ack, "verified": verified, "rx": iso(now())}
+            store = "shape_acks" if ack.get("seq") in SHAPE["seq"].values() else "acks"
+            state[store][dev] = {**ack, "verified": verified, "rx": iso(now())}
         db.ack(iso(now()), dev, ack, verified)
         log("ack", f"{dev}: {ack['status']}" + (f" ({ack['reason']})" if ack.get("reason") else "")
             + f" soc={ack.get('soc')} grid={ack.get('grid_kw')} kW" + ("" if verified else " [unverified]"),
@@ -371,6 +389,23 @@ def devices_under(node):
 
 # ---------------------------------------------------------------- compose and send
 STAGGER_N = int(POLICY.get("stagger_cohorts", 4))
+COHORT_SEQS = {}           # seq of any cohort -> seqs of every cohort of the same staggered signal
+
+
+def cohort_curve(curve, off_min):
+    """Slot i counts from each cohort's own valid_from, so a cohort starting off_min (real) minutes later drops the slots
+    it skips; at least one slot stays."""
+    skip = int(off_min * 60 / curve["slot_s"] + 1e-9) if curve else 0
+    if not skip:
+        return curve
+    cut = lambda c: c[min(skip, len(c) - 1):] if c else c
+    out = {**curve, **{k: cut(curve[k]) for k in ("import_max_kw", "export_max_kw") if k in curve}}
+    for k in ("by_tf", "by_tf_export"):
+        if curve.get(k):
+            out[k] = {t: cut(c) for t, c in curve[k].items()}
+    if curve.get("start_sim_h") is not None and curve.get("slot_sim_min"):
+        out["start_sim_h"] = round((curve["start_sim_h"] + skip * curve["slot_sim_min"] / 60) % 24, 2)
+    return out
 
 
 def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, cohort=None, curve=None, stagger=None):
@@ -383,13 +418,24 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
     fills = mode in ("PREPARE", "RECOVER") or (mode == "ABSORB" and fields.get("max_soc_by") is not None)
     if cohort is None and fills and n > 1 and duration_min >= 2 * n:
         step = duration_min / n
-        first = None
+        docs = []
         for k in range(n):
             off = int(round(k * step))
-            doc = send_signal(segment, mode, fields, int(duration_min - off), note, start_in_min + off, [k, n], curve, stagger=1)
-            first = first or doc
+            docs.append(send_signal(segment, mode, fields, int(duration_min - off), note, start_in_min + off, [k, n], cohort_curve(curve, off), stagger=1))
+        seqs = tuple(d["seq"] for d in docs)
+        COHORT_SEQS.update({q: seqs for q in seqs})
+        if curve is not None:
+            with _lock:
+                if state["active"].get(segment, {}).get("seq") == seqs[-1]:
+                    state["active"][segment] = {**state["active"][segment], "envelope": curve}
+                    state["recent"][segment] = {**state["recent"][segment], "envelope": curve}
+                    persist()
         log("signal", f"{mode} -> {segment} staggered over {n} cohorts, {step:.0f} min apart, all done by the same deadline")
-        return first
+        return docs[0]
+    if curve:                 # flat fallback for devices that ignore the curve: the tightest slot this document carries
+        key = "import_max_kw" if curve.get("import_max_kw") else "export_max_kw"
+        if curve.get(key):
+            fields = {**fields, key: min(curve[key]) if fields.get(key) is None else min(fields[key], min(curve[key]))}
     err = guard(segment, mode, fields, duration_min, curve)
     if err:
         log("guard", f"REFUSED {mode} for {segment}: {err}")
@@ -432,6 +478,7 @@ def aggregates():
         devs = devices_under(node)
         kwh_avail = kw = 0.0
         applied = 0
+        live = {q for n, s in state["active"].items() if overlaps(n, node) for q in COHORT_SEQS.get(s["seq"], (s["seq"],))}
         for d in devs:
             t = state["telemetry"].get(d["id"]) or state["acks"].get(d["id"]) or {}
             soc = t.get("soc")
@@ -439,7 +486,7 @@ def aggregates():
                 kwh_avail += d["kwh"] * soc / 100
                 kw += d["kw"]
             a = state["acks"].get(d["id"])
-            if a and a.get("status") in ("applied", "partial"):
+            if a and a.get("seq") in live and a.get("status") in ("applied", "partial"):   # only acks of the event running here
                 applied += 1
         last = NODE_HIST[node][-1] if NODE_HIST[node] else {}
         rating = TREE[node].get("rating_kw")
@@ -840,7 +887,7 @@ def autopilot_trigger():
                 f"minutes ({what}); worst {t['worst']} {t['worst_pct']} % at {t['worst_at_h']:.2f}h, {t['excess_kw']:.0f} kW over.", t)
     steps = int(AP_HORIZON_MIN / ENV_SLOT_SIM_MIN) + 1
     for node, sig in state["active"].items():
-        mine = next((s for s in AP["sent"] if s["seq"] == sig["seq"]), None)   # never second-guess an operator's own signal
+        mine = next((s for s in AP["sent"] if sig["seq"] in s.get("seqs", (s["seq"],))), None)   # never second-guess an operator's own signal
         if not mine or grid_age_min(mine["at"]) < AP_COOLDOWN_MIN:
             continue
         if sig["mode"] in ("ABSORB", "SUPPORT") and all(
@@ -862,7 +909,7 @@ def needs_operator(p):
     """Auto mode only sends everyday congestion control on its own. Everything else waits for one click."""
     if p["mode"] not in ("ABSORB", "SUPPORT", "RELEASE"):
         return f"{p['mode']} is never sent autonomously"
-    mine = {s["seq"] for s in AP["sent"]}
+    mine = {q for s in AP["sent"] for q in s.get("seqs", (s["seq"],))}
     for n, sig in state["active"].items():
         if overlaps(n, p["segment"]) and sig["seq"] not in mine:
             return f"operator signal seq {sig['seq']} on {n} overlaps {p['segment']}"
@@ -893,13 +940,10 @@ def send_proposal(p, by):
     dur_real = real_window(p["segment"], p["mode"], float(p.get("duration_min") or ENV_SLOT_SIM_MIN))
     if p.get("envelope"):     # recompute at send time for the window actually sent (floor, approval delay)
         p["envelope"] = compute_envelope(p["segment"], p["mode"], dur_real * SIM_X, start_sim)
-    if p.get("envelope"):     # flat fallback for devices that ignore the curve: the tightest slot
-        curve = p["envelope"].get("import_max_kw") or p["envelope"].get("export_max_kw")
-        key = "import_max_kw" if p["envelope"].get("import_max_kw") else "export_max_kw"
-        fields[key] = min(curve) if fields.get(key) is None else min(fields[key], min(curve))
-    doc = send_signal(p["segment"], p["mode"], fields, dur_real,
+    doc = send_signal(p["segment"], p["mode"], fields, dur_real,     # send_signal sets the flat fallback from the curve
                       p.get("note") or "", real_min(start_sim), curve=p.get("envelope"))
-    AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"], "real": has_real(p["segment"])})
+    AP["sent"].append({"at": now(), "segment": p["segment"], "seq": doc["seq"], "seqs": COHORT_SEQS.get(doc["seq"], (doc["seq"],)),
+                       "real": has_real(p["segment"])})
     log("autopilot", f"{by}: sent seq {doc['seq']} {p['mode']} -> {p['segment']}")
     return doc
 
@@ -1005,6 +1049,43 @@ def autopilot_public():
 # ---------------------------------------------------------------- api
 app = FastAPI(title="Gridzilla")
 app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
+KEY_COOKIE = "gz_key"
+OPEN_POSTS = {"/api/register"}     # devices register at start and have no operator key
+
+
+def operator_ok(header, cookie):
+    """True when no operator key is set, or when the request carries it."""
+    if not OPERATOR_KEY:
+        return True
+    return any(v and hmac.compare_digest(v.encode(), OPERATOR_KEY.encode()) for v in (header, cookie))
+
+
+@app.middleware("http")
+async def operator_gate(request: Request, call_next):
+    """Everything that changes the grid is a POST: with GZ_OPERATOR_KEY set, only an operator may send one. Every GET stays open."""
+    if request.method not in ("GET", "HEAD") and request.url.path not in OPEN_POSTS \
+            and not operator_ok(request.headers.get("x-gz-key"), request.cookies.get(KEY_COOKIE)):
+        return PlainTextResponse("operator key required: open /login?key=... once in this browser", status_code=401)
+    return await call_next(request)
+
+
+@app.get("/login")
+def login(request: Request, key: str = ""):
+    """Operator logs in once per browser: the key goes into an HttpOnly cookie that every same-origin fetch carries."""
+    if OPERATOR_KEY and not operator_ok(key, None):
+        return PlainTextResponse("wrong operator key", status_code=401)
+    r = RedirectResponse("/", status_code=303)
+    if OPERATOR_KEY:
+        https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+        r.set_cookie(KEY_COOKIE, key, max_age=30 * 86400, httponly=True, samesite="strict", secure=https)
+    return r
+
+
+@app.get("/logout")
+def logout():
+    r = RedirectResponse("/", status_code=303)
+    r.delete_cookie(KEY_COOKIE)
+    return r
 
 
 class Signal(BaseModel):
@@ -1209,7 +1290,8 @@ def set_scenario(name: str):
         raise HTTPException(400, f"scenario must be one of {sorted(SCENARIOS)}")
     SCENARIO["name"], (SCENARIO["load_x"], SCENARIO["pv_x"]) = name, SCENARIOS[name]
     log("demo", f"scenario {name}: other houses load x{SCENARIO['load_x']}, PV x{SCENARIO['pv_x']}")
-    persist()
+    with _lock:
+        persist()
     return SCENARIO
 
 
@@ -1245,7 +1327,7 @@ def hb(action: str):
 
 @app.post("/api/replay/{seq}")
 def replay(seq: int):
-    """re-publish an old signal unchanged: the agents must reject it (stale_seq)"""
+    """re-publish the stored active signal (for a staggered decision it carries the whole plan, for the board): the agents must reject it (stale_seq)"""
     for node, doc in list(state["active"].items()):
         if doc["seq"] == seq:
             mq.publish(f"gridzilla/sig/{node}", envelope(doc), qos=1)
