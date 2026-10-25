@@ -1,13 +1,13 @@
-// G9 live tile: serve the build with /live-api pointed at a dead port (GZ_LIVE_API=http://127.0.0.1:9, its own
-// `vite preview` on GZ_PORT + 1 or GZ_DEAD_PORT), then: the Real plant tile shows the quiet fallback "Live data
-// unavailable right now", and G1 still holds over the same 60 s scroll at 1440x900 (0 console errors, 0 failed
-// requests) apart from the cut live calls themselves. With --url the page is used as it is (its server must already
-// point /live-api at a dead port).
+// G9 plant tile: the Real plant tile is a still of the plant's last reading (owner, round 3: "we do not care if it is
+// live"). Serve the build with /live-api pointed at a dead port (GZ_LIVE_API=http://127.0.0.1:9, its own `vite preview`
+// on GZ_PORT + 1 or GZ_DEAD_PORT), then: the tile shows "Last reading" with its date and the 48 % battery, the page
+// never asks the live server for anything, and G1 holds over the same 60 s scroll at 1440x900 (0 console errors, 0
+// failed requests). With --url the page is used as it is.
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { PORT, arg, launch, newPage, report } from "./lib.mjs";
 
-const FALLBACK = "Live data unavailable right now";
+const STILL = "Last reading, 25 October 2026";
 const LIVE = /\/live-api\/|\/api\/state/;
 const secs = Number(arg("secs", 60));
 const root = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -37,6 +37,7 @@ page.on("console", (m) => {
   else errors.push(m.text().slice(0, 200));
 });
 page.on("pageerror", (e) => errors.push(`pageerror: ${String(e).slice(0, 200)}`));
+page.on("request", (r) => { if (LIVE.test(r.url())) live.push(`${r.method()} ${r.url()}`); });
 page.on("requestfailed", (r) => { if (LIVE.test(r.url())) live.push(`${r.failure()?.errorText} ${r.url()}`); else if (!/favicon/.test(r.url())) failed.push(`${r.failure()?.errorText} ${r.url()}`); });
 page.on("response", (r) => { if (r.status() < 400) return; if (LIVE.test(r.url())) live.push(`${r.status()} ${r.url()}`); else if (!/favicon/.test(r.url())) failed.push(`${r.status()} ${r.url()}`); });
 
@@ -59,12 +60,11 @@ await page.waitForTimeout(10000);
 await browser.close();
 server?.kill();
 
-console.log(`INFO G9 live calls set aside: ${live.length}${live.length ? ` (${live.slice(0, 3).join(" | ")})` : ""}`);
 process.exit(report("G9", [
   ["the Real plant section is on the page", hasPlant, ""],
-  ["the page asked for live data (and the dead port refused it)", live.length > 0, live.length ? "" : "no /live-api request was made: the live tile is not wired yet"],
-  [`the tile shows "${FALLBACK}"`, tile.includes(FALLBACK), tile && !tile.includes(FALLBACK) ? `section text: ${JSON.stringify(tile.slice(0, 160))}` : ""],
+  ["the page never asks the live server for anything", live.length === 0, live.slice(0, 3).join(" | ")],
+  [`the tile shows "${STILL}" and the 48 % battery`, tile.includes(STILL) && /48\s*%/.test(tile), tile && !tile.includes(STILL) ? `section text: ${JSON.stringify(tile.slice(0, 160))}` : ""],
   ["the tile shows no spinner", spinner === 0, ""],
-  ["no console errors apart from the live call", errors.length === 0, errors.slice(0, 5).join(" | ")],
-  ["no failed requests apart from the live call", failed.length === 0, failed.slice(0, 5).join(" | ")],
+  ["no console errors", errors.length === 0, errors.slice(0, 5).join(" | ")],
+  ["no failed requests", failed.length === 0, failed.slice(0, 5).join(" | ")],
 ]) ? 1 : 0);

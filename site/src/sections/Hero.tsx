@@ -62,11 +62,11 @@ export default function Hero() {
         >
           <picture>
             {/* the phone shows the console 680 px wide: a 1360 px copy, at most 120 KB (G8) */}
-            <source media="(max-width: 767px)" srcSet={asset("shots/console-phone.webp")} width={1360} height={850} />
+            <source media="(max-width: 767px)" srcSet={asset("shots/console-phone.webp")} width={1360} height={765} />
             <img
               src={asset("shots/console.webp")}
               width={2880}
-              height={1800}
+              height={1620}
               alt="The Gridzilla operations console: Vienna's 72 transformers, the evening peak with and without Gridzilla, what the AI did, and the live log"
               fetchPriority="high"
               decoding="async"

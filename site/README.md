@@ -15,6 +15,6 @@ https://gridzilla.victronlab.sk/static/site/ after a `git pull`, no build step t
 
 Never point the site or its scripts at a write endpoint of the live server; `/api/flatten` only on a local platform.
 
-The Real plant tile (`src/lib/live.ts`) reads the Blatnica house with GET only. Since the hackathon the house is the
-simulated twin `sim-blatnica-01`; while the server no longer carries the real plant (`blatnica`) the tile says
-"Simulated since the hackathon". Keep the Real plant and AI copy in the past tense for what ran during the hackathon.
+The Real plant tile is a still of the plant's last reading on 25 October 2026 (from the console capture
+`public/shots/console.webp` as of commit 1158cd3); it never calls the live server. Keep the Real plant and AI copy in the past tense for
+what ran during the hackathon.
