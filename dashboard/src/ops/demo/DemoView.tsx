@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { post, type FlattenPlan, type State } from "../../api";
 import { hhmm, nice } from "../../model";
-import LiveCurve from "../../stage/kit/LiveCurve";
+import LiveCurve, { WaitLegend } from "../../stage/kit/LiveCurve";
 import LoadRing from "../../stage/kit/LoadRing";
 import AiSteps from "../../stage/kit/AiSteps";
 import { ActiveList } from "../control/SignalCard";
@@ -163,7 +163,10 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           {ready ? (
             <LiveCurve key={tf} stage s={s} history={ops.history} node={tf} header={false} plan={plan} signal={c.signal} ground="var(--color-card)" height="100%" span={{ past: 6, future: 12, narrow: { past: 3, future: 6 } }} legend="above" minPlot="var(--demo-plot-min, 12rem)" planSrc={`flatten:${tf}`} />
           ) : (
-            <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            <>
+              <WaitLegend />
+              <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            </>
           )}
         </div>
         <div className="demo-ring" style={{ color: loadTone(c.pct) }} data-src={`state/aggregates/${tf}/load_pct`} data-val={c.pct == null ? undefined : String(c.pct)}>

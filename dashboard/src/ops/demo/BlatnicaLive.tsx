@@ -2,9 +2,10 @@
 // charger) on Gridzilla for real, read from the LIVE server (live.ts), with dad's labels from his Presentation tab:
 // four stats, his 30-minute grid kW line, and the ack/signal footer. No data = "waiting for the plant", never numbers
 // we made up; ?plant=sample shows a labelled fixture for design reviews.
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { kwTicks, LIVE_DEVICE, LIVE_HH, PLANT_SAMPLE, SAMPLE_HH, SAMPLE_POINTS, useLiveBlatnica, type LiveHousehold } from "./live";
 import type { DevPoint } from "../../api";
+import { Key, Swatch } from "../../stage/kit/LiveCurve";
 import "./blatnica.css";
 
 const HH = `live:state/households/${LIVE_HH}`;
@@ -34,6 +35,15 @@ function Stat({ value, unit, children }: { value: ReactNode; unit: string; child
 }
 
 const minus = (s: string) => s.replace("-", "−");
+
+/** The card's one legend key, drawn with the hero's Key + Swatch so both legends match; muted while there is no line. */
+function GridKey({ muted }: { muted?: boolean }) {
+  return (
+    <figcaption className="blat-legend lc-legend" data-src="axis">
+      <Key swatch={<Swatch color="var(--blat-blue)" width={3.5} />} label="Grid kW, + import − export, last 30 min" muted={muted} />
+    </figcaption>
+  );
+}
 
 /** His realChart: grid kW, blue 2 px line with a soft fill to zero, "N kW" ticks (max 4) on faint gridlines, no x axis. */
 function GridLine({ pts }: { pts: DevPoint[] }) {
@@ -106,11 +116,12 @@ export default function BlatnicaLive() {
         <span className="blat-hint">
           {ageS != null ? (
             <>
+              <i className={`blat-dot${ageS > 120 ? " is-stale" : ""}`} aria-hidden />
               live · updated{" "}
               <span data-src="page" data-label="seconds since the plant's last reading (telemetry.rx)">
                 {ageS} s
               </span>{" "}
-              ago · Cerbo GX + Vitocal via Gridzilla agents
+              ago<span className="blat-via"> · Cerbo GX + Vitocal via Gridzilla agents</span>
             </>
           ) : (
             "offline"
@@ -124,7 +135,10 @@ export default function BlatnicaLive() {
     return (
       <section className="panel blat" aria-live="polite">
         {head}
-        <p className="blat-wait">Blatnica: waiting for the plant</p>
+        <figure className="blat-fig">
+          <div className="blat-chart blat-chart-empty">Blatnica: waiting for the plant</div>
+          <GridKey muted />
+        </figure>
       </section>
     );
   }
@@ -179,6 +193,7 @@ export default function BlatnicaLive() {
         </Stat>
         <Stat unit="%" value={<N src={`${T}/soc`} val={t.soc} sample={sample}>{t.soc == null ? "–" : t.soc.toFixed(0)}</N>}>
           battery SoC
+          <span className="blat-more">
           {h.kwh != null && (
             <>
               {" · "}
@@ -187,28 +202,35 @@ export default function BlatnicaLive() {
           )}
           {" · owner floor "}
           <span data-src="deck" data-label="owner's battery floor in Blatnica">20 %</span>
+          </span>
         </Stat>
         <Stat unit="kW" value={<N src={`${T}/ev_kw`} val={t.ev_kw} sample={sample}>{t.ev_kw == null ? "–" : t.ev_kw.toFixed(1)}</N>}>
-          EV charger ·{" "}
+          EV charger
+          <span className="blat-more">
+          {" · "}
           {t.ev != null ? (
             <N src={`${T}/ev`} val={t.ev} sample={sample}>{t.ev} kW</N>
           ) : (
             <span data-src="deck" data-label="Blatnica's EV station">11 kW</span>
           )}{" "}
-          station · {evOn ? "charging" : "idle"}
+          station</span> · {evOn ? "charging" : "idle"}
         </Stat>
         <Stat unit="kW" value={<N src={`${T}/hp_kw`} val={t.hp_kw} sample={sample}>{t.hp_kw == null ? "–" : t.hp_kw.toFixed(1)}</N>}>
           heat pump
+          <span className="blat-more">
+          {/* a break may fall between the parts, never inside one */}
           {heat.map((part, i) => (
-            <span key={i}> · {part}</span>
+            <Fragment key={i}>
+              {" "}
+              <span className="blat-part">· {part}</span>
+            </Fragment>
           ))}
+          </span>
         </Stat>
       </div>
       <figure className="blat-fig">
         <GridLine pts={pts} />
-        <figcaption className="blat-legend" data-src="axis">
-          <i aria-hidden /> grid kW, + import − export, last 30 min
-        </figcaption>
+        <GridKey muted={pts.filter((p) => p.grid_kw != null).length < 2} />
       </figure>
       <p className="blat-foot">
         {sig ? (
