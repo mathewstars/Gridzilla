@@ -206,6 +206,13 @@ async function cell(slide, step, size, phase, theme) {
     const tour = slide === LIVE && step > 0;
     if (tour) await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "hidden")));
     const f = await page.evaluate(detect, [false, W]);
+    // Slide 6 runs the Operations view in a 1920x1080 iframe (pitch-ops.html): judge what is inside it too.
+    if (slide === LIVE)
+      for (const fr of page.frames())
+        if (fr.url().includes("pitch-ops")) {
+          const g = await fr.evaluate(detect, [false, 1920]);
+          for (const [k, v] of Object.entries(g)) f[k] = [...(f[k] || []), ...v.map((x) => `frame: ${x}`)];
+        }
     if (tour) {
       await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "")));
       f.tour = await page.evaluate(() => {

@@ -13,3 +13,19 @@
   letter-spacing: -0.022em;
   color: var(--color-ink);
 }
+
+/* The Operations view runs in a 1920x1080 iframe (Slide5.tsx), scaled from its top-left corner and centred. */
+.p-stage-framed {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+.p-ops-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  display: block;
+  transform-origin: 0 0;
+  background: var(--color-ground);
+}
