@@ -85,7 +85,7 @@ export default function HowItWorks() {
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[60svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[52svh]"}
+              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[46svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[42svh]"}
             >
               <Reveal className={still ? "lg:col-span-5" : undefined}>
                 <h3
@@ -108,9 +108,9 @@ export default function HowItWorks() {
         {/* desktop: the pinned frame, its screenshot crossfading with the active step */}
         {!still && <div className="hidden lg:col-span-7 lg:block">
           {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
-          <div className="sticky top-[16svh] flex h-[68svh] items-center">
+          <div className="sticky top-[20svh] flex h-[60svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
-              <div className="tile relative aspect-[5/4] max-h-[60svh] w-full">
+              <div className="tile relative aspect-[5/4] max-h-[48svh] w-full">
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}

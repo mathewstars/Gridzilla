@@ -23,9 +23,9 @@ export default function Problem() {
   return (
     <Section id="problem">
       <Reveal>
-        <Title className="max-w-[19ch]">Home batteries are now the largest storage fleet in Europe. The grid operator cannot see or use a single one.</Title>
+        <Title className="max-w-[24ch]">Home batteries are now the largest storage fleet in Europe. The grid operator cannot see or use a single one.</Title>
       </Reveal>
-      <div className="mt-10 grid md:mt-14 lg:grid-cols-12">
+      <div className="mt-8 grid md:mt-10 lg:grid-cols-12">
         <Reveal className="lg:col-span-6 lg:col-start-7" delay={0.08}>
           <p className="t-lead m-0 max-w-[44ch] text-secondary">
             At six in the evening the street transformer hits its rating. Today the operator can only curtail solar, cut the street, or buy a bigger transformer.
@@ -33,7 +33,7 @@ export default function Problem() {
         </Reveal>
       </div>
 
-      <Reveal as="figure" className="m-0 mt-16 md:mt-24" amount={0.2}>
+      <Reveal as="figure" className="m-0 mt-12 md:mt-16" amount={0.2}>
         <div className="tile p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -49,7 +49,7 @@ export default function Problem() {
               ))}
             </ul>
           </div>
-          <div className="mt-6 h-[300px] md:mt-8 md:h-[400px] lg:h-[440px]">
+          <div className="mt-6 h-[300px] md:mt-8 md:h-[400px] lg:h-[400px]">
             <Suspense fallback={null}>
               <StreetChart
                 label={`Load on the ${STREET.name} street transformer over 24 hours: without Gridzilla the evening peaks at ${r(STREET.peakWithoutKw)} kW, with Gridzilla at ${r(STREET.peakWithKw)} kW, under a ${STREET.ratingKw} kW limit.`}

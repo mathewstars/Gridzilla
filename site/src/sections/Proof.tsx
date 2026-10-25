@@ -24,7 +24,7 @@ export default function Proof() {
           Two thousand simulated houses on 72 transformers, following the real weather. The same houses with no signal give the without curve.
         </p>
       </Reveal>
-      <ul className="m-0 mt-14 grid list-none grid-cols-2 gap-x-5 gap-y-12 p-0 md:mt-20 md:gap-x-12 md:gap-y-16 lg:grid-cols-4 lg:gap-x-8 xl:gap-x-12">
+      <ul className="m-0 mt-14 grid list-none grid-cols-2 gap-x-5 gap-y-12 p-0 md:mt-16 md:gap-x-12 md:gap-y-16 lg:grid-cols-4 lg:gap-x-8 xl:gap-x-12">
         {PROOF.map((p, i) => (
           <Reveal as="li" key={p.label} delay={i * 0.08} className="min-w-0">
             {/* on the phone a label may take two lines: every label box is two lines tall, set at its foot, so the numbers in a row line up */}
@@ -40,7 +40,7 @@ export default function Proof() {
         ))}
       </ul>
       <Reveal delay={0.2}>
-        <p className="mb-0 mt-14 max-w-[62ch] text-[15px] leading-[1.5] text-secondary md:mt-20">
+        <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-secondary md:mt-14">
           Measured on the simulated fleet tonight. The without curve is the same houses, same cars, same weather, no signal.
         </p>
       </Reveal>

@@ -34,7 +34,7 @@ export default function Ai() {
           <Title>
             <span className="block">AI proposes.</span> <span className="block">The guard disposes.</span>
           </Title>
-          <ol className="m-0 mt-14 grid list-none gap-12 p-0 md:mt-20 md:grid-cols-3 md:gap-10 lg:gap-16">
+          <ol className="m-0 mt-14 grid list-none gap-12 p-0 md:mt-16 md:grid-cols-3 md:gap-10 lg:gap-16">
             {STEPS.map(({ name, icon: I, body }, i) => (
               <Reveal as="li" key={name} delay={0.1 + i * 0.08} className="min-w-0">
                 <I size={36} weight="regular" aria-hidden="true" className="block text-accent" />
@@ -43,7 +43,7 @@ export default function Ai() {
               </Reveal>
             ))}
           </ol>
-          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink-soft md:mt-16">
+          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink-soft md:mt-12">
             With the model path on, the rules still take over through the same guard whenever the model is slow or down.
           </p>
         </div>
