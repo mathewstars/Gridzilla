@@ -1,0 +1,85 @@
+/* Slide 7, the close. Step 0: the ask as the hero, three quiet facts, the vision line. Step 1: one line alone. */
+
+.s7-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* Step 0: one vertically centred column on the 12-column grid (120px side margins). */
+.s7-ask {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--p-margin-y) var(--p-margin-x);
+  box-sizing: border-box;
+}
+
+.s7-hero {
+  margin: 0;
+}
+.s7-hero .s7-when {
+  display: block;
+  color: var(--p-secondary);
+}
+
+/* The three facts sit on columns 1, 5 and 9 (four columns each). */
+.s7-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: var(--p-gutter);
+  margin: 120px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.s7-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.s7-fact-big {
+  margin: 0;
+}
+.s7-fact-label {
+  margin: 0;
+  color: var(--p-secondary);
+}
+
+.s7-vision {
+  margin: 112px 0 0;
+  max-width: 1160px;
+  color: var(--p-secondary);
+}
+.s7-vision span {
+  display: block;
+}
+
+/* Step 1: the closer, centred on white. */
+.s7-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--p-margin-x);
+  box-sizing: border-box;
+}
+.s7-closer {
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.s7-closer-line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* Step 0: the ask, one sentence centred in the frame, balanced over two lines when it needs two. */
+.s7-ask {
+  display: grid;
+  place-items: center;
+}
+.s7-ask-line {
+  margin: 0;
+  max-width: 1500px;
+  text-align: center;
+  text-wrap: balance;
+}

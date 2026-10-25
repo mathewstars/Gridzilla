@@ -1,0 +1,14 @@
+/* Slide 0: the trailer, full window, on black in both themes (it is a film). */
+.s0 {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+}
+.s0-film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+}

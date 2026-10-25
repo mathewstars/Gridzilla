@@ -1,0 +1,170 @@
+/* Slide 4, the six signal words. 1920x1080 design px, 120px side margins, 96px top and bottom, 40px gutters.
+   The calm mesh gradient shows through around six cards with depth: a faint accent tint, an inner hairline, a soft shadow. */
+
+.sw {
+  --sw-shadow: 0 24px 60px rgb(0 0 0 / 0.1);
+  /* Two marks the deck tokens do not have: Apple's system purple and teal, light and dark. */
+  --sw-violet: #af52de;
+  --sw-teal: #30b0c7;
+}
+:root[data-theme="dark"] .sw {
+  --sw-shadow: 0 24px 60px rgb(0 0 0 / 0.25);
+  --sw-violet: #bf5af2;
+  --sw-teal: #40c8e0;
+}
+
+/* Headline: top left, one line, a step smaller like slide 2's (Clash Display is wide). */
+.sw .sw-head.p-head {
+  position: absolute;
+  left: 120px;
+  top: 96px;
+  margin: 0;
+  font-size: 62px;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+
+/* Six cards, two rows of three, equal widths (six in one row leave a word under 200 px) and one height for all six
+   (the tallest decides). Each card: an accent chip (dot + hairline), the word, the situation, the message. The
+   situation and the message each keep room for two lines and sit at the card's foot, so the quotes line up. */
+.sw .sw-row {
+  position: absolute;
+  left: 120px;
+  top: 196px;
+  width: 1680px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 24px 40px;
+}
+.sw .sw-card {
+  /* the card's surface: its accent at 4 % over the deck surface, fading to 92 % down the card */
+  --sw-face: color-mix(in srgb, var(--sw-tone) 4%, var(--p-surface));
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 36px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--sw-face), color-mix(in srgb, var(--sw-face) 92%, transparent));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--p-ink) 8%, transparent),
+    var(--sw-shadow);
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.5s var(--p-ease) var(--sw-d, 0s),
+    transform 0.7s var(--p-ease) var(--sw-d, 0s);
+}
+.sw .sw-card.is-on {
+  opacity: 1;
+  transform: none;
+}
+/* On arrival a 1 px light runs once along the top edge in the card's accent (0.6 s). */
+.sw .sw-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sw-tone), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.sw .sw-card.is-on::after {
+  animation: sw-sweep 0.6s var(--p-ease) calc(var(--sw-d, 0s) + 0.25s) both;
+}
+@keyframes sw-sweep {
+  0% { transform: translateX(-100%); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(230%); opacity: 0; }
+}
+
+/* The accent as a chip above the word: a 10 px dot and a 1 px hairline at 40 %. */
+.sw .sw-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 10px;
+}
+.sw .sw-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sw-tone);
+}
+.sw .sw-hair {
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--sw-tone) 40%, transparent);
+}
+.sw .sw-red { --sw-tone: var(--p-red); }
+.sw .sw-green { --sw-tone: var(--p-green); }
+.sw .sw-orange { --sw-tone: var(--p-orange); }
+.sw .sw-violet { --sw-tone: var(--sw-violet); }
+.sw .sw-teal { --sw-tone: var(--sw-teal); }
+.sw .sw-grey { --sw-tone: var(--p-secondary); }
+
+/* The word stays ink, Clash Display, opened a little. */
+.sw .sw-word {
+  margin-top: 18px;
+  font-family: var(--p-font-display);
+  font-weight: 600;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.sw .sw-when {
+  margin: auto 0 0;
+  padding-top: 20px;
+  min-height: calc(2 * 1.3em + 20px);
+  box-sizing: border-box;
+  font-family: var(--p-font-text);
+  font-size: 26px;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.sw .sw-says {
+  margin: 20px 0 0;
+  min-height: calc(2 * 1.25em);
+  font-family: var(--p-font-text);
+  font-size: 34px;
+  line-height: 1.25;
+  font-weight: 500;
+  color: var(--p-ink);
+  text-wrap: balance;
+}
+.sw .sw-q {
+  color: var(--sw-tone);
+}
+
+/* The closing lines, under the cards, a balanced block (the submission's two sentences): it rises in by itself 1 s after the last card lands (SlideSignals.tsx, CLOSE_AT). */
+.sw .sw-close {
+  position: absolute;
+  left: 120px;
+  bottom: 80px; /* 16 px lower than the deck margin: air under the two rows of cards */
+  width: 1680px;
+  margin: 0;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.8s var(--p-ease),
+    transform 0.8s var(--p-ease);
+}
+.sw .sw-close.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.sw.sw-still .sw-card,
+.sw.sw-still .sw-close {
+  transition: none;
+}
+.sw.sw-still .sw-card::after {
+  animation: none;
+}

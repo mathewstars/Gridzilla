@@ -1,0 +1,158 @@
+# Gridzilla pitch: the web presentation
+
+Dad's 30 s trailer, then eight slides, for the Energy Bridge hackathon in Vienna, 4:20 hard stop. Script and run of show:
+`/Users/matthewstafurik/firstmate/data/gz-ui/pitch-script.md` (notes copied into `src/pitch/script.ts`).
+Dad's deck numbers (checked): `docs/Gridzilla-pitch.pdf`, `docs/PRESENTATION.md` on main (copied into `src/pitch/facts.ts`).
+
+## Handoff (state at 20:10, 24 Oct)
+
+1. Branch fm/gz-pitch, rebased on fm/gz-ui 517e3b2; dev `npm run pitch:dev` (5175), prod preview `npm run pitch:preview` (4175).
+2. Slide 0 trailer, then 1 title, 2 problem (story, facts, closing line), 3 idea (evening, noon, closing, AI loop), 4 six signal words, 5 peaks (without, with), 6 demo (DemoView + 7-step spotlight), 7 Blatnica vs simulated Vienna, 8 close (ask, six o'clock line, punchline), 9 end. The slide number is the position in `slides/index.ts`; files Slide4-8.tsx are slides 5-9 (they kept their first numbers).
+3. Every beat is a Right press; nothing dims or moves on by itself, except the trailer's hard cut into the title.
+4. Background: Paper Shaders Mesh Gradient (21st.dev @paper-design) via `shell/Backdrop.tsx`; per-step via `bgSteps` in `slides/index.ts`.
+5. Fonts: Clash Display + General Sans in `public/pitch/fonts`; slide 6 (the demo) keeps the console's own type (`slide5.css`).
+6. Read-only live mode `src/pitch/liveMode.ts`: `GZ_API=<live url> npm run pitch:dev` + `?api=proxy`; every POST refused in the page.
+7. Notes (N) are off by default, one beat per step (`script.ts`); presenter keys in "Presenter keys" below.
+8. Gates: `qa/pitch.mjs` (G1+G3 both themes), `qa/pitch-truth.mjs` (G2), `qa/pitch-motion.mjs` (G5), `qa/pitch-pdf.mjs` (PDF after a build).
+9. Last results: G1 0 errors; G3 0/276 cells (3 sizes) and 0/184 after the last rebase; G2 clean except DemoView's untagged numbers; G5 60 fps on 17 steps.
+10. Before the pitch: press 2 (cold evening) so slide 4's evening really crosses the limit; DemoView fills ~70 % of 1920x1080 (stage worker).
+
+## Run
+
+    npm run pitch:dev        # http://localhost:5175/pitch.html, /api proxied to the local platform on :8081
+    npm run pitch:preview    # production build on http://localhost:4175/pitch.html
+    npm run pitch:pdf        # the slides at 1920x1080 into ../platform/static/new/pitch.pdf (run after a build)
+    npm run pitch:qa         # gates G1 + G3 over every slide, both themes
+    npm run pitch:trailer    # copies docs/Gridzilla-trailer.mp4 (or origin/main's) to public/pitch/trailer.mp4
+
+The trailer is 16 MB, so it is copied at build time and not committed (public/pitch/.gitignore); pitch:dev and
+pitch:preview copy it first. Gate scripts: qa/pitch.mjs (G1, G3), qa/pitch-truth.mjs (G2), qa/pitch-motion.mjs (G5).
+
+URL: `?slide=N` (0 = the trailer, 1-9 the slides), `&step=S` (0-based build step), `&freeze=end` (final state at once,
+for QA and print), `&theme=dark|light` (dark is the default, like the rest of the product).
+Swap the trailer: replace docs/Gridzilla-trailer.mp4 (it carries the jingle; there is no separate audio any more).
+
+## Every beat is a key press
+
+Nothing dims, moves on or changes content by itself: each spoken beat is one Right. Slide 2: Right brings the three facts,
+Right brings the closing line under them. Slide 3: Right for noon, Right for "The operator asks...", Right for the AI loop.
+Slide 4: the six signal words arrive with the slide, the closing lines by themselves. Slide 5: Right draws the Gridzilla line and drops the big number from red to green. Slide 6: Right walks the demo
+(seven areas). Slide 8: Right for "So at six tomorrow...", Right for the last line. The only automatic move is the trailer's hard cut into the title at
+its last frame, which the captain asked for. Entry builds (a typed message, numbers counting, a ring lighting once)
+finish within a few seconds and then hold.
+
+## Slide 6 walkthrough
+
+Steps 1-7 of slide 6 light one area of the live demo at a time, with a crisp blue outline, the rest dimmed 15 % (no
+blur) and a one-line caption beside it: the street curve, the ring, the AI steps, the signals running, the city dots,
+what just happened, and the Pause (a caption alone: Peter pauses it on dad's board). The last Right leaves the slide;
+Esc skips the rest of the walkthrough. Anchors (`src/pitch/slides/Tour5.tsx`): `#gz-tour-*` ids if the console adds
+them, then DemoView's parts (`.demo-curve`, `.demo-ring`, `.gz-steps`, `.demo-sigs`, `.demo-city`, `.fstrip`).
+
+## Read-only live mode (the real Blatnica plant)
+
+The real plant talks only to the live server, never to a local copy. To show the live server's data without ever
+writing to it:
+
+    GZ_API=https://gridzilla.victronlab.sk npm run pitch:dev    # the Vite proxy reads the live server
+    open http://localhost:5175/pitch.html?api=proxy             # every POST is refused in the page
+
+`?api=<base url>` sends every GET to `<base>/api/...`; `?api=proxy` keeps GETs on `/api/...` (the Vite proxy, target
+`$GZ_API`). In both, every non-GET is refused before it leaves the browser with "read-only, live server"
+(`src/pitch/liveMode.ts`), so scenario keys and console buttons cannot change anything. A base on another origin needs
+cross-origin headers, which the platform does not send today, so for a live server use `?api=proxy`. Without `?api`
+the deck reads and writes its own origin as before. Tested only against the local platform.
+
+## Fonts
+
+Clash Display (500, 600) for titles, headlines and big numbers; General Sans (400, 500, 600) for body, captions and
+labels; both from Fontshare (free), self-hosted in `public/pitch/fonts` (no CDN at show time). Neither font has
+tabular figures, so numbers that count hold their width with hidden copies. The demo on slide 6 keeps the console's
+own type.
+
+## Presenter keys (nothing visible on the slides)
+
+Right or Space: next build step, then next slide. On slide 0 the first press plays the trailer with sound, a second
+press skips it; at its last frame the deck hard-cuts to the title by itself. Left: back. F: full screen. T: small
+elapsed timer (starts with the trailer). N: the presenter notes for this slide. D: dark or light. Esc: slide overview.
+1-4 set the live scenario on the title slide (before you start) and on slide 6 (the demo); Left and Right always move slides.
+
+## Design read
+
+A keynote-style pitch for hackathon judges who have watched twenty pitches today, in Apple product-launch language,
+light only, on the stage's own tokens. Dials: variance 6, motion 6 (story only), density 2 (one idea per slide).
+One memorable thing per slide; everything around it quiet.
+
+## System (every slide)
+
+- Canvas 1920x1080 design px, white. Shell scales it to the window (letterboxed in white). Side margin 120, top/bottom
+  96, 12 columns, 40 gutter. Tokens and type classes in `src/pitch/pitch.css`; colours = `src/stage/palette.ts`.
+- Type: SF Pro / Inter, weight 600 headlines and numbers, 400 body. Scale: giant 340, mega 220, display 144, head-xl 96,
+  head 72, title 52, sub 40, body 34, small 30. **Smallest text anywhere 30px.** Units at 0.5em in secondary after the
+  number. Tabular numbers. Sentence case. No uppercase eyebrows, no tracked labels, no ellipsis, no line-clamp.
+- Colour with meaning only: green `#34c759` inside the limit / stored / done, orange `#ff9500` peak building, red
+  `#ff3b30` over the limit, blue `#0071e3` interactive only (never on a slide). Text is ink, secondary or tertiary;
+  colour lives on marks (lines, fills, rings, checks). Red text only at 72px or more (3.5:1 on white). Never green or
+  orange text.
+- Depth: tiles are `#f5f5f7` on white with radius 28, or white cards with the soft shadow. No borders, no hairlines.
+- Banned: gradients, glows, neon, glass, dark theme, pills/chips, status-dot rows, tiny tracked uppercase labels,
+  ellipsis cut-offs, entrance-animation soup, stock-photo feel, fake data shown as real, em dashes, emoji.
+- Plain English only. Never on a slide: DSO, SoC, setpoint, heartbeat, envelope, kWh-jargon without a unit word.
+  Say "grid operator", "message", "limit", "maker of the box", "battery".
+- Motion: every move tells the story or shows data. Ease `cubic-bezier(.25,.1,.3,1)`, 0.5-1.2 s per move, no bounce, no
+  spring overshoot, no looping decoration, transform/opacity/pathLength only. A slide's whole build finishes inside
+  the first 60 % of its beat. `useReducedMotion()` or `freeze === "end"` renders the final state at once.
+- Live numbers carry `data-src` (endpoint/path, e.g. `flatten:region:at/plan/peak_plan_pct`) and `data-val`; deck
+  figures carry `data-src="deck" data-label="..."` and say on the slide where they come from.
+
+## Slides
+
+Four minutes, stop at 3:50 (dad's docs/PRESENTATION.md); our deck keeps slide 7 (Blatnica) visible. One key press per slide's
+content: what a slide shows arrives on arrival or with one Right.
+
+| # | Beat | Who | What is on screen | Steps |
+|---|---|---|---|---|
+| 0 | 0:00, 32 s | | Dad's trailer full-bleed on black, with its jingle; hard cut into slide 1 at its end. | Space plays it |
+| 1 | 0:30 | Matthew | GRIDZILLA, the tagline, team and track, centred on the moving gradient. | 1 |
+| 2 | 0:30, 20 s | Matthew | The six o'clock street story (three lines). Right: headline, three facts with living drawings, the closing line by itself. | 2 |
+| 3 | 0:50, 20 s | Matthew | The typed signed message, three boxes lighting in turn, battery first, then "The operator asks..." by itself. Right: the AI loop. | 2 |
+| 4 | 1:10, 15 s | Matthew | "Six words. Signed.": SUPPORT, ABSORB, PREPARE, STRETCH, RECOVER, RELEASE, each with its situation and an example message; the 24-hour envelope and the safety rules in the closing lines (the team's submission). | 1 |
+| 5 | 1:25, 30 s | Peter | The live 24 h plan on the gradient: without, then Gridzilla acts by itself (eaten peak, cars and heat pumps into the night, red to green). | 1 |
+| 6 | 1:55, 60 s | Matthew | The console's demo mode, then the seven-step spotlight walkthrough. | 8 |
+| 7 | 2:55, 25 s | Dad | Our family home in Blatnica, live from the live server, against a simulated Vienna; dad's measured numbers with the heat pumps. | 1 |
+| 8 | 3:20, 25 s | Matthew | "So at six tomorrow..." Right: "It eats peaks for breakfast." | 2 |
+| 9 | 3:42 | | GRIDZILLA and the names, nothing else. | 1 |
+
+The Blatnica tile reads the live server through the dev/preview proxy `/live-api` (vite.config.ts, GET only), or the
+same origin on gridzilla.victronlab.sk, or the `?api=` base.
+
+## Files
+
+- `pitch.html`, `src/pitch/main.tsx`: entry. `src/pitch/Deck.tsx` + `deck.css`: shell, keys, timer, notes, overview.
+- `src/pitch/types.ts`: the slide contract (`SlideProps`: step, active, freeze, jingle). `src/pitch/slides/index.ts`:
+  order, beat times, steps. `src/pitch/slides/SlideN.tsx` (+ `slideN.css`): one file pair per slide.
+- `src/pitch/script.ts`: presenter notes. `src/pitch/facts.ts`: deck figures, one place to re-check them.
+- `public/pitch/trailer.mp4`: dad's trailer, copied at build time (`qa/pitch-trailer.mjs`), not committed.
+- `src/pitch/slides/Slide0.tsx` + `src/pitch/shell/useTrailer.ts`: the trailer slide and its playback.
+- `src/pitch/bg/mesh-gradient.tsx` + `src/pitch/shell/Backdrop.tsx`: the background family.
+- `qa/pitch-shot.mjs`: screenshots of one slide at chosen seconds. `qa/pitch.mjs`: gates. `qa/pitch-pdf.mjs`: the PDF.
+
+## Backgrounds
+
+One family, from 21st.dev, installed as published: Paper Shaders' animated **Mesh Gradient** (`src/pitch/bg/mesh-gradient.tsx`).
+The shell draws it once behind every slide that has one (`src/pitch/shell/Backdrop.tsx`), so the light keeps moving
+across slide changes: full strength on slides 1, 8 and 9, dimmed to about 60 % on 2, 3, 4 and 7; slide 5 and the live demo
+have none. Palette: green and teal on near-black (dark), pale greens (light); speed 0.4. Slides change with one 0.3 s
+crossfade; the trailer's end is a hard cut.
+
+## 21st.dev components used
+
+| Component | Author | 21st.dev | Where | What was adapted |
+|---|---|---|---|---|
+| Mesh Gradient (Paper Shaders) | @paper-design | https://21st.dev/@paper-design/components/mesh-gradient (demo id 17795) | the deck background, slides 1, 2, 3, 4, 7, 8, 9 | Published code unchanged (marked `@ts-nocheck` for our strict null checks); one appended `setPalette()` sets the palette per theme, the speed and stops time for reduced motion. Paper Shaders is Apache-2.0. |
+| Count Up | @unlumen | https://21st.dev/@unlumen/components/count-up (demo id 20068) | slide 2 and slide 7 counters | Odometer digits only; ref-measured instead of react-use-measure, eased tween with no spring overshoot, plain tabular text at rest. |
+| Typewriter Text | @educalvolpz | https://21st.dev/@educalvolpz/components/typewriter-text (demo id 18768) | slide 3, the signed message | Its per-character timeout engine; the final text laid out invisibly so nothing reflows; freeze and reduced motion show the full text. The only typing in the deck. |
+| Line graph | @motiondotdev | https://21st.dev/@motiondotdev/components/motion-line-graph (demo id 24687) | slide 4, the curve | pathLength draw-in; hover dropped (projector); our data, limit line and labels. |
+
+Considered and not used: Static Mesh Gradient · Sea (@paper-design, id 21808) as a calmer sibling; the captain asked for
+the same moving gradient on every content slide instead.

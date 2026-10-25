@@ -1,0 +1,15 @@
+/* Slide 5: the console's demo mode at the real window size, on the console's own ground (it follows the theme).
+   The shell's .p-bleed (deck.css) is the one outer scroll container; the demo fits one screen from 1240 wide up. */
+.p-stage {
+  min-height: 100%;
+  overflow: visible;
+  background: var(--color-ground);
+}
+/* The console keeps its own type (index.css body): the deck's Clash Display / General Sans stop here. */
+.p-stage {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.4705;
+  letter-spacing: -0.022em;
+  color: var(--color-ink);
+}

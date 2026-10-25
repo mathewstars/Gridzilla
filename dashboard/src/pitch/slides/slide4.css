@@ -1,0 +1,96 @@
+/* Slide 4: the monster eats peaks. One big curve on the left, the two peak numbers on the right. */
+.s4-head {
+  position: absolute;
+  left: var(--p-margin-x);
+  top: var(--p-margin-y);
+  margin: 0;
+}
+.s4-sub {
+  position: absolute;
+  left: var(--p-margin-x);
+  top: 210px;
+  margin: 0;
+}
+/* Behind the chart only: the calm mesh gradient brightens in places, which pulls the ticks and the dashed line under
+   3:1. 40 px around the plot on both sides, from above the peak label to under the clock. */
+.s4-scrim {
+  position: absolute;
+  left: 120px;
+  top: 300px;
+  width: 1200px;
+  height: 625px;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.55);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .s4-scrim {
+  background: rgb(11 11 15 / 0.45);
+}
+.s4-chart {
+  position: absolute;
+  left: 120px;
+  top: 300px;
+  width: 1180px;
+  height: 620px;
+  overflow: visible;
+}
+.s4-chart text {
+  font-family: inherit;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.s4-tick { fill: var(--p-tertiary); }
+.s4-note { fill: var(--p-secondary); }
+.s4-label { fill: var(--p-ink); font-weight: 600; }
+.s4-nums {
+  position: absolute;
+  left: 1380px;
+  top: 470px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+}
+.s4-num-label {
+  margin: 12px 0 0;
+}
+.s4-foot {
+  position: absolute;
+  left: var(--p-margin-x);
+  right: var(--p-margin-x);
+  bottom: var(--p-margin-y);
+  margin: 0;
+}
+.s4-illu {
+  position: absolute;
+  left: 1380px;
+  top: 300px;
+  margin: 0;
+}
+
+/* The one number: red over the limit, green once the plan holds it under. */
+.s4-morph {
+  color: var(--p-red);
+  transition: color 1.2s var(--p-ease);
+}
+.s4-morph.is-with {
+  color: var(--p-green-text);
+}
+.s4-num-from {
+  margin: 8px 0 0;
+  opacity: 0;
+  transition: opacity 0.6s var(--p-ease) 1s;
+}
+.s4-num-from.is-on {
+  opacity: 1;
+}
+.s4-hold {
+  display: inline-grid;
+  justify-items: end;
+}
+.s4-hold > span {
+  grid-area: 1 / 1;
+}
+.s4-ghost {
+  visibility: hidden;
+}

@@ -1,0 +1,258 @@
+/* The deck shell: a white window, the 1920x1080 canvas scaled to fit, full-bleed slides at window size, and the
+   presenter's tools (timer, notes, overview) in real window px on top. Nothing here is drawn on a slide. */
+html,
+body {
+  margin: 0;
+  background: var(--p-bg);
+  overflow: hidden;
+  height: 100%;
+}
+.p-deck {
+  position: fixed;
+  inset: 0;
+  background: var(--p-bg);
+  overflow: hidden;
+  color: var(--p-ink);
+  font-family: var(--p-font-text);
+  -webkit-font-smoothing: antialiased;
+}
+/* The pointer hides after 2 s without movement. */
+.p-deck.p-nocursor,
+.p-deck.p-nocursor * {
+  cursor: none !important;
+}
+.p-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  overflow: hidden;
+}
+.p-bleed {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--color-ground);
+}
+/* Kept mounted but off-screen: the stage keeps its data warm and its 3D street pauses (it watches visibility). */
+.p-bleed {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+}
+/* Off-screen once faded: the stage keeps its data warm and its 3D street pauses (it watches visibility). */
+.p-bleed.p-off {
+  opacity: 0;
+  transform: translateX(200vw);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1),
+    visibility 0s linear 0.3s,
+    transform 0s linear 0.3s;
+}
+.p-stage {
+  min-height: 100%;
+}
+
+/* T: elapsed timer, bottom right, real px. Ink on a small ground tile; the tile (never the text) tints orange when
+   more than 10 s behind the run of show and red past the 4:20 hard stop. */
+.p-timer {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--p-ground);
+  color: var(--p-ink);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--p-tile-edge);
+  pointer-events: none;
+  user-select: none;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.p-timer-off {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--p-secondary);
+}
+.p-timer.is-behind {
+  background: rgb(255 149 0 / 0.22);
+}
+.p-timer.is-late {
+  background: rgb(255 59 48 / 0.24);
+}
+.p-timer.is-behind .p-timer-off,
+.p-timer.is-late .p-timer-off {
+  color: var(--p-ink);
+}
+
+/* N: presenter notes, a small aid at the bottom: the current beat in at most two lines, General Sans 18 px on a 60 %
+   scrim, a key badge when another beat follows on this slide. Off by default; only N shows it. */
+.p-notes {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 40;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(1100px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 14px;
+  align-items: end;
+  padding: 10px 16px 12px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.6);
+  color: #f5f5f7;
+  font-family: var(--p-font-text);
+  font-size: 18px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.p-notes.is-lifted {
+  bottom: 64px;
+}
+.p-notes-where {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  color: #a1a1a6;
+}
+.p-notes-text {
+  margin: 2px 0 0;
+  max-height: 2.8em; /* two lines; the rest is spoken */
+  overflow: hidden;
+}
+.p-notes-key {
+  font-family: var(--p-font-text);
+  font-size: 15px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #2a2a2e;
+  color: #f5f5f7;
+  box-shadow: 0 1px 0 #3a3a3e;
+}
+
+/* Esc: the overview, a light table of the seven slides on the ground grey. */
+.p-over {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: var(--p-ground);
+  padding: 40px;
+  box-sizing: border-box;
+}
+.p-over-grid {
+  display: grid;
+  gap: 28px;
+  align-content: center;
+}
+.p-over-item {
+  appearance: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.p-thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--p-bg);
+  box-shadow: var(--p-shadow);
+  transition:
+    transform 0.25s cubic-bezier(0.25, 0.1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.3, 1);
+  contain: layout paint;
+}
+.p-over-item:hover .p-thumb {
+  transform: translateY(-2px);
+  box-shadow: var(--p-shadow-lift), var(--p-shadow);
+}
+.p-over-item.is-sel .p-thumb {
+  box-shadow: 0 0 0 4px #0071e3;
+}
+.p-over-item:active .p-thumb {
+  transform: scale(0.98);
+}
+.p-thumb-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.p-thumb-live {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--p-fill);
+  color: var(--p-ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.p-over-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 12px;
+  font-size: 18px;
+  line-height: 24px;
+}
+.p-over-name {
+  font-weight: 600;
+  min-width: 0;
+}
+.p-over-at {
+  flex: none;
+  color: var(--p-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The background family (shell/Backdrop.tsx): one full-window layer behind the slides, letterbox included. */
+.p-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.p-backdrop-layer {
+  position: absolute;
+  inset: 0;
+}
+.p-backdrop-canvas {
+  position: absolute;
+  inset: 0;
+}
+/* Content slides: the same moving light, dimmed to about 60 % so text keeps its contrast. */
+.p-backdrop-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--p-bg);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.p-backdrop-dim.is-on {
+  opacity: 0.42;
+}

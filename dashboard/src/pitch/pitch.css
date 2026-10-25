@@ -1,0 +1,108 @@
+/* Pitch tokens: the stage's Apple system (DESIGN.md, APPLE-R2.md, src/stage/palette.ts) at projector scale, in two
+   themes. Dark is the default (index.css :root[data-theme="dark"], set by src/ops/theme.ts): near-black slides, #1d1d1f
+   cards with a 1px #2a2a2e hairline, no glows. Light is Apple white. Slides only ever read these variables.
+   Every slide is drawn on a 1920x1080 canvas in px; the shell scales the canvas to the window, so these sizes are
+   design pixels, not screen pixels. Smallest text on any slide: 30px (about 17px at the captain's 1240x635 window and
+   readable from 5 m on a projector). */
+
+/* The deck's fonts (captain): Clash Display for titles, headlines and big numbers (500, 600), General Sans for body,
+   captions and labels. Both from Fontshare (free), self-hosted in public/pitch/fonts, nothing from a CDN at show time.
+   Neither font has tabular figures, so numbers that change on screen sit in fixed-width digit slots (TabNum.tsx). */
+@font-face { font-family: "Clash Display"; src: url("/pitch/fonts/ClashDisplay-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/pitch/fonts/ClashDisplay-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/pitch/fonts/GeneralSans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/pitch/fonts/GeneralSans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/pitch/fonts/GeneralSans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+:root {
+  --p-bg: #ffffff; /* the slide */
+  --p-surface: #ffffff; /* a card on the slide */
+  --p-white: var(--p-surface);
+  --p-ground: #f5f5f7; /* a quiet tile, an unlit box */
+  --p-tile: #f5f5f7;
+  --p-tile-edge: 0 0 0 0 transparent;
+  --p-hairline: transparent;
+  --p-ink: #1d1d1f;
+  --p-secondary: #6e6e73;
+  --p-tertiary: #86868b;
+  --p-fill: #e8e8ed;
+  --p-fill-press: #d2d2d7;
+  --p-wire: rgb(29 29 31 / 0.28);
+  --p-green: #34c759; /* inside the limit, stored, done */
+  --p-orange: #ff9500; /* peak building */
+  --p-red: #ff3b30; /* over the limit, either direction */
+  --p-blue: #0071e3; /* interactive only (the overview grid) */
+  --p-green-text: #248a3d; /* green as text: Apple's accessible green on white (4.6:1); the system green in dark */
+
+  --p-ease: cubic-bezier(0.25, 0.1, 0.3, 1); /* things settling in (apple.com) */
+  --p-ease-state: cubic-bezier(0.4, 0, 0.6, 1); /* state changes (apple.com) */
+  --p-shadow: 0 4px 24px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  --p-shadow-lift: 8px 8px 16px 0 rgb(0 0 0 / 0.08);
+  --p-r: 28px; /* big tiles */
+  --p-r-small: 18px;
+
+  /* Canvas grid: 12 columns between 120px side margins, 40px gutters. */
+  --p-font-display: "Clash Display", "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter Variable", system-ui, sans-serif;
+  --p-font-text: "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", system-ui, sans-serif;
+  --p-margin-x: 120px;
+  --p-margin-y: 96px;
+  --p-gutter: 40px;
+}
+:root[data-theme="dark"] {
+  --p-bg: #0b0b0f;
+  --p-surface: #1d1d1f;
+  --p-ground: #141418;
+  --p-tile: #1d1d1f;
+  --p-tile-edge: 0 0 0 1px #2a2a2e;
+  --p-hairline: #2a2a2e;
+  --p-ink: #f5f5f7;
+  --p-secondary: #a1a1a6;
+  --p-tertiary: #8e8e93;
+  --p-fill: #2a2a2e;
+  --p-fill-press: #3a3a3e;
+  --p-wire: rgb(245 245 247 / 0.3);
+  --p-green-text: #34c759;
+  --p-shadow: 0 0 0 1px #2a2a2e;
+  --p-shadow-lift: 0 0 0 1px #3a3a3e;
+}
+
+/* Type scale in design px. Clash Display (600, 500) for headlines and numbers, General Sans (400, 500) for body,
+   captions and labels. Clash at display sizes wants about -0.02em. No uppercase labels, no letter-spaced eyebrows, no
+   ellipsis. Units after a number at 0.5em in secondary. */
+.p-giant { font-size: 340px; line-height: 0.92; letter-spacing: -0.02em; font-weight: 600; font-family: var(--p-font-display); }
+.p-mega { font-size: 220px; line-height: 0.95; letter-spacing: -0.02em; font-weight: 600; font-family: var(--p-font-display); }
+.p-display { font-size: 144px; line-height: 1; letter-spacing: -0.02em; font-weight: 600; font-family: var(--p-font-display); }
+.p-head-xl { font-size: 96px; line-height: 1.06; letter-spacing: -0.012em; word-spacing: 0.04em; font-weight: 600; font-family: var(--p-font-display); }
+.p-head { font-size: 72px; line-height: 1.1; letter-spacing: -0.008em; word-spacing: 0.04em; font-weight: 600; font-family: var(--p-font-display); }
+.p-title { font-size: 52px; line-height: 1.14; letter-spacing: -0.004em; word-spacing: 0.03em; font-weight: 500; font-family: var(--p-font-display); }
+.p-sub { font-size: 40px; line-height: 1.25; letter-spacing: 0; font-weight: 400; font-family: var(--p-font-text); }
+.p-body { font-size: 34px; line-height: 1.38; letter-spacing: 0; font-weight: 400; font-family: var(--p-font-text); }
+.p-small { font-size: 30px; line-height: 1.36; letter-spacing: 0.005em; font-weight: 400; font-family: var(--p-font-text); }
+.p-unit { font-size: 0.5em; letter-spacing: 0; color: var(--p-secondary); margin-left: 0.12em; font-family: var(--p-font-display); font-weight: 500; }
+.p-num { font-variant-numeric: tabular-nums; }
+.p-ink { color: var(--p-ink); }
+.p-secondary { color: var(--p-secondary); }
+.p-tertiary { color: var(--p-tertiary); }
+
+/* A slide fills the 1920x1080 canvas. White by default; a tile is ground grey on white or white on ground. */
+.p-slide {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent; /* the deck's ground and background family sit behind every slide (deck.css, Backdrop) */
+  color: var(--p-ink);
+  font-family: var(--p-font-text);
+  -webkit-font-smoothing: antialiased;
+}
+.p-tile {
+  background: var(--p-tile);
+  box-shadow: var(--p-tile-edge);
+  border-radius: var(--p-r);
+}
+.p-card {
+  background: var(--p-surface);
+  border-radius: var(--p-r);
+  box-shadow: var(--p-shadow);
+}

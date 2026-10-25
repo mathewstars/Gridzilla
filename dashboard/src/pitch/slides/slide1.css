@@ -1,0 +1,42 @@
+/* Slide 1, the title: one centred column on the moving hero background. */
+.s1-col {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 120px;
+}
+/* The wordmark: 220 design px (the shell's scaling keeps it between about 96 and 220 real px), tight tracking. */
+.s1-word {
+  margin: 0;
+  font-size: 220px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-family: var(--p-font-display);
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.s1-tag {
+  width: 100%;
+  text-align: center;
+  margin: 44px 0 0;
+  font-size: 44px;
+  font-weight: 500;
+  color: var(--p-ink);
+  opacity: 0.92;
+}
+.s1-credits {
+  width: 100%;
+  text-align: center;
+  margin-top: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--p-secondary);
+  white-space: nowrap;
+}

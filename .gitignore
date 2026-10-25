@@ -15,3 +15,6 @@ video/Gridzilla-2.m4a
 platform/gridzilla.db
 platform/gridzilla.db-wal
 platform/gridzilla.db-shm
+
+# Pitch deck: the trailer is copied from docs/Gridzilla-trailer.mp4 at build time (dashboard/qa/pitch-trailer.mjs)
+dashboard/public/pitch/*.mp4

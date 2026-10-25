@@ -1,0 +1,258 @@
+/* Slide 2, the problem. 1920x1080 design px, 120px side margins, 96px top and bottom, 40px gutters.
+   The animated mesh background shows through: the three stat moments sit on soft scrim panels so they stay legible. */
+
+.s2 {
+  --s2-scrim: rgb(255 255 255 / 0.7);
+}
+:root[data-theme="dark"] .s2 {
+  --s2-scrim: rgb(11 11 15 / 0.55);
+}
+
+/* Headline: two lines, the second in secondary. Separate lines get a little air so their glyph boxes never touch. */
+.s2 .s2-head {
+  position: absolute;
+  left: 120px;
+  top: 96px;
+  width: 1680px;
+  margin: 0;
+  transition: opacity 0.8s var(--p-ease);
+}
+.s2 .s2-line {
+  display: block;
+  white-space: nowrap;
+}
+.s2 .s2-line-2 {
+  margin-top: 16px;
+}
+
+/* Three stat moments, four columns each, on scrim panels. */
+.s2 .s2-facts {
+  position: absolute;
+  left: 120px;
+  top: 312px;
+  width: 1680px;
+  height: 523px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 40px;
+  transform-origin: 50% 0;
+  transition:
+    opacity 0.8s var(--p-ease),
+    transform 0.8s var(--p-ease);
+}
+.s2 .s2-fact {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  border-radius: var(--p-r);
+  background: var(--s2-scrim);
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.5s var(--p-ease),
+    transform 0.7s var(--p-ease);
+}
+.s2 .s2-fact.is-on {
+  opacity: 1;
+  transform: none;
+}
+.s2 .s2-place {
+  margin: 0;
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.s2 .s2-art {
+  display: block;
+  width: 461px;
+  height: 120px;
+  margin-top: 18px;
+  overflow: visible;
+}
+.s2 .s2-fact .s2-num {
+  display: flex;
+  align-items: baseline;
+  height: 1em;
+  line-height: 1;
+  margin-top: 24px;
+  white-space: nowrap;
+  color: var(--p-ink);
+}
+.s2 .s2-digits {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+.s2 .s2-caption {
+  margin: 22px 0 0;
+  text-wrap: balance;
+}
+
+/* The closing line, below the three moments: it rises in by itself a second after the third number lands (Slide2.tsx,
+   PUNCH_AT). Nothing else changes; everything stays readable. */
+.s2 .s2-punch {
+  position: absolute;
+  left: 120px;
+  bottom: 96px;
+  width: 1680px;
+  margin: 0;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.8s var(--p-ease),
+    transform 0.8s var(--p-ease);
+}
+.s2 .s2-punch.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+/* Drawings: colour only on marks. Green = stored; grey = cut off, idle, out of reach. */
+.s2 .s2-well {
+  fill: var(--p-fill);
+}
+.s2 .s2-green {
+  fill: var(--p-green);
+}
+.s2 .s2-stroke,
+.s2 .s2-contact {
+  fill: none;
+  stroke: var(--p-tertiary);
+  stroke-width: 3;
+}
+.s2 .s2-solid-dim {
+  fill: var(--p-tertiary);
+}
+.s2 .s2-wire,
+.s2 .s2-pylon {
+  fill: none;
+  stroke: var(--p-tertiary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.s2 .s2-dash {
+  stroke-dasharray: 2 10;
+}
+.s2 .s2-off {
+  opacity: 0.45;
+}
+.s2 .s2-knob {
+  fill: var(--p-ink);
+}
+.s2 .s2-lit {
+  stroke: var(--p-ink);
+}
+.s2 .s2-dev {
+  color: var(--p-tertiary);
+  opacity: 0.45;
+}
+.s2 .s2-dev-lit {
+  color: var(--p-ink);
+  opacity: 1;
+}
+
+/* Odometer wheel: an invisible 0 holds the width and the baseline; the column of digits slides behind a window. */
+.s2 .s2-wheel {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+.s2 .s2-wheel-ref {
+  display: inline-block;
+  line-height: 1;
+  visibility: hidden;
+}
+.s2 .s2-wheel-win {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.s2 .s2-wheel-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.s2 .s2-wheel-cell {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+.s2.s2-still .s2-head,
+.s2.s2-still .s2-facts,
+.s2.s2-still .s2-fact,
+.s2.s2-still .s2-punch {
+  transition: none;
+}
+
+/* Clash Display is wide: the one-line headline and the closing line are set a step smaller so both keep the margins. */
+.s2 .s2-head.p-head {
+  font-size: 62px;
+}
+.s2 .s2-punch.p-head-xl {
+  font-size: 82px;
+}
+
+/* Step 0, the story, in the deck's own design: type on the moving mesh gradient (the shell's hero background, as on
+   slide 7), theme tokens only, one centred 1440 px column (240 px each side), every paragraph two balanced lines. */
+.s2 .s2-story {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+}
+/* Right cuts the story away at once (the headline is there on the cut); Left back to it fades it in. */
+.s2 .s2-story.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s var(--p-ease-state);
+}
+.s2 .s2-story:not(.is-on) .s2-story-line {
+  transition: none;
+}
+.s2 .s2-story-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1440px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  text-align: center;
+}
+/* p-head one step smaller (Clash Display 62: at 64 the third paragraph needs three lines); each line rises in like slide 7's line:
+   opacity and 24 px, 0.9 s. */
+.s2 .s2-story-line {
+  margin: 0;
+  color: var(--p-ink);
+  font-size: 62px;
+  line-height: 1.12;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.9s var(--p-ease),
+    transform 0.9s var(--p-ease);
+}
+.s2 .s2-story-line.is-on {
+  opacity: 1;
+  transform: none;
+}
+/* Over the limit: red (large type, so red text is allowed). */
+.s2 .s2-story-red {
+  color: var(--p-red);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.s2.s2-still .s2-story,
+.s2.s2-still .s2-story-line {
+  transition: none;
+}
