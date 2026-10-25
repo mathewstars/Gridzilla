@@ -1,6 +1,6 @@
 // Left sidebar of the operations console. Adapted from the 21st.dev "Sidebar" by @wensity (design/21st/sidebar-shell.tsx):
-// live badges and an active pill that glides between items (motion layoutId). Four entries (Operations, Diet plan, Real
-// plant, Presentation); City, Autopilot, Manual, Households and Log sit under one More menu at the bottom (Weather by URL only, #/weather). Full
+// live badges and an active pill that glides between items (motion layoutId). Three entries (Operations, Diet plan, Real
+// plant); City, Autopilot, Manual, Households and Log sit under one More menu at the bottom (Weather by URL only, #/weather). Full
 // width at >= 1240, an icon rail with hover labels below that, a Menu button on phones (shell.css).
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
@@ -13,7 +13,6 @@ import {
   Lightning,
   List,
   ListBullets,
-  ProjectorScreenChart,
   Robot,
   SlidersHorizontal,
   SolarPanel,
@@ -29,7 +28,6 @@ const MAIN: Item[] = [
   { r: "ops", label: "Operations", icon: Broadcast },
   { r: "plan", label: "Diet plan", icon: ChartLineDown },
   { r: "plant", label: "Real plant", icon: SolarPanel },
-  { r: "demo", label: "Presentation", icon: ProjectorScreenChart },
 ];
 const MORE: Item[] = [
   { r: "city", label: "City", icon: GridFour },
@@ -41,11 +39,6 @@ const MORE: Item[] = [
 
 const href = (r: Route) => (r === "ops" ? "#/" : `#/${r}`);
 
-// Key D anywhere in the console flips between the demo view and Operations (never while typing in a field).
-function typing(t: EventTarget | null) {
-  const el = t as HTMLElement | null;
-  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
-}
 
 /** rail: always the thin icon rail (the < 1240 px look) at every width above phones; phones keep their top header. */
 export default function Sidebar({ route, ops, rail = false }: { route: Route; ops: Ops; rail?: boolean }) {
@@ -67,16 +60,6 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
     setOpen(false);
     setMore(false);
   }, [route]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "d" && e.key !== "D") return;
-      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || e.defaultPrevented || typing(e.target)) return;
-      e.preventDefault();
-      window.location.hash = /^#\/demo\b/.test(window.location.hash) ? "#/" : "#/demo";
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   // More menu: a press outside closes it; Escape closes it and hands focus back to the More button.
   useEffect(() => {
