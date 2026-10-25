@@ -6,10 +6,10 @@ Needs the local stack running (`dev/stack.sh start`) and Google Chrome installed
 
 | gate | script | passes when |
 |---|---|---|
-| G1 | typecheck + `npm run build`, then `live.mjs` | clean build; no console error or warning in 60 s live |
+| G1 | typecheck + `npm run build`, then `live.mjs` and `demo.mjs` | clean build; no console error or warning in 60 s live (`demo.mjs`: #/demo console and bare, dark and light, at once) |
 | G2 | `truth.mjs` | every visible number traces to the API payload the page fetched and matches it |
-| G3 | `layout.mjs` | 11 sizes x scenarios 1-4 + 20 s live: 0 overlapping text, 0 clipped, 0 cut, 0 outside its card, 0 wider than the viewport, one screen at >= 1440x900 |
-| G4 | visual judges (Workflow, outside this folder) | over the G3 screenshots |
+| G3 | `layout.mjs` | 11 sizes x scenarios 1-4 + 20 s live: 0 overlapping text, 0 clipped, 0 cut, 0 outside its card, 0 wider than the viewport, 0 scroll cuts (visible text crossing the bottom or right edge of its nearest scrolling box; a `data-scroll="page"` column is exempt), 0 series outside their plot (a chart marking `data-plot` + `data-series` keeps every line and area inside the plot rect, measured before clipping), one screen at >= 1440x900. `--hash /demo` checks the demo, `--bare` the page alone (?bare=1) |
+| G4 | `demo.mjs` (legend keys); visual judges (Workflow, outside this folder) | both demo legends list all their keys at 2 s and 20 s after load (the hero's six, muted while a series has no data; the Blatnica key), console and bare, dark and light; the judges look over the G3 screenshots |
 | G5 | `live.mjs` | live data on screen within 3 s of opening (3 cold loads); >= 50 fps at 1440x900, 3D paused off-screen, 10 s recording per size shows real change |
 
 ## Data-truth convention (G2)

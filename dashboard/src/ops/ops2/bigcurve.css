@@ -1,35 +1,42 @@
-/* The big curve (dad's Presentation chart): his colours and line weights, our theme and type. Dark is the default. */
-.bc { --bc-with: #0071e3; --bc-without: #86868b; --bc-eaten: #ff9500; --bc-limit: #ff3b30; --bc-plan: #248a3d;
-  display: flex; flex-direction: column; gap: 8px; padding: 12px 18px 10px; height: 100%; min-height: 0; color: var(--color-ink); }
-:root[data-theme="dark"] .bc { --bc-with: #0a84ff; --bc-without: #a1a1a6; --bc-eaten: #ff9f0a; --bc-limit: #ff453a; --bc-plan: #30d158; }
+/* The big curve (dad's Presentation chart): his colours and line weights, our theme and type. Dark is the default.
+   The hero of Operations: title and limit, the one-sentence state line, his chips, the chart with the ring beside it,
+   the legend chips in words. */
+.bc { --bc-with: #0071e3; --bc-without: #86868b; --bc-eaten: #ff9500; --bc-limit: #ff3b30;
+  display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 14px; height: 100%; min-height: 0; color: var(--color-ink); }
+:root[data-theme="dark"] .bc { --bc-with: #0a84ff; --bc-without: #a1a1a6; --bc-eaten: #ff9f0a; --bc-limit: #ff453a; }
 
-.bc-head { display: flex; flex-wrap: wrap; align-items: baseline; flex: none; justify-content: space-between; gap: 4px 20px; }
-.bc-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; font-size: 1.0625rem; color: var(--color-secondary); }
-.bc-title h2 { margin: 0; font-size: 1.0625rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); }
-.bc-rating { font-variant-numeric: tabular-nums; }
-.bc-nums { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; }
-.bc-num { display: flex; align-items: baseline; gap: 8px; }
-.bc-num b { font-size: 1.5rem; line-height: 1; font-weight: 600; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
-.bc-num span { font-size: 1rem; color: var(--color-secondary); }
+.bc-head { display: flex; flex-direction: column; gap: 4px; flex: none; min-width: 0; }
+.bc-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px; min-width: 0; }
+.bc-title h2 { margin: 0; font-size: max(18px, 1.1875rem); line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; color: var(--color-ink); }
+.bc-rating { font-size: max(16px, 1rem); color: var(--color-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bc-sentence { margin: 0; max-width: 62rem; font-size: clamp(1.125rem, 0.95rem + 0.45vw, 1.5rem); line-height: 1.3; font-weight: 500; letter-spacing: -0.01em; color: var(--color-ink); }
+.bc-sentence [data-src] { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.bc-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: none; }
-.bc-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--color-fill);
-  background: var(--color-fill-2); color: var(--color-ink); font: inherit; font-size: 0.875rem; font-weight: 500; white-space: nowrap; cursor: pointer;
+.bc-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+.bc-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid transparent;
+  background: var(--color-fill-2); color: var(--color-ink); font: inherit; font-size: max(14px, 0.875rem); font-weight: 500; white-space: nowrap; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
   transition: background-color 0.2s var(--ease-apple), border-color 0.2s var(--ease-apple), transform 0.12s var(--ease-apple); }
 .bc-chip:hover { background: var(--color-fill); }
 .bc-chip:active { transform: scale(0.97); background: var(--color-fill-press); }
 .bc-chip:focus-visible { outline: 2px solid var(--bc-with); outline-offset: 2px; }
-.bc-chip.vienna { font-weight: 700; color: var(--bc-eaten); letter-spacing: 0.04em; }
+.bc-chip.vienna { font-weight: 700; letter-spacing: 0.04em; }
 .bc-chip.sub { font-weight: 600; }
-.bc-chip.in { border-color: var(--color-secondary); }
-.bc-chip.on { border-color: var(--bc-eaten); box-shadow: inset 0 0 0 1px var(--bc-eaten); }
-.bc-chip.bc-plan.on { border-color: var(--bc-plan); box-shadow: inset 0 0 0 1px var(--bc-plan); color: var(--bc-plan); }
+.bc-chip.in { border-color: var(--color-fill-press); }
+.bc-chip.on { background: var(--color-ink); color: var(--color-card); border-color: var(--color-ink); }
+.bc-chip.on:hover { background: var(--color-ink); }
 .bc-tone { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .bc-sig { color: var(--bc-eaten); }
 
-.bc-plot { position: relative; flex: 1 1 auto; min-height: 260px; }
-@media (min-width: 1240px) and (min-height: 860px) { .bc-plot { min-height: 0; } }
+/* chart left, ring right; the ring is sized by the window too so the chart keeps the room */
+.bc-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; }
+@media (min-width: 900px) { .bc-body { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.bc-plot { position: relative; min-height: 260px; height: 100%; }
 .bc-plot svg { position: absolute; inset: 0; display: block; overflow: visible; }
+.bc-ring { width: clamp(180px, 18vw, 300px); justify-self: center; }
+@media (min-width: 1240px) { .bc-ring { width: min(clamp(180px, 16vw, 300px), 26vh); } }
+/* one screen: the plot takes exactly what the hero leaves it, never more */
+@media (min-width: 1240px) and (min-height: 860px) { .bc-body { grid-template-rows: minmax(0, 1fr); } .bc-plot { min-height: 0; } }
 .bc-wait { margin: 0; padding-top: 40px; text-align: center; font-size: 1rem; color: var(--color-secondary); }
 .bc-axis { font-size: 14px; fill: var(--color-secondary); font-variant-numeric: tabular-nums; }
 .bc-grid { stroke: var(--color-fill); stroke-width: 1; }
@@ -38,7 +45,6 @@
 .bc-without { fill: none; stroke: var(--bc-without); stroke-width: 2.5; stroke-dasharray: 6 4; stroke-linejoin: round; }
 .bc-eaten { fill: var(--bc-eaten); opacity: 0.4; }
 .bc-limit { stroke: var(--bc-limit); stroke-width: 2; stroke-dasharray: 6 4; }
-.bc-planline { fill: none; stroke: var(--bc-plan); stroke-width: 3; stroke-linejoin: round; }
 .bc-band { fill: var(--bc-eaten); opacity: 0.08; }
 .bc-hover line { stroke: var(--color-secondary); stroke-width: 1; }
 .bc-hover .dot-with { fill: var(--bc-with); stroke: var(--color-card); stroke-width: 2; }
@@ -49,12 +55,24 @@
 .bc-tip-t { color: var(--color-ink); font-weight: 600; }
 .bc-tip i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 
-.bc-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; font-size: 0.875rem; color: var(--color-secondary); }
-.bc-legend span { display: inline-flex; align-items: center; gap: 7px; }
-.bc-chips .bc-plan { margin-left: auto; color: var(--color-secondary); }
-.bc-legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; flex: none; }
+/* the legend: one chip per line, in words; a key whose line is not drawn stays in place, dimmed */
+.bc-legend { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0; padding: 0; list-style: none;
+  font-size: max(14px, 0.875rem); color: var(--color-secondary); }
+.bc-legend li { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px 0 10px; border-radius: 14px; background: var(--color-fill-2); white-space: nowrap; }
+.bc-legend li.is-muted { opacity: 0.45; }
+@media (max-width: 1700px) { .bc-legend .bc-long { display: none; } }
+.bc-legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; flex: none; }
+.bc-legend i.is-dash { height: 0; border-radius: 0; background: none; border-top: 2.5px dashed; }
+.bc-legend i.is-box { width: 12px; height: 12px; border-radius: 3px; opacity: 0.6; }
 .sw-with { background: var(--bc-with); }
 .sw-without { background: var(--bc-without); }
+.bc-legend .sw-without { border-color: var(--bc-without); }
 .sw-eaten { background: var(--bc-eaten); }
 .sw-limit { background: var(--bc-limit); }
-.sw-plan { background: var(--bc-plan); }
+.bc-legend .sw-limit { border-color: var(--bc-limit); }
+
+/* short windows: the hero gives a little first */
+@media (min-width: 1240px) and (max-height: 760px) {
+  .bc { padding: 14px 16px 12px; gap: 8px; }
+  .bc-plot { min-height: 220px; }
+}

@@ -167,7 +167,7 @@ type Placed = Map<string, Rect>;
 type XYPt = [number, number];
 
 /** A short legend swatch: solid, dashed, a filled square or the signal bar. */
-function Swatch({ color, dashed, width, kind = "line", opacity }: { color: string; dashed?: boolean; width?: number; kind?: "line" | "fill" | "bar"; opacity?: number }) {
+export function Swatch({ color, dashed, width, kind = "line", opacity }: { color: string; dashed?: boolean; width?: number; kind?: "line" | "fill" | "bar"; opacity?: number }) {
   if (kind === "fill")
     return <span className="inline-block shrink-0 rounded-[0.2em]" style={{ width: "0.9em", height: "0.9em", background: color, opacity: opacity ?? 0.45 }} aria-hidden />;
   if (kind === "bar")
@@ -184,10 +184,26 @@ function Swatch({ color, dashed, width, kind = "line", opacity }: { color: strin
   );
 }
 
-/** One legend entry: key, label in secondary, live value in ink. */
-function Key({ swatch, label, children }: { swatch: ReactNode; label: string; children?: ReactNode }) {
+/** The stage legend while the curve's history is still loading: dad's six keys, all muted, so the legend is there from
+ *  the first frame and never jumps when the lines arrive. Same container, swatches and type as the stage legend. */
+export function WaitLegend() {
   return (
-    <span className="inline-flex min-w-0 items-center gap-[0.4em] whitespace-nowrap">
+    <div className="lc-legend flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]" style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: "0.75em" }}>
+      <Key swatch={<Swatch color={P.blue} width={3.5} />} label="With Gridzilla (measured)" muted />
+      <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without Gridzilla (what the houses would draw)" muted />
+      <Key swatch={<Swatch color="rgb(232,137,58)" kind="fill" opacity={0.43} />} label="Peak eaten" muted />
+      <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" muted />
+      <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" muted />
+      <Key swatch={<Swatch color={P.red} width={2.5} dashed />} label="Limit" muted />
+    </div>
+  );
+}
+
+/** One legend entry: key, label in secondary, live value in ink. `muted` = the key stays in place, dimmed, while its
+ *  series has no data yet (the legend never jumps); data-key / data-muted are what the G4 legend gate reads. */
+export function Key({ swatch, label, children, muted }: { swatch: ReactNode; label: string; children?: ReactNode; muted?: boolean }) {
+  return (
+    <span className="lc-key inline-flex min-w-0 items-center gap-[0.4em] whitespace-nowrap" data-key={label} data-muted={muted ? "1" : undefined} style={muted ? { opacity: 0.4 } : undefined}>
       {swatch}
       <span style={{ color: P.secondary }}>{label}</span>
       {children != null && (
@@ -783,12 +799,13 @@ export default function LiveCurve({
       className="lc-legend flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
       style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
     >
-      {totalPts.length > 1 && <Key swatch={<Swatch color={lineC} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla (measured)" : "Load now"} />}
-      {(basePts.length > 1 || naivePts.length > 1) && <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without Gridzilla (what the houses would draw)" />}
-      {((anyEaten && !!band) || (planEats && !!planBand)) && <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" />}
-      {(anyMoved || planMoves) && <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" />}
-      {usePlan && level != null && planLine.length > 1 && <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" />}
-      {keyLim && <Key swatch={<Swatch color={P.red} width={2.5} dashed />} label="Limit" />}
+      {/* dad's six keys, always in the same places; a series with no data yet shows muted instead of missing */}
+      <Key swatch={<Swatch color={lineC} width={3.5} />} label="With Gridzilla (measured)" muted={totalPts.length < 2} />
+      <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without Gridzilla (what the houses would draw)" muted={!(basePts.length > 1 || naivePts.length > 1)} />
+      <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" muted={!((anyEaten && !!band) || (planEats && !!planBand))} />
+      <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" muted={!(anyMoved || planMoves)} />
+      <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" muted={!(usePlan && level != null && planLine.length > 1)} />
+      <Key swatch={<Swatch color={P.red} width={2.5} dashed />} label="Limit" muted={!keyLim} />
       {win && winOn && !winLabelShown && (
         <Key swatch={<Swatch color={P.ink} kind="bar" />} label="Signal until">
           <span data-src="axis">{hhmm(win.t1)}</span>

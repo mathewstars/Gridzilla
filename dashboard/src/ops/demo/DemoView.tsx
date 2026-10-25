@@ -2,17 +2,18 @@
 // live curve and ring, one sentence of state), the AI's steps and the signals running, the newest three events, and the
 // whole city as a strip of coloured dots. Auto-picks the most interesting transformer; Up/Down override it.
 // Exported as DemoView for the pitch deck (it runs its own data hook when no console data is passed in).
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { post, type FlattenPlan, type State } from "../../api";
 import { hhmm, nice } from "../../model";
-import LiveCurve from "../../stage/kit/LiveCurve";
+import LiveCurve, { WaitLegend } from "../../stage/kit/LiveCurve";
 import LoadRing from "../../stage/kit/LoadRing";
 import AiSteps from "../../stage/kit/AiSteps";
 import { ActiveList } from "../control/SignalCard";
 import { Btn, Result, useAction, useNow } from "../control/ui";
 import FeedStrip from "../now/FeedStrip";
 import Tonight from "../tonight/Tonight";
-import BlatnicaLive from "./BlatnicaLive";
+import BlatnicaLive, { PlantHero } from "./BlatnicaLive";
+import { useLiveBlatnica } from "./live";
 import { cellOf } from "../city/cityData";
 import CityDots from "../ops2/Dots";
 import { loadTone } from "../../stage/palette";
@@ -41,38 +42,51 @@ function ranked(s: State): string[] {
 
 function Demo({ ops }: { ops: Ops }) {
   const s = ops.s as State;
-  const order = useMemo(() => ranked(s), [s]);
-  const [manual, setManual] = useState<string | null>(null);
-  const auto = order[0] ?? "";
-  const tf = manual && s.tree[manual] ? manual : auto;
+  // Picked ONCE at load (the autopilot's target, else the highest forecast peak) and then held: a re-ranking never moves
+  // the view. Only Up/Down (through the order as it was at load) or a click on a city dot changes it.
+  const [order] = useState(() => ranked(s));
+  const [picked, setPicked] = useState(() => order[0] ?? "");
+  const tf = s.tree[picked] ? picked : (order.find((t) => s.tree[t]) ?? "");
   // keep the console's data hook on the transformer this view shows (history, plan)
   useEffect(() => {
     if (tf && tf !== ops.tf) ops.select(tf);
   }, [tf, ops]);
+  // Blatnica mode: the real plant in the hero. In: key B or a click on the Blatnica card; out: B again, Up/Down or a
+  // city dot. Nothing switches by itself. ?hero=blatnica opens the demo in it (the gates, a deck link).
+  const plant = useLiveBlatnica();
+  const [showPlant, setShowPlant] = useState(() => new URLSearchParams(location.search).get("hero") === "blatnica");
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        setShowPlant((v) => !v);
+        return;
+      }
       if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       e.preventDefault();
-      const i = order.indexOf(tf);
-      setManual(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
+      if (showPlant) return setShowPlant(false); // back to the transformer that was showing
+      if (!order.length) return;
+      const i = Math.max(0, order.indexOf(tf));
+      setPicked(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
-  }, [order, tf]);
+  }, [order, tf, showPlant]);
 
   return (
     <div className="demo">
       <div className="demo-left">
         <Tonight ops={ops} compact />
-        <Hero ops={ops} tf={tf} />
+        {showPlant ? <PlantHero plant={plant} /> : <Hero ops={ops} tf={tf} />}
         <FeedStrip ops={ops} />
       </div>
       <div className="demo-right">
         <NowCard ops={ops} />
-        <BlatnicaLive />
+        <BlatnicaLive plant={plant} open={showPlant} onOpen={() => setShowPlant(true)} />
       </div>
-      <CityDots s={s} ops={ops} selected={tf} onPick={setManual} />
+      <CityDots s={s} ops={ops} selected={showPlant ? "" : tf} onPick={(n) => { setPicked(n); setShowPlant(false); }} />
     </div>
   );
 }
@@ -163,7 +177,10 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           {ready ? (
             <LiveCurve key={tf} stage s={s} history={ops.history} node={tf} header={false} plan={plan} signal={c.signal} ground="var(--color-card)" height="100%" span={{ past: 6, future: 12, narrow: { past: 3, future: 6 } }} legend="above" minPlot="var(--demo-plot-min, 12rem)" planSrc={`flatten:${tf}`} />
           ) : (
-            <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            <>
+              <WaitLegend />
+              <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            </>
           )}
         </div>
         <div className="demo-ring" style={{ color: loadTone(c.pct) }} data-src={`state/aggregates/${tf}/load_pct`} data-val={c.pct == null ? undefined : String(c.pct)}>

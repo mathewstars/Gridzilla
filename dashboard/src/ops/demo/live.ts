@@ -1,18 +1,18 @@
 // The demo's Blatnica card reads the REAL plant from the live server, whatever the rest of the demo reads.
-// Base: same origin on gridzilla.victronlab.sk, the ?api= base when set, else the dev proxy /live-api.
+// Base: same origin on gridzilla.victronlab.sk, the ?api= base when set, the dev proxy /live-api under `npm run dev`;
+// anywhere else (a local platform build) there is no route to the plant: no request, the card says it is waiting.
 // GET only (never a POST from here). Each payload stays on window.__gz as "live:state" / "live:history" so the G2
 // truth gate can trace every number the card shows (data-src="live:state/...").
 import { useEffect, useState } from "react";
-import { API_BASE, type Ack, type DevPoint, type Signal } from "../../api";
+import { API_BASE, type Ack, type DevPoint, type LogEntry, type Signal } from "../../api";
 
 export const LIVE_HH = "blatnica";
 export const LIVE_DEVICE = "real-powerplant-blatnica";
 
-export const LIVE_BASE = (() => {
-  if (typeof location === "undefined") return "/live-api";
-  if (location.hostname === "gridzilla.victronlab.sk") return "/api";
+export const LIVE_BASE: string | null = (() => {
+  if (typeof location !== "undefined" && location.hostname === "gridzilla.victronlab.sk") return "/api";
   if (API_BASE) return `${API_BASE}/api`;
-  return "/live-api";
+  return import.meta.env.DEV ? "/live-api" : null;
 })();
 
 const STATE_PATH = `/state?hh=${LIVE_HH}&tree=0`;
@@ -37,11 +37,12 @@ export interface LiveHousehold {
   path?: string[];
   kwh?: number;
   telemetry: LiveTelemetry | null;
-  ack: (Partial<Pick<Ack, "status" | "reason" | "seq" | "verified">>) | null;
+  ack: (Partial<Pick<Ack, "status" | "reason" | "seq" | "verified">> & { applied?: { import_max_kw?: number | null; export_max_kw?: number | null } }) | null;
 }
 export interface LiveState {
   households?: Record<string, LiveHousehold>;
   active?: Record<string, Pick<Signal, "seq" | "mode" | "segment">>;
+  log?: LogEntry[];
 }
 export interface LiveHistory {
   devices?: Record<string, DevPoint[]>;
@@ -79,6 +80,7 @@ function useLivePoll<T>(path: string, key: string, ms: number): { data: T | null
         setRes({ data: null, failed: true });
       }
     };
+    if (LIVE_BASE == null) return; // no route to the plant from here
     load();
     const id = window.setInterval(load, ms);
     return () => {

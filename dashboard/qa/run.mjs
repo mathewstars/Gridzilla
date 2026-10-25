@@ -1,5 +1,5 @@
 // `npm run qa`: the stage gates in order (goal.md). G1 build + typecheck, G2 data truth, G3 layout matrix, G1 runtime + G5 motion and
-// performance. Stops at the first failing gate unless --all. Visual judging (G4) runs separately, over the screenshots this leaves.
+// performance, then the demo gates (layout console + bare, G1 soak, G4 legend keys). Stops at the first failing gate unless --all.
 // usage: npm run qa [-- --dev] [-- --quick]   (--quick: current state only, a few sizes, no recordings; for builders)
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -16,6 +16,10 @@ const steps = [
   ["G2 truth", `node qa/truth.mjs${flag} --out ${out}/truth${quick ? " --sizes 1440x900" : ""}`, true],
   ["G3 layout", `node qa/layout.mjs${flag} --out ${out}/layout${quick ? " --states quick --sizes 1240x635,1022x884,1440x900,390x844" : ""}`, true],
   ["G1+G5 live", `node qa/live.mjs${flag} --out ${out}/live${quick ? " --g1-seconds 15 --no-rec" : ""}`, true],
+  // the demo (#/demo) in the console and bare, both themes: layout incl. scroll cuts, then the soak and the legend keys
+  ["G3 demo", `node qa/layout.mjs${flag} --out ${out}/demo-layout --states quick --theme dark,light --hash /demo --sizes 1920x1080,1440x900,1240x635`, true],
+  ["G3 demo bare", `node qa/layout.mjs${flag} --out ${out}/demo-bare --states quick --theme dark,light --hash /demo --bare --sizes 1920x1080,1440x900,1240x635`, true],
+  ["G1 soak + G4 legend keys", `node qa/demo.mjs${flag}${quick ? " --seconds 20" : ""}`, true],
 ];
 const summary = [];
 let failed = false;
