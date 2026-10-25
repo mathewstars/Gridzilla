@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:vercel": "vite build --base / --outDir dist-vercel --emptyOutDir",
+    "build": "tsc -b && VITE_SITE_ORIGIN=https://gridzilla.victronlab.sk/static/site vite build",
+    "build:vercel": "VITE_SITE_ORIGIN=https://gridzilla-two.vercel.app vite build --base / --outDir dist-vercel --emptyOutDir",
+    "og": "node og/render.mjs",
     "typecheck": "tsc -b",
     "preview": "vite preview --port 5181 --strictPort",
     "qa": "node qa/run.mjs",
+    "qa:setup": "playwright-core install webkit",
     "shots": "node qa/console-shots.mjs"
   },
   "dependencies": {

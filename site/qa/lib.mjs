@@ -1,5 +1,5 @@
 // Shared bits of the site gates (qa/README.md). Headless Chrome through playwright-core, like dashboard/qa/lib.mjs.
-import { chromium } from "playwright-core";
+import { chromium, webkit, devices } from "playwright-core";
 
 export const SIZES = ["2560x1440", "1440x900", "1024x768", "390x844", "390x667", "430x932"];
 /** The port `vite preview` serves the build on (qa/run.mjs starts it); GZ_PORT moves it when 5181 is taken. */
@@ -15,6 +15,15 @@ export function arg(k, d) {
 }
 
 export const launch = () => chromium.launch({ channel: "chrome", headless: true });
+/** WebKit, the engine of Safari on every iPhone (`npm run qa:setup` installs it once). */
+export const launchWebkit = () => webkit.launch({ headless: true });
+
+/** A page on a real device profile (playwright's devices[name]: its viewport, DPR 3, touch, mobile, user agent). */
+export async function devicePage(browser, name) {
+  const ctx = await browser.newContext({ ...devices[name] });
+  const page = await ctx.newPage();
+  return { ctx, page, width: devices[name].viewport.width, height: devices[name].viewport.height };
+}
 
 export async function newPage(browser, size, opts = {}) {
   const [width, height] = size.split("x").map(Number);

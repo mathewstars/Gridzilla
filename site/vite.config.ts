@@ -6,6 +6,10 @@ import tailwindcss from "@tailwindcss/vite";
 // live server shows them at /static/site/ after a git pull, with no Node there.
 // In dev, /api is proxied to a local platform (GZ_API, default :8190) and /live-api to the live server, GET only,
 // for the real plant tile; GZ_LIVE_API points it elsewhere (a dead port in the G9 gate).
+// the origin the link-preview tags point at (index.html %VITE_SITE_ORIGIN%); the build scripts set it, this is the
+// fallback for `vite` and `vite preview`
+process.env.VITE_SITE_ORIGIN ||= "https://gridzilla.victronlab.sk/static/site";
+
 export default defineConfig({
   base: "/static/site/",
   plugins: [react(), tailwindcss()],

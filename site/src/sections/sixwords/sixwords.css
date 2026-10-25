@@ -55,8 +55,9 @@
 /* STRETCH: the rationing order as four small bars */
 .sw-bar { background: color-mix(in srgb, var(--tone) 45%, transparent); border-radius: 3px; }
 
-/* phone and tablet: a scroll-snap row of six cards. A card's content shows only while it is the current card, so a
-   neighbour peeking in at the edge is an empty tile and no text ever sits outside the screen (it fades, then hides). */
+/* phone and tablet: a scroll-snap row of six cards, one card at a time (no peek: an empty neighbour read as a dark bar
+   on the owner's phone); the "1 of 6" counter and the arrows say there are more. A card's content shows only while it
+   is the current card, so no text ever sits outside the screen. */
 .sw-row {
   display: flex;
   gap: 12px;
@@ -68,7 +69,7 @@
 }
 .sw-row::-webkit-scrollbar { display: none; }
 .sw-card {
-  flex: 0 0 calc(100% - 40px);
+  flex: 0 0 100%;
   scroll-snap-align: start;
 }
 @media (min-width: 768px) {

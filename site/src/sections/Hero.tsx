@@ -31,7 +31,7 @@ export default function Hero() {
 
   return (
     <header id="top" className="hero relative isolate flex flex-col overflow-hidden">
-      <div className="relative z-10 flex flex-col items-center px-4 pt-[clamp(112px,16vh,200px)] text-center md:px-10">
+      <div className="relative z-10 flex flex-col items-center px-4 pt-24 text-center md:px-10 md:pt-[clamp(112px,16vh,200px)]">
         <h1 className="t-display hero-h1 m-0">
           {LINES.map((l, i) => (
             <motion.span key={i} className="block" {...rise(i)}>
@@ -42,7 +42,7 @@ export default function Hero() {
         <motion.p className="hero-sub mb-0 mt-6 max-w-[46ch] text-[rgb(245_245_247/0.9)] md:mt-7" {...rise(2)}>
           One bounded limit from the operator. Every battery, charger and heat pump on the street keeps the transformer under its rating.
         </motion.p>
-        <motion.div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 min-[480px]:w-auto min-[480px]:flex-row min-[480px]:items-center md:mt-9" {...rise(3)}>
+        <motion.div className="hero-ctas mt-7 flex w-full flex-col items-stretch justify-center gap-2.5 min-[360px]:w-auto min-[360px]:flex-row min-[360px]:items-center md:mt-9 md:gap-3" {...rise(3)}>
           <PillLink href={LINKS.console} size="lg" badge>
             Open the console
           </PillLink>
@@ -53,7 +53,7 @@ export default function Hero() {
       </div>
 
       {/* the real console, rising out of the hero's bottom edge (the hero crops its lower part, the mask fades it out) */}
-      <div className="hero-device-well relative z-0 mt-10 min-h-[180px] flex-1 md:mt-12">
+      <div className="hero-device-well relative z-0 mt-8 min-h-[180px] flex-1 md:mt-12">
         <motion.div
           className="hero-device absolute left-1/2 top-0 -translate-x-1/2"
           initial={reduce ? false : { opacity: 0, y: 60 }}

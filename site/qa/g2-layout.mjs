@@ -2,8 +2,10 @@
 // container, no horizontal page scroll, the hero headline on 2 lines (3 on a phone: ONE SIGNED LIMIT. / THE WHOLE /
 // STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up, every section
 // title centred on the page (round 4: the page reads as one centred column), and under 768 px every tap target at least 44 x 44 (links inside a sentence
-// excepted, as WCAG 2.5.8 does). Detector after dashboard/qa/layout.mjs.
-import { SIZES, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
+// excepted, as WCAG 2.5.8 does). Besides the sizes it runs on a real iPhone 14 profile (DPR 3, touch, mobile) in both
+// Chrome and WebKit (Safari's engine), and checks there that the fixed nav strip is opaque and that no section's text
+// sits behind it once you scroll to that section. Detector after dashboard/qa/layout.mjs.
+import { SIZES, SITE, arg, devicePage, launch, launchWebkit, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
 const sizes = arg("sizes") ? String(arg("sizes")).split(",") : SIZES;
@@ -114,8 +116,45 @@ function detect(W) {
   return F;
 }
 
+// the nav strip, scrolled to each section in turn: opaque enough to hide what passes under it, and the section's own
+// text lands below it (scroll-margin), never behind it
+function navCheck() {
+  const nav = document.querySelector("nav[aria-label=Main]");
+  const out = [];
+  const bg = getComputedStyle(nav).backgroundColor.match(/[\d.]+/g)?.map(Number) || [0, 0, 0, 0];
+  if ((bg[3] ?? 1) < 0.85) out.push(`nav strip background alpha ${bg[3] ?? 1} (needs 0.85 or more)`);
+  const nb = nav.getBoundingClientRect();
+  for (const sec of document.querySelectorAll("main section[id]")) {
+    sec.scrollIntoView({ block: "start", behavior: "instant" });
+    const h = sec.querySelector("h2");
+    if (!h) continue;
+    const r = h.getBoundingClientRect();
+    if (r.top < nb.bottom - 1 && r.bottom > nb.top) out.push(`#${sec.id} title runs under the nav (title top ${Math.round(r.top)}, nav bottom ${Math.round(nb.bottom)})`);
+  }
+  return out;
+}
+
 const browser = await launch();
 const rows = [];
+// the real phones, in both engines
+for (const [engine, open] of [["chromium", () => browser], ["webkit", launchWebkit]]) {
+  let b;
+  try { b = await open(); } catch (e) { rows.push([`${engine} iPhone 14 runs`, false, `${String(e).split("\n")[0]} (npm run qa:setup installs WebKit)`]); continue; }
+  const { ctx, page, width } = await devicePage(b, "iPhone 14");
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(2500);
+  await scrollThrough(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(1200);
+  const f = await page.evaluate(detect, width);
+  for (const [k, v] of Object.entries(f)) rows.push([`${engine} iPhone 14 ${k}`, v.length === 0, v.slice(0, 4).join(" | ")]);
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await page.waitForTimeout(500);
+  const n = await page.evaluate(navCheck);
+  rows.push([`${engine} iPhone 14 nav strip opaque, no section title behind it`, n.length === 0, n.slice(0, 4).join(" | ")]);
+  await ctx.close();
+  if (b !== browser) await b.close();
+}
 for (const size of sizes) {
   const { ctx, page, width } = await newPage(browser, size);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });

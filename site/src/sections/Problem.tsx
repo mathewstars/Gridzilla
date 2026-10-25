@@ -29,14 +29,14 @@ export default function Problem() {
         </Intro>
       </Reveal>
 
-      <Reveal as="figure" className="m-0 mt-12" amount={0.2}>
+      <Reveal as="figure" className="m-0 mt-6 md:mt-12" amount={0.2}>
         <div className="tile p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h3 className="m-0 text-[19px] font-semibold tracking-[-0.015em] md:text-[21px]">{STREET.name}, one street transformer</h3>
               <p className="m-0 mt-1 text-[15px] text-secondary">{STREET.houses} houses, the next 24 hours as the platform plans them</p>
             </div>
-            <ul className="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-[14px] text-secondary">
+            <ul className="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-[15px] text-secondary lg:text-[14px]">
               {LEGEND.map((l) => (
                 <li key={l.label} className="flex items-center gap-2 whitespace-nowrap">
                   <span className={`inline-block w-5 ${l.swatch}`} aria-hidden="true" />
@@ -53,7 +53,7 @@ export default function Problem() {
             </Suspense>
           </div>
         </div>
-        <figcaption className="mx-auto mt-5 max-w-[60ch] text-center text-[15px] text-secondary md:mt-6">
+        <figcaption className="mx-auto mt-5 max-w-[60ch] text-center text-[14px] text-secondary md:mt-6 md:text-[15px]">
           One street in {STREET.name}, from the platform&rsquo;s plan: the evening peak drops from {r(STREET.peakWithoutKw)} to {r(STREET.peakWithKw)} kW, under its {STREET.ratingKw} kW transformer. Same houses, same cars, same weather.
         </figcaption>
       </Reveal>

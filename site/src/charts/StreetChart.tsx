@@ -42,7 +42,7 @@ function Tip({ active, payload }: TooltipProps<number, string>) {
   const p = active && payload?.[0]?.payload as Pt | undefined;
   if (!p) return null;
   return (
-    <div className="tile px-4 py-3 text-[14px] leading-snug">
+    <div className="tile px-4 py-3 text-[15px] leading-snug lg:text-[14px]">
       <div className="t-num font-semibold text-ink">{hhmm(p.clock)}</div>
       <div className="t-num mt-1 text-secondary">
         With Gridzilla <span className="font-medium text-ink">{kw(p.with)}</span>
@@ -55,6 +55,8 @@ function Tip({ active, payload }: TooltipProps<number, string>) {
 }
 
 export default function StreetChart({ compact = false, from = 0, to = 24, label }: { compact?: boolean; from?: number; to?: number; label: string }) {
+  // axis labels: 14 px below 1024 (the phone pass), 13 as before on a desktop
+  const tickPx = typeof window !== "undefined" && innerWidth < 1024 ? 14 : 13;
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const seen = useInView(ref, { once: true, amount: 0.3 });
@@ -93,7 +95,7 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
               hide={compact}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 13 }}
+              tick={{ fontSize: tickPx }}
               tickMargin={10}
             />
             <YAxis
@@ -103,7 +105,7 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
               hide={compact}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 13 }}
+              tick={{ fontSize: tickPx }}
               width={64}
             />
             {compact && <ReferenceLine y={0} className="gz-zero" strokeWidth={1.5} />}

@@ -56,7 +56,7 @@ const S = {
 };
 
 function Frame({ g, compact, label, xTicks, yTicks = [], unit = "kW", schematic, children }: { g: Geo; compact: boolean; label: string; xTicks: { t: number; text: string }[]; yTicks?: number[]; unit?: string; schematic?: boolean; children: ReactNode }) {
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   return (
     <svg className="sw-chart" viewBox={`0 0 ${g.W} ${g.H}`} width="100%" role="img" aria-label={label}>
       {yTicks.map((v) => (
@@ -96,7 +96,7 @@ const sOf = (pts: Pt[], k: "with" | "without"): Series => pts.map((p) => ({ t: p
 function Support({ compact, label }: { compact: boolean; label: string }) {
   const pts = slice(15, 25);
   const g = geo(compact, pts[0].t, pts[pts.length - 1].t, 0, 300);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   return (
     <Frame g={g} compact={compact} label={label} xTicks={clockTicks(g.t0, g.t1, compact ? 6 : 3)} yTicks={[0, 100, 200, 300]}>
       <line x1={g.l} x2={g.W - g.r} y1={y(g, STREET.ratingKw)} y2={y(g, STREET.ratingKw)} style={S.limit} strokeWidth={1.5} strokeDasharray="6 6" opacity={0.7} />
@@ -120,7 +120,7 @@ function Support({ compact, label }: { compact: boolean; label: string }) {
 function Absorb({ compact, label }: { compact: boolean; label: string }) {
   const pts = slice(PLAN[0].t, NOON_TO + 0.5);
   const g = geo(compact, pts[0].t, pts[pts.length - 1].t, -110, 60);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   const mid = pts[Math.round(pts.length * 0.45)];
   return (
     <Frame g={g} compact={compact} label={label} xTicks={clockTicks(g.t0, g.t1, 2)} yTicks={[-100, -50, 0, 50]}>
@@ -142,7 +142,7 @@ const ease = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
 /** Schematic: the battery filled to 90 % by 17:00 inside the warning window. */
 function Prepare({ compact, label }: { compact: boolean; label: string }) {
   const g = geo(compact, 11, 19, 0, 100);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   const soc: Series = [];
   for (let t = 11; t <= 19.001; t += 0.125) soc.push({ t, v: 22 + 68 * ease((t - 12) / 5) });
   return (
@@ -158,7 +158,7 @@ function Prepare({ compact, label }: { compact: boolean; label: string }) {
 /** Schematic: the street dark, the house islanded (nothing from the grid) and rationing its own load. */
 function Stretch({ compact, label }: { compact: boolean; label: string }) {
   const g = geo(compact, 16, 24, 0, 1.1, false);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   const usual = (t: number) => 0.35 + 0.5 * Math.exp(-((t - 19.2) ** 2) / 3);
   const dark = (t: number) => t >= 18 && t <= 21;
   const us: Series = [], grid: Series = [], rationed: Series = [];
@@ -185,7 +185,7 @@ function Stretch({ compact, label }: { compact: boolean; label: string }) {
 /** Schematic: houses coming back one by one on their own ramps, never in one step. */
 function Recover({ compact, label }: { compact: boolean; label: string }) {
   const g = geo(compact, 0, 1, 0, 1.15, false);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   const starts = [0.04, 0.15, 0.24, 0.36, 0.47, 0.6];
   const levels = [0.92, 0.78, 0.86, 0.7, 0.95, 0.82];
   return (
@@ -205,7 +205,7 @@ function Recover({ compact, label }: { compact: boolean; label: string }) {
 function Release({ compact, label }: { compact: boolean; label: string }) {
   const pts = slice(20, 26);
   const g = geo(compact, pts[0].t, pts[pts.length - 1].t, 0, 300);
-  const fs = compact ? 11 : 12;
+  const fs = compact ? 16 : 12; // compact draws about 260 px wide: 16 units render at 13 px or more
   return (
     <Frame g={g} compact={compact} label={label} xTicks={clockTicks(g.t0, g.t1, compact ? 3 : 2)} yTicks={[0, 100, 200, 300]}>
       <line x1={g.l} x2={g.W - g.r} y1={y(g, STREET.ratingKw)} y2={y(g, STREET.ratingKw)} style={S.limit} strokeWidth={1.5} strokeDasharray="6 6" opacity={0.7} />

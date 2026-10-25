@@ -98,30 +98,31 @@ export default function HowItWorks() {
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
-      <div className="mt-12 lg:grid lg:grid-cols-2 lg:gap-14">
+      <div className="mt-6 md:mt-12 lg:grid lg:grid-cols-2 lg:gap-14">
         <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-2" : ""}`}>
           {STEPS.map((s, i) => (
             <li
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-2 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[46svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[42svh]"}
+              className={still ? "py-8 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-2 lg:items-center lg:gap-14" : "py-8 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[46svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[42svh]"}
             >
-              <Reveal>
+              <Reveal className="text-center lg:text-left">
                 <h3
-                  className={`m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] transition-colors duration-[400ms] motion-reduce:transition-none md:text-[32px] ${active === i || still ? "text-ink" : "text-ink lg:text-tertiary"}`}
+                  className={`m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] transition-colors duration-[400ms] motion-reduce:transition-none max-md:text-[22px] md:text-[32px] ${active === i || still ? "text-ink" : "text-ink lg:text-tertiary"}`}
                   aria-current={active === i && !still ? "step" : undefined}
                 >
                   {s.title}
                 </h3>
-                <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
+                <p className="mx-auto mb-0 mt-3 max-w-[44ch] text-[16px] text-secondary md:mt-4 md:text-[17px] lg:mx-0">{s.body}</p>
               </Reveal>
               {/* phone and tablet (and every width under reduced motion): the screenshot with its own step */}
-              <figure className={`m-0 mt-8 ${still ? "lg:mt-0" : "lg:hidden"}`}>
-                <div className="overflow-hidden rounded-card shadow-card">
-                  <Shot s={s} className="h-auto w-full" />
+              <figure className={`m-0 mt-6 ${still ? "lg:mt-0" : "lg:hidden"}`}>
+                {/* on a phone the whole panel shows, contained in a 16:10 tile on the tile ground (the owner's phone pass) */}
+                <div className="relative overflow-hidden rounded-card shadow-card max-md:aspect-[16/10] max-md:bg-surface">
+                  <Shot s={s} className="h-auto w-full max-md:absolute max-md:inset-0 max-md:size-full max-md:object-contain" />
                 </div>
-                <figcaption className="mt-4 text-[14px] text-secondary">{s.caption}</figcaption>
+                <figcaption className="mt-4 text-center text-[14px] text-secondary lg:text-left">{s.caption}</figcaption>
               </figure>
             </li>
           ))}

@@ -93,7 +93,8 @@
   }
   ::selection { background: var(--color-accent); color: var(--color-on-ink); }
   :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-page), 0 0 0 5px var(--color-ink); border-radius: 8px; }
-  [id] { scroll-margin-top: 72px; } /* under the fixed nav bar */
+  [id] { scroll-margin-top: 72px; } /* anchors land under the fixed nav bar, not behind it */
+  @media (max-width: 1023px) { [id] { scroll-margin-top: 88px; } .t-lead { font-size: 17px; } }
 }
 
 @layer components {
@@ -138,6 +139,7 @@
     border: 0;
     transition: background-color 0.15s linear, transform 0.25s var(--ease-out-expo), box-shadow 0.25s var(--ease-out-expo), color 0.15s linear;
     -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
     user-select: none;
   }
   .pill:hover { transform: translateY(-1px); }
@@ -201,6 +203,15 @@
   .pill:hover, .pill:active, .card:hover { transform: none; }
   .pill:hover .pill-icon { transform: none; }
   .live-dot::after { animation: none; display: none; }
+}
+
+/* phone sizes (owner's phone pass): titles and body a step smaller so the page reads at phone scale; the team's link
+   pills drop their badges to fit two to a row */
+@media (max-width: 767px) {
+  .t-section { font-size: 30px; line-height: 1.05; }
+  body { font-size: 16px; }
+  .team-pills .pill { padding: 0 14px; justify-content: center; }
+  .team-pills .pill-icon { display: none; }
 }
 
 /* the nav pill drops its badge at phone width so wordmark, pill and menu fit on one line at 360; 44 px tall to tap */

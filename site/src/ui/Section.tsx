@@ -1,5 +1,5 @@
 // One section of the page: an id for the nav anchors, the page container (the 1240 px content width, the side
-// gutter) and the vertical air: 96 px top and bottom from 1024, 72 below, and nothing else stacks on it (round 4).
+// gutter) and the vertical air: 96 px top and bottom from 1024, 80 on a tablet, 56 on the phone (owner's phone pass), and nothing else stacks on it (round 4).
 // Over the deck's light every section carries the scrim (the light at about 35 %, the deck's "calm"); `light` thins
 // it to a shade for the one strong patch (AI). `bleed` drops the container for sections that draw
 // their own full-width frame.
@@ -14,7 +14,7 @@ export function Section({ id, children, className = "", bleed, light, fade, styl
       ? "linear-gradient(transparent, var(--scrim) 240px)"
       : "var(--scrim)";
   return (
-    <section id={id} className={`py-[72px] lg:py-24 ${className}`} style={{ background: bg, ...style }} {...rest}>
+    <section id={id} className={`py-14 md:py-20 lg:py-24 ${className}`} style={{ background: bg, ...style }} {...rest}>
       {bleed ? children : <Container>{children}</Container>}
     </section>
   );

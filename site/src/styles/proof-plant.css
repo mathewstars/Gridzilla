@@ -5,7 +5,7 @@
 .proof-unit { font-size: 0.5em; letter-spacing: -0.01em; }
 
 /* the real plant tile */
-.plant-title { font-size: clamp(36px, 3.6vw, 60px); }
+.plant-title { font-size: clamp(30px, 3.6vw, 60px); }
 .plant-tile { min-height: 400px; }
 @media (min-width: 768px) { .plant-tile { min-height: 440px; } }
 .plant-big { font-size: clamp(80px, 8vw, 132px); line-height: 0.9; letter-spacing: -0.035em; }
@@ -26,4 +26,4 @@
 }
 
 /* security */
-.sec-lead { font-size: clamp(32px, 3.4vw, 56px); }
+.sec-lead { font-size: clamp(28px, 3.4vw, 56px); }

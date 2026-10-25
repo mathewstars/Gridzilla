@@ -52,7 +52,7 @@ export default function Nav() {
   }, [open]);
 
   return (
-    <nav aria-label="Main" className={`nav-bar fixed inset-x-0 top-0 z-40 ${scrolled || open ? "is-scrolled" : ""}`}>
+    <nav aria-label="Main" className={`nav-bar fixed inset-x-0 top-0 z-50 ${scrolled || open ? "is-scrolled" : ""}`}>
       <div className="relative mx-auto flex h-16 w-full max-w-[calc(var(--content)+2*var(--gutter))] items-center justify-between gap-3 px-[var(--gutter)] lg:h-[72px]">
         <Wordmark />
 

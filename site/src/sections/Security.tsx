@@ -19,7 +19,7 @@ export const SECURITY: { lead: string; rest: string }[][] = [
 ];
 
 const Item = ({ lead, rest, className = "" }: { lead: string; rest: string; className?: string }) => (
-  <li className={`mx-auto my-0 max-w-[40ch] ${className} text-[19px] leading-[1.45] tracking-[-0.014em] text-secondary`}>
+  <li className={`mx-auto my-0 max-w-[40ch] ${className} text-[17px] leading-[1.45] md:text-[19px] tracking-[-0.014em] text-secondary`}>
     <span className="font-semibold text-ink">{lead}</span>
     {rest}
   </li>
@@ -33,12 +33,12 @@ export default function Security() {
       </Reveal>
       <Reveal>
         {/* six tracks, two per item: the second row of two starts one track in, so the 3 + 2 grid sits centred */}
-        <ul className="m-0 mt-12 grid list-none gap-10 p-0 text-center md:grid-cols-2 md:gap-x-12 lg:grid-cols-6 lg:gap-x-14 lg:gap-y-12">
+        <ul className="m-0 mt-6 md:mt-12 grid list-none gap-10 p-0 text-center md:grid-cols-2 md:gap-x-12 lg:grid-cols-6 lg:gap-x-14 lg:gap-y-12">
           {SECURITY.flat().map((s, i) => <Item key={s.lead} {...s} className={`lg:col-span-2 ${i === 3 ? "lg:col-start-2" : ""} ${i === 4 ? "md:col-span-2 lg:col-span-2" : ""}`} />)}
         </ul>
       </Reveal>
       <Reveal delay={0.08}>
-        <p className="m-0 mt-12 rounded-card bg-ground p-6 text-center text-[17px] leading-[1.5] text-secondary md:p-8">
+        <p className="m-0 mt-10 md:mt-12 rounded-card bg-ground p-6 text-center text-[17px] leading-[1.5] text-secondary md:p-8">
           <span className="font-semibold text-ink">Residual risk we did not solve:</span> a compromised platform can still issue legitimate-looking, within-policy signals. The guard and the owner limits bound the damage; they do not prevent it.
         </p>
       </Reveal>

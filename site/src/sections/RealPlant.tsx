@@ -78,13 +78,13 @@ function Tile() {
       <div className="flex items-center gap-6 md:gap-8">
         <div className="flex flex-col items-center gap-2">
           <SocRing soc={r.soc} />
-          <p className="m-0 text-[13px] text-secondary">Battery</p>
+          <p className="m-0 text-[15px] text-secondary lg:text-[13px]">Battery</p>
         </div>
         <div className="flex min-w-0 flex-col gap-3">
           <Grid kw={r.gridKw} />
           <Line>
             Mode{" "}
-            <span className="ml-1 inline-flex h-7 items-center rounded-pill bg-fill px-3 align-middle text-[13px] font-semibold text-ink">{r.mode}</span>
+            <span className="ml-1 inline-flex h-7 items-center rounded-pill bg-fill px-3 align-middle text-[14px] font-semibold text-ink lg:text-[13px]">{r.mode}</span>
           </Line>
           <Line>
             Car charger <B>{r.evKw.toFixed(1)} kW</B>, {r.evState}
@@ -113,7 +113,7 @@ export default function RealPlant() {
       <Reveal>
         <Title className="plant-title max-w-[20ch]">Two real devices, one house in Blatnica, Slovakia.</Title>
       </Reveal>
-      <div className="mt-12 grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-24">
+      <div className="mt-6 md:mt-12 grid items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-24">
         <Reveal>
           <p className="t-lead mx-auto my-0 max-w-[44ch] text-balance text-center text-secondary lg:mx-0 lg:text-left">
             During the hackathon, 23 to 25 October, a Victron plant (Cerbo GX, MultiPlus-II, battery, EV Charging Station) and a Viessmann Vitocal heat pump through the ViCare cloud ran on this house. A signed message went out over a public broker, the battery and the heat pump moved, signed acks came back.

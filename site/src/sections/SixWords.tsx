@@ -40,12 +40,12 @@ function Panel({ s }: { s: Signal }) {
               <span className="flex h-7 items-end" aria-hidden="true">
                 <span className="sw-bar block w-full" style={{ height: `${100 - i * 22}%` }} />
               </span>
-              <span className="text-[14px] text-secondary">{r}</span>
+              <span className="text-[15px] text-secondary lg:text-[14px]">{r}</span>
             </li>
           ))}
         </ol>
       )}
-      <p className="m-0 mt-4 max-w-[64ch] text-[14px] leading-snug text-secondary">{s.caption}</p>
+      <p className="m-0 mt-4 max-w-[64ch] text-[15px] leading-snug text-secondary lg:text-[14px]">{s.caption}</p>
       <p className="m-0 mt-8 text-[17px] text-secondary">{s.when}</p>
       <Message s={s} className="m-0 mt-2 text-[28px] font-medium leading-[1.25] tracking-[-0.02em] text-ink" />
       <p className="m-0 mt-3 max-w-[60ch] text-[17px] text-secondary">{s.does}</p>
@@ -259,11 +259,11 @@ export default function SixWords() {
         <Title>Six words. Signed.</Title>
       </Reveal>
       <div className="mt-12 hidden lg:block">{reduce ? <TabExplorer /> : <PinnedExplorer />}</div>
-      <Reveal className="mt-12 lg:hidden" amount={0.2}>
+      <Reveal className="mt-6 md:mt-12 lg:hidden" amount={0.2}>
         <Cards />
       </Reveal>
       <Reveal>
-        <p className="mx-auto mb-0 mt-12 max-w-[60ch] text-center text-[15px] text-secondary">
+        <p className="mx-auto mb-0 mt-10 md:mt-12 max-w-[60ch] text-center text-[15px] text-secondary">
           Plus a 24-hour envelope per street, renewed every two hours. Every message signed with a time window, ramps randomised so a street never steps in sync, the owner&rsquo;s limits always win, and everything reverts when the heartbeat stops.
         </p>
       </Reveal>

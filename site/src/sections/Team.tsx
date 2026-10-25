@@ -9,7 +9,7 @@ import { Reveal } from "../ui/Reveal";
 import { LINKS } from "../lib/links";
 
 export const PEOPLE = [
-  { name: "Matej Stafurik (Mathew)", org: "victronlab.sk / Coderama", handle: "mathewstars", role: "Lead: protocol, real-device integration (Victron, Viessmann), infrastructure" },
+  { name: "Matej Stafurik", org: "victronlab.sk / Coderama", handle: "mathewstars", role: "Lead: protocol, real-device integration (Victron, Viessmann), infrastructure" },
   { name: "Peter Mikeska", org: "", handle: "petermikeska67", role: "Cybersecurity and complete security overhaul; platform, policy guard, tests." },
   { name: "Matthew Stafurik", org: "", handle: "matixacik-cell", role: "Fallback checks and security checks, tests and fallback systems; dashboard, demo mode, pitch deck and trailer." },
 ];
@@ -29,7 +29,7 @@ export default function Team() {
         <Title>The team</Title>
       </Reveal>
 
-      <ul className="m-0 mt-12 grid list-none grid-cols-1 gap-12 p-0 text-center md:grid-cols-3 md:gap-8 lg:gap-14">
+      <ul className="m-0 mt-6 md:mt-12 grid list-none grid-cols-1 gap-10 p-0 text-center md:grid-cols-3 md:gap-8 lg:gap-14">
         {PEOPLE.map((p, i) => (
           <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-center">
             <img
@@ -39,9 +39,9 @@ export default function Team() {
               alt={p.name}
               loading="lazy"
               decoding="async"
-              className="block size-24 rounded-full bg-fill object-cover shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+              className="block size-[72px] rounded-full md:size-24 bg-fill object-cover shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
             />
-            <h3 className="m-0 mt-7 text-[21px] font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
+            <h3 className="m-0 mt-5 text-[21px] md:mt-7 font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
             {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}
             <p className="mx-auto mb-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary">{p.role}</p>
             <a
@@ -57,10 +57,11 @@ export default function Team() {
         ))}
       </ul>
 
-      <Reveal className="mt-12 flex flex-col items-center text-center">
-        <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center">
+      <Reveal className="mt-10 md:mt-12 flex flex-col items-center text-center">
+        {/* phone: a 2 x 2 grid of compact pills (one column under 360 px); from 640 a centred row */}
+        <div className="team-pills grid w-full grid-cols-1 gap-2.5 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-3">
           {TEAM_LINKS.map((l) => (
-            <PillLink key={l.label} href={l.href} tone="secondary" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">
+            <PillLink key={l.label} href={l.href} tone="secondary" className="w-full sm:w-auto">
               {l.label}
             </PillLink>
           ))}
