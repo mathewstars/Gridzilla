@@ -331,7 +331,10 @@ export default function Slide6({ freeze }: SlideProps) {
             />
           ))}
         </div>
-        <p className="p-small p-tertiary s6-foot">Real end to end. The planning runs on the fleet.</p>
+        <div className="s6-foot">
+          <p className="p-small p-tertiary">Real end to end. The planning runs on the fleet.</p>
+          <p className="p-small p-secondary s6-paid">Paid by the meter: a flat yearly fee, crisis prices only when the meter proves the limit was kept.</p>
+        </div>
       </section>
 
       <section className="p-tile s6-tile">

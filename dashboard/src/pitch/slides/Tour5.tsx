@@ -39,9 +39,9 @@ export const TOUR: Stop[] = [
   {
     head: "The AI's four steps",
     try: [
-      ["#gz-tour-ai", "The AI saw the peak coming and wrote the message in about a second. The rules checked it, the platform signed it and sent it."],
-      [".demo-now .gz-steps", "Sees, thinks, checks, acts: the AI wrote the message in about a second, the rules checked it, the platform signed and sent it."],
-      ['[data-card="ai"]', "The AI saw the peak coming and wrote the message in about a second. The rules checked it, the platform signed it and sent it."],
+      ["#gz-tour-ai", "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
+      [".demo-now .gz-steps", "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
+      ['[data-card="ai"]', "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
     ],
   },
   {

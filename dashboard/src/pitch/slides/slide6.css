@@ -6,7 +6,8 @@
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr auto auto;
   column-gap: var(--p-gutter);
-  padding: 72px var(--p-margin-x);
+  /* 56 px top and bottom (not the deck's 96): the left foot carries two notes (Real end to end, Paid by the meter) */
+  padding: 56px var(--p-margin-x);
   box-sizing: border-box;
 }
 .s6-tile {
@@ -30,7 +31,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding-top: 28px;
+  padding-top: 20px;
 }
 .s6-status {
   display: flex;
@@ -191,8 +192,16 @@
 }
 .s6-foot {
   margin: 0;
-  padding-top: 24px;
+  padding-top: 16px;
   align-self: end;
+}
+.s6-foot p {
+  margin: 0;
+}
+/* How a house is paid, from the submission: one line under the foot, secondary. */
+.s6-foot .s6-paid {
+  margin-top: 4px;
+  text-wrap: balance;
 }
 
 /* Count up: a hidden copy of the end text (drawn from an attribute, so it is not page text) holds the width. */
