@@ -1,7 +1,8 @@
 // The nav: a plain bar across the top of the page, on the content width (wordmark left, the six section links centred,
 // the white console pill right). Over the hero it has no background at all, like the deck's title slide; once the page
-// scrolls it becomes a thin glass strip (blur and a hairline). Under 1024 px: wordmark, the pill (from 340 up) and a
-// menu button that opens a sheet with the links.
+// scrolls it becomes a thin glass strip (blur and a hairline). Under 1024 px: wordmark, the pill (from 768 up) and a
+// menu button that opens a full-screen sheet: the six links in large type, the console pill at its foot (the phone's
+// one primary action).
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { List, X } from "@phosphor-icons/react";
@@ -48,7 +49,13 @@ export default function Nav() {
       }
     };
     addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
+    // the sheet covers the screen: the page under it does not scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   return (
@@ -73,7 +80,7 @@ export default function Nav() {
         </div>
 
         <div className="flex items-center gap-2">
-          <PillLink href={LINKS.console} size="sm" badge className="nav-cta max-[339px]:hidden">
+          <PillLink href={LINKS.console} size="sm" badge className="nav-cta max-md:hidden">
             Open the console
           </PillLink>
           <button
@@ -94,11 +101,11 @@ export default function Nav() {
         {open && (
           <motion.div
             id="nav-sheet"
-            initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -8, scale: 0.98 }}
+            initial={reduce ? false : { opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -12 }}
             transition={{ duration: 0.35, ease: EASE }}
-            className="absolute inset-x-3 top-[68px] mx-auto max-w-[560px] origin-top rounded-[24px] bg-surface p-3 shadow-[var(--shadow-lift)] lg:hidden"
+            className="nav-sheet absolute inset-x-0 top-full flex h-[calc(100svh-4rem)] flex-col overflow-y-auto bg-page px-[var(--gutter)] pb-[calc(24px+env(safe-area-inset-bottom))] pt-4 lg:hidden"
           >
             <ul className="m-0 list-none p-0">
               {NAV.map((n) => (
@@ -106,13 +113,18 @@ export default function Nav() {
                   <a
                     href={`#${n.id}`}
                     onClick={() => setOpen(false)}
-                    className="flex h-14 items-center rounded-[16px] px-4 font-display text-[22px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-fill active:bg-press"
+                    className="flex h-16 items-center rounded-[16px] px-2 font-display text-[30px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-fill active:bg-press"
                   >
                     {n.label}
                   </a>
                 </li>
               ))}
             </ul>
+            {/* the one action, at the foot of the sheet. (The sheet hangs from the bar with its own height: the bar's
+                backdrop blur makes it the box that fixed children size against, so "fixed, inset 0" would be 64 px.) */}
+            <PillLink href={LINKS.console} size="lg" badge className="mt-auto w-full">
+              Open the console
+            </PillLink>
           </motion.div>
         )}
       </AnimatePresence>

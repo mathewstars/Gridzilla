@@ -73,7 +73,8 @@ await hideChrome();
 await settle(9000);
 const whole = await page.screenshot();
 await save("console", whole);
-await save("console", whole, 1360, "console-phone"); // the phone's copy: shown 680 px wide, at most 120 KB
+// console-phone.webp is NOT made here: it is the console's own phone view (Operations, dark, 390 wide at 2x, cropped to
+// 780 x 1100) from the phone build's captures (data/gz-mobile/shots/console-390x844-dark-operations.png)
 
 // 2. The signal: what the AI saw, chose, checked and signed
 const ai = await panel("What the AI did");

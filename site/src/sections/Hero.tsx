@@ -1,4 +1,5 @@
-// The hero: full bleed, edge to edge like the deck's title slide; the deck's moving green light fills the viewport, a
+// The hero (under 1024 px: the first screen is wordmark, menu, headline, subline and one button; the console's phone
+// view follows in a phone-shaped frame from the fold). The hero: full bleed, edge to edge like the deck's title slide; the deck's moving green light fills the viewport, a
 // soft shade behind the words keeps them readable. The two-line headline, one subline, two pills, and the real console
 // in a thin dark bezel rising from the hero's bottom edge (centred, at most 1320 px), fading into the ground over its
 // last 180 px so the hero has no hard cut. "Watch the trailer" scrolls to the trailer strip under the hero (#trailer)
@@ -31,7 +32,7 @@ export default function Hero() {
 
   return (
     <header id="top" className="hero relative isolate flex flex-col overflow-hidden">
-      <div className="relative z-10 flex flex-col items-center px-4 pt-24 text-center md:px-10 md:pt-[clamp(112px,16vh,200px)]">
+      <div className="hero-first relative z-10 flex flex-col items-center px-4 pt-24 text-center md:px-10 md:pt-[clamp(112px,16vh,200px)]">
         <h1 className="t-display hero-h1 m-0">
           {LINES.map((l, i) => (
             <motion.span key={i} className="block" {...rise(i)}>
@@ -46,14 +47,15 @@ export default function Hero() {
           <PillLink href={LINKS.console} size="lg" badge>
             Open the console
           </PillLink>
-          <PillButton tone="secondary" size="lg" badge={<Play size={14} weight="fill" />} onClick={watchTrailer}>
+          {/* on a phone the first screen has one action; the trailer strip is right under the hero */}
+          <PillButton tone="secondary" size="lg" badge={<Play size={14} weight="fill" />} onClick={watchTrailer} className="max-md:hidden">
             Watch the trailer
           </PillButton>
         </motion.div>
       </div>
 
       {/* the real console, rising out of the hero's bottom edge (the hero crops its lower part, the mask fades it out) */}
-      <div className="hero-device-well relative z-0 mt-8 min-h-[180px] flex-1 md:mt-12">
+      <div className="hero-device-well relative z-0 mt-12 min-h-[180px] flex-1 max-lg:hidden">
         <motion.div
           className="hero-device absolute left-1/2 top-0 -translate-x-1/2"
           initial={reduce ? false : { opacity: 0, y: 60 }}
@@ -61,8 +63,6 @@ export default function Hero() {
           transition={{ duration: 1.1, delay: 0.35, ease: EASE }}
         >
           <picture>
-            {/* the phone shows the console 680 px wide: a 1360 px copy, at most 120 KB (G8) */}
-            <source media="(max-width: 767px)" srcSet={asset("shots/console-phone.webp")} width={1360} height={765} />
             <img
               src={asset("shots/console.webp")}
               width={2880}
@@ -74,6 +74,22 @@ export default function Hero() {
             />
           </picture>
         </motion.div>
+      </div>
+
+      {/* under 1024: never the desktop frame. The console's own phone view (its Operations screen, dark, 2x) in a
+          phone-shaped frame that fits the screen with the side gutters, starting at the fold, fading out at its foot */}
+      <div className="hero-phone-well px-[var(--gutter)] pb-14 lg:hidden">
+        <div className="hero-phone mx-auto">
+          <img
+            src={asset("shots/console-phone.webp")}
+            width={780}
+            height={1100}
+            alt="The Gridzilla console on a phone: what it saved tonight, what it did, and Vienna's 72 transformers"
+            fetchPriority="high"
+            decoding="async"
+            className="block h-auto w-full rounded-[22px]"
+          />
+        </div>
       </div>
     </header>
   );

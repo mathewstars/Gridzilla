@@ -1,7 +1,8 @@
 // Team + links (spec section 10): the three people in a row, each with their real GitHub avatar, name, role and
 // handle (the handle links to the profile); under them, straight on the page ground (no tile, owner round 4), the
 // four pills centred in a row and the hackathon line centred under them. Colours come from the tokens only (the page theme decides them). Phone: one column, the pills full width.
-// People rise in once, 80 ms apart; under reduced motion they are there.
+// On a phone each person is a compact row (avatar left, the words beside it). People rise in once, 80 ms apart; under
+// reduced motion they are there.
 import { GithubLogo } from "@phosphor-icons/react";
 import { Section, Title } from "../ui/Section";
 import { PillLink } from "../ui/Button";
@@ -29,9 +30,9 @@ export default function Team() {
         <Title>The team</Title>
       </Reveal>
 
-      <ul className="m-0 mt-6 md:mt-12 grid list-none grid-cols-1 gap-10 p-0 text-center md:grid-cols-3 md:gap-8 lg:gap-14">
+      <ul className="m-0 mt-6 md:mt-12 grid list-none grid-cols-1 gap-7 p-0 text-center md:grid-cols-3 md:gap-8 lg:gap-14">
         {PEOPLE.map((p, i) => (
-          <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-center">
+          <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-center max-md:grid max-md:grid-cols-[56px_1fr] max-md:items-start max-md:gap-x-4 max-md:text-left">
             <img
               src={`https://github.com/${p.handle}.png?size=192`}
               width={96}
@@ -39,13 +40,13 @@ export default function Team() {
               alt={p.name}
               loading="lazy"
               decoding="async"
-              className="block size-[72px] rounded-full md:size-24 bg-fill object-cover shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+              className="block size-14 rounded-full max-md:row-span-4 md:size-24 bg-fill object-cover shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
             />
-            <h3 className="m-0 mt-5 text-[21px] md:mt-7 font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
-            {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}
-            <p className="mx-auto mb-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary">{p.role}</p>
+            <h3 className="m-0 text-[19px] max-md:col-start-2 md:mt-7 md:text-[21px] font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
+            {p.org && <p className="m-0 mt-1 text-[15px] text-secondary max-md:col-start-2">{p.org}</p>}
+            <p className="mx-auto mb-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary max-md:col-start-2 max-md:mx-0 max-md:mt-1">{p.role}</p>
             <a
-              className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-ink no-underline"
+              className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-ink no-underline max-md:col-start-2 max-md:mt-0 max-md:justify-self-start"
               href={`https://github.com/${p.handle}`}
               target="_blank"
               rel="noopener"

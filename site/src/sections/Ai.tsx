@@ -36,10 +36,10 @@ export default function Ai() {
           </Title>
           <ol className="m-0 mt-6 md:mt-12 grid list-none gap-10 p-0 text-center md:grid-cols-3 md:gap-10 lg:gap-16">
             {STEPS.map(({ name, icon: I, body }, i) => (
-              <Reveal as="li" key={name} delay={0.1 + i * 0.08} className="min-w-0">
-                <I size={36} weight="regular" aria-hidden="true" className="mx-auto block text-accent" />
-                <h3 className="m-0 mt-6 text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">{name}</h3>
-                <p className="mx-auto mb-0 mt-3 max-w-[40ch] text-[16px] leading-[1.5] text-ink md:text-[17px]">{body}</p>
+              <Reveal as="li" key={name} delay={0.1 + i * 0.08} className="min-w-0 max-md:grid max-md:grid-cols-[32px_1fr] max-md:gap-x-4 max-md:text-left">
+                <I size={36} weight="regular" aria-hidden="true" className="mx-auto block text-accent max-md:row-span-2 max-md:mx-0 max-md:size-8" />
+                <h3 className="m-0 mt-6 text-[24px] font-semibold max-md:col-start-2 max-md:mt-0 max-md:text-[21px] leading-[1.15] tracking-[-0.02em] text-ink">{name}</h3>
+                <p className="mx-auto mb-0 mt-3 max-w-[40ch] text-[16px] leading-[1.5] text-ink max-md:col-start-2 max-md:mx-0 max-md:mt-1 md:text-[17px]">{body}</p>
               </Reveal>
             ))}
           </ol>

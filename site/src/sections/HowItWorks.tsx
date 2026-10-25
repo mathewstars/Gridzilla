@@ -1,10 +1,13 @@
 // How it works: a sticky split (after 21st.dev "Sticky Content Wrapper" by @hyperiux, rebuilt on IntersectionObserver
 // instead of GSAP). At 1024 and up the four steps scroll on the left and the step crossing the middle of the screen is
 // the active one; on the right a pinned frame crossfades (0.4 s) to its real console screenshot. Below 1024 it is one
-// column, each screenshot under its own step. Reduced motion: no pinned frame and no crossfade at any width; every
+// column, each screenshot under its own step; on a phone (under 768) the four steps are a swipe row, one card each
+// (its console panel on top, then the step), with a "1 of 4" counter and arrows, like Six words. Reduced motion: no pinned frame and no crossfade at any width; every
 // screenshot sits beside (from 1024) or under its own step, so nothing waits hidden.
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import "./sixwords/sixwords.css";
 import { Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { asset } from "../lib/links";
@@ -75,6 +78,62 @@ function useFrameHeight(ratio: number) {
   return { ref, h };
 }
 
+/** Phone: the four steps as a swipe row (the Six words row's classes and behaviour). */
+function StepsRow() {
+  const reduce = !!useReducedMotion();
+  const [current, setCurrent] = useState(0);
+  const row = useRef<HTMLOListElement>(null);
+  const cards = useRef<(HTMLLIElement | null)[]>([]);
+  useEffect(() => {
+    const root = row.current;
+    if (!root) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) setCurrent(Number((e.target as HTMLElement).dataset.i));
+    }, { root, threshold: 0.6 });
+    cards.current.forEach((c) => c && io.observe(c));
+    return () => io.disconnect();
+  }, []);
+  const go = (i: number) => {
+    const root = row.current;
+    const card = cards.current[i];
+    if (root && card) root.scrollTo({ left: card.offsetLeft - root.offsetLeft, behavior: reduce ? "auto" : "smooth" });
+  };
+  return (
+    <div className="md:hidden">
+      <ol ref={row} className="sw-row m-0 list-none p-0" tabIndex={0} aria-label="The four steps, one card each">
+        {STEPS.map((s, i) => (
+          <li key={s.title} ref={(el) => { cards.current[i] = el; }} data-i={i} className={`sw-card ${i === current ? "is-current" : ""}`} aria-current={i === current ? "step" : undefined}>
+            <div className="tile h-full overflow-hidden">
+              <div className="sw-card-in flex h-full flex-col">
+                <div className="relative aspect-[16/10] bg-surface">
+                  <Shot s={s} className="absolute inset-0 size-full object-contain" />
+                </div>
+                <div className="p-5 text-center">
+                  <h3 className="m-0 text-[21px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">{s.title}</h3>
+                  <p className="mb-0 mt-2 text-[16px] text-secondary">{s.body}</p>
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 flex items-center justify-between">
+        <p className="t-num m-0 text-[15px] text-secondary" aria-live="polite">
+          {current + 1} of {STEPS.length}
+        </p>
+        <div className="flex gap-3">
+          <button type="button" className="sw-step" aria-label="Previous step" disabled={current === 0} onClick={() => go(current - 1)}>
+            <CaretLeft size={20} weight="bold" aria-hidden="true" />
+          </button>
+          <button type="button" className="sw-step" aria-label="Next step" disabled={current === STEPS.length - 1} onClick={() => go(current + 1)}>
+            <CaretRight size={20} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HowItWorks() {
   const [active, setActive] = useState(0);
   const still = !!useReducedMotion();
@@ -98,7 +157,10 @@ export default function HowItWorks() {
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
-      <div className="mt-6 md:mt-12 lg:grid lg:grid-cols-2 lg:gap-14">
+      <div className="mt-6 md:hidden">
+        <StepsRow />
+      </div>
+      <div className="mt-6 max-md:hidden md:mt-12 lg:grid lg:grid-cols-2 lg:gap-14">
         <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-2" : ""}`}>
           {STEPS.map((s, i) => (
             <li
