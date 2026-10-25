@@ -25,11 +25,10 @@
   font-size: clamp(38px, 5.83vw, 140px); /* 84 px at 1440 */
   text-wrap: balance;
 }
-/* phone: sized to the column (frame inset 12 + padding 16 each side) so it reads ONE SIGNED LIMIT. / THE WHOLE /
-   STREET LISTENS. on three lines at any phone width ("ONE SIGNED LIMIT." is 8.86 em wide, "THE WHOLE STREET" 9.94 em,
-   so 9.2 fits the first and always breaks the second after WHOLE) */
+/* phone: sized to the column (frame inset 12 + padding 16 each side) so "One signed limit." fills one line at any
+   phone width (it is 7.71 em wide; 8.1 leaves air); the second sentence breaks after "The whole" (a br in Hero.tsx) */
 @media (max-width: 767px) {
-  .hero-h1 { font-size: calc((100vw - 56px) / 9.2); }
+  .hero-h1 { font-size: calc((100vw - 56px) / 8.1); }
 }
 .hero-sub {
   font-size: clamp(18px, 1.46vw, 24px); /* 21 px at 1440 */

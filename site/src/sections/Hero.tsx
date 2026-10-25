@@ -11,7 +11,14 @@ import { PillButton, PillLink } from "../ui/Button";
 import { EASE } from "../ui/Reveal";
 import { LINKS, asset } from "../lib/links";
 
-const LINES = ["One signed limit.", "The whole street listens."];
+// On a phone the second sentence breaks after "The whole" (owner, 25 Oct): One signed limit. / The whole / street listens.
+const LINES = [
+  "One signed limit.",
+  <>
+    The whole <br className="md:hidden" />
+    street listens.
+  </>,
+];
 
 export default function Hero() {
   const reduce = useReducedMotion();
@@ -38,7 +45,7 @@ export default function Hero() {
         <div className="relative z-10 flex flex-col items-center px-4 pt-[clamp(108px,15vh,176px)] text-center md:px-10">
           <h1 className="t-display hero-h1 m-0">
             {LINES.map((l, i) => (
-              <motion.span key={l} className="block" {...rise(i)}>
+              <motion.span key={i} className="block" {...rise(i)}>
                 {l}
               </motion.span>
             ))}

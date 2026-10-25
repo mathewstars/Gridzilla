@@ -12,7 +12,8 @@ const copy = arg("copy");
 const browser = await launch();
 for (const size of sizes) {
   const { ctx, page } = await newPage(browser, size);
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
   await page.waitForTimeout(1600);
   await page.screenshot({ path: `${out}fold-${size}.png` });
   await scrollThrough(page, 150);

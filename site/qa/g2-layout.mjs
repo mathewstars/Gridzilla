@@ -1,6 +1,6 @@
 // G2 layout, at 2560x1440, 1440x900, 1024x768, 390x844, 390x667: no two text nodes overlap, no text clipped by its
 // container, no horizontal page scroll, the hero headline on 2 lines (3 on a phone: ONE SIGNED LIMIT. / THE WHOLE /
-// STREET LISTENS.), every pill label on one line, the nav on one line at 1024 and up. Detector after dashboard/qa/layout.mjs.
+// STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up. Detector after dashboard/qa/layout.mjs.
 import { SIZES, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
@@ -98,7 +98,8 @@ const browser = await launch();
 const rows = [];
 for (const size of sizes) {
   const { ctx, page, width } = await newPage(browser, size);
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
   await page.waitForTimeout(1500);
   await scrollThrough(page);
   await page.evaluate(() => window.scrollTo(0, 0));

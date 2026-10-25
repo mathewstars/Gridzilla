@@ -5,7 +5,8 @@ const url = String(arg("url", SITE));
 const secs = Number(arg("secs", 60));
 const browser = await launch();
 const { page, errors, failed } = await newPage(browser, "1440x900");
-await page.goto(url, { waitUntil: "networkidle" });
+await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
 const h = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
 const steps = 40;
 for (let i = 1; i <= steps; i++) {

@@ -113,7 +113,7 @@ export default function Nav() {
                   <a
                     href={`#${n.id}`}
                     onClick={() => setOpen(false)}
-                    className="flex h-14 items-center rounded-[16px] px-4 font-display text-[22px] font-semibold uppercase tracking-[-0.01em] text-ink no-underline transition-colors duration-150 hover:bg-ground active:bg-fill"
+                    className="flex h-14 items-center rounded-[16px] px-4 font-display text-[22px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-ground active:bg-fill"
                   >
                     {n.label}
                   </a>
