@@ -35,7 +35,7 @@ def load(folder, name):
 class PlatformTest(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp())
-        for f in ("gridzilla.py", "flatten.py", "weather.py", "registry.yaml"):
+        for f in ("gridzilla.py", "db.py", "flatten.py", "weather.py", "registry.yaml"):
             shutil.copy(PLATFORM / f, self.dir / f)
         (self.dir / "static").mkdir()
         self.t0 = int(time.time())
