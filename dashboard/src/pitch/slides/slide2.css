@@ -200,7 +200,7 @@
 }
 
 /* Step 0, the story, in the deck's own design: type on the moving mesh gradient (the shell's hero background, as on
-   slide 7), theme tokens only, one column on the left margin like slide 7's six o'clock line. */
+   slide 7), theme tokens only, one centred 1440 px column (240 px each side), every paragraph two balanced lines. */
 .s2 .s2-story {
   position: absolute;
   inset: 0;
@@ -219,19 +219,23 @@
 }
 .s2 .s2-story-text {
   position: absolute;
-  left: 120px;
+  left: 50%;
   top: 50%;
-  width: 1560px;
-  transform: translateY(-50%);
+  width: 1440px;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 40px;
+  text-align: center;
 }
-/* p-head scale (Clash Display 72); each line rises in like slide 7's line: opacity and 24 px, 0.9 s. */
+/* p-head one step smaller (Clash Display 62: at 64 the third paragraph needs three lines); each line rises in like slide 7's line:
+   opacity and 24 px, 0.9 s. */
 .s2 .s2-story-line {
   margin: 0;
   color: var(--p-ink);
-  text-wrap: pretty;
+  font-size: 62px;
+  line-height: 1.12;
+  text-wrap: balance;
   opacity: 0;
   transform: translateY(24px);
   transition:
