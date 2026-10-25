@@ -2,14 +2,14 @@
 // off-screen, and moves through slides and build steps from the keyboard. Nothing of the shell is on the slides.
 //
 // Keys (one window listener in the capture phase; every key the shell uses is stopped there, on every slide, so the
-// live stage on slide 5 never also handles Left, Right or F; all other keys, like 1-4, reach the stage):
+// live stage on slide 6 never also handles Left, Right or F; all other keys, like 1-4, reach the stage):
 //   Right, Space, PageDown  next build step, then next slide (on slide 0 the first press plays the trailer, the next
 //                           skips it; at its end the deck hard-cuts to the title by itself)
 //   Left, PageUp            back: previous step, then the previous slide at its last step
 //   F                       full screen, with Esc kept for the page (hold Esc to leave full screen)
 //   T                       small elapsed timer, bottom right      N  presenter notes      Esc  slide overview
 //   D                       dark or light theme (dark by default; ?theme=dark|light; remembered like the ops console)
-// URL: ?slide=N (0 = the trailer, 1-7 the slides) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
+// URL: ?slide=N (0 = the trailer, 1-9 the slides) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
 // are written back to the URL as you move, so a reload stays put. window.__pitch exposes the state for QA.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -106,7 +106,7 @@ export default function Deck() {
   const uiRef = useRef(ui);
   const [t0, setT0] = useState<number | null>(null);
   const t0Ref = useRef<number | null>(null);
-  // Slide 5's walkthrough: Esc skips the rest of it (the next Right then leaves the slide).
+  // Slide 6's walkthrough: Esc skips the rest of it (the next Right then leaves the slide).
   const [tourOff, setTourOffRaw] = useState(false);
   const tourOffRef = useRef(false);
   const setTourOff = useCallback((v: boolean) => {
@@ -117,7 +117,7 @@ export default function Deck() {
   const trailer = useTrailer(!freeze, () => afterTrailer.current());
   const size = useWindowSize();
   const [theme, setTheme] = useTheme();
-  // Slide 4's live plan, fetched from the first frame (the poll is shared), so the curve is live the moment it comes on.
+  // Slide 5's live plan, fetched from the first frame (the poll is shared), so the curve is live the moment it comes on.
   useFlatten("region:at");
   // Slides 3 (the loop) and 6 (the plant, the heat grid) read the same light state poll: warm it from the first frame too.
   useGridState("", "");

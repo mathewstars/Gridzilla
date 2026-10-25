@@ -1,4 +1,4 @@
-// Slide 5's walkthrough as a spotlight: a 70 % black scrim over the whole live demo with one rounded, feathered cut-out
+// The demo slide's (slide 6) walkthrough as a spotlight: a 70 % black scrim over the whole live demo with one rounded, feathered cut-out
 // exactly around the area being talked about, and a caption card (heading + one line) beside it. No rings, no borders.
 // Each Right MORPHS the cut-out (x, y, size, corner radius) and slides the card with it in 250 ms (ease-out), driven by
 // one requestAnimationFrame tween that writes straight to the SVG mask and the card's transform (no React re-render per

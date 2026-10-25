@@ -1,4 +1,4 @@
-// Slide 8, the end: GRIDZILLA alone on the moving hero background, at slide 1's size, with one small line of names
+// Slide 9 (file Slide8), the end: GRIDZILLA alone on the moving hero background, at slide 1's size, with one small line of names
 // under it. Nothing else. Reveal like slide 1: the wordmark snaps in (scale 1.04 to 1 with opacity, 350 ms), the
 // names 120 ms later.
 import { motion, useReducedMotion } from "motion/react";
@@ -16,7 +16,7 @@ export default function Slide8({ freeze }: SlideProps) {
     transition: still ? { duration: 0 } : { duration: 0.35, delay, ease: EASE },
   });
   return (
-    <div className="p-slide s1" data-slide="8">
+    <div className="p-slide s1" data-slide="9">
       <div className="s1-col">
         <motion.h1 className="s1-word" {...show(0, { scale: 1.04 })}>
           GRIDZILLA

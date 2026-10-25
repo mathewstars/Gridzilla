@@ -8,7 +8,8 @@ export interface Notes {
   steps: string[];
 }
 
-// Index = slide number: 0 the trailer, 1 title, 2 problem, 3 idea, 4 monster, 5 demo, 6 real vs simulated, 7 close.
+// Index = slide number: 0 the trailer, 1 title, 2 problem, 3 idea, 4 six words, 5 monster, 6 demo, 7 real vs simulated,
+// 8 close, 9 end.
 export const NOTES: Notes[] = [
   {
     who: "Matthew",
@@ -26,10 +27,17 @@ export const NOTES: Notes[] = [
   },
   {
     who: "Matthew",
-    time: "0:50, 35 s",
+    time: "0:50, 20 s",
     steps: [
       "Every box reads the same line and sorts it out by itself: battery, car, hot water; the owner can always say no. One agent in every house, eight identical functions; only apply is vendor-specific: Victron via Node-RED, Viessmann via ViCare.",
       "Every fifteen minutes the AI reads the city and writes the message. Thirty lines of rules check it, the platform signs it, the houses reply, signed.",
+    ],
+  },
+  {
+    who: "Matthew",
+    time: "1:10, 15 s",
+    steps: [
+      "The message has six words. Support at the evening peak, absorb at noon, prepare before a storm, stretch when the street is dark, recover when it comes back, release when it is over. Plus the 24-hour diet plan. Each one signed, each with a time window, and the owner's limits always win.",
     ],
   },
   {

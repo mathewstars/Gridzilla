@@ -1,7 +1,7 @@
 // The deck's background (captain: premium, from 21st.dev, never hand-rolled, clearly visible): Paper Shaders' animated
 // Mesh Gradient by @paper-design (bg/mesh-gradient.tsx), green and teal light moving slowly on near-black. One canvas
 // behind every slide that has a background, so it keeps moving across slide changes: full strength on the title and
-// the close ("hero"), dimmed to about 60 % on the content slides ("calm"); slide 4 and the live demo have none.
+// the close ("hero"), dimmed to about 60 % on the content slides ("calm"); the monster slide and the live demo have none.
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ShaderBackground, setPalette } from "../bg/mesh-gradient";
 import type { BgKind } from "../types";

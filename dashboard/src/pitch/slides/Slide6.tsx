@@ -1,4 +1,4 @@
-// Slide 6, real and simulated (3:30, 25 s, dad). A split screen, both halves live. Left, real: the Victron plant and
+// Slide 7 (file Slide6), real and simulated (3:30, 25 s, dad). A split screen, both halves live. Left, real: the Victron plant and
 // the Viessmann heat pump in Blatnica, Slovakia, read from the LIVE server's /api/state (the only server dad's plant
 // talks to; see useLivePlant), or "Blatnica: waiting for the plant" and never a made-up value, with the signed message
 // path under it. Right, simulated: the city heat grid, one cell per
@@ -300,7 +300,7 @@ export default function Slide6({ freeze }: SlideProps) {
   const wave = !still;
 
   return (
-    <div className="p-slide s6" data-slide="6">
+    <div className="p-slide s6" data-slide="7">
       <section className="p-tile s6-tile">
         <header className="s6-head">
           {/* Two lines of heading; the plant tiles and the footnote say the rest (real, Victron + Viessmann). */}
