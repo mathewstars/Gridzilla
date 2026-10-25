@@ -4,8 +4,9 @@
 // with it in 250 ms (ease-out), driven by one requestAnimationFrame tween that writes straight to the SVG mask and the
 // card's transform (no React re-render per frame). The cut-out's corners follow the panel's own border-radius
 // (getComputedStyle; the inner blocks have none, so the nearest rounded ancestor's). Five stops, anchored on the
-// Operations view's own parts: Saved tonight (.op2-tonight), the Vienna chart (.op2-curve), What the AI did
-// (.op2-tiles), the Blatnica card (.blat), the city chips (.bc-chips).
+// console's own parts: Saved tonight (.op2-tonight), the Vienna chart (.op2-curve), What the AI did (.op2-tiles), the
+// Blatnica card (.blat), the city chips (.bc-chips), then the sidebar's Diet plan and Real plant. The console runs in an
+// iframe (Slide5.tsx): areas are measured in its document and mapped to the window.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./tour5.css";
 
@@ -38,6 +39,14 @@ export const TOUR: Stop[] = [
   {
     head: "Any street, one tap",
     try: [[".bc-chips", "Every substation, feeder and street transformer: the colour is how close each one is to its limit."]],
+  },
+  {
+    head: "The diet plan",
+    try: [['.sb-item[href="#/plan"]', "Every street gets a 24-hour envelope, renewed every two hours from the real weather."]],
+  },
+  {
+    head: "The real plant",
+    try: [['.sb-item[href="#/plant"]', "Our family home in Blatnica on its own page: every reading live, every signed message it answered."]],
   },
 ];
 
@@ -95,6 +104,7 @@ export default function Tour5({ step, root, frame }: { step: number; root: HTMLE
   const [W, setW] = useState(() => window.innerWidth);
   const hole = useRef<SVGRectElement>(null);
   const card = useRef<HTMLDivElement>(null);
+  const painted = useRef<HTMLDivElement | null>(null);
   // Jump instead of morph when the change came from a resize or a scroll (the panel moved, not the story).
   const snap = useRef(false);
   const anim = useRef<{ cur: Geo | null; from: Geo | null; to: Geo | null; t0: number; raf: number }>({ cur: null, from: null, to: null, t0: 0, raf: 0 });
@@ -114,6 +124,7 @@ export default function Tour5({ step, root, frame }: { step: number; root: HTMLE
     }
     const c = card.current;
     if (c) c.style.transform = `translate3d(${g.cx.toFixed(2)}px, ${g.cy.toFixed(2)}px, 0)`;
+    painted.current = c;
   };
 
   const tick = (now: number) => {
@@ -128,7 +139,9 @@ export default function Tour5({ step, root, frame }: { step: number; root: HTMLE
   const go = (to: Geo, instant: boolean) => {
     const s = anim.current;
     const same = (a: Geo | null) => !!a && (Object.keys(to) as (keyof Geo)[]).every((k) => Math.abs(a[k] - to[k]) < 0.5);
-    if (!instant && same(s.to)) return;
+    // Same place as last time: nothing to do, unless the overlay was just mounted again (a measurement that briefly
+    // missed its area unmounts it) and its new elements have never been painted.
+    if (!instant && same(s.to) && painted.current === card.current) return;
     // A closed cut-out (after step 7) opens where it lands instead of flying in from where it was.
     if (s.cur && s.cur.a < 0.01 && to.a > 0) s.cur = { ...s.cur, x: to.x, y: to.y, w: to.w, h: to.h, r: to.r };
     if (!s.cur || instant || reduced()) {
