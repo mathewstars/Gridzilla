@@ -86,7 +86,7 @@
 
 /* The closing call: full bleed, the light at nearly full strength (a thin shade keeps the big line at 6:1 or better
    over the brightest teal), the small print on its own glass bar. */
-.closing-frame { background: rgb(11 11 15 / 0.3); }
+.closing-frame { background: linear-gradient(var(--scrim), rgb(11 11 15 / 0.3) 240px); }
 @media (prefers-reduced-motion: reduce) {
   .mesh-canvas { display: none; }
   .trailer-card, .trailer-card:hover, .trailer-card:active, .nav-bar { transition: none; transform: none; }

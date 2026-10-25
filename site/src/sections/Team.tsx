@@ -45,13 +45,13 @@ export default function Team() {
             {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}
             <p className="m-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary">{p.role}</p>
             <a
-              className="t-link mt-5 inline-flex items-center gap-2 text-[15px] font-medium text-ink"
+              className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-ink no-underline"
               href={`https://github.com/${p.handle}`}
               target="_blank"
               rel="noopener"
             >
               <GithubLogo size={18} aria-hidden="true" />
-              <span>@{p.handle}</span>
+              <span className="t-link">@{p.handle}</span>
             </a>
           </Reveal>
         ))}

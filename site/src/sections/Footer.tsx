@@ -27,13 +27,13 @@ export default function Footer() {
             </PillLink>
           </Reveal>
         </div>
-        <div className="mt-16 flex flex-col gap-4 rounded-[var(--radius-card)] bg-[var(--glass)] px-6 py-5 text-[14px] text-secondary md:mt-20 md:flex-row md:items-center md:justify-between lg:mt-24">
+        <div className="mt-16 flex flex-col gap-4 rounded-[var(--radius-card)] bg-[var(--glass)] px-6 py-3 text-[14px] text-secondary md:mt-20 md:flex-row md:items-center md:justify-between lg:mt-24">
           <p className="m-0">Gridzilla, 2026</p>
-          <ul className="m-0 flex list-none flex-wrap gap-x-7 gap-y-2 p-0">
+          <ul className="m-0 flex list-none flex-wrap gap-x-7 p-0">
             {SMALL.map((l) => (
               <li key={l.label}>
-                <a href={l.href} target="_blank" rel="noopener" className="t-link text-ink">
-                  {l.label}
+                <a href={l.href} target="_blank" rel="noopener" className="inline-flex min-h-11 min-w-11 items-center justify-center text-ink no-underline">
+                  <span className="t-link">{l.label}</span>
                 </a>
               </li>
             ))}

@@ -115,7 +115,7 @@
     background: linear-gradient(var(--color-accent), var(--color-accent)) no-repeat 0 100% / 0 2px;
     transition: background-size 0.3s var(--ease-out-expo);
   }
-  .t-link:hover, .t-link:focus-visible { background-size: 100% 2px; }
+  .t-link:hover, .t-link:focus-visible, a:hover > .t-link, a:focus-visible > .t-link { background-size: 100% 2px; }
 
   /* pills: the only button shape on the page */
   .pill {
@@ -202,7 +202,10 @@
   .live-dot::after { animation: none; display: none; }
 }
 
-/* the nav pill drops its badge at phone width so wordmark, pill and menu fit on one line at 360 */
+/* the nav pill drops its badge at phone width so wordmark, pill and menu fit on one line at 360; 44 px tall to tap */
+@media (max-width: 767px) {
+  .nav-cta { height: 44px; }
+}
 @media (max-width: 479px) {
   .nav-cta { padding-right: 18px; }
   .nav-cta .pill-icon { display: none; }

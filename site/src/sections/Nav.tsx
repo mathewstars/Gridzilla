@@ -20,7 +20,7 @@ export const NAV = [
 
 export function Wordmark() {
   return (
-    <a href="#top" className="font-display text-[19px] font-semibold uppercase tracking-[0.04em] text-ink no-underline lg:text-[21px]" aria-label="Gridzilla, back to the top">
+    <a href="#top" className="inline-flex min-h-11 items-center font-display text-[19px] font-semibold uppercase tracking-[0.04em] text-ink no-underline lg:text-[21px]" aria-label="Gridzilla, back to the top">
       Gridzilla
     </a>
   );
@@ -83,7 +83,7 @@ export default function Nav() {
             aria-expanded={open}
             aria-controls="nav-sheet"
             onClick={() => setOpen((o) => !o)}
-            className="grid size-10 cursor-pointer place-items-center rounded-full border-0 bg-surface text-ink shadow-[inset_0_0_0_1px_var(--color-hairline),0_8px_24px_rgb(0_0_0/0.25)] transition-[background-color,transform] duration-150 hover:bg-fill active:scale-[0.96] active:bg-press lg:hidden"
+            className="grid size-11 cursor-pointer place-items-center rounded-full border-0 bg-surface text-ink shadow-[inset_0_0_0_1px_var(--color-hairline),0_8px_24px_rgb(0_0_0/0.25)] transition-[background-color,transform] duration-150 hover:bg-fill active:scale-[0.96] active:bg-press lg:hidden"
           >
             {open ? <X size={18} weight="bold" /> : <List size={18} weight="bold" />}
           </button>

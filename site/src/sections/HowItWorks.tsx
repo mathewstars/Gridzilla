@@ -85,7 +85,7 @@ export default function HowItWorks() {
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[72svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[56svh]"}
+              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[60svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[52svh]"}
             >
               <Reveal className={still ? "lg:col-span-5" : undefined}>
                 <h3
@@ -108,13 +108,13 @@ export default function HowItWorks() {
         {/* desktop: the pinned frame, its screenshot crossfading with the active step */}
         {!still && <div className="hidden lg:col-span-7 lg:block">
           {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
-          <div className="sticky top-[14svh] flex h-[72svh] items-center">
+          <div className="sticky top-[16svh] flex h-[68svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
               <div className="tile relative aspect-[5/4] max-h-[60svh] w-full">
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}
-                    className={`absolute inset-8 flex items-center justify-center transition-opacity duration-[400ms] ease-out motion-reduce:transition-none xl:inset-10 ${active === i ? "opacity-100" : "opacity-0"}`}
+                    className={`absolute inset-8 flex items-center justify-center transition-opacity duration-[400ms] ease-out motion-reduce:transition-none ${active === i ? "opacity-100" : "opacity-0"}`}
                     aria-hidden={active === i ? undefined : true}
                   >
                     <Shot s={s} />
