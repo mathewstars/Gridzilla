@@ -68,6 +68,18 @@
 }
 
 .demo-sigs .cp-sig:nth-child(n + 3) { display: none; }
+/* projector sizes: the two newest signals as one-line rows (name, mode, node, time left, Release); the detail line
+   ("signed #... take at most ...") and the progress bar step aside so the Now panel fits without scrolling (the full
+   cards are in Operations) */
+@media (min-width: 1240px) {
+  .demo-sigs .cp-sig { flex-direction: row; align-items: center; gap: 10px; padding: 6px 8px 6px 10px; }
+  .demo-sigs .cp-sig-top { flex: 1 1 auto; flex-wrap: nowrap; }
+  .demo-sigs .cp-sig-top .cp-wrap { overflow-wrap: normal; }
+  .demo-sigs .cp-bar, .demo-sigs .cp-sig-bot > :not(.cp-btn) { display: none; }
+  .demo-sigs .cp-sig-bot { flex: none; }
+}
+/* the demo legend is dad's six keys only; the signal window's end is labelled on the plot */
+.demo-curve .lc-key[data-key="Signal until"] { display: none; }
 .demo-more { margin: 0; font-size: max(16px, 0.8125rem); color: var(--color-secondary); }
 
 /* short windows with the Tonight strip on top: everything gives a little so the demo stays one screen */
@@ -97,4 +109,29 @@
   .demo .tn-h { font-size: 15px; }
   .demo-hero-head { gap: 4px 20px; }
   .demo-where { margin-top: 2px; }
+}
+
+/* Standalone (the deck, or #/demo?bare=1): the demo fills the whole viewport, the hero takes the height that is left. */
+.demo-standalone { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--color-ground); }
+.demo-standalone > .demo { flex: 1 1 auto; }
+@media (min-width: 1240px) { .demo-standalone { height: 100vh; height: 100dvh; } .demo-standalone > .demo { height: auto; min-height: 0; } }
+
+/* the curve legend in dad's words: even rows of three where they fit, two columns below that (never a ragged wrap) */
+.demo-curve .lc-legend { display: grid !important; grid-template-columns: repeat(2, max-content); column-gap: 1.25em; white-space: nowrap; }
+@media (min-width: 1750px) { .demo-curve .lc-legend { grid-template-columns: repeat(3, max-content); } }
+
+/* dad's weather line and the review countdown; short windows keep the numbers and drop the summary */
+@media (min-width: 1240px) and (max-height: 1000px) { .demo-curve { --demo-plot-min: 9rem; } }
+@media (min-width: 1240px) and (max-height: 760px) { .demo-weather-sum { display: none; } .demo-curve { --demo-plot-min: 6.5rem; } }
+.demo-weather { margin: 0; flex-basis: 100%; font-size: max(14px, 0.875rem); line-height: 1.35; color: var(--color-secondary); overflow-wrap: anywhere; }
+.demo-now-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.demo-review { font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-secondary); font-variant-numeric: tabular-nums; }
+
+/* short windows: the AI steps keep their name and their line; the small detail under each steps aside */
+@media (min-width: 1240px) and (max-height: 760px) {
+  .demo-now .gz-steps > ol { row-gap: 0.5rem; }
+  .demo-now .gz-steps li > :nth-child(n + 3) { display: none; }
+  .demo-now > .demo-h3 { display: none; }
+  .demo-sigs .cp-code { display: none; } /* "SUPPORT" repeats "Use batteries"; the node name gets the room */
+  .demo-now > .demo-more { display: none; } /* the pointer to Operations gives way to the plant card */
 }

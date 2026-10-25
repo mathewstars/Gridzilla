@@ -2,16 +2,18 @@
 // live curve and ring, one sentence of state), the AI's steps and the signals running, the newest three events, and the
 // whole city as a strip of coloured dots. Auto-picks the most interesting transformer; Up/Down override it.
 // Exported as DemoView for the pitch deck (it runs its own data hook when no console data is passed in).
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { post, type FlattenPlan, type State } from "../../api";
 import { hhmm, nice } from "../../model";
-import LiveCurve from "../../stage/kit/LiveCurve";
+import LiveCurve, { WaitLegend } from "../../stage/kit/LiveCurve";
 import LoadRing from "../../stage/kit/LoadRing";
 import AiSteps from "../../stage/kit/AiSteps";
 import { ActiveList } from "../control/SignalCard";
-import { Btn, Result, useAction } from "../control/ui";
+import { Btn, Result, useAction, useNow } from "../control/ui";
 import FeedStrip from "../now/FeedStrip";
 import Tonight from "../tonight/Tonight";
+import BlatnicaLive, { PlantHero } from "./BlatnicaLive";
+import { useLiveBlatnica } from "./live";
 import { cellOf } from "../city/cityData";
 import CityDots from "../ops2/Dots";
 import { loadTone } from "../../stage/palette";
@@ -26,7 +28,8 @@ export default DemoView;
 
 function OwnData() {
   const ops = useOps();
-  return ops.s ? <Demo ops={ops} /> : <div className="demo-wait">Connecting to the grid.</div>;
+  // standalone (the pitch deck embeds DemoView full-bleed): it fills the viewport itself
+  return <div className="demo-standalone">{ops.s ? <Demo ops={ops} /> : <div className="demo-wait">Connecting to the grid.</div>}</div>;
 }
 
 /** Transformers by how interesting they are now: the autopilot's target first, then the highest forecast peak. */
@@ -39,37 +42,51 @@ function ranked(s: State): string[] {
 
 function Demo({ ops }: { ops: Ops }) {
   const s = ops.s as State;
-  const order = useMemo(() => ranked(s), [s]);
-  const [manual, setManual] = useState<string | null>(null);
-  const auto = order[0] ?? "";
-  const tf = manual && s.tree[manual] ? manual : auto;
+  // Picked ONCE at load (the autopilot's target, else the highest forecast peak) and then held: a re-ranking never moves
+  // the view. Only Up/Down (through the order as it was at load) or a click on a city dot changes it.
+  const [order] = useState(() => ranked(s));
+  const [picked, setPicked] = useState(() => order[0] ?? "");
+  const tf = s.tree[picked] ? picked : (order.find((t) => s.tree[t]) ?? "");
   // keep the console's data hook on the transformer this view shows (history, plan)
   useEffect(() => {
     if (tf && tf !== ops.tf) ops.select(tf);
   }, [tf, ops]);
+  // Blatnica mode: the real plant in the hero. In: key B or a click on the Blatnica card; out: B again, Up/Down or a
+  // city dot. Nothing switches by itself. ?hero=blatnica opens the demo in it (the gates, a deck link).
+  const plant = useLiveBlatnica();
+  const [showPlant, setShowPlant] = useState(() => new URLSearchParams(location.search).get("hero") === "blatnica");
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        setShowPlant((v) => !v);
+        return;
+      }
       if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       e.preventDefault();
-      const i = order.indexOf(tf);
-      setManual(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
+      if (showPlant) return setShowPlant(false); // back to the transformer that was showing
+      if (!order.length) return;
+      const i = Math.max(0, order.indexOf(tf));
+      setPicked(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
-  }, [order, tf]);
+  }, [order, tf, showPlant]);
 
   return (
     <div className="demo">
       <div className="demo-left">
         <Tonight ops={ops} compact />
-        <Hero ops={ops} tf={tf} />
+        {showPlant ? <PlantHero plant={plant} /> : <Hero ops={ops} tf={tf} />}
         <FeedStrip ops={ops} />
       </div>
       <div className="demo-right">
         <NowCard ops={ops} />
+        <BlatnicaLive plant={plant} open={showPlant} onOpen={() => setShowPlant(true)} />
       </div>
-      <CityDots s={s} ops={ops} selected={tf} onPick={setManual} />
+      <CityDots s={s} ops={ops} selected={showPlant ? "" : tf} onPick={(n) => { setPicked(n); setShowPlant(false); }} />
     </div>
   );
 }
@@ -153,13 +170,17 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           </p>
         </div>
         <p className="demo-sentence">{sentence(s, tf, plan)}</p>
+        <WeatherLine ops={ops} />
       </header>
       <div className="demo-hero-body">
         <div className="demo-curve">
           {ready ? (
-            <LiveCurve key={tf} stage s={s} history={ops.history} node={tf} header={false} plan={plan} signal={c.signal} ground="var(--color-card)" height="100%" span={{ past: 6, future: 12, narrow: { past: 3, future: 6 } }} legend="above" minPlot="12rem" planSrc={`flatten:${tf}`} />
+            <LiveCurve key={tf} stage s={s} history={ops.history} node={tf} header={false} plan={plan} signal={c.signal} ground="var(--color-card)" height="100%" span={{ past: 6, future: 12, narrow: { past: 3, future: 6 } }} legend="above" minPlot="var(--demo-plot-min, 12rem)" planSrc={`flatten:${tf}`} />
           ) : (
-            <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            <>
+              <WaitLegend />
+              <p className="demo-wait">Loading the last few hours of {nice(tf)}</p>
+            </>
           )}
         </div>
         <div className="demo-ring" style={{ color: loadTone(c.pct) }} data-src={`state/aggregates/${tf}/load_pct`} data-val={c.pct == null ? undefined : String(c.pct)}>
@@ -182,7 +203,9 @@ function NowCard({ ops }: { ops: Ops }) {
     });
   return (
     <section className="panel demo-now" data-scroll="panel">
-      <h2 className="demo-h2">Now</h2>
+      <h2 className="demo-h2 demo-now-head">
+        Now <ReviewIn s={s} />
+      </h2>
       <AiSteps s={s} weather={ops.weather} variant="row" />
       {p && (
         <div className="demo-pending">
@@ -208,3 +231,58 @@ function NowCard({ ops }: { ops: Ops }) {
   );
 }
 
+
+/** Dad's weather line, one line under the hero sentence: what the grid's weather is right now. Hidden when the weather
+ *  feed is not there (never a placeholder). Every number traced to /api/weather. */
+function WeatherLine({ ops }: { ops: Ops }) {
+  const w = ops.weather;
+  const d = w.data;
+  if (!w.available || !d?.now) return null;
+  const n = d.now;
+  const warns = d.warnings ?? [];
+  const sum = (d.summary ?? "").trim();
+  // at most 160 characters, cut at a whole word (no ellipsis on the stage)
+  const short = sum.length > 160 ? sum.slice(0, 160).replace(/\s+\S*$/, "") : sum;
+  const V = ({ k, v, unit }: { k: string; v: number | undefined; unit: string }) =>
+    v == null ? null : <span data-src={`weather/now/${k}`} data-val={v}>{Math.round(v * 10) / 10}{unit}</span>;
+  return (
+    <p className="demo-weather">
+      Weather {String(d.location?.name ?? "Vienna")}: <V k="temp_c" v={n.temp_c} unit=" °C" />
+      {n.feels_c != null && <>, feels <V k="feels_c" v={n.feels_c} unit=" °C" /></>}
+      {" · "}cloud <V k="cloud_pct" v={n.cloud_pct} unit=" %" />
+      {" · "}sun <V k="sun_wm2" v={n.sun_wm2} unit=" W/m²" />
+      {" · "}wind <V k="wind_kmh" v={n.wind_kmh} unit=" km/h" />
+      {" · "}
+      {warns.length ? (
+        <span data-src="derived" data-from="count(weather/warnings/*)" data-val={warns.length}>{warns.length} official warning{warns.length > 1 ? "s" : ""}</span>
+      ) : (
+        "no official warnings"
+      )}
+      {short && <span className="demo-weather-sum"> · <span data-src="weather/summary">{short}</span></span>}
+    </p>
+  );
+}
+
+/** "next DeepSeek review in N s · autonomous", counting down every second (autopilot.last_run + interval_s). */
+function ReviewIn({ s }: { s: State }) {
+  const now = useNow();
+  const ap = s.autopilot;
+  if (!ap) return null;
+  const mode = ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off";
+  let text: ReactNode;
+  if (ap.mode === "off") text = "autopilot off";
+  else if (ap.busy) text = "reviewing now";
+  else if (ap.last_run && ap.interval_s) {
+    const left = Math.max(0, Math.ceil((Date.parse(ap.last_run) + ap.interval_s * 1000 - now) / 1000));
+    text = (
+      <>
+        next DeepSeek review in <span data-src="state/autopilot/last_run">{left} s</span>
+      </>
+    );
+  } else text = "first review soon";
+  return (
+    <span className="demo-review">
+      {text} · {mode}
+    </span>
+  );
+}
