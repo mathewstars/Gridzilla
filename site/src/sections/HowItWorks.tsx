@@ -78,16 +78,16 @@ export default function HowItWorks() {
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
-      <div className="mt-6 lg:mt-0 lg:grid lg:grid-cols-12 lg:gap-14">
-        <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-12" : "lg:col-span-5"}`}>
+      <div className="mt-12 lg:mt-0 lg:grid lg:grid-cols-2 lg:gap-14">
+        <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-2" : ""}`}>
           {STEPS.map((s, i) => (
             <li
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[46svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[42svh]"}
+              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-2 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[46svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[42svh]"}
             >
-              <Reveal className={still ? "lg:col-span-5" : undefined}>
+              <Reveal>
                 <h3
                   className={`m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] transition-colors duration-[400ms] motion-reduce:transition-none md:text-[32px] ${active === i || still ? "text-ink" : "text-ink lg:text-tertiary"}`}
                   aria-current={active === i && !still ? "step" : undefined}
@@ -97,7 +97,7 @@ export default function HowItWorks() {
                 <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
               </Reveal>
               {/* phone and tablet (and every width under reduced motion): the screenshot with its own step */}
-              <figure className={`tile m-0 mt-8 p-6 md:p-8 ${still ? "lg:col-span-7 lg:mt-0" : "lg:hidden"}`}>
+              <figure className={`tile m-0 mt-8 p-6 md:p-8 ${still ? "lg:mt-0" : "lg:hidden"}`}>
                 <Shot s={s} className="mx-auto" />
                 <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
               </figure>
@@ -106,7 +106,7 @@ export default function HowItWorks() {
         </ol>
 
         {/* desktop: the pinned frame, its screenshot crossfading with the active step */}
-        {!still && <div className="hidden lg:col-span-7 lg:block">
+        {!still && <div className="hidden lg:block">
           {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
           <div className="sticky top-[20svh] flex h-[60svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">

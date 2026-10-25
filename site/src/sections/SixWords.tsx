@@ -258,12 +258,12 @@ export default function SixWords() {
       <Reveal>
         <Title>Six words. Signed.</Title>
       </Reveal>
-      <div className="mt-12 hidden md:mt-16 lg:block">{reduce ? <TabExplorer /> : <PinnedExplorer />}</div>
-      <Reveal className="mt-10 lg:hidden" amount={0.2}>
+      <div className="mt-12 hidden lg:block">{reduce ? <TabExplorer /> : <PinnedExplorer />}</div>
+      <Reveal className="mt-12 lg:hidden" amount={0.2}>
         <Cards />
       </Reveal>
       <Reveal>
-        <p className="mb-0 mt-10 max-w-[70ch] text-[15px] text-secondary md:mt-12">
+        <p className="mx-auto mb-0 mt-12 max-w-[60ch] text-center text-[15px] text-secondary">
           Plus a 24-hour envelope per street, renewed every two hours. Every message signed with a time window, ramps randomised so a street never steps in sync, the owner&rsquo;s limits always win, and everything reverts when the heartbeat stops.
         </p>
       </Reveal>

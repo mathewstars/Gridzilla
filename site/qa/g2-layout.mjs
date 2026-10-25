@@ -1,7 +1,7 @@
 // G2 layout, at 2560x1440, 1440x900, 1024x768, 390x844, 390x667: no two text nodes overlap, no text clipped by its
 // container, no horizontal page scroll, the hero headline on 2 lines (3 on a phone: ONE SIGNED LIMIT. / THE WHOLE /
 // STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up, every section
-// title on the same left content edge, and under 768 px every tap target at least 44 x 44 (links inside a sentence
+// title centred on the page (round 4: the page reads as one centred column), and under 768 px every tap target at least 44 x 44 (links inside a sentence
 // excepted, as WCAG 2.5.8 does). Detector after dashboard/qa/layout.mjs.
 import { SIZES, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
@@ -92,10 +92,15 @@ function detect(W) {
     const spread = Math.max(...tops) - Math.min(...tops);
     if (spread > 8) F.nav.push(`nav items spread ${spread}px vertically`);
   }
-  // one layout system: every section title starts on the same left edge
-  const edges = [...document.querySelectorAll("main section h2, footer h2")].filter((e) => !hidden(e)).map((e) => ({ id: e.closest("[id]")?.id || "footer", x: Math.round(e.getBoundingClientRect().left) }));
-  const x0 = edges[0]?.x;
-  for (const e of edges) if (Math.abs(e.x - x0) > 1) F.edge.push(`#${e.id} title at x ${e.x}, the others at ${x0}`);
+  // one layout system: every section title is centred on the page, its text centred in its box
+  const mid = document.documentElement.clientWidth / 2;
+  for (const e of document.querySelectorAll("main section h2, footer h2")) {
+    if (hidden(e)) continue;
+    const r = e.getBoundingClientRect();
+    const id = e.closest("[id]")?.id || "footer";
+    if (Math.abs(r.left + r.width / 2 - mid) > 2) F.edge.push(`#${id} title box centre at x ${Math.round(r.left + r.width / 2)}, the page centre at ${Math.round(mid)}`);
+    if (getComputedStyle(e).textAlign !== "center") F.edge.push(`#${id} title text is not centred`);
+  }
   // phone: tap targets of at least 44 x 44
   if (W < 768) {
     for (const el of document.querySelectorAll("a[href], button")) {

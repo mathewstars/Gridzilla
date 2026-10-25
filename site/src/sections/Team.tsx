@@ -29,9 +29,9 @@ export default function Team() {
         <Title>The team</Title>
       </Reveal>
 
-      <ul className="m-0 mt-14 grid list-none grid-cols-1 gap-12 p-0 md:mt-16 md:grid-cols-3 md:gap-8 lg:gap-14">
+      <ul className="m-0 mt-12 grid list-none grid-cols-1 gap-12 p-0 text-center md:grid-cols-3 md:gap-8 lg:gap-14">
         {PEOPLE.map((p, i) => (
-          <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-start">
+          <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-center">
             <img
               src={`https://github.com/${p.handle}.png?size=192`}
               width={96}
@@ -43,7 +43,7 @@ export default function Team() {
             />
             <h3 className="m-0 mt-7 text-[21px] font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
             {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}
-            <p className="m-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary">{p.role}</p>
+            <p className="mx-auto mb-0 mt-3 max-w-[32ch] text-[16px] leading-[1.5] text-secondary">{p.role}</p>
             <a
               className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-ink no-underline"
               href={`https://github.com/${p.handle}`}
@@ -57,15 +57,15 @@ export default function Team() {
         ))}
       </ul>
 
-      <Reveal className="tile mt-12 p-6 md:mt-16 md:p-8 xl:flex xl:items-center xl:justify-between xl:gap-10">
-        <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap xl:shrink-0">
+      <Reveal className="tile mt-12 flex flex-col items-center p-6 text-center md:p-8">
+        <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:justify-center">
           {TEAM_LINKS.map((l) => (
             <PillLink key={l.label} href={l.href} tone="secondary" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">
               {l.label}
             </PillLink>
           ))}
         </div>
-        <p className="m-0 mt-7 max-w-[44ch] text-[15px] leading-[1.5] text-secondary xl:mt-0 xl:min-w-0 xl:text-right">
+        <p className="mx-auto mb-0 mt-6 max-w-[60ch] text-[15px] leading-[1.5] text-secondary">
           Built at the TEB AI Hackathon, Energy Bridge Vienna, <span className="whitespace-nowrap">23 to 25 October 2026</span>. Grid-Serving Storage track.
         </p>
       </Reveal>

@@ -1,5 +1,5 @@
 // One section of the page: an id for the nav anchors, the page container (the 1240 px content width, the side
-// gutter) and the vertical air: 120 px top and bottom from 1024, 72 on the phone, and nothing else stacks on it.
+// gutter) and the vertical air: 96 px top and bottom from 1024, 72 below, and nothing else stacks on it (round 4).
 // Over the deck's light every section carries the scrim (the light at about 35 %, the deck's "calm"); `light` thins
 // it to a shade for the one strong patch (AI). `bleed` drops the container for sections that draw
 // their own full-width frame.
@@ -14,7 +14,7 @@ export function Section({ id, children, className = "", bleed, light, fade, styl
       ? "linear-gradient(transparent, var(--scrim) 240px)"
       : "var(--scrim)";
   return (
-    <section id={id} className={`py-[72px] md:py-24 lg:py-[120px] ${className}`} style={{ background: bg, ...style }} {...rest}>
+    <section id={id} className={`py-[72px] lg:py-24 ${className}`} style={{ background: bg, ...style }} {...rest}>
       {bleed ? children : <Container>{children}</Container>}
     </section>
   );
@@ -24,7 +24,12 @@ export function Container({ children, className = "" }: { children: ReactNode; c
   return <div className={`mx-auto w-full max-w-[calc(var(--content)+2*var(--gutter))] px-[var(--gutter)] ${className}`}>{children}</div>;
 }
 
-/** A section title: Clash Display 500, sentence case. Pass `as` for the heading level (h2 by default). */
+/** A section title: Clash Display 500, sentence case, centred on the page (round 4). `as` sets the heading level. */
 export function Title({ children, className = "", as: Tag = "h2" }: { children: ReactNode; className?: string; as?: "h2" | "h3" }) {
-  return <Tag className={`t-display t-section m-0 ${className}`}>{children}</Tag>;
+  return <Tag className={`t-display t-section m-0 mx-auto text-balance text-center ${className}`}>{children}</Tag>;
+}
+
+/** A section intro under its title: centred, at most 60ch. */
+export function Intro({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <p className={`t-lead mx-auto mb-0 mt-6 max-w-[60ch] text-balance text-center text-secondary ${className}`}>{children}</p>;
 }

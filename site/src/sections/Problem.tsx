@@ -2,7 +2,7 @@
 // one street, full width on a tile, its legend in words and its caption in words under it. The numbers in the
 // caption are the chart's own (src/data/street.ts); the measured 511 to 325 kW lives in Proof.
 import { lazy, Suspense } from "react";
-import { Section, Title } from "../ui/Section";
+import { Intro, Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { STREET } from "../data/street";
 import "../styles/sections-a.css";
@@ -24,16 +24,12 @@ export default function Problem() {
     <Section id="problem">
       <Reveal>
         <Title className="max-w-[24ch]">Home batteries are now the largest storage fleet in Europe. The grid operator cannot see or use a single one.</Title>
+        <Intro>
+          At six in the evening the street transformer hits its rating. Today the operator can only curtail solar, cut the street, or buy a bigger transformer.
+        </Intro>
       </Reveal>
-      <div className="mt-8 grid md:mt-10 lg:grid-cols-12">
-        <Reveal className="lg:col-span-6 lg:col-start-7" delay={0.08}>
-          <p className="t-lead m-0 max-w-[44ch] text-secondary">
-            At six in the evening the street transformer hits its rating. Today the operator can only curtail solar, cut the street, or buy a bigger transformer.
-          </p>
-        </Reveal>
-      </div>
 
-      <Reveal as="figure" className="m-0 mt-12 md:mt-16" amount={0.2}>
+      <Reveal as="figure" className="m-0 mt-12" amount={0.2}>
         <div className="tile p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -57,7 +53,7 @@ export default function Problem() {
             </Suspense>
           </div>
         </div>
-        <figcaption className="mt-5 max-w-[60ch] px-6 text-[15px] text-secondary md:mt-6 md:px-8">
+        <figcaption className="mx-auto mt-5 max-w-[60ch] text-center text-[15px] text-secondary md:mt-6">
           One street in {STREET.name}, from the platform&rsquo;s plan: the evening peak drops from {r(STREET.peakWithoutKw)} to {r(STREET.peakWithKw)} kW, under its {STREET.ratingKw} kW transformer. Same houses, same cars, same weather.
         </figcaption>
       </Reveal>

@@ -1,5 +1,5 @@
-// The real plant: a split, the words left (the title on the page's content edge) and the tile right; on the phone the
-// words come first and the tile under them. The tile is a still: the real plant's last reading as the console's Blatnica
+// The real plant: the title centred over a split of two equal halves (round 4), the words left and the tile right, both
+// centred against each other; on the phone the words come first and the tile under them. The tile is a still: the real plant's last reading as the console's Blatnica
 // card showed it on 25 October 2026 at 15:41 (the console capture public/shots/console.webp as of commit 1158cd3,
 // "live, updated 6 s ago"), labelled with that
 // date and time, never polled (owner, round 3: "we do not care if it is live"). State of charge as a ring in green,
@@ -110,13 +110,15 @@ function Tile() {
 export default function RealPlant() {
   return (
     <Section id="plant">
-      <div className="grid items-center gap-12 md:gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 xl:gap-24">
+      <Reveal>
+        <Title className="plant-title max-w-[20ch]">Two real devices, one house in Blatnica, Slovakia.</Title>
+      </Reveal>
+      <div className="mt-12 grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-24">
         <Reveal>
-          <Title className="plant-title max-w-[16ch]">Two real devices, one house in Blatnica, Slovakia.</Title>
-          <p className="t-lead mb-0 mt-8 max-w-[44ch] text-secondary">
+          <p className="t-lead mx-auto my-0 max-w-[44ch] text-balance text-center text-secondary lg:mx-0 lg:text-left">
             During the hackathon, 23 to 25 October, a Victron plant (Cerbo GX, MultiPlus-II, battery, EV Charging Station) and a Viessmann Vitocal heat pump through the ViCare cloud ran on this house. A signed message went out over a public broker, the battery and the heat pump moved, signed acks came back.
           </p>
-          <p className="mb-0 mt-8 max-w-[52ch] text-[15px] leading-[1.5] text-secondary">
+          <p className="mx-auto mb-0 mt-6 max-w-[52ch] text-center text-[15px] leading-[1.5] text-secondary lg:mx-0 lg:text-left">
             The battery sat at 20 % during the hackathon, so live demos leaned on the heat pump and the car charger.
           </p>
         </Reveal>
