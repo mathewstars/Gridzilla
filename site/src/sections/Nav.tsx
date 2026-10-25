@@ -4,6 +4,7 @@
 // menu button that opens a full-screen sheet: the six links in large type, the console pill at its foot (the phone's
 // one primary action).
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { List, X } from "@phosphor-icons/react";
 import { PillLink } from "../ui/Button";
@@ -58,8 +59,9 @@ export default function Nav() {
     };
   }, [open]);
 
-  return (
-    <nav aria-label="Main" className={`nav-bar fixed inset-x-0 top-0 z-50 ${scrolled || open ? "is-scrolled" : ""}`}>
+  // a direct child of <body>, above everything (z 1000): no ancestor can put a stacking context or a filter over it
+  return createPortal(
+    <nav aria-label="Main" className={`nav-bar fixed inset-x-0 top-0 z-[1000] ${scrolled || open ? "is-scrolled" : ""}`}>
       <div className="relative mx-auto flex h-16 w-full max-w-[calc(var(--content)+2*var(--gutter))] items-center justify-between gap-3 px-[var(--gutter)] lg:h-[72px]">
         <Wordmark />
 
@@ -128,6 +130,7 @@ export default function Nav() {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </nav>,
+    document.body,
   );
 }

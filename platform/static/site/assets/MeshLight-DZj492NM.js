@@ -1,4 +1,4 @@
-import{r as O,j as H}from"./react-W1izUqcL.js";const q=`attribute vec2 a_position;
+import{r as O,j as H}from"./react-DZRUXSPQ.js";const q=`attribute vec2 a_position;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`,Y=`#ifdef GL_FRAGMENT_PRECISION_HIGH

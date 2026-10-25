@@ -3,8 +3,9 @@
 // STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up, every section
 // title centred on the page (round 4: the page reads as one centred column), and under 768 px every tap target at least 44 x 44 (links inside a sentence
 // excepted, as WCAG 2.5.8 does). Besides the sizes it runs on a real iPhone 14 profile (DPR 3, touch, mobile) in both
-// Chrome and WebKit (Safari's engine), and checks there that the fixed nav strip is opaque and that no section's text
-// sits behind it once you scroll to that section. Detector after dashboard/qa/layout.mjs.
+// Chrome and WebKit (Safari's engine), and checks there, on the pixels the engine actually paints, that nothing shows
+// through the fixed nav bar (its own contents hidden, every pixel of the bar must be the bar colour, at five scroll
+// depths) and that no section's title sits behind it once you scroll to that section. Detector after dashboard/qa/layout.mjs.
 import { SIZES, SITE, arg, devicePage, launch, launchWebkit, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
@@ -148,10 +149,39 @@ for (const [engine, open] of [["chromium", () => browser], ["webkit", launchWebk
   await page.waitForTimeout(1200);
   const f = await page.evaluate(detect, width);
   for (const [k, v] of Object.entries(f)) rows.push([`${engine} iPhone 14 ${k}`, v.length === 0, v.slice(0, 4).join(" | ")]);
-  await page.evaluate(() => window.scrollTo(0, 400));
-  await page.waitForTimeout(500);
   const n = await page.evaluate(navCheck);
-  rows.push([`${engine} iPhone 14 nav strip opaque, no section title behind it`, n.length === 0, n.slice(0, 4).join(" | ")]);
+  rows.push([`${engine} iPhone 14 no section title behind the nav`, n.length === 0, n.slice(0, 4).join(" | ")]);
+  // pixels: hide the bar's own contents, screenshot the bar (above its 1 px hairline) at several depths, and require
+  // every pixel to be the bar colour; anything else is page content showing through
+  const seen = [];
+  for (const y of [1200, 2500, 4000, 5000, 7000]) {
+    await page.evaluate((y) => window.scrollTo(0, y), y);
+    await page.waitForTimeout(400);
+    const box = await page.evaluate(() => {
+      const nav = document.querySelector("nav[aria-label=Main]");
+      for (const c of nav.children) c.style.visibility = "hidden";
+      const r = nav.getBoundingClientRect();
+      const bg = getComputedStyle(nav).backgroundColor.match(/[\d.]+/g).map(Number);
+      return { x: 0, y: Math.max(0, r.top), width: Math.floor(r.width), height: Math.floor(r.height) - 2, bg };
+    });
+    const png = await page.screenshot({ clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
+    const worst = await page.evaluate(async ({ b64, bg }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let m = 0;
+      for (let i = 0; i < d.length; i += 4) m = Math.max(m, Math.abs(d[i] - bg[0]), Math.abs(d[i + 1] - bg[1]), Math.abs(d[i + 2] - bg[2]));
+      return m;
+    }, { b64: png.toString("base64"), bg: box.bg });
+    await page.evaluate(() => { for (const c of document.querySelector("nav[aria-label=Main]").children) c.style.visibility = ""; });
+    if (worst > 6) seen.push(`at y ${y} a bar pixel is ${worst} off the bar colour`);
+  }
+  rows.push([`${engine} iPhone 14 nothing shows through the nav bar (pixels)`, seen.length === 0, seen.slice(0, 3).join(" | ")]);
   await ctx.close();
   if (b !== browser) await b.close();
 }
