@@ -2,7 +2,7 @@
 // live curve and ring, one sentence of state), the AI's steps and the signals running, the newest three events, and the
 // whole city as a strip of coloured dots. Auto-picks the most interesting transformer; Up/Down override it.
 // Exported as DemoView for the pitch deck (it runs its own data hook when no console data is passed in).
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { post, type FlattenPlan, type State } from "../../api";
 import { hhmm, nice } from "../../model";
 import LiveCurve, { WaitLegend } from "../../stage/kit/LiveCurve";
@@ -41,10 +41,11 @@ function ranked(s: State): string[] {
 
 function Demo({ ops }: { ops: Ops }) {
   const s = ops.s as State;
-  const order = useMemo(() => ranked(s), [s]);
-  const [manual, setManual] = useState<string | null>(null);
-  const auto = order[0] ?? "";
-  const tf = manual && s.tree[manual] ? manual : auto;
+  // Picked ONCE at load (the autopilot's target, else the highest forecast peak) and then held: a re-ranking never moves
+  // the view. Only Up/Down (through the order as it was at load) or a click on a city dot changes it.
+  const [order] = useState(() => ranked(s));
+  const [picked, setPicked] = useState(() => order[0] ?? "");
+  const tf = s.tree[picked] ? picked : (order.find((t) => s.tree[t]) ?? "");
   // keep the console's data hook on the transformer this view shows (history, plan)
   useEffect(() => {
     if (tf && tf !== ops.tf) ops.select(tf);
@@ -54,8 +55,9 @@ function Demo({ ops }: { ops: Ops }) {
       if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       e.preventDefault();
-      const i = order.indexOf(tf);
-      setManual(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
+      if (!order.length) return;
+      const i = Math.max(0, order.indexOf(tf));
+      setPicked(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
@@ -72,7 +74,7 @@ function Demo({ ops }: { ops: Ops }) {
         <NowCard ops={ops} />
         <BlatnicaLive />
       </div>
-      <CityDots s={s} ops={ops} selected={tf} onPick={setManual} />
+      <CityDots s={s} ops={ops} selected={tf} onPick={setPicked} />
     </div>
   );
 }
