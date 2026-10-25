@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gridzilla control</title>
+<link rel="icon" href="data:,">
 <script src="/static/vendor/chart.umd.js"></script>
 <style>
   :root {
@@ -141,6 +142,124 @@
   .citystrip .cell { width:26px; height:15px; border-radius:2px; font-family:var(--mono); font-size:8px; display:flex; align-items:center; justify-content:center; color:#15181c; font-weight:600; cursor:pointer; }
   .citystrip .cell.sig { box-shadow: inset 0 0 0 2px var(--acc); }
 
+  /* ---- board refresh: one spacing scale (8 / 12 / 16 / 24), one card style, one chip style, system type ---- */
+  :root {
+    --sans: -apple-system, "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif;
+    --bg:#121519; --panel:#1a1e24; --panel2:#22272f; --card:#20252c; --ter:#7f8792;
+    --edge:rgba(255,255,255,0.08); --edge2:rgba(255,255,255,0.12);
+    --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 1px 2px rgba(0,0,0,0.35), 0 12px 28px -12px rgba(0,0,0,0.55);
+  }
+  body { font:14px/1.45 var(--sans); font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased; background:radial-gradient(1200px 600px at 20% -10%, #1a1f27 0%, transparent 60%), var(--bg); }
+  .tile .v, .step .v, .kpi .v, .countdown .v, .city, .tflist, table, .schem, .chips span, .sig, .dcard .t, .target .big, .delta, .pill, header .clock { font-family:var(--sans); }
+
+  header { gap:16px; padding:10px 24px; background:rgba(22,26,31,0.92); border-bottom:1px solid var(--edge); box-shadow:0 1px 0 rgba(0,0,0,0.4); }
+  header .brand { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  header .brandrow { display:flex; align-items:center; gap:8px; }
+  header h1 { font-size:15px; font-weight:700; letter-spacing:.08em; margin-right:8px; }
+  header .sub { font-size:13px; color:var(--muted); white-space:nowrap; }
+  header .clock { font-size:20px; font-weight:600; color:var(--fg); margin-left:16px; }
+  .pill { padding:2px 10px; border-radius:999px; font-size:12px; line-height:18px; background:rgba(255,255,255,0.04); border-color:var(--edge); }
+  .pill.ok { border-color:rgba(95,196,138,0.45); background:rgba(95,196,138,0.08); } .pill.bad { border-color:rgba(230,103,103,0.5); background:rgba(230,103,103,0.1); }
+  .views { margin-left:auto; gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid var(--edge); box-shadow:inset 0 1px 2px rgba(0,0,0,0.4); }
+  .views button { padding:6px 14px; font-size:13px; font-weight:500; letter-spacing:0; text-transform:none; border:0; border-radius:7px; background:transparent; box-shadow:none; color:var(--muted); }
+  .views button:hover { background:rgba(255,255,255,0.06); color:var(--fg); }
+  .views button.on, .views button.on:hover { background:linear-gradient(#f1efe9, #dcd9d2); color:#15181c; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.6); }
+
+  /* buttons: raised, with hover, pressed and focus states */
+  button { font-size:13px; border-radius:8px; border:1px solid var(--edge2); background:linear-gradient(#2a3039, #232830); box-shadow:inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4); transition:background .12s, border-color .12s, transform .06s, box-shadow .12s; }
+  button:hover { background:linear-gradient(#323943, #2a3039); border-color:rgba(255,255,255,0.18); }
+  button:active { transform:translateY(1px); background:#1f242b; box-shadow:inset 0 1px 3px rgba(0,0,0,0.5); }
+  button:focus-visible { outline:2px solid var(--s1); outline-offset:2px; }
+  button.primary { background:linear-gradient(#f09a4e, #e0802f); border-color:#e8893a; }
+  button.primary:hover { background:linear-gradient(#f5a660, #e8893a); }
+  input, select, textarea { border-radius:8px; border-color:var(--edge2); background:#161a1f; }
+
+  main { padding:16px 24px 24px; gap:16px; overflow:auto; }
+  section { background:linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 120px), var(--panel); border:1px solid var(--edge); border-radius:14px; padding:16px; gap:12px; box-shadow:var(--shadow); }
+  h2 { font-size:15px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--fg); }
+  h2 .hint { font-size:13px; font-weight:400; color:var(--muted); }
+  section[data-tab="story"] h2, section[data-tab="flat"] h2 { flex-wrap:wrap; row-gap:8px; }
+  main[data-view="story"] { grid-template-rows: auto minmax(380px, 1fr) auto; }
+  main[data-view="flat"]   { grid-template-rows: auto minmax(380px, 1fr); }
+  main[data-view="story"] > section.span3, main[data-view="story"] > section:has(#realtiles), main[data-view="flat"] > section.span3 { min-height:auto; overflow:visible; }   /* short screens: the board scrolls instead of squeezing a panel */
+
+  /* one card style inside panels: a lighter fill, no second border */
+  .step, .tile, .kpi { background:var(--card); border:0; border-radius:10px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); }
+  .step { padding:12px 16px; border-left:0; }
+  .step .t, .tile .l.lab { font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ter); }
+  .step .v { font-size:clamp(22px, 1.55vw, 30px); font-weight:600; letter-spacing:-0.01em; margin-top:6px; white-space:normal; line-height:1.15; overflow-wrap:anywhere; }
+  .step .d { font-size:13px; color:var(--muted); margin-top:6px; max-height:none; line-height:1.4; }
+  .step .s { font-size:12px; color:var(--ter); margin-top:4px; }
+  .steps { gap:12px; }
+  #steps { counter-reset:step; }
+  #steps .step { counter-increment:step; position:relative; }
+  #steps .step .t::before { content:counter(step); display:inline-grid; place-items:center; width:18px; height:18px; margin-right:8px; border-radius:50%; background:rgba(255,255,255,0.08); color:var(--muted); font-size:11px; letter-spacing:0; vertical-align:1px; }
+  #steps .step.on { box-shadow:inset 0 0 0 1px rgba(232,137,58,0.6), 0 0 0 3px rgba(232,137,58,0.12); }
+  #steps .step.on .t::before { background:var(--acc); color:#15181c; }
+  .countdown { background:transparent; padding:0; min-width:180px; gap:8px; }
+  .countdown .cdpill { display:flex; align-items:baseline; gap:8px; padding:6px 14px; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--edge); }
+  .countdown .cdpill .l { font-size:12px; color:var(--muted); }
+  .countdown .cdpill .v { font-size:20px; font-weight:600; color:var(--acc); }
+  .countdown > .l { font-size:13px; }
+  .countdown button.review { margin:0; padding:8px 18px; font-weight:600; }
+  #rationale { font-size:13px !important; color:var(--muted) !important; margin-top:0 !important; line-height:1.45; }
+  #weather { font-size:13px !important; color:var(--ter) !important; margin-top:0 !important; }
+
+  .tile { padding:12px 16px; }
+  .tile .v { font-size:30px; font-weight:600; letter-spacing:-0.01em; }
+  .tile .u { font-size:14px; }
+  .tile .l { font-size:13px; color:var(--muted); margin-top:4px; }
+  .bignum { gap:12px; }
+  #realage.live::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ok); margin-right:6px; vertical-align:1px; box-shadow:0 0 0 3px rgba(95,196,138,0.18); }
+  #realsig { font-size:13px !important; }
+  .delta { font-size:14px; font-weight:600; }
+  #storydelta { flex-basis:100%; order:3; font-size:13px; }
+  #storytitle { flex:1 1 auto; }
+
+  /* legends: one row of chips, swatch + words */
+  .legend { gap:6px; font-size:12px; }
+  .legend span { display:inline-flex; align-items:center; gap:8px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.035); border:1px solid var(--edge); color:var(--muted); white-space:nowrap; }
+  .legend i { width:16px; height:3px; margin:0; border-radius:2px; }
+  .legend i.dash { background-image:linear-gradient(90deg, transparent 55%, var(--panel) 55%) !important; background-size:6px 3px; }
+  .legend i.area { height:10px; width:14px; border-radius:3px; opacity:.85; }
+  #devlegend span:last-child { background:none; border:0; }
+
+  /* chips that are buttons (feeders, pins): one shape, real states */
+  .tabs { gap:6px; align-items:center; }
+  .tabs button { padding:4px 10px; font-size:12px; border-radius:8px; }
+  .tabs button.on { border-color:var(--acc); background:linear-gradient(rgba(232,137,58,0.22), rgba(232,137,58,0.12)); }
+  .tabs:has(#pin-auto) { gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid var(--edge); }
+  .tabs:has(#pin-auto) button { border:0; background:transparent; box-shadow:none; color:var(--muted); }
+  .tabs:has(#pin-auto) button:hover { background:rgba(255,255,255,0.06); color:var(--fg); }
+  .tabs:has(#pin-auto) button.on { background:linear-gradient(#f1efe9, #dcd9d2); color:#15181c; font-weight:600; }
+  #flatchips { flex-basis:100%; order:3; font-weight:400; }
+
+  /* city heat strip: colour only, numbers in the tooltip */
+  .citystrip { display:grid; grid-template-columns:repeat(auto-fill, minmax(20px, 1fr)); gap:4px; }
+  .citystrip .cell { width:auto; height:20px; border-radius:6px; font-size:0; color:transparent; transition:transform .1s, filter .1s; }
+  .citystrip .cell:hover { transform:scale(1.15); filter:brightness(1.15); }
+
+  /* what happened: one line each */
+  .ticker { font-family:var(--sans); font-size:13px; gap:6px; }
+  .ticker .tm { color:var(--ter); margin-right:4px; }
+  .ticker b { font-weight:600; }
+
+  /* flattening */
+  #flattiles { grid-template-columns:repeat(5, minmax(0, 1fr)); }
+  .flatsteps { counter-reset:none; gap:12px; }
+  .fstep { display:grid; grid-template-columns:28px 1fr; gap:12px; align-items:start; }
+  .fstep .n { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:rgba(232,137,58,0.14); color:var(--acc); border:1px solid rgba(232,137,58,0.45); font-weight:600; font-size:13px; }
+  .fstep .t { font-weight:600; font-size:14px; line-height:28px; }
+  .fstep .t::first-letter { text-transform:uppercase; }
+  .fstep .d { font-size:13px; color:var(--muted); line-height:1.45; }
+  .monster { font-size:14px; line-height:1.5; padding:12px 16px; border-radius:10px; background:var(--card); }
+  .tflist { font-size:13px; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:6px 24px; }
+  .tflist > span { display:grid; grid-template-columns:minmax(0, 1fr) auto 4.5em; gap:8px; align-items:baseline; text-align:right; }
+  .tflist > span > b { text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scroll::-webkit-scrollbar, main::-webkit-scrollbar { width:8px; height:8px; } .scroll::-webkit-scrollbar-thumb, main::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:4px; }
+
+  @media (prefers-reduced-motion: reduce) { button, .citystrip .cell { transition:none; } }
+
   /* ---- phones and narrow tablets: one column, the page scrolls, charts get a fixed height, bigger tap targets ---- */
   @media (max-width: 900px) {
     html, body { height:auto; min-height:100%; overflow:auto; -webkit-text-size-adjust:100%; }
@@ -195,11 +314,13 @@
 </head>
 <body>
 <header>
-  <h1>GRIDZILLA</h1>
-  <span class="sub" id="subtitle">DSO control · Vienna</span>
-  <span class="pill" id="seqpill">seq –</span>
-  <span class="pill ok" id="hbpill">heartbeat on</span>
-  <span class="pill" id="llmpill">advisor off</span>
+  <div class="brand">
+    <div class="brandrow"><h1>GRIDZILLA</h1>
+    <span class="pill" id="seqpill">seq –</span>
+    <span class="pill ok" id="hbpill">heartbeat on</span>
+    <span class="pill" id="llmpill">advisor off</span></div>
+    <span class="sub" id="subtitle">DSO control · Vienna</span>
+  </div>
   <span class="views"><button id="v-story" onclick="setView('story')">Presentation</button><button id="v-flat" onclick="setView('flat')">Flattening</button><button id="v-auto" onclick="setView('auto')">Autopilot</button><button id="v-manual" onclick="setView('manual')">Manual</button><button id="v-homes" onclick="setView('homes')">Households</button></span>
   <span class="clock" id="clock">--:--</span>
 </header>
@@ -305,15 +426,15 @@
 
 
   <!-- presentation tab -->
-  <section class="span3" data-tab="story" style="padding:10px 12px">
+  <section class="span3" data-tab="story">
     <div class="steps" id="steps"></div>
     <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px; max-height:64px; overflow:auto"></div>
     <div id="weather" style="font-size:12px; color:var(--muted); margin-top:4px"></div>
   </section>
   <section data-tab="story">
-    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" class="on" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
+    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" class="on" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
     <div class="chartbox"><canvas id="storyChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i style="background:var(--acc)"></i>orange = load taken off the transformer</span><span><i style="background:var(--crit)"></i>rating</span></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i class="dash" style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i class="area" style="background:var(--acc)"></i>orange = load taken off the transformer</span><span><i class="dash" style="background:var(--crit)"></i>rating</span></div>
   </section>
   <section data-tab="story">
     <h2>Blatnica · real plant · live <span class="hint" id="realage"></span></h2>
@@ -335,7 +456,7 @@
   <section data-tab="flat">
     <h2><span id="flattitle">Vienna · next 24 grid hours</span> <span class="hint" id="flatdelta"></span></h2>
     <div class="chartbox"><canvas id="flatChart"></canvas></div>
-    <div class="legend"><span><i style="background:var(--muted)"></i>without Gridzilla: every car charges the moment it is plugged in</span><span><i style="background:var(--s1)"></i>with the diet plan</span><span><i style="background:#5a6270"></i>load nobody controls (other houses + base − PV)</span><span><i style="background:var(--acc)"></i>level L: the flattest the street can be</span><span><i style="background:var(--crit)"></i>rating</span></div>
+    <div class="legend"><span><i class="dash" style="background:var(--muted)"></i>without Gridzilla: every car charges the moment it is plugged in</span><span><i style="background:var(--s1)"></i>with the diet plan</span><span><i class="area" style="background:#5a6270"></i>load nobody controls (other houses + base − PV)</span><span><i class="dash" style="background:var(--acc)"></i>level L: the flattest the street can be</span><span><i class="dash" style="background:var(--crit)"></i>rating</span></div>
   </section>
   <section data-tab="flat" style="gap:8px; overflow:auto">
     <h2>How the monster eats a peak</h2>
@@ -537,13 +658,16 @@ function drawEnvelope() {
 }
 
 // ---------- charts
-Chart.defaults.color = css("--muted"); Chart.defaults.borderColor = css("--line"); Chart.defaults.font.family = "IBM Plex Sans, system-ui, sans-serif"; Chart.defaults.font.size = 11;
+const GRID = "rgba(255,255,255,0.06)";
+Chart.defaults.color = css("--ter"); Chart.defaults.borderColor = GRID; Chart.defaults.font.family = css("--sans"); Chart.defaults.font.size = 13;
+Object.assign(Chart.defaults.plugins.tooltip, {backgroundColor: css("--panel"), titleColor: css("--fg"), bodyColor: css("--fg"), borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+  padding: 10, cornerRadius: 10, boxPadding: 4, titleFont: {weight: "600", size: 13}, bodyFont: {size: 13}});
 const baseOpts = (ySuffix, extra = {}) => ({
   responsive: true, maintainAspectRatio: false, animation: false,
   interaction: {mode: "index", intersect: false},
-  plugins: {legend: {display: false}, tooltip: {backgroundColor: css("--panel2"), titleColor: css("--fg"), bodyColor: css("--fg"), borderColor: css("--line"), borderWidth: 1,
+  plugins: {legend: {display: false}, tooltip: {
     callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(1)}${ySuffix}`}}},
-  scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 8, maxRotation: 0}}, y: {grid: {color: "#2a3039"}, ticks: {callback: v => v + ySuffix}}},
+  scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 8, maxRotation: 0}}, y: {grid: {color: GRID}, ticks: {callback: v => v + ySuffix}}},
   elements: {line: {borderWidth: 2, tension: 0.2}, point: {radius: 0, hoverRadius: 4}}, ...extra});
 const loadChart = new Chart(document.getElementById("loadChart"), {type: "line", data: {labels: [], datasets: [
   {label: "total load", data: [], borderColor: SERIES[0], backgroundColor: SERIES[0] + "22", fill: "origin"},
@@ -555,7 +679,7 @@ const envChart = new Chart(document.getElementById("envChart"), {type: "line", d
   {label: "ceiling", data: [], borderColor: css("--acc"), backgroundColor: css("--acc") + "22", stepped: "before", fill: "origin", borderWidth: 2.5},
   {label: "measured", data: [], borderColor: SERIES[0], stepped: "before", spanGaps: false}]}, options: baseOpts(" kW")});
 const socChart = new Chart(document.getElementById("socChart"), {type: "bar", data: {labels: [], datasets: [{label: "SoC", data: [], backgroundColor: [], borderRadius: 4, borderSkipped: "start", barThickness: 14}]},
-  options: {...baseOpts("%"), indexAxis: "y", scales: {x: {min: 0, max: 100, grid: {color: "#2a3039"}, ticks: {callback: v => v + "%"}}, y: {grid: {display: false}, ticks: {font: {family: css("--mono")}}}},
+  options: {...baseOpts("%"), indexAxis: "y", scales: {x: {min: 0, max: 100, grid: {color: GRID}, ticks: {callback: v => v + "%"}}, y: {grid: {display: false}, ticks: {font: {family: css("--mono")}}}},
     plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => ` SoC ${c.parsed.x.toFixed(0)}%`}}}}});
 const gridChart = new Chart(document.getElementById("gridChart"), {type: "line", data: {labels: [], datasets: []}, options: baseOpts(" kW")});
 
@@ -717,7 +841,7 @@ function drawCity() {
 }
 
 // ---------- presentation view
-let storyChart = null, realChart = null, pinMode = "auto";
+let storyChart = null, realChart = null, pinMode = "selected";   // the operator picks the transformer; the board never re-picks on its own
 function storyPin(v) { pinMode = v; ["auto", "blatnica", "selected"].forEach(m => document.getElementById("pin-" + m).classList.toggle("on", m === v)); drawAll(); }
 function storyNode() {
   if (pinMode === "blatnica") return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
@@ -747,7 +871,7 @@ function drawStory() {
     ["GUARD", last ? last.verdict.toUpperCase() : "–", last && last.detail ? esc(last.detail.slice(0, 120)) : (last ? "within policy: window, depth, rate, reverse rating" : ""), "deterministic policy, not AI", stage === "guard"],
     ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
   document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
-    `<div class="countdown"><div class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</div><div class="l">next DeepSeek review</div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button style="margin-top:6px;padding:3px 10px;font-size:11px" onclick="decideAp('review')">Review now</button></div>`;
+    `<div class="countdown"><div class="cdpill"><span class="l">next DeepSeek review</span><span class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</span></div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button class="review" onclick="decideAp('review')">Review now</button></div>`;
   document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}${scopedLabel}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger)}</span>` : ""}` : "";
   // curve with vs without
   const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw || Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(node)).reduce((a, n) => a + S.tree[n].rating_kw, 0);
@@ -781,6 +905,7 @@ function drawStory() {
   document.getElementById("storydelta").innerHTML = `<span class="delta">${lastp && lastp.baseline_kw != null ? `${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ` : ""}${a.load_pct != null ? a.load_pct + "% of rating" : rating && lastp ? Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""} · ${hhmm(hr)} ${tod}</span><br>${sigTxt}`;
   // real plant
   const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
+  document.getElementById("realage").classList.toggle("live", age != null);
   document.getElementById("realage").textContent = age == null ? "offline" : `live · updated ${age} s ago · Cerbo GX + Vitocal via Gridzilla agents`;
   const tile = (v, u, l) => `<div class="tile"><div class="v">${v}<span class="u"> ${u}</span></div><div class="l">${l}</div></div>`;
   document.getElementById("realtiles").innerHTML =
@@ -791,7 +916,7 @@ function drawStory() {
   const hist = (H && (H.devices["real-powerplant-blatnica"] || [])) || [];
   if (!realChart) realChart = new Chart(document.getElementById("realChart"), {type: "line", data: {labels: [], datasets: [
       {label: "grid kW", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "22", fill: "origin", borderWidth: 2}]},
-    options: {...baseOpts(" kW"), plugins: {legend: {display: false}}, scales: {x: {display: false}, y: {grid: {color: "#2a3039"}, ticks: {callback: v => v + " kW", maxTicksLimit: 4}}}}});
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}}, scales: {x: {display: false}, y: {grid: {color: GRID}, ticks: {callback: v => v + " kW", maxTicksLimit: 4}}}}});
   realChart.data.labels = hist.map(p => p.ts.slice(11, 16)); realChart.data.datasets[0].data = hist.map(p => p.grid_kw); realChart.update();
   const ak = b.ack || {}; const mine = Object.entries(S.active).find(([n]) => (b.path || []).includes(n));
   document.getElementById("realsig").innerHTML = (mine ? `<b style="color:var(--acc)">${mine[1].mode}</b> seq ${mine[1].seq} on ${mine[0]} · ` : "owner mode · ") + (ak.status ? `last ack <span class="st-${ak.status}">${ak.status}${ak.reason ? " (" + ak.reason + ")" : ""}</span>${ak.seq ? " seq " + ak.seq : ""} · signature ${ak.verified === false ? "✗" : "✓"}` : "no ack yet");
@@ -805,7 +930,7 @@ function drawStory() {
   const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
   document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${S.summary.online} households live · ${S.summary.shaped || 0} on the diet plan`;
   document.querySelector("#ticker").previousElementSibling.querySelector(".hint").textContent = "all of Vienna, latest first";
-  document.getElementById("ticker").innerHTML = ap.history.slice(0, 6).map(d => `<div><span style="color:var(--muted)">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
+  document.getElementById("ticker").innerHTML = ap.history.slice(0, 6).map(d => `<div><span class="tm">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
 }
 // ---------- flattening view
 let flatChart = null, FP = null, fpNode = null, fpAt = 0;
@@ -865,7 +990,7 @@ function drawFlat() {
     ["3 · water-fill", `find the lowest level L = ${fmt(p.level_kw)} where the cars fit in the valley below it AND the peak above it fits in the batteries. L is the flattest shape physics allows`],
     ["4 · send the ceilings", `every 15-minute slot gets a per-house import ceiling (L − uncontrolled) ÷ houses and an export ceiling (Le + uncontrolled) ÷ houses, signed, renewed every 2 grid hours as one SHAPE signal per feeder. Owner limits still win`],
   ];
-  document.getElementById("flatsteps").innerHTML = steps.map(([t, d]) => `<div class="step on"><div class="t">${t}</div><div class="v">${d}</div></div>`).join("");
+  document.getElementById("flatsteps").innerHTML = steps.map(([t, d]) => `<div class="fstep"><span class="n">${t.split(" · ")[0]}</span><div><div class="t">${t.split(" · ")[1]}</div><div class="d">${d}</div></div></div>`).join("");
   document.getElementById("flatmonster").innerHTML = `<b>Gridzilla is on a diet.</b> It eats exactly ${fmt(eaten)} of peak, never more: a car plugged in at 18:00 trickles through dinner and gulps at 02:00, a battery swallows the slice above L and burps it back into the house, and at noon it drinks the PV surplus above ${fmt(p.export_level_kw)} so the feeder never sees it. Every car is full by morning${p.cars_full ? "" : " (almost: L was raised so the cars fit)"}, nobody notices, and the transformer sleeps at ${p.peak_plan_pct} % instead of ${p.peak_naive_pct} %.`;
   const tfs = p.tfs || [{tf: p.tf, rating_kw: p.rating_kw, level_kw: p.level_kw, peak_naive_pct: p.peak_naive_pct, peak_plan_pct: p.peak_plan_pct, houses: p.houses, ev_houses: p.ev_houses}];
   document.getElementById("flattfhint").textContent = `${tfs.length} · worst without: ${Math.max(...tfs.map(t => t.peak_naive_pct))} % · worst with: ${Math.max(...tfs.map(t => t.peak_plan_pct))} %`;
