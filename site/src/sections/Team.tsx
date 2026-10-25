@@ -1,6 +1,7 @@
 // Team + links (spec section 10): the three people in a row, each with their real GitHub avatar, name, role and
-// handle (the handle links to the profile); under them one tinted panel with the four white pills and the hackathon
-// line. Phone: one column, the pills full width. People rise in once, 80 ms apart; under reduced motion they are there.
+// handle (the handle links to the profile); under them one tinted panel with the four pills and the hackathon
+// line. Colours come from the tokens only (the page theme decides them). Phone: one column, the pills full width.
+// People rise in once, 80 ms apart; under reduced motion they are there.
 import { GithubLogo } from "@phosphor-icons/react";
 import { Section, Title } from "../ui/Section";
 import { PillLink } from "../ui/Button";
@@ -38,7 +39,7 @@ export default function Team() {
               alt={p.name}
               loading="lazy"
               decoding="async"
-              className="block size-24 rounded-full bg-fill object-cover shadow-[0_0_0_4px_#fff,var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_4px_#fff,var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+              className="block size-24 rounded-full bg-fill object-cover shadow-[0_0_0_1px_var(--color-fill),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-fill),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
             />
             <h3 className="m-0 mt-7 text-[21px] font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
             {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}

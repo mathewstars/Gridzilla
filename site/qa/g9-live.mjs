@@ -40,7 +40,7 @@ page.on("pageerror", (e) => errors.push(`pageerror: ${String(e).slice(0, 200)}`)
 page.on("requestfailed", (r) => { if (LIVE.test(r.url())) live.push(`${r.failure()?.errorText} ${r.url()}`); else if (!/favicon/.test(r.url())) failed.push(`${r.failure()?.errorText} ${r.url()}`); });
 page.on("response", (r) => { if (r.status() < 400) return; if (LIVE.test(r.url())) live.push(`${r.status()} ${r.url()}`); else if (!/favicon/.test(r.url())) failed.push(`${r.status()} ${r.url()}`); });
 
-await page.goto(String(url), { waitUntil: "networkidle" });
+await page.goto(String(url), { waitUntil: "load", timeout: 60000 });
 const plant = page.locator("#plant");
 const hasPlant = (await plant.count()) > 0;
 if (hasPlant) await plant.scrollIntoViewIfNeeded();
@@ -62,8 +62,8 @@ server?.kill();
 console.log(`INFO G9 live calls set aside: ${live.length}${live.length ? ` (${live.slice(0, 3).join(" | ")})` : ""}`);
 process.exit(report("G9", [
   ["the Real plant section is on the page", hasPlant, ""],
-  ["the page asked for live data (and the dead port refused it)", live.length > 0, "no /live-api request was made: the live tile is not wired yet"],
-  [`the tile shows "${FALLBACK}"`, tile.includes(FALLBACK), tile ? `section text: ${JSON.stringify(tile.slice(0, 160))}` : ""],
+  ["the page asked for live data (and the dead port refused it)", live.length > 0, live.length ? "" : "no /live-api request was made: the live tile is not wired yet"],
+  [`the tile shows "${FALLBACK}"`, tile.includes(FALLBACK), tile && !tile.includes(FALLBACK) ? `section text: ${JSON.stringify(tile.slice(0, 160))}` : ""],
   ["the tile shows no spinner", spinner === 0, ""],
   ["no console errors apart from the live call", errors.length === 0, errors.slice(0, 5).join(" | ")],
   ["no failed requests apart from the live call", failed.length === 0, failed.slice(0, 5).join(" | ")],

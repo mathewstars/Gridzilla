@@ -26,7 +26,8 @@ const notes = new Set(); // small text links that share an intent (navigation, n
 
 for (const size of ["1440x900", "390x844"]) {
   const { ctx, page } = await newPage(browser, size);
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
   await scrollThrough(page, 80);
   // open the phone menu so its sheet is in the DOM
   if (size.startsWith("390")) {

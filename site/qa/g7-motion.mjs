@@ -12,7 +12,8 @@ const text = (page) => page.evaluate(() => document.body.innerText.replace(/\s+/
 // the normal load, for the reference text
 const normal = await newPage(browser, "1440x900");
 await cutLive(normal.page);
-await normal.page.goto(url, { waitUntil: "networkidle" });
+await normal.page.goto(url, { waitUntil: "load", timeout: 60000 });
+await normal.page.waitForTimeout(1500);
 await scrollThrough(normal.page, 150);
 await normal.page.waitForTimeout(2500); // tickers settle
 const normalText = await text(normal.page);
@@ -20,7 +21,7 @@ await normal.ctx.close();
 
 const reduced = await newPage(browser, "1440x900", { reducedMotion: "reduce" });
 await cutLive(reduced.page);
-await reduced.page.goto(url, { waitUntil: "networkidle" });
+await reduced.page.goto(url, { waitUntil: "load", timeout: 60000 });
 await reduced.page.waitForTimeout(1000);
 const left = await reduced.page.evaluate(() => {
   const out = { hidden: [], moved: [] };

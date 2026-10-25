@@ -11,7 +11,8 @@ const PROPS = ["backgroundColor", "transform", "translate", "scale", "boxShadow"
 
 const browser = await launch();
 const { page } = await newPage(browser, "1440x900");
-await page.goto(url, { waitUntil: "networkidle" });
+await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
 await scrollThrough(page, 80);
 await page.waitForTimeout(800);
 

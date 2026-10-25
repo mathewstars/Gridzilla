@@ -61,7 +61,8 @@ for (const size of ["1440x900", "390x844"]) {
     window.__lcp = [];
     new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: "largest-contentful-paint", buffered: true });
   });
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
   await page.waitForTimeout(2000);
 
   const fold = await page.evaluate(() => {
@@ -104,7 +105,8 @@ for (const size of ["1440x900", "390x844"]) {
 // the trailer dialog's video, once opened, also asks for none or metadata (it autoplays on the click, that is fine)
 {
   const { ctx, page } = await newPage(browser, "1440x900");
-  await page.goto(url, { waitUntil: "networkidle" });
+  await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
   const btn = page.getByRole("button", { name: "Watch the trailer" }).first();
   if (await btn.count()) {
     await btn.click();
