@@ -1,30 +1,42 @@
-// STUB (helper B): proof. A stat band, four big Clash Display numbers ticking up once (ui/Ticker), one line each, one
-// number can carry the accent. Numbers from the submission. Spec section 6.
+// Proof: a stat band. Four big Clash Display numbers that count up once as they come into view (ui/Ticker), one line
+// of words under each, no cards and no lines between them, then the footnote. The 36 % carries the accent as a bar
+// under it in the eaten-peak orange (orange text would fail contrast on white). Numbers from the team's submission,
+// spec section 6. Four across from 1280, two by two from 768, one column on the phone.
 import { Section } from "../ui/Section";
+import { Reveal } from "../ui/Reveal";
+import { Ticker } from "../ui/Ticker";
+import "../styles/proof-plant.css";
 
 export const PROOF = [
-  { value: 36, unit: "%", line: "one street off its evening peak (511 to 325 kW)" },
-  { value: 5, unit: "MW", line: "Vienna with 2,000 enrolled houses (31.2 to 26.2 MW, 16 %)" },
-  { value: 2176, unit: "", line: "programme houses on 72 transformers across Vienna (271 simulated households, each standing for eight)" },
-  { value: 0, unit: "kW", line: "a street where no car charged that night, which is the honest answer" },
+  { value: 36, unit: "%", line: "One street off its evening peak (511 to 325 kW).", accent: true },
+  { value: 5, unit: "MW", line: "Vienna with 2,000 enrolled houses (31.2 to 26.2 MW, 16 %)." },
+  { value: 2176, unit: "", line: "Programme houses on 72 transformers across Vienna (271 simulated households, each standing for eight)." },
+  { value: 0, unit: "kW", line: "A street where no car charged that night, which is the honest answer." },
 ];
 
 export default function Proof() {
   return (
     <Section id="proof">
       <h2 className="sr-only">Proof</h2>
-      <ul className="grid list-none gap-10 p-0 md:grid-cols-4">
-        {PROOF.map((p) => (
-          <li key={p.line}>
-            <div className="t-display t-num text-[56px]">
-              {p.value.toLocaleString("en-US")}
-              {p.unit && ` ${p.unit}`}
-            </div>
-            <p className="mt-3 text-secondary">{p.line}</p>
-          </li>
+      <ul className="m-0 grid list-none gap-x-12 gap-y-12 p-0 md:grid-cols-2 md:gap-y-20 xl:grid-cols-4 xl:gap-x-10">
+        {PROOF.map((p, i) => (
+          <Reveal as="li" key={p.line} delay={i * 0.08} className="min-w-0">
+            <p className="proof-num m-0 whitespace-nowrap font-display font-semibold text-ink">
+              <span className="relative inline-block">
+                <Ticker value={p.value} />
+                {p.unit && <span className="proof-unit font-medium">{"\u2009"}{p.unit}</span>}
+                {p.accent && <span className="proof-accent absolute inset-x-0 rounded-pill bg-accent" aria-hidden="true" />}
+              </span>
+            </p>
+            <p className="mb-0 mt-5 max-w-[30ch] text-[17px] leading-[1.45] text-secondary md:mt-6">{p.line}</p>
+          </Reveal>
         ))}
       </ul>
-      <p className="mt-12 text-[15px] text-secondary">Measured on the simulated fleet tonight. The without curve is the same houses, same cars, same weather, no signal.</p>
+      <Reveal delay={0.2}>
+        <p className="mb-0 mt-16 max-w-[62ch] text-[15px] leading-[1.5] text-secondary md:mt-24">
+          Measured on the simulated fleet tonight. The without curve is the same houses, same cars, same weather, no signal.
+        </p>
+      </Reveal>
     </Section>
   );
 }
