@@ -181,6 +181,9 @@
   section[data-tab="story"] h2, section[data-tab="flat"] h2 { flex-wrap:wrap; row-gap:8px; }
   main[data-view="story"] { grid-template-rows: auto minmax(380px, 1fr) auto; }
   main[data-view="flat"]   { grid-template-rows: auto minmax(380px, 1fr); }
+  main[data-view="auto"] section { padding:12px 16px; gap:8px; }   /* the dense tabs keep their old rhythm */
+  .city .cell small { text-overflow:ellipsis; padding:0 2px; }
+  main[data-view="auto"] h2, main[data-view="manual"] h2, main[data-view="homes"] h2 { font-size:14px; }
   main[data-view="story"] > section.span3, main[data-view="story"] > section:has(#realtiles), main[data-view="flat"] > section.span3 { min-height:auto; overflow:visible; }   /* short screens: the board scrolls instead of squeezing a panel */
 
   /* one card style inside panels: a lighter fill, no second border */
