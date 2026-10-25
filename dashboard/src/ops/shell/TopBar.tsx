@@ -1,5 +1,5 @@
-// Top bar of the operations console: grid clock, scenario, autopilot mode, heartbeat (fail-safe), signals signed, weather
-// and the theme switch. Every control answers at once (optimistic), then follows the platform; a failure snaps back and
+// Top bar of the operations console: scenario, autopilot mode, heartbeat (fail-safe) with Pause, signals signed today,
+// weather, help and the theme switch; nothing else. Every control answers at once (optimistic), then follows the platform; a failure snaps back and
 // says why in plain words. One line from 1240 wide (captions drop first, shell.css), wraps cleanly on phones.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
@@ -8,7 +8,7 @@ import { Cloud, CloudSun, Moon, PenNib, Question, Sun, Warning, X } from "@phosp
 import { post, READ_ONLY, READ_ONLY_TEXT } from "../../api";
 import type { Ops } from "../useOps";
 import { useTheme } from "../theme";
-import { clock, tip } from "../views/fmt";
+import { clock } from "../views/fmt";
 import { useFeed } from "../feed/events";
 import "./shell.css";
 
@@ -64,7 +64,7 @@ function Segmented({ id, opts, value, wait, onPick, label }: { id: string; opts:
 
 type Want = { scenario?: string; mode?: string; paused?: boolean };
 
-/** compact: only the grid clock, scenario, heartbeat with Pause/Resume and the theme icon (demo mode). */
+/** compact: only the scenario, heartbeat with Pause/Resume and the theme icon (demo mode). */
 export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: boolean }) {
   const s = ops.s;
   const [theme, setTheme] = useTheme();
@@ -130,7 +130,6 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
   // the platform's short log does not reach back to midnight the label says from when it counts.
   const signed = feed?.signals ?? 0;
   const since = feed?.since ?? null;
-  const signedWord = since == null ? "signed today" : `signed today since ${clock(since)}`;
   const signedTip =
     since == null
       ? `Signals the platform signed and sent to houses today (grid day, from 00:00), not counting diet plan updates.`
@@ -139,11 +138,6 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
 
   return (
     <header className={`tb${compact ? " is-compact" : ""}`}>
-      <div className="tb-clock" {...tip(`Grid time ${clock(s.sim_hour)}: the simulated city's clock, which runs faster than the wall clock`)}>
-        <span className="tb-cap">Grid</span>
-        <b data-src="axis">{clock(s.sim_hour)}</b>
-      </div>
-      <span className="tb-sep" />
       <div className="tb-grp">
         <span className="tb-cap tb-cap-opt">Scenario</span>
         <Segmented
@@ -189,7 +183,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
         <Chip title={signedTip}>
           <PenNib size={14} weight="bold" />
           <span data-src="page" data-label="counted by this page from today's feed">{signed.toLocaleString("en-US")}</span>
-          <span className="t">{signedWord}</span>
+          <span className="t">signed today{since != null && <span className="tb-since"> since {clock(since)}</span>}</span>
         </Chip>
       )}
       {compact ? null : wx.available && now ? (
