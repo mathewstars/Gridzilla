@@ -1,12 +1,12 @@
 // Slide 4, the six signal words (1:10, 15 s, Matthew), right after the idea (one signed message) and before the
 // monster chart; the six the team's submission names. One key press: the headline is there on the cut, the six cards
-// rise in 100 ms apart (like slide 2's facts), two rows of three in the order the script says them (the everyday
-// three, then the crisis three), and the closing line follows by itself 1 s after the last card lands. Freeze or
-// reduced motion: all on. Words and meanings from README.md's two signal tables, protocol/PROTOCOL.md and
+// rise in 100 ms apart (like slide 2's facts), each with a 1 px accent sweep along its top edge, two rows of three in
+// the order the script says them (the everyday three, then the crisis three), and the closing line follows by itself
+// 1 s after the last card lands. Freeze or reduced motion: all on, no sweep. Words and meanings from README.md's two signal tables, protocol/PROTOCOL.md and
 // platform/gridzilla.py MODE_FIELDS; the numbers are the README's examples and the console's defaults (3 kW import
 // cap, 2 kW export cap, fill to 90 %), so they are deck figures, not live ones. The envelope (SHAPE, the diet plan,
 // re-planned every two grid hours: SHAPE_EVERY_S) is in the closing line, as in the submission.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useReducedMotion } from "motion/react";
 import type { SlideProps } from "../types";
 import "./slideSignals.css";
@@ -54,11 +54,17 @@ export default function SlideSignals({ freeze }: SlideProps) {
 
       <div className="sw-row">
         {WORDS.map((w, i) => (
-          <div key={w.word} className={`sw-card sw-${w.tone}${cards ? " is-on" : ""}`} style={{ transitionDelay: still ? "0s" : `${i * GAP}s` }}>
+          <div key={w.word} className={`sw-card sw-${w.tone}${cards ? " is-on" : ""}`} style={{ "--sw-d": still ? "0s" : `${i * GAP}s` } as CSSProperties}>
+            <div className="sw-chip" aria-hidden="true">
+              <span className="sw-dot" />
+              <span className="sw-hair" />
+            </div>
             <div className="sw-word">{w.word}</div>
-            <p className="sw-when p-small p-secondary">{w.when}</p>
-            <p className="sw-says p-body" data-src="deck" data-label="README.md signal tables, an example message">
-              “{w.says}”
+            <p className="sw-when p-secondary">{w.when}</p>
+            <p className="sw-says" data-src="deck" data-label="README.md signal tables, an example message">
+              <span className="sw-q">“</span>
+              {w.says}
+              <span className="sw-q">”</span>
             </p>
           </div>
         ))}
