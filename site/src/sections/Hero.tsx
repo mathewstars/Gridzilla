@@ -43,7 +43,7 @@ export default function Hero() {
         <motion.p className="hero-sub mb-0 mt-6 max-w-[46ch] text-[rgb(245_245_247/0.9)] md:mt-7" {...rise(2)}>
           One bounded limit from the operator. Every battery, charger and heat pump on the street keeps the transformer under its rating.
         </motion.p>
-        <motion.div className="hero-ctas mt-7 flex w-full flex-col items-stretch justify-center gap-2.5 min-[360px]:w-auto min-[360px]:flex-row min-[360px]:items-center md:mt-9 md:gap-3" {...rise(3)}>
+        <motion.div className="hero-ctas mt-7 flex w-full max-w-[400px] flex-col items-stretch justify-center gap-2.5 md:mt-9 md:w-auto md:max-w-none md:flex-row md:items-center md:gap-3" {...rise(3)}>
           <PillLink href={LINKS.console} size="lg" badge>
             Open the console
           </PillLink>

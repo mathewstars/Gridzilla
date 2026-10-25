@@ -65,11 +65,10 @@ const TrailerStrip = forwardRef<TrailerHandle>(function TrailerStrip(_, ref) {
   }, []);
 
   return (
-    <section id="trailer" className="trailer-strip pb-14 pt-8 md:pb-20 md:pt-14 lg:pb-24 lg:pt-16">
+    <section id="trailer" className="trailer-strip pb-14 pt-10 md:pb-20 md:pt-14 lg:pb-24 lg:pt-16">
       <Container>
-        <Reveal>
-          <h2 className="t-display m-0 text-center text-[clamp(28px,2.6vw,44px)] leading-[1.1]">Watch the trailer</h2>
-        </Reveal>
+        {/* no reveal on this title: it sits right under the hero and must be there the moment the page loads */}
+        <h2 className="t-display m-0 text-center text-[clamp(28px,2.6vw,44px)] leading-[1.1]">Watch the trailer</h2>
         <Reveal delay={0.08} amount={0.2} className="mt-6 md:mt-12">
           <motion.div
             className="relative mx-auto"

@@ -33,7 +33,8 @@
    frame starts at the fold */
 @media (max-width: 1023px) {
   .hero { height: auto; min-height: 0; max-height: none; }
-  .hero-first { min-height: calc(100vh - 8px); min-height: calc(100svh - 8px); justify-content: center; padding-top: 64px; padding-bottom: 24px; }
+  /* the words fill the first screen less 88 px, so the phone frame peeks in above the fold */
+  .hero-first { min-height: calc(100vh - 88px); min-height: calc(100svh - 88px); justify-content: center; padding-top: 72px; padding-bottom: 32px; }
 }
 /* the phone frame: phone shaped, never wider than the screen less its gutters, a thin graphite bezel, 28 px corners,
    the capture cropped to its upper part and fading into the ground at its foot */
@@ -50,7 +51,7 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 140px), transparent);
 }
 @media (max-width: 767px) {
-  .hero-sub { font-size: 17px; }
+  .hero .hero-sub { font-size: 17px; } /* the base rule sits later in this file: .hero raises this one */
   .hero-ctas .pill { height: 48px; padding: 0 20px; font-size: 15px; }
   .hero-ctas .pill-icon { display: none; }
 }
@@ -128,4 +129,9 @@
 @media (prefers-reduced-motion: reduce) {
   .mesh-canvas { display: none; }
   .nav-bar { transition: none; }
+}
+
+/* the smallest phones (iPhone SE): the subline stays within three lines */
+@media (max-width: 374px) {
+  .hero .hero-sub { font-size: 16px; }
 }
