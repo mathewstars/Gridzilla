@@ -1,6 +1,6 @@
 // Proof: a stat band. Four big Clash Display numbers that count up once as they come into view (ui/Ticker), one line
-// of words under each, no cards and no lines between them, then the footnote. The 36 % carries the accent as a bar
-// under it in the eaten-peak orange (orange text would fail contrast on white). Numbers from the team's submission,
+// of words under each, no cards and no lines between them, then the footnote. The 36 % carries the accent: it is the
+// one green number (owner's dark change order). Numbers from the team's submission,
 // spec section 6. Four across from 1280, two by two from 768, one column on the phone.
 import { Section } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
@@ -21,11 +21,10 @@ export default function Proof() {
       <ul className="m-0 grid list-none gap-x-12 gap-y-12 p-0 md:grid-cols-2 md:gap-y-20 xl:grid-cols-4 xl:gap-x-10">
         {PROOF.map((p, i) => (
           <Reveal as="li" key={p.line} delay={i * 0.08} className="min-w-0">
-            <p className="proof-num m-0 whitespace-nowrap font-display font-semibold text-ink">
+            <p className={`proof-num m-0 whitespace-nowrap font-display font-semibold ${p.accent ? "text-accent-text" : "text-ink"}`}>
               <span className="relative inline-block">
                 <Ticker value={p.value} />
                 {p.unit && <span className="proof-unit font-medium">{"\u2009"}{p.unit}</span>}
-                {p.accent && <span className="proof-accent absolute inset-x-0 rounded-pill bg-accent" aria-hidden="true" />}
               </span>
             </p>
             <p className="mb-0 mt-5 max-w-[30ch] text-[17px] leading-[1.45] text-secondary md:mt-6">{p.line}</p>
