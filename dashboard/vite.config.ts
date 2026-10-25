@@ -22,8 +22,13 @@ export default defineConfig({
     proxy: {
       "/api": process.env.GZ_API || "http://localhost:8081",
       "/openapi.json": process.env.GZ_API || "http://localhost:8081",
-      // The pitch's Blatnica tile reads the real plant from the live server (GET only; the server sends no CORS header).
-      "/live-api": { target: "https://gridzilla.victronlab.sk", changeOrigin: true, rewrite: (p) => p.replace(/^\/live-api/, "/api") },
+      // the demo's Blatnica card always reads the real plant from the live server (GET only, like the deck's proxy);
+      // GZ_LIVE_API points it elsewhere, e.g. http://localhost:8081 for local tests that must not touch the live server
+      "/live-api": {
+        target: process.env.GZ_LIVE_API || "https://gridzilla.victronlab.sk",
+        changeOrigin: true,
+        rewrite: (p: string) => p.replace(/^\/live-api/, "/api"),
+      },
     },
   },
 });

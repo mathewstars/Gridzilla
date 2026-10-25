@@ -53,11 +53,11 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
       <header className="cg-head">
         <h2 className="cg-title">Live city</h2>
         <div className="cg-counts num">
-          <span {...hint("Every street transformer in the simulated Vienna grid, one tile each")}>{all.length} transformers</span>
-          <span style={{ color: over ? P.red : undefined }} {...hint("Transformers carrying more than their limit right now, in either direction")}>{over} over their limit</span>
-          <span style={{ color: near ? P.orange : undefined }} {...hint("Transformers at 85 % of their limit or more, but not over it")}>{near} near the limit</span>
-          <span {...hint("Transformers whose houses are following a grid signal right now")}>{signalled} under a signal</span>
-          <span {...hint("Feeders (one cable from the substation) whose houses follow a 24-hour plan that trims the evening peak")}>diet plan on {dieting} feeders</span>
+          <span {...hint("Every street transformer in the simulated Vienna grid, one tile each")}><span data-src="derived" data-from="count(state/aggregates/tf:*)" data-val={all.length}>{all.length}</span> transformers</span>
+          <span style={{ color: over ? P.red : undefined }} {...hint("Transformers carrying more than their limit right now, in either direction")}><span data-src="derived" data-from="count(state/aggregates/tf:*[abs(load_pct) >= 100])" data-val={over}>{over}</span> over their limit</span>
+          <span style={{ color: near ? P.orange : undefined }} {...hint("Transformers at 85 % of their limit or more, but not over it")}><span data-src="derived" data-from="count(state/aggregates/tf:*[abs(load_pct) >= 85 and abs(load_pct) < 100])" data-val={near}>{near}</span> near the limit</span>
+          <span {...hint("Transformers whose houses are following a grid signal right now")}><span data-src="page" data-label="transformers under a running signal, counted along the grid tree">{signalled}</span> under a signal</span>
+          <span {...hint("Feeders (one cable from the substation) whose houses follow a 24-hour plan that trims the evening peak")}>diet plan on <span data-src="page" data-label="feeders whose plan cuts a peak, from tonight's city plan">{dieting}</span> feeders</span>
         </div>
       </header>
 
@@ -65,18 +65,18 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
         {groups.map((g) => (
           <div className="cg-sub" role="row" key={g.id}>
             <div className="cg-subname">
-              <span className="cg-subtitle">{nice(g.id)}</span>
+              <span className="cg-subtitle" data-src={`state/aggregates/${g.id}`}>{nice(g.id)}</span>
               <span
                 className="cg-submax num"
                 style={{ color: g.worst >= 100 ? P.red : g.worst >= 85 ? P.orange : undefined }}
                 {...hint(`${nice(g.id)} substation: its busiest transformer is at ${g.worst} % of its limit`)}
               >
-                busiest {g.worst} %
+                busiest <span data-src="page" data-label="the highest load among its transformers">{g.worst} %</span>
               </span>
             </div>
             {g.feeders.map((f) => (
               <div className="cg-feeder" key={f.id}>
-                <div className="cg-fname">
+                <div className="cg-fname" data-src={`state/aggregates/${f.id}`}>
                   {f.diet && <i className="cg-diet cg-inline" aria-label="diet plan running" />}
                   {nice(f.id)}
                 </div>
@@ -100,7 +100,7 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
                         onBlur={() => setTip(null)}
                       >
                         {showNum && (
-                          <span className="cg-pct" style={{ color: p >= 100 ? P.red : undefined }}>
+                          <span className="cg-pct" style={{ color: p >= 100 ? P.red : undefined }} data-src={`state/aggregates/${c.id}/load_pct`} data-val={c.pct ?? undefined}>
                             {c.pct == null ? "–" : c.pct < 0 ? `−${p}` : p}
                           </span>
                         )}
@@ -116,7 +116,7 @@ export default function HeatGrid({ s, city, selected, onSelect }: { s: State; ci
         ))}
       </div>
 
-      <footer className="cg-legend">
+      <footer className="cg-legend" data-src="axis">
         <span><b className="cg-legnum">42</b>= % of its limit, − = sending solar back</span>
         <span><i className="cg-sw" style={{ background: P.green }} />inside the limit</span>
         <span><i className="cg-sw" style={{ background: P.orange }} />85 % and up</span>

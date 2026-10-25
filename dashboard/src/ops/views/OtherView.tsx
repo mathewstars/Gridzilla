@@ -1,12 +1,14 @@
 // The plain views beside Operations: City, Autopilot, Manual, Households, Real plant, Weather, Log. Dense tables built
 // straight from the data the console already polls (useOps), so switching views never waits for a fetch.
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 import { BLATNICA_DEVICE, useGridState, type Decision, type Household, type LogEntry, type RecentSignal, type Signal, type WeatherHour } from "../../api";
 import type { Ops } from "../useOps";
 import type { Route } from "../shell/Sidebar";
 import Table, { type Col } from "./Table";
 import HeatGrid from "../city/HeatGrid";
+import HouseDetail from "./HouseDetail";
+import Flex from "../city/Flex";
 import "../city/city.css";
 import { MODE_LABEL, clock, kw, minsLeft, nice, signalOver, wall } from "./fmt";
 import "../shell/shell.css";
@@ -37,11 +39,12 @@ function Head({ title, desc, children }: { title: string; desc: string; children
     </div>
   );
 }
-const Stat = ({ k, v, tone, hint }: { k: string; v: ReactNode; tone?: string; hint?: string }) => (
+const Stat = ({ k, v, tone, hint, from }: { k: string; v: ReactNode; tone?: string; hint?: string; from?: string }) => (
   <span className="chip" title={hint} data-tip={hint}>
     {tone && <span className="chip-dot" style={{ background: tone }} />}
     <span className="t">{k}</span>
-    <span>{v}</span>
+    {/* from: the count's formula for the data-truth gate (qa/README.md); without it the value is a page count */}
+    <span data-src={from ? "derived" : "page"} data-from={from} data-label={from ? undefined : hint ?? k} data-val={from && typeof v === "number" ? v : undefined}>{v}</span>
   </span>
 );
 const Card = ({ title, right, children }: { title?: string; right?: ReactNode; children: ReactNode }) => (
@@ -75,7 +78,7 @@ function Load({ pct }: { pct: number | null | undefined }) {
 
 const ModeTag = ({ mode }: { mode: string | null | undefined }) =>
   mode ? (
-    <span className="tag b" title={mode}>
+    <span className="tag b" title={mode} style={{ maxWidth: "100%", whiteSpace: "normal", overflowWrap: "anywhere" }}>
       {MODE_LABEL[mode] ?? mode} <span style={{ opacity: 0.6, fontWeight: 500 }}>{mode}</span>
     </span>
   ) : (
@@ -121,23 +124,24 @@ function City({ ops }: { ops: Ops }) {
   const over = rows.filter((r) => Math.abs(r.pct ?? 0) >= 100).length;
   const near = rows.filter((r) => toneOf(r.pct) === "o").length;
   const cols: Col<TfRow>[] = [
-    { key: "tf", label: "Transformer", cell: (r) => <b style={{ fontWeight: 600 }}>{nice(r.tf)}</b>, sort: (r) => r.tf },
-    { key: "feeder", label: "Feeder", cell: (r) => <span className="mut">{nice(r.feeder)}</span>, sort: (r) => r.feeder },
-    { key: "sub", label: "Substation", cell: (r) => <span className="mut">{nice(r.sub)}</span>, sort: (r) => r.sub },
-    { key: "pct", label: "Load, % of limit", right: true, phone: "aside", phoneLabel: "", cell: (r) => <Load pct={r.pct} />, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
-    { key: "kw", label: "Power now, kW", right: true, cell: (r) => kw(r.kw), sort: (r) => r.kw },
-    { key: "rating", label: "Limit, kW", right: true, cell: (r) => <span className="mut">{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
-    { key: "peak", label: "Peak ahead, % of limit", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}>{r.peak.pct} % <span className="dim">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
-    { key: "sig", label: "Active signal", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ModeTag mode={r.sig.mode} /><span className="dim">#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
+    { key: "tf", label: "Transformer", cell: (r) => <b style={{ fontWeight: 600 }} data-src={`state/aggregates/${r.tf}`}>{nice(r.tf)}</b>, sort: (r) => r.tf },
+    { key: "feeder", label: "Feeder", cell: (r) => <span className="mut" data-src={`state/aggregates/${r.feeder}`}>{nice(r.feeder)}</span>, sort: (r) => r.feeder },
+    { key: "sub", label: "Substation", cell: (r) => <span className="mut" data-src={`state/aggregates/${r.sub}`}>{nice(r.sub)}</span>, sort: (r) => r.sub },
+    { key: "pct", label: "Load, % of limit", right: true, phone: "aside", phoneLabel: "", cell: (r) => <span data-src={`state/aggregates/${r.tf}/load_pct`} data-val={r.pct ?? undefined}><Load pct={r.pct} /></span>, sort: (r) => (r.pct == null ? null : Math.abs(r.pct)) },
+    { key: "kw", label: "Power now, kW", right: true, cell: (r) => <span data-src={`state/aggregates/${r.tf}/total_kw`} data-val={r.kw ?? undefined}>{kw(r.kw)}</span>, sort: (r) => r.kw },
+    { key: "rating", label: "Limit, kW", right: true, cell: (r) => <span className="mut" data-src={`state/aggregates/${r.tf}/rating_kw`} data-val={r.rating ?? undefined}>{kw(r.rating, 0)}</span>, sort: (r) => r.rating },
+    { key: "peak", label: "Peak ahead, % of limit", right: true, className: "nw", cell: (r) => (r.peak ? <span style={{ color: r.peak && toneOf(r.peak.pct) !== "g" ? TONE[toneOf(r.peak.pct)] : undefined }}><span data-src={`state/forecast_peak/${r.tf}/pct`} data-val={r.peak.pct}>{r.peak.pct} %</span> <span className="dim" data-src="axis">at {clock(r.peak.h)}</span></span> : <span className="dim">–</span>), sort: (r) => (r.peak ? Math.abs(r.peak.pct) : null) },
+    { key: "sig", label: "Active signal", cell: (r) => (r.sig ? <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 6, alignItems: "center", minWidth: 0 }}><ModeTag mode={r.sig.mode} /><span className="dim" style={{ overflowWrap: "anywhere" }} data-src={`state/active/${r.sig.segment}`}>#{r.sig.seq}{r.sig.segment !== r.tf ? ` on ${nice(r.sig.segment)}` : ""}</span></span> : <span className="dim">none</span>), sort: (r) => (r.sig ? r.sig.seq : null) },
   ];
   return (
     <div className="vw" data-scroll="view">
       <Head title="City" desc="Every transformer in the city, live. Click a tile to pick it, click a row to open it in Operations.">
-        <Stat k="Transformers" v={rows.length} hint="Every street transformer in the simulated Vienna grid" />
-        <Stat k="Over limit" v={over} hint="Transformers carrying more than their limit right now, in either direction" tone={over ? "var(--sh-red)" : "var(--sh-green)"} />
+        <Stat k="Transformers" v={rows.length} hint="Every street transformer in the simulated Vienna grid" from="count(state/aggregates/tf:*)" />
+        <Stat k="Over limit" v={over} hint="Transformers carrying more than their limit right now, in either direction" tone={over ? "var(--sh-red)" : "var(--sh-green)"} from="count(state/aggregates/tf:*[abs(load_pct) >= 100])" />
         <Stat k="Near limit" v={near} hint="Transformers at 85 % of their limit or more" tone={near ? "var(--sh-orange)" : "var(--sh-green)"} />
-        <Stat k="Signals running" v={Object.keys(s.active).length} hint="Signals the grid operator has running right now; each ends on its own" />
+        <Stat k="Signals running" v={Object.keys(s.active).length} hint="Signals the grid operator has running right now; each ends on its own" from="count(state/active/*)" />
       </Head>
+      <Flex s={s} />
       <div className="vw-heat">
         <HeatGrid s={s} city={ops.city} selected={ops.tf} onSelect={ops.select} />
       </div>
@@ -241,7 +245,13 @@ function Households({ ops }: { ops: Ops }) {
   // the feeder's houses until that answer lands, so the switch is instant.
   const all = useGridState("all", "");
   const src = all.hhOf === "all" && all.data?.households ? all.data.households : ops.s!.households ?? {};
+  // which payload the table shows, for the data-truth tags (api.ts keeps the all-homes answer under "state:all")
+  const SP = all.hhOf === "all" && all.data?.households ? "state:all" : "state";
   const [q, setQ] = useState("");
+  // The house whose detail drawer is open (clicking a row); it stays live from the same payload as the table.
+  const [pick, setPick] = useState("");
+  const picked = pick ? src[pick] ?? ops.s!.households?.[pick] ?? null : null;
+  const close = useCallback(() => setPick(""), []);
   const rows = useMemo(() => {
     const v = Object.values(src);
     const f = q.trim().toLowerCase();
@@ -250,19 +260,19 @@ function Households({ ops }: { ops: Ops }) {
   const total = Object.keys(src).length;
   const online = Object.values(src).filter((h) => h.telemetry).length;
   const cols: Col<Household>[] = [
-    { key: "id", label: "House", className: "nw", cell: (h) => <span><b style={{ fontWeight: 600 }}>{h.real ? "Blatnica (real)" : nice(h.id.replace(/^sim-/, ""))}</b>{h.represents > 1 && <span className="dim"> ×{h.represents}</span>}</span>, sort: (h) => h.id },
-    { key: "tf", label: "Transformer", className: "nw", cell: (h) => <span className="mut">{nice(h.tf)}</span>, sort: (h) => h.tf },
-    { key: "soc", label: "Battery, % full", right: true, phone: "aside", phoneLabel: "Battery", cell: (h) => (h.telemetry?.soc != null ? `${Math.round(h.telemetry.soc)} %` : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
-    { key: "grid", label: "From grid, kW", right: true, cell: (h) => kw(h.telemetry?.grid_kw), sort: (h) => h.telemetry?.grid_kw },
-    { key: "ev", label: "Car charging, kW", right: true, cell: (h) => kw(h.telemetry?.ev_kw), sort: (h) => h.telemetry?.ev_kw },
-    { key: "hp", label: "Heat pump, kW", right: true, cell: (h) => kw(h.telemetry?.hp_kw), sort: (h) => h.telemetry?.hp_kw },
+    { key: "id", label: "House", cell: (h) => <span data-src={`${SP}/households/${h.id}`}><b style={{ fontWeight: 600 }}>{h.real ? "Blatnica (real)" : nice(h.id.replace(/^sim-/, ""))}</b>{h.represents > 1 && <span className="dim" data-src={`${SP}/households/${h.id}/represents`} data-val={h.represents}> ×{h.represents}</span>}</span>, sort: (h) => h.id },
+    { key: "tf", label: "Transformer", cell: (h) => <span className="mut" data-src={`state/aggregates/${h.tf}`}>{nice(h.tf)}</span>, sort: (h) => h.tf },
+    { key: "soc", label: "Battery, %", right: true, phone: "aside", phoneLabel: "Battery", cell: (h) => (h.telemetry?.soc != null ? <span data-src={`${SP}/households/${h.id}/telemetry/soc`} data-val={h.telemetry.soc}>{Math.round(h.telemetry.soc)} %</span> : <span className="dim">–</span>), sort: (h) => h.telemetry?.soc },
+    { key: "grid", label: "Grid, kW", phoneLabel: "From grid, kW", right: true, cell: (h) => <span data-src={`${SP}/households/${h.id}/telemetry/grid_kw`} data-val={h.telemetry?.grid_kw ?? undefined}>{kw(h.telemetry?.grid_kw)}</span>, sort: (h) => h.telemetry?.grid_kw },
+    { key: "ev", label: "Car, kW", phoneLabel: "Car charging, kW", right: true, cell: (h) => <span data-src={`${SP}/households/${h.id}/telemetry/ev_kw`} data-val={h.telemetry?.ev_kw ?? undefined}>{kw(h.telemetry?.ev_kw)}</span>, sort: (h) => h.telemetry?.ev_kw },
+    { key: "hp", label: "Heat, kW", phoneLabel: "Heat pump, kW", right: true, cell: (h) => <span data-src={`${SP}/households/${h.id}/telemetry/hp_kw`} data-val={h.telemetry?.hp_kw ?? undefined}>{kw(h.telemetry?.hp_kw)}</span>, sort: (h) => h.telemetry?.hp_kw },
     { key: "mode", label: "Mode", className: "nw", cell: (h) => (h.telemetry ? <span className={`tag ${h.telemetry.mode === "owner" ? "" : "b"}`}>{h.telemetry.mode === "owner" ? "Owner" : h.telemetry.mode}</span> : <span className="tag">offline</span>), sort: (h) => h.telemetry?.mode },
-    { key: "ack", label: "Last reply", className: "nw", cell: (h) => (h.ack ? <span title={h.ack.reason ?? undefined}><span className={`tag ${h.ack.status === "applied" ? "g" : h.ack.status === "refused" ? "r" : "o"}`}>{h.ack.status}</span>{h.ack.seq != null && <span className="dim"> #{h.ack.seq}</span>}{h.ack.reason && <span className="dim"> · {h.ack.reason}</span>}</span> : <span className="dim">–</span>), sort: (h) => h.ack?.seq },
-    { key: "sig", label: "Signature checked", phoneLabel: "Signature", className: "nw", cell: (h) => (h.ack?.verified ? <span className="tag g">Checked</span> : h.ack ? <span className="tag">Not checked</span> : <span className="dim">–</span>), sort: (h) => (h.ack?.verified ? 1 : 0) },
+    { key: "ack", label: "Last reply", className: "nw", cell: (h) => (h.ack ? <span title={h.ack.reason ?? undefined}><span className={`tag ${h.ack.status === "applied" ? "g" : h.ack.status === "refused" ? "r" : "o"}`}>{h.ack.status}</span>{h.ack.seq != null && <span className="dim" data-src={`${SP}/households/${h.id}/ack/seq`} data-val={h.ack.seq}> #{h.ack.seq}</span>}</span> : <span className="dim">–</span>), sort: (h) => h.ack?.seq },
+    { key: "sig", label: "Signature", phoneLabel: "Signature", className: "nw", cell: (h) => (h.ack?.verified ? <span className="tag g">Checked</span> : h.ack ? <span className="tag">Not checked</span> : <span className="dim">–</span>), sort: (h) => (h.ack?.verified ? 1 : 0) },
   ];
   return (
-    <div className="vw">
-      <Head title="Households" desc="Every home in the programme: what its battery, car and heat pump do now and how it answered the last signal.">
+    <div className="vw" data-scroll="view">
+      <Head title="Households" desc="Every home in the programme: what its battery, car and heat pump do now and how it answered the last signal. Click a home to see what it may draw and what it did.">
         <Stat k="Homes" v={total} hint="Simulated homes in the programme (each can stand for several real houses)" />
         <Stat k="Reporting" v={online} hint="Homes that sent a reading recently" tone={online ? "var(--sh-green)" : undefined} />
         {ops.s!.summary && <Stat k="Houses represented" v={ops.s!.summary.houses.toLocaleString("en-US")} />}
@@ -271,8 +281,9 @@ function Households({ ops }: { ops: Ops }) {
         title={all.hhOf === "all" ? "All homes" : `Homes on ${nice(ops.feeder)} (loading the rest)`}
         right={<input className="vw-input" type="search" placeholder="Filter by name, transformer, mode" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter homes" />}
       >
-        <Table rows={rows} cols={cols} rowKey={(h) => h.id} onRow={(h) => open(ops, h.tf)} empty={q ? "No home matches that filter." : "No homes yet."} />
+        <Table rows={rows} cols={cols} rowKey={(h) => h.id} onRow={(h) => setPick(h.id)} empty={q ? "No home matches that filter." : "No homes yet."} />
       </Card>
+      <HouseDetail h={picked} ops={ops} onClose={close} />
     </div>
   );
 }

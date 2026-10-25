@@ -28,7 +28,11 @@ export function useOps() {
   const houseDevs = s ? Object.values(s.households ?? {}).filter((h) => h.tf === tf).map(meterDevice) : [];
   const viewNode = s && s.tree[view] ? view : "region:at";
   const nodes = tf ? [...new Set([tf, feeder, viewNode])] : [];
-  const history = useHistory(nodes, [...houseDevs.slice(0, 16), BLATNICA_DEVICE]);
+  // The house opened in #/households (its meter device): its readings ride along with the same history poll, so the
+  // detail panel's "allowed box vs what it drew" chart and window.__gz.history are always one payload.
+  const [houseDev, setHouseDev] = useState<string>("");
+  const devs = [...houseDevs.slice(0, 16), BLATNICA_DEVICE];
+  const history = useHistory(nodes, houseDev && !devs.includes(houseDev) ? [...devs, houseDev] : devs);
   const select = useCallback((n: string) => {
     setSel(n);
     setView(n);
@@ -37,7 +41,7 @@ export function useOps() {
   const plan = useFlatten(tf || null);
   const city = useFlatten("region:at");
   const head = useMemo(() => (s ? headline(s) : null), [s]);
-  return { s, error: grid.error, reload: grid.reload, history: history.data, weather, plan: plan.data ?? null, city: city.data ?? null, tf, feeder, select, view: viewNode, setView, headline: head };
+  return { s, error: grid.error, reload: grid.reload, history: history.data, weather, plan: plan.data ?? null, city: city.data ?? null, tf, feeder, select, view: viewNode, setView, headline: head, houseDev, setHouseDev };
 }
 
 export type Ops = ReturnType<typeof useOps>;

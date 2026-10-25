@@ -30,7 +30,7 @@ function Tile({ n, label, now, tone, value, children }: { n: number; label: stri
         {now && <span className="ft-live">running now</span>}
       </div>
       <div className="ft-value">{value}</div>
-      {children && <div className="ft-text">{children}</div>}
+      {children && <div className="ft-text" data-src="state/autopilot">{children}</div>}
     </div>
   );
 }
@@ -44,7 +44,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
     return (
       <>
         <div className="ft-big ft-words">Peak is over</div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           Every transformer under {nice(rel[1])} stays below <N src={ap.release_pct === +rel[2] ? "state/autopilot/release_pct" : src} val={ap.release_pct === +rel[2] ? ap.release_pct : undefined}>{rel[2]}</N>&nbsp;% of its limit
         </div>
       </>
@@ -56,7 +56,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
         <div className="ft-big">
           <N src={src}>{Math.abs(w.pct)}</N>&nbsp;%
         </div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           {w.pct < 0 ? "Sending back, forecast" : "Forecast"} on {nice(w.tf)} at <N src={src}>{w.at}</N>
           {w.others > 0 ? `, and ${w.others} more` : ""}
         </div>
@@ -69,7 +69,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
         <div className="ft-big">
           <N src="state/autopilot/target/worst_pct" val={t.worst_pct}>{Math.round(Math.abs(t.worst_pct))}</N>&nbsp;%
         </div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           Forecast on {nice(t.worst)} at <N src="state/autopilot/target/worst_at_h">{hhmm(t.worst_at_h)}</N>
         </div>
       </>
@@ -77,7 +77,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
   return (
     <>
       <div className="ft-big">All calm</div>
-      <div className="ft-text">
+      <div className="ft-text" data-src="state/autopilot">
         No transformer forecast past <N src="state/autopilot/trigger_pct" val={ap.trigger_pct}>{ap.trigger_pct}</N>&nbsp;% of its limit
       </div>
     </>

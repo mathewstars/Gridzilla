@@ -1,0 +1,5 @@
+/* the city's flexibility right now: four big numbers with words, wraps on narrow screens */
+.flex-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 24px; padding: 14px 18px; }
+.flex-row > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.flex-row b { font-size: max(24px, 1.5rem); font-weight: 600; letter-spacing: -0.015em; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.flex-row span { font-size: max(16px, 1rem); color: var(--color-secondary); }
