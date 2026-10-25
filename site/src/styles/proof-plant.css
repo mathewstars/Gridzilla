@@ -3,7 +3,6 @@
 /* proof: the four numbers */
 .proof-num { font-size: clamp(64px, 6.2vw, 100px); line-height: 1; letter-spacing: -0.03em; }
 .proof-unit { font-size: 0.5em; letter-spacing: -0.01em; }
-.proof-accent { bottom: -0.2em; height: 0.08em; }
 
 /* the real plant tile */
 .plant-title { font-size: clamp(36px, 3.6vw, 60px); }
@@ -26,8 +25,8 @@
   .plant-dot::after { animation: none; display: none; }
 }
 
-/* AI: the one dark panel */
-.ai-panel { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), var(--shadow-device); }
+/* AI: a thin glass over the full light (owner's dark change order: "a full-strength patch of the light") */
+.ai-panel { background: rgb(11 11 15 / 0.5); box-shadow: inset 0 0 0 1px rgb(245 245 247 / 0.1), var(--shadow-device); }
 
 /* security */
 .sec-lead { font-size: clamp(32px, 3.4vw, 56px); }

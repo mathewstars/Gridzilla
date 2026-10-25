@@ -70,7 +70,7 @@ function Tile({ live }: { live: Live }) {
 export default function RealPlant() {
   const live = useLivePlant();
   return (
-    <Section id="plant" className="bg-ground">
+    <Section id="plant">
       <div className="grid items-center gap-12 md:gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20 xl:gap-28">
         <Reveal className="order-2 lg:order-1">
           <Tile live={live} />

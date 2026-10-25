@@ -20,6 +20,13 @@ for (const size of sizes) {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${out}page-${size}.png`, fullPage: true });
+  // every section in the real viewport (a full-page capture cannot show the fixed light behind the page)
+  const ids = await page.evaluate(() => [...document.querySelectorAll("main > section[id], footer")].map((e, i) => e.id || `footer`));
+  for (const id of ids) {
+    await page.evaluate((i) => (i === "footer" ? document.querySelector("footer") : document.getElementById(i)).scrollIntoView({ block: "start" }), id);
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: `${out}sec-${id}-${size}.png` });
+  }
   await ctx.close();
   console.log(`shot ${size}`);
 }

@@ -4,9 +4,11 @@
 // their own full-width frame.
 import type { HTMLAttributes, ReactNode } from "react";
 
-export function Section({ id, children, className = "", bleed, light, ...rest }: { id?: string; children: ReactNode; bleed?: boolean; light?: boolean } & HTMLAttributes<HTMLElement>) {
+export function Section({ id, children, className = "", bleed, light, style, ...rest }: { id?: string; children: ReactNode; bleed?: boolean; light?: boolean } & HTMLAttributes<HTMLElement>) {
+  // the light patch fades the scrim out and back in over 200 px, so there is no hard edge
+  const bg = light ? "linear-gradient(var(--scrim), transparent 200px, transparent calc(100% - 200px), var(--scrim))" : "var(--scrim)";
   return (
-    <section id={id} className={`${light ? "" : "bg-[var(--scrim)]"} py-24 md:py-32 lg:py-40 ${className}`} {...rest}>
+    <section id={id} className={`py-24 md:py-32 lg:py-40 ${className}`} style={{ background: bg, ...style }} {...rest}>
       {bleed ? children : <Container>{children}</Container>}
     </section>
   );
