@@ -1,14 +1,30 @@
-/* Operations layout (readability pass): few, big panels. One screen from 1440x900; scrolls on shorter windows; stacks on phones. */
+/* Operations layout: five panels. The Tonight strip across the top; the hero chart (at least half the height) with the
+   newest events under it on the left; the AI's four steps and the Blatnica plant on the right. One screen from 1440x900;
+   shorter windows scroll the page (main is data-scroll="page"); stacks below 1240 wide. */
 .op2 { display: grid; gap: 12px; padding: 12px; min-width: 0; grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "tonight" "curve" "tiles" "side" "feed" "dots"; }
+  grid-template-areas: "tonight" "left" "right"; }
 .op2 > * { min-width: 0; }
-.op2-tonight { grid-area: tonight; } .op2-curve { grid-area: curve; } .op2-tiles { grid-area: tiles; }
-.op2-feed { grid-area: feed; } .op2-side { grid-area: side; display: flex; flex-direction: column; gap: 12px; } .op2-dots { grid-area: dots; }
-@media (min-width: 1240px) {
-  .op2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas: "tonight tonight" "curve tiles" "feed side" "dots dots"; }
-}
-/* the curve is the main thing: it always gets real height; the view scrolls when the window is short */
-.op2-curve { min-height: clamp(380px, 52vh, 640px); display: flex; flex-direction: column; }
+.op2-tonight { grid-area: tonight; }
+.op2-left { grid-area: left; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.op2-right { grid-area: right; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.op2-curve { min-height: clamp(460px, 60vh, 720px); display: flex; flex-direction: column; }
 .op2-curve > * { flex: 1 1 auto; }
+@media (min-width: 1240px) {
+  .op2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto auto; grid-template-areas: "tonight tonight" "left right"; }
+  .op2-left > :not(.op2-curve), .op2-right > :not(.op2-tiles) { flex: none; }
+  .op2-tiles { display: flex; flex-direction: column; }
+  .op2-tiles > * { flex: 1 1 auto; }
+}
+/* one screen: the page is exactly the window; the hero and the AI's steps take what the strip, the feed and the plant
+   leave (the hero keeps at least half of the window) */
+@media (min-width: 1240px) and (min-height: 860px) {
+  .op2 { height: 100%; min-height: 0; grid-template-rows: auto minmax(0, 1fr); }
+  .op2-left, .op2-right { min-height: 0; }
+  .op2-curve { flex: 1 1 auto; min-height: 50vh; }
+  .op2-tiles { flex: 1 1 auto; min-height: 0; }
+}
+
+/* the Tonight strip as it is, minus its "Last signed" line (the newest event is in What just happened); windows up to
+   1000 px tall keep the numbers and their labels and drop the small notes so the hero keeps half the screen */
+.op2 .tn-last { display: none; }
+@media (min-width: 1240px) and (max-height: 1000px) { .op2 .tn-n { display: none; } }

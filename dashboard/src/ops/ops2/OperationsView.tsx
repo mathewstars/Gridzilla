@@ -1,30 +1,28 @@
-// OPERATIONS, readability pass (captain + dad's board): the demo's hierarchy plus the controls. Outcomes on top; one big
-// curve with dad's four tiles beside it; what just happened, the real Blatnica house and one slim controls panel; the
-// city as dots. The 72-tile grid lives in the City view.
+// OPERATIONS, five panels and nothing more (console-simplify.md): what tonight saved and what we did on top; the big
+// transformer chart in dad's grammar as the hero (his chips, the one-sentence state line, the ring) with the three newest
+// events under it; what the AI did (his four steps and the review countdown) and the real Blatnica plant on the right.
+// Everything else (city tiles, controls, signals, households) lives in its own view, reachable from the sidebar.
 import type { Ops } from "../useOps";
 import Tonight from "../tonight/Tonight";
 import FeedStrip from "../now/FeedStrip";
+import BlatnicaLive from "../demo/BlatnicaLive";
 import BigCurve from "./BigCurve";
 import FourTiles from "./FourTiles";
-import PlantCard from "./PlantCard";
-import Controls from "./Controls";
-import CityDots from "./Dots";
 import "./ops2.css";
 
 export default function OperationsView({ ops }: { ops: Ops }) {
-  const s = ops.s;
-  if (!s) return null;
+  if (!ops.s) return null;
   return (
     <div className="op2">
       <div className="op2-tonight"><Tonight ops={ops} /></div>
-      <div className="op2-curve"><BigCurve ops={ops} /></div>
-      <div className="op2-tiles"><FourTiles ops={ops} /></div>
-      <div className="op2-feed"><FeedStrip ops={ops} /></div>
-      <div className="op2-side">
-        <PlantCard ops={ops} />
-        <Controls ops={ops} />
+      <div className="op2-left">
+        <div className="op2-curve"><BigCurve ops={ops} /></div>
+        <FeedStrip ops={ops} />
       </div>
-      <div className="op2-dots"><CityDots s={s} ops={ops} selected={ops.tf} onPick={ops.select} /></div>
+      <div className="op2-right">
+        <div className="op2-tiles"><FourTiles ops={ops} /></div>
+        <BlatnicaLive />
+      </div>
     </div>
   );
 }
