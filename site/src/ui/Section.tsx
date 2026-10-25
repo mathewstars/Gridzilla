@@ -1,10 +1,12 @@
 // One section of the page: an id for the nav anchors, the page container (1280 max, the side gutter) and the
-// vertical air (density 3). `bleed` drops the container for sections that draw their own full-width frame.
+// vertical air (density 3). Over the deck's light every section carries the scrim (the light at about 35 %, the deck's
+// "calm"); `light` drops it for the one full-strength patch (AI). `bleed` drops the container for sections that draw
+// their own full-width frame.
 import type { HTMLAttributes, ReactNode } from "react";
 
-export function Section({ id, children, className = "", bleed, ...rest }: { id?: string; children: ReactNode; bleed?: boolean } & HTMLAttributes<HTMLElement>) {
+export function Section({ id, children, className = "", bleed, light, ...rest }: { id?: string; children: ReactNode; bleed?: boolean; light?: boolean } & HTMLAttributes<HTMLElement>) {
   return (
-    <section id={id} className={`py-24 md:py-32 lg:py-40 ${className}`} {...rest}>
+    <section id={id} className={`${light ? "" : "bg-[var(--scrim)]"} py-24 md:py-32 lg:py-40 ${className}`} {...rest}>
       {bleed ? children : <Container>{children}</Container>}
     </section>
   );

@@ -1,25 +1,27 @@
-/* The hero frame and the closing frame (site/DESIGN.md 2): cool gradient, faint diagonal light, 40 px corners. */
+/* The page's light (ui/Backdrop.tsx): the deck's mesh, fixed behind everything. The static gradient is the same four
+   colours laid out roughly where the shader puts them; it paints first and is all there is under reduced motion. */
+.mesh-backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--color-mesh-1); }
+.mesh-static, .mesh-canvas { position: absolute; inset: 0; }
+.mesh-static {
+  background:
+    radial-gradient(60% 55% at 18% 12%, rgb(11 93 61 / 0.85), transparent 70%),
+    radial-gradient(48% 50% at 86% 30%, rgb(15 143 127 / 0.5), transparent 72%),
+    radial-gradient(70% 60% at 40% 100%, rgb(6 38 28 / 0.95), transparent 70%),
+    var(--color-mesh-1);
+}
+.mesh-canvas { animation: mesh-in 1.4s var(--ease-out-expo) both; }
+@keyframes mesh-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* The hero frame (site/DESIGN.md 2): 40 px corners, glass over the moving green (the page's light shows around it). */
 .hero-frame {
-  background: linear-gradient(180deg, var(--color-hero-top) 0%, var(--color-hero-bottom) 100%);
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
   height: calc(100dvh - 2 * var(--frame-inset));
   min-height: 600px;
   max-height: 1180px;
 }
 @media (max-width: 767px) {
   .hero-frame { min-height: 660px; }
-}
-/* faint light rays: two soft white bands falling from the top left, fading out before the console */
-.hero-rays {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(112deg, transparent 18%, rgb(255 255 255 / 0.55) 26%, transparent 36%),
-    linear-gradient(112deg, transparent 40%, rgb(255 255 255 / 0.4) 47%, transparent 55%),
-    linear-gradient(112deg, transparent 62%, rgb(255 255 255 / 0.3) 66%, transparent 71%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%);
-  mask-image: linear-gradient(180deg, #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%);
 }
 .hero-h1 {
   font-size: clamp(38px, 5.83vw, 140px); /* 84 px at 1440 */
@@ -36,13 +38,13 @@
   letter-spacing: -0.014em;
   text-wrap: balance;
 }
-/* the thin dark bezel around the real console */
+/* the thin bezel around the real console (graphite, a highlight on its edge so it reads on the dark frame) */
 .hero-device {
   width: clamp(320px, 78vw, 1560px);
   padding: 7px;
   border-radius: 21px;
-  background: var(--color-ink);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08), var(--shadow-device);
+  background: var(--color-fill);
+  box-shadow: inset 0 0 0 1px rgb(245 245 247 / 0.1), var(--shadow-device);
 }
 /* phone: the console is shown big and cropped (its left half: sidebar, the numbers, the chart), bleeding off the frame */
 @media (max-width: 767px) {
@@ -54,15 +56,19 @@
 .trailer-card {
   width: clamp(220px, 19vw, 360px);
   aspect-ratio: 16 / 9;
-  box-shadow: 0 0 0 5px rgb(255 255 255 / 0.9), var(--shadow-device);
+  box-shadow: 0 0 0 1px rgb(245 245 247 / 0.16), var(--shadow-device);
   transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
 }
-.trailer-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 5px #fff, 0 4px 8px rgb(29 39 52 / 0.1), 0 48px 100px rgb(29 39 52 / 0.3); }
+.trailer-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgb(245 245 247 / 0.3), 0 48px 100px rgb(0 0 0 / 0.55); }
 .trailer-card:active { transform: scale(0.98); }
 
+/* The closing frame: the light at nearly full strength (a thin glass keeps the big line at 6:1 or better over the
+   brightest teal), the small print on its own glass bar. */
 .closing-frame {
-  background: linear-gradient(0deg, var(--color-hero-top) 0%, var(--color-hero-bottom) 100%);
+  background: rgb(11 11 15 / 0.3);
+  box-shadow: inset 0 0 0 1px rgb(245 245 247 / 0.1);
 }
 @media (prefers-reduced-motion: reduce) {
+  .mesh-canvas { display: none; }
   .trailer-card, .trailer-card:hover, .trailer-card:active { transition: none; transform: none; }
 }

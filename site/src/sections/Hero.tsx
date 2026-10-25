@@ -1,4 +1,4 @@
-// The hero: one big rounded frame (Vexo), cool gradient and faint light rays inside, the nav notched into its top
+// The hero: one big rounded frame (Vexo), glass over the deck's moving green light, the nav notched into its top
 // edge, the two-line headline, one subline, two pills, and the real console in a thin dark bezel rising from the
 // frame's bottom edge. The trailer card sits bottom right and opens the real trailer in a dialog (never preloaded).
 // Entry: the frame settles from 0.98, the headline lines rise 24 px 80 ms apart, the console rises last. Reduced
@@ -39,7 +39,6 @@ export default function Hero() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.9, ease: EASE }}
       >
-        <div className="hero-rays" aria-hidden="true" />
         <Nav />
 
         <div className="relative z-10 flex flex-col items-center px-4 pt-[clamp(108px,15vh,176px)] text-center md:px-10">
@@ -50,14 +49,14 @@ export default function Hero() {
               </motion.span>
             ))}
           </h1>
-          <motion.p className="hero-sub mb-0 mt-6 max-w-[46ch] text-ink md:mt-7" {...rise(2)}>
+          <motion.p className="hero-sub mb-0 mt-6 max-w-[46ch] text-[rgb(245_245_247/0.9)] md:mt-7" {...rise(2)}>
             One bounded limit from the operator. Every battery, charger and heat pump on the street keeps the transformer under its rating.
           </motion.p>
           <motion.div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 min-[480px]:w-auto min-[480px]:flex-row min-[480px]:items-center md:mt-9" {...rise(3)}>
             <PillLink href={LINKS.console} size="lg" badge>
               Open the console
             </PillLink>
-            <PillButton tone="light" size="lg" badge={<Play size={14} weight="fill" />} onClick={open}>
+            <PillButton tone="secondary" size="lg" badge={<Play size={14} weight="fill" />} onClick={open}>
               Watch the trailer
             </PillButton>
           </motion.div>
@@ -94,7 +93,7 @@ export default function Hero() {
         >
           <img src={asset("trailer-poster.webp")} width={960} height={540} alt="" className="block h-full w-full object-cover transition-transform duration-500 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-[1.04]" />
           <span className="absolute inset-0 grid place-items-center bg-[rgb(29_29_31/0.18)] transition-colors duration-300 group-hover:bg-[rgb(29_29_31/0.08)]">
-            <span className="grid size-14 place-items-center rounded-full bg-white text-ink shadow-[0_8px_24px_rgb(29_39_52/0.25)] transition-transform duration-300 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-110 group-active:scale-95">
+            <span className="grid size-14 place-items-center rounded-full bg-ink text-on-ink shadow-[0_8px_24px_rgb(0_0_0/0.35)] transition-transform duration-300 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-110 group-active:scale-95">
               <Play size={20} weight="fill" />
             </span>
           </span>
@@ -146,14 +145,14 @@ function TrailerDialog({ onClose }: { onClose: () => void }) {
           autoPlay
           playsInline
           preload="none"
-          className="block aspect-video w-full rounded-[var(--radius-card)] bg-ink shadow-[0_40px_120px_rgb(0_0_0/0.45)]"
+          className="block aspect-video w-full rounded-[var(--radius-card)] bg-page shadow-[0_40px_120px_rgb(0_0_0/0.6)]"
         />
         <button
           ref={close}
           type="button"
           aria-label="Close the trailer"
           onClick={onClose}
-          className="absolute -top-14 right-0 grid size-11 cursor-pointer place-items-center rounded-full border-0 bg-white text-ink transition-[background-color,transform] duration-150 hover:bg-ground active:scale-95"
+          className="absolute -top-14 right-0 grid size-11 cursor-pointer place-items-center rounded-full border-0 bg-ink text-on-ink transition-[background-color,transform] duration-150 hover:bg-white active:scale-95"
         >
           <X size={18} weight="bold" />
         </button>
