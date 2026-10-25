@@ -1,0 +1,33 @@
+/* Proof, the real plant tile, AI and security (helper B). Sizes only: every colour, radius and shadow is a token. */
+
+/* proof: the four numbers */
+.proof-num { font-size: clamp(64px, 6.2vw, 100px); line-height: 1; letter-spacing: -0.03em; }
+.proof-unit { font-size: 0.5em; letter-spacing: -0.01em; }
+.proof-accent { bottom: -0.2em; height: 0.08em; }
+
+/* the real plant tile */
+.plant-title { font-size: clamp(36px, 3.6vw, 60px); }
+.plant-tile { min-height: 400px; }
+@media (min-width: 768px) { .plant-tile { min-height: 440px; } }
+.plant-big { font-size: clamp(80px, 8vw, 132px); line-height: 0.9; letter-spacing: -0.035em; }
+.plant-mid { font-size: clamp(30px, 2.6vw, 40px); line-height: 1; letter-spacing: -0.02em; }
+.plant-unit { font-size: 0.42em; letter-spacing: -0.01em; }
+.plant-mid .plant-unit { font-size: 0.55em; }
+.plant-hold-big { width: 2.2em; height: 0.82em; }
+.plant-hold-mid { width: 3.4em; height: 0.85em; }
+
+/* the live dot breathes (1.6 s) instead of pinging; off under reduced motion */
+.plant-dot::after { animation: plant-breathe 1.6s ease-in-out infinite; }
+@keyframes plant-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(2.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plant-dot::after { animation: none; display: none; }
+}
+
+/* AI: the one dark panel */
+.ai-panel { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), var(--shadow-device); }
+
+/* security */
+.sec-lead { font-size: clamp(32px, 3.4vw, 56px); }
