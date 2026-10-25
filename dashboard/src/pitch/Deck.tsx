@@ -9,9 +9,11 @@
 //   F                       full screen, with Esc kept for the page (hold Esc to leave full screen)
 //   T                       small elapsed timer, bottom right      N  presenter notes      Esc  slide overview
 //   D                       dark or light theme (dark by default; ?theme=dark|light; remembered like the ops console)
+// Touch (phones under 900 px wide or 500 px tall, and touch screens): tap the right 60 % for next, the left 40 % for back,
+// or swipe sideways; a slide counter and two round arrows sit bottom right and fade after 2 s without a touch.
 // URL: ?slide=N (0 = the trailer, 1-9 the slides) &step=S (0-based) &freeze=end (final state at once, for QA and print). The slide and step
 // are written back to the URL as you move, so a reload stays put. window.__pitch exposes the state for QA.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as TouchPointer } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SLIDES } from "./slides";
 import { useTrailer } from "./shell/useTrailer";
@@ -21,12 +23,17 @@ import Overview, { overviewLayout } from "./shell/Overview";
 import { useTheme } from "../ops/theme";
 import Backdrop from "./shell/Backdrop";
 import { useFlatten, useGridState } from "../api";
+import TouchNav from "./shell/TouchNav";
+import { PHONE_Q, TOUCH_Q, useMedia } from "../phone";
 import "./deck.css";
 
 const W = 1920;
 const H = 1080;
 const LAST = SLIDES.length - 1;
 const CURSOR_IDLE_MS = 2000;
+/** Touch: a swipe is at least this far sideways (px), and more sideways than up or down; a tap moves less than TAP_PX. */
+const SWIPE_PX = 40;
+const TAP_PX = 12;
 
 interface Pos {
   i: number;
@@ -122,6 +129,9 @@ export default function Deck() {
   // Slides 3 (the loop) and 6 (the plant, the heat grid) read the same light state poll: warm it from the first frame too.
   useGridState("", "");
   const cursorHidden = useIdleCursor(CURSOR_IDLE_MS);
+  // Phones get the deck by touch: tap right (60 %) next, left back, swipe either way, and the small controls.
+  const phone = useMedia(PHONE_Q);
+  const touch = useMedia(TOUCH_Q) || phone;
 
   const setPos = useCallback((p: Pos) => {
     posRef.current = p;
@@ -171,6 +181,24 @@ export default function Deck() {
     },
     [go, setUi],
   );
+
+  // Touch on the slide itself (never on its buttons, links or the overview): a tap or a sideways swipe.
+  const press = useRef<{ id: number; x: number; y: number } | null>(null);
+  const onPointerDown = (e: TouchPointer) => {
+    if (e.pointerType === "mouse" || !e.isPrimary) return;
+    const t = e.target as HTMLElement;
+    if (uiRef.current.overview || t.closest("button, a, input, textarea, select, iframe, [data-chrome]")) return;
+    press.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  };
+  const onPointerUp = (e: TouchPointer) => {
+    const p = press.current;
+    press.current = null;
+    if (!p || p.id !== e.pointerId) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
+    if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(dy)) return dx < 0 ? next() : prev();
+    if (Math.abs(dx) < TAP_PX && Math.abs(dy) < TAP_PX) return e.clientX >= window.innerWidth * 0.4 ? next() : prev();
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -289,7 +317,13 @@ export default function Deck() {
   const top = (size.h - H * scale) / 2;
 
   return (
-    <div className={`p-deck${cursorHidden ? " p-nocursor" : ""}`} data-slide-current={pos.i}>
+    <div
+      className={`p-deck${cursorHidden ? " p-nocursor" : ""}${touch ? " is-touch" : ""}`}
+      data-slide-current={pos.i}
+      onPointerDown={touch ? onPointerDown : undefined}
+      onPointerUp={touch ? onPointerUp : undefined}
+      onPointerCancel={touch ? () => (press.current = null) : undefined}
+    >
       <Backdrop kind={SLIDES[pos.i].bgSteps?.[pos.step] ?? SLIDES[pos.i].bg ?? "none"} theme={theme} freeze={!!freeze} />
       {SLIDES.map((d, i) => {
         // Full-bleed slides (the trailer, the live demo) live outside the scaled canvas; the demo stays mounted.
@@ -298,7 +332,7 @@ export default function Deck() {
         if (!on && !d.keepMounted) return null;
         return (
           <div key={d.id} className={`p-bleed${on ? "" : " p-off"}`} aria-hidden={!on}>
-            <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} tourOff={tourOff} jingle={trailer.state === "playing" ? "playing" : "ended"} />
+            <d.Component step={on ? pos.step : 0} active={on} freeze={freeze} tourOff={tourOff} jingle={trailer.state === "playing" ? "playing" : "ended"} phone={phone} onNext={next} />
           </div>
         );
       })}
@@ -320,6 +354,9 @@ export default function Deck() {
           </motion.div>
         )}
       </AnimatePresence>
+      {touch && !ui.overview ? (
+        <TouchNav n={pos.i + 1} total={SLIDES.length} canBack={pos.i > 0 || pos.step > 0} canNext={pos.i < LAST || pos.step < SLIDES[pos.i].steps - 1} onBack={prev} onNext={next} />
+      ) : null}
       {ui.timer ? <Timer t0={t0} i={pos.i} /> : null}
       {ui.notes ? <Notes i={pos.i} step={pos.step} lift={ui.timer} /> : null}
       {ui.overview ? (

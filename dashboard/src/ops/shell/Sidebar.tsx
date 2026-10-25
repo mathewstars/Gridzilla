@@ -1,7 +1,7 @@
 // Left sidebar of the operations console. Adapted from the 21st.dev "Sidebar" by @wensity (design/21st/sidebar-shell.tsx):
 // live badges and an active pill that glides between items (motion layoutId). Three entries (Operations, Diet plan, Real
 // plant); City, Autopilot, Manual, Households and Log sit under one More menu at the bottom (Weather by URL only, #/weather). Full
-// width at >= 1240, an icon rail with hover labels below that, a Menu button on phones (shell.css).
+// width at >= 1240, an icon rail with hover labels below that. Phones (under 900 px) get TabBar.tsx instead.
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import {
@@ -24,12 +24,12 @@ import "./shell.css";
 export type Route = "ops" | "city" | "autopilot" | "manual" | "households" | "plant" | "weather" | "log" | "demo" | "plan";
 
 type Item = { r: Route; label: string; icon: Icon };
-const MAIN: Item[] = [
+export const MAIN: Item[] = [
   { r: "ops", label: "Operations", icon: Broadcast },
   { r: "plan", label: "Diet plan", icon: ChartLineDown },
   { r: "plant", label: "Real plant", icon: SolarPanel },
 ];
-const MORE: Item[] = [
+export const MORE: Item[] = [
   { r: "city", label: "City", icon: GridFour },
   { r: "autopilot", label: "Autopilot", icon: Robot },
   { r: "manual", label: "Manual", icon: SlidersHorizontal },
@@ -37,7 +37,7 @@ const MORE: Item[] = [
   { r: "log", label: "Log", icon: ListBullets },
 ];
 
-const href = (r: Route) => (r === "ops" ? "#/" : `#/${r}`);
+export const href = (r: Route) => (r === "ops" ? "#/" : `#/${r}`);
 
 
 /** rail: always the thin icon rail (the < 1240 px look) at every width above phones; phones keep their top header. */

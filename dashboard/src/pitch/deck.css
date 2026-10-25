@@ -256,3 +256,68 @@ body {
 .p-backdrop-dim.is-on {
   opacity: 0.42;
 }
+
+/* Touch (phones, touch screens; Deck.tsx adds .is-touch): the deck owns sideways swipes, pinch zoom still works. */
+.p-deck.is-touch {
+  touch-action: pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* The counter and two round arrows bottom right, above the safe area; they fade 2 s after the last touch. */
+.p-touch {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.p-touch.is-idle {
+  opacity: 0;
+}
+.p-touch-count {
+  padding: 0 10px;
+  font-family: var(--p-font-text);
+  font-size: 13px;
+  line-height: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-secondary);
+  background: var(--p-surface);
+  border-radius: 980px;
+  box-shadow: var(--p-shadow);
+}
+.p-touch-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--p-surface);
+  color: var(--p-ink);
+  box-shadow: var(--p-shadow), var(--p-shadow-lift);
+  cursor: pointer;
+  transition: background-color 100ms linear, transform 100ms linear;
+}
+.p-touch-btn:active {
+  background: var(--p-fill);
+  transform: scale(0.96);
+}
+.p-touch-btn:disabled {
+  color: var(--p-tertiary);
+  cursor: default;
+}
+.p-touch-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--p-bg), 0 0 0 5px var(--p-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .p-touch {
+    transition: none;
+  }
+}

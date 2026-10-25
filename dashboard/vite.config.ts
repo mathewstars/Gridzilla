@@ -14,7 +14,15 @@ export default defineConfig({
     rollupOptions: {
       // The pitch deck (pitch.html) is built next to the console (index.html).
       input: { index: "index.html", pitch: "pitch.html" },
-      output: { manualChunks: { three: ["three", "@react-three/fiber", "@react-three/drei"], charts: ["recharts"] } },
+      // React has its own chunk, and only three.js itself goes in "three": a page that never draws 3D (phones) never
+      // loads a three-*.js file (before, React and Vite's preload helper sat in it, so every page preloaded it)
+      output: {
+        manualChunks(id: string) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          if (/node_modules\/(three|three-stdlib|@react-three\/[^/]+)\//.test(id)) return "three";
+          if (/node_modules\/recharts\//.test(id)) return "charts";
+        },
+      },
     },
   },
   server: {

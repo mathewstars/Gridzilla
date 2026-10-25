@@ -12,6 +12,25 @@ Needs the local stack running (`dev/stack.sh start`) and Google Chrome installed
 | G4 | `demo.mjs` (legend keys); visual judges (Workflow, outside this folder) | both demo legends list all their keys at 2 s and 20 s after load (the hero's six, muted while a series has no data; the Blatnica key), console and bare, dark and light; the judges look over the G3 screenshots |
 | G5 | `live.mjs` | live data on screen within 3 s of opening (3 cold loads); >= 50 fps at 1440x900, 3D paused off-screen, 10 s recording per size shows real change |
 
+## Phones
+
+Phones are under 900 px wide or 500 px tall (`src/phone.ts`; CSS `ops/phone.css`, the deck's `shell/TouchNav.tsx`). The last two
+steps of `npm run qa` check them at 390x844, 390x667, 430x932 and 844x390, dark and light, with prefers-reduced-motion
+`reduce` and `no-preference`:
+
+- console: `node qa/layout.mjs --states quick --sizes phones --theme dark,light --motion reduce,no-preference --hash /,/plan,/plant,/city,/autopilot,/manual,/households,/log,/weather`
+- deck: `node qa/pitch.mjs --base <server>/pitch.html --sizes phones --motion reduce,no-preference` (G1 taps through the whole
+  run of show at each phone size; G3 every slide and step at start and end)
+
+On top of the G1 and G3 checks above, a phone cell fails when the first screen shows 3 texts or fewer besides the bars
+(a blank landing; on the deck this holds for slide 0, every other slide needs at least one text), a bar or sheet control (`.tab-item`, `.tb-menu`, the deck's arrows, Play, Open the console, sheet rows)
+is under 44x44 px, or the page requests a three.js file. Two layout rules for phones: a fixed bar marked `data-chrome`
+(tab bar, phone top bar, the deck's touch controls) floats over content without counting as overlap, and a sideways
+chip row marked `data-scroll="row"` only counts its visible part (the half chip at its edge says it scrolls).
+
+`GZ_QA_BASE=http://localhost:8241/static/new/ GZ_QA_API=http://localhost:8241/api` points every gate at a second local
+platform when :8081 is taken. The deck's phone still of the console comes from `node qa/pitch-still.mjs` (GET only).
+
 ## Data-truth convention (G2)
 
 Every element that shows a live number carries where it came from:

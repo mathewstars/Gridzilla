@@ -77,6 +77,15 @@ press skips it; at its last frame the deck hard-cuts to the title by itself. Lef
 elapsed timer (starts with the trailer). N: the presenter notes for this slide. D: dark or light. Esc: slide overview.
 1-4 set the live scenario on the title slide (before you start) and on slide 6 (the demo); Left and Right always move slides.
 
+## On a phone
+
+Phones (under 900 px wide or 500 px tall, `src/phone.ts`) get the same deck by touch: tap the right 60 % of the screen
+for next, the left 40 % for back, or swipe sideways. A slide counter and two round arrows sit bottom right and fade after
+2 s without a touch (`shell/TouchNav.tsx`). The 16:9 slides scale whole into the screen on the deck's ground. Slide 0 shows
+the title and a Play the trailer button over the waiting frame. Slide 6 shows a still of the console
+(`public/pitch/console-<theme>.webp`, made by `node qa/pitch-still.mjs` from the live site, GET only) with one Open the
+console button (new tab); the walkthrough's captions play over the still. Desktop is unchanged.
+
 ## Design read
 
 A keynote-style pitch for hackathon judges who have watched twenty pitches today, in Apple product-launch language,

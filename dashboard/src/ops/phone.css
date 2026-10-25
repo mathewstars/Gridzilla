@@ -1,0 +1,533 @@
+/* Phones (under 900 px wide or 500 px tall; OpsApp sets .ops.is-phone from src/phone.ts): a slim top bar with the
+   heartbeat and Menu, every view in one column in reading order, and a tab bar along the bottom. Tokens only (index.css,
+   shell.css), so both themes follow. Desktop never gets .is-phone, so none of this reaches it. */
+:root {
+  --tab-h: 54px;
+}
+
+/* ---------------------------------------------------------------- frame */
+.ops.is-phone {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom));
+}
+.ops.is-phone .ops-view,
+.ops.is-phone .op2 {
+  padding: 12px max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
+}
+.ops.is-phone ~ .ops-ro,
+.ops.is-phone .ops-ro {
+  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 8px);
+}
+
+/* ---------------------------------------------------------------- top bar: heartbeat and Menu */
+.tb.is-phone {
+  position: sticky;
+  top: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 0;
+  padding: calc(8px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+}
+.tb.is-phone .tb-spacer {
+  display: block;
+}
+.tb.is-phone .hb {
+  height: 44px;
+  padding: 0 5px 0 14px;
+  border-radius: 22px;
+  gap: 8px;
+}
+.tb.is-phone .tbtn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 17px;
+  font-size: 15px;
+}
+.tb-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 980px;
+  flex: none;
+  background: var(--sh-track);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 100ms linear, transform 100ms linear;
+}
+.tb-menu:active {
+  background: var(--sh-press);
+  transform: scale(0.97);
+}
+.tb-menu:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sh-blue);
+}
+.tb.is-phone .tb-err {
+  order: 3;
+  flex: 1 1 100%;
+}
+
+/* ---------------------------------------------------------------- tab bar */
+.tab {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0 max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+  background: var(--color-card);
+  box-shadow: inset 0 1px 0 var(--sh-line), 0 -8px 24px rgb(0 0 0 / 0.04);
+}
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: var(--tab-h);
+  padding: 4px 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 100ms linear, transform 100ms linear;
+}
+.tab-item:active {
+  transform: scale(0.94);
+}
+.tab-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--sh-blue);
+  border-radius: 10px;
+}
+.tab-item[aria-current="page"] {
+  color: var(--color-ink);
+}
+.tab-item[aria-current="page"] .tab-ico {
+  color: var(--sh-blue-text);
+}
+.tab-ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 26px;
+}
+.tab-lbl {
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.tab-item[aria-current="page"] .tab-lbl {
+  font-weight: 600;
+}
+.tab-dot {
+  position: absolute;
+  top: 1px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-tertiary);
+  box-shadow: 0 0 0 2px var(--color-card);
+}
+.tab-dot.is-green {
+  background: var(--sh-green);
+}
+.tab-dot.is-blue {
+  background: var(--sh-blue);
+}
+.tab-dot.is-orange {
+  background: var(--sh-orange);
+}
+
+/* ---------------------------------------------------------------- sheets (Menu, More) */
+.sheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgb(0 0 0 / 0.4);
+  cursor: default;
+}
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  padding: 6px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  border-radius: 18px 18px 0 0;
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.18), inset 0 1px 0 var(--sh-line);
+  outline: none;
+}
+@media (min-width: 600px) {
+  .sheet {
+    left: 50%;
+    right: auto;
+    width: 520px;
+    margin-left: -260px;
+  }
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+}
+.sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+.sheet-x {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--color-secondary);
+  cursor: pointer;
+}
+.sheet-x:active {
+  background: var(--sh-press);
+}
+.sheet-x:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--sh-blue);
+}
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+.sheet-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet-cap {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+/* the segmented controls stretch to the sheet's width, each option a full 44 px target */
+.sheet .seg {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+}
+.sheet .seg-btn {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+  height: 40px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+.sheet .seg-thumb {
+  border-radius: 10px;
+}
+.sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sheet .chip {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  font-size: 15px;
+}
+.sheet .tb-wx-place,
+.sheet .tb-since {
+  display: inline;
+}
+/* (shell.css hides the weather pill on 761-1099 px desktops; in the sheet it always shows) */
+.sheet .tb-wx {
+  display: inline-flex;
+}
+.sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 100ms linear;
+}
+.sheet-row:active {
+  background: var(--sh-press);
+}
+.sheet-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--sh-blue);
+}
+.sheet-row[aria-current="page"] {
+  background: var(--sh-track);
+  font-weight: 600;
+}
+.sheet-row[aria-current="page"] svg {
+  color: var(--sh-blue-text);
+}
+.sheet-row-lbl {
+  flex: 1;
+  min-width: 0;
+}
+.sheet-row .sb-badge {
+  height: 22px;
+  min-width: 22px;
+  border-radius: 11px;
+}
+.tb.is-phone > .chip {
+  order: 0;
+}
+
+/* ---------------------------------------------------------------- Operations */
+/* the hero chart: full width, its own height (not 60 % of a short screen), the ring under it */
+.ops.is-phone .op2-curve {
+  min-height: 0;
+}
+.ops.is-phone .bc {
+  padding: 16px 16px 14px;
+  gap: 10px;
+}
+.ops.is-phone .bc-sentence {
+  font-size: 17px;
+  line-height: 1.35;
+}
+.ops.is-phone .bc-plot {
+  min-height: 0;
+  height: 240px;
+}
+.ops.is-phone .bc-ring {
+  width: 168px;
+}
+/* transformer chips: one row that scrolls sideways and snaps, edge to edge inside the card */
+.bc-chips.is-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  margin: 0 -16px;
+  padding: 2px 16px 4px;
+  scrollbar-width: none;
+}
+.bc-chips.is-row::-webkit-scrollbar {
+  display: none;
+}
+.bc-chips.is-row .bc-chip {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  scroll-snap-align: start;
+}
+.ops.is-phone .bc-legend li {
+  height: 30px;
+}
+
+/* ---------------------------------------------------------------- Diet plan */
+/* five tiles in two columns, the last one across; labels in sentence case so they wrap like words, not shouted caps */
+.ops.is-phone .pl-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ops.is-phone .pl-tile:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.ops.is-phone .pl-tile {
+  padding: 12px 14px 13px;
+}
+.ops.is-phone .pl-tile-t {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-secondary);
+  text-wrap: balance;
+}
+.ops.is-phone .pl-tile-v {
+  font-size: 26px;
+}
+.ops.is-phone .pl-chart {
+  padding: 16px 16px 14px;
+}
+.ops.is-phone .pl-h2 {
+  font-size: 17px;
+}
+.ops.is-phone .pl-plot {
+  height: 260px;
+  min-height: 0;
+}
+.pl-chiprow[data-scroll="row"] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  margin: 0 -16px;
+  padding: 2px 16px 4px;
+  scrollbar-width: none;
+}
+.pl-chiprow[data-scroll="row"]::-webkit-scrollbar {
+  display: none;
+}
+.pl-chiprow[data-scroll="row"] > * {
+  flex: none;
+  scroll-snap-align: start;
+}
+.pl-chiprow[data-scroll="row"] .pl-chip {
+  height: 36px;
+  border-radius: 18px;
+}
+
+/* ---------------------------------------------------------------- Real plant */
+.ops.is-phone .plant-page > .plant-hero {
+  min-height: 0;
+}
+.ops.is-phone .plant-hero .demo-curve {
+  height: auto;
+}
+.ops.is-phone .plant-chart {
+  flex: none;
+  height: 220px;
+}
+.ops.is-phone .plant-page .plant-hero .demo-ring {
+  width: 168px;
+}
+/* the sign is in the reading under the chart ("grid import" / "grid export"); on a narrow plot the zero label sat on the line */
+.ops.is-phone .plant-zero {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- More pages: tables as cards at every phone width */
+/* (shell.css turns rows into cards only up to 760 px; a landscape phone is wider than that) */
+.ops.is-phone .vw-scroll {
+  overflow-x: visible;
+}
+.ops.is-phone .tbl-sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  box-shadow: inset 0 -1px 0 var(--sh-line);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tertiary);
+}
+.ops.is-phone .tbl,
+.ops.is-phone .tbl tbody {
+  display: block;
+}
+.ops.is-phone .tbl thead {
+  display: none;
+}
+.ops.is-phone .tbl tbody tr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px 12px;
+  padding: 12px 14px;
+  box-shadow: inset 0 -1px 0 var(--sh-line);
+}
+.ops.is-phone .tbl tbody tr:last-child {
+  box-shadow: none;
+}
+.ops.is-phone .tbl td {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  box-shadow: none;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+.ops.is-phone .tbl td::before {
+  content: attr(data-label);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-tertiary);
+}
+.ops.is-phone .tbl td:first-child {
+  grid-column: 1 / -1;
+}
+.ops.is-phone .tbl .nw {
+  white-space: normal;
+}
+.ops.is-phone .tbl .wrap {
+  min-width: 0;
+  max-width: none;
+  grid-column: 1 / -1;
+}
+.ops.is-phone .tbl .loadbar {
+  justify-content: flex-start;
+}
+/* a tag that wraps grows with its words instead of spilling out of its 20 px pill */
+.ops.is-phone .tbl .tag {
+  height: auto;
+  min-height: 22px;
+  max-width: 100%;
+  padding: 2px 8px;
+  line-height: 1.3;
+  white-space: normal;
+  flex-wrap: wrap;
+  overflow-wrap: normal !important; /* the tag sets anywhere inline: whole words here, never "RELEAS / E" */
+}
+/* a cell's own row of parts (a tag and its street) wraps inside its column instead of running into the next one */
+.ops.is-phone .tbl td > span {
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
+}

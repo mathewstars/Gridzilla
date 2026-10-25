@@ -8,6 +8,7 @@ import type { DevPoint } from "../../api";
 import { Key, Swatch } from "../../stage/kit/LiveCurve";
 import LoadRing from "../../stage/kit/LoadRing";
 import { P } from "../../stage/palette";
+import { usePhone } from "../../phone";
 import "./blatnica.css";
 
 const HH = `live:state/households/${LIVE_HH}`;
@@ -77,11 +78,14 @@ function shownTicks(ticks: number[], lo: number, hi: number, ph: number): number
 
 function GridLine({ pts }: { pts: DevPoint[] }) {
   const [box, ph] = useHeight<HTMLDivElement>();
+  const phone = usePhone();
   const v = pts.map((p) => p.grid_kw);
   const nums = v.filter((x): x is number => x != null);
   if (nums.length < 2) return <div className="blat-chart blat-chart-empty">collecting the last 30 minutes</div>;
   const { lo, hi, ticks: all } = kwTicks(nums);
-  const ticks = shownTicks(all, lo, hi, ph);
+  const shown = shownTicks(all, lo, hi, ph);
+  // phones: at most three labels
+  const ticks = phone && shown.length > 3 ? shownTicks(all, lo, hi, 0) : shown;
   const sparse = ph < 90; // two labels: the unit once, on the far one
   const W = 1000, H = 100;
   const x = (i: number) => (i / (v.length - 1)) * W;
@@ -345,6 +349,7 @@ const clockOf = (ms: number) => new Date(ms).toLocaleTimeString("de-AT", { hour:
 function PlantChart({ pts, limit, limitSrc }: { pts: DevPoint[]; limit: number | null; limitSrc: string }) {
   const [box, setBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const phone = usePhone();
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -363,7 +368,8 @@ function PlantChart({ pts, limit, limitSrc }: { pts: DevPoint[]; limit: number |
     const ts = rows.map((p) => Date.parse(p.ts));
     const t0 = ts[0], t1 = ts[ts.length - 1] || t0 + 1;
     const vals = rows.map((p) => p.grid_kw as number);
-    const ax = niceTicks(Math.min(0, ...vals, limit ?? 0), Math.max(0, ...vals, limit ?? 0) || 0.2, Math.floor(ph / 26) + 1);
+    // phones: at most three kW labels and five times
+    const ax = niceTicks(Math.min(0, ...vals, limit ?? 0), Math.max(0, ...vals, limit ?? 0) || 0.2, phone ? Math.min(3, Math.floor(ph / 26) + 1) : Math.floor(ph / 26) + 1);
     const x = (t: number) => padL + ((t - t0) / Math.max(1, t1 - t0)) * pw;
     const y = (k: number) => padT + ((ax.hi - k) / (ax.hi - ax.lo || 1)) * ph;
     const ys = (soc: number) => padT + ((100 - soc) / 100) * ph;
@@ -373,7 +379,8 @@ function PlantChart({ pts, limit, limitSrc }: { pts: DevPoint[]; limit: number |
     const dec = ax.step < 1 ? (ax.step < 0.5 && ax.step !== 0.25 ? 1 : 2) : 0;
     // time labels every 5 / 10 / 15 min, as many as fit at ~70 px apart
     const span = t1 - t0;
-    const every = [5, 10, 15, 30].map((m) => m * 60000).find((m) => span / m <= pw / 70) ?? 30 * 60000;
+    const fitT = phone ? Math.min(4, pw / 70) : pw / 70;
+    const every = [5, 10, 15, 30].map((m) => m * 60000).find((m) => span / m <= fitT) ?? 30 * 60000;
     const times: number[] = [];
     for (let t = Math.ceil(t0 / every) * every; t <= t1; t += every) times.push(t);
     body = (
