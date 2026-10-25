@@ -21,7 +21,7 @@ const LEGEND = [
 
 export default function Problem() {
   return (
-    <Section id="problem">
+    <Section id="problem" fade>
       <Reveal>
         <Title className="max-w-[24ch]">Home batteries are now the largest storage fleet in Europe. The grid operator cannot see or use a single one.</Title>
       </Reveal>

@@ -5,9 +5,14 @@
 // their own full-width frame.
 import type { HTMLAttributes, ReactNode } from "react";
 
-export function Section({ id, children, className = "", bleed, light, style, ...rest }: { id?: string; children: ReactNode; bleed?: boolean; light?: boolean } & HTMLAttributes<HTMLElement>) {
-  // the light patch fades the scrim out and back in over 200 px, so there is no hard edge
-  const bg = light ? "linear-gradient(var(--scrim), var(--shade) 200px, var(--shade) calc(100% - 200px), var(--scrim))" : "var(--scrim)";
+export function Section({ id, children, className = "", bleed, light, fade, style, ...rest }: { id?: string; children: ReactNode; bleed?: boolean; light?: boolean; fade?: boolean } & HTMLAttributes<HTMLElement>) {
+  // the light patch fades the scrim out and back in over 200 px, so there is no hard edge; `fade` (the first section
+  // under the hero) lets the hero's full light run on and reaches the scrim over 240 px
+  const bg = light
+    ? "linear-gradient(var(--scrim), var(--shade) 200px, var(--shade) calc(100% - 200px), var(--scrim))"
+    : fade
+      ? "linear-gradient(transparent, var(--scrim) 240px)"
+      : "var(--scrim)";
   return (
     <section id={id} className={`py-[72px] md:py-24 lg:py-[120px] ${className}`} style={{ background: bg, ...style }} {...rest}>
       {bleed ? children : <Container>{children}</Container>}

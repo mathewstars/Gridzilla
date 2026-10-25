@@ -57,23 +57,20 @@
   .hero-device { width: 680px; left: 20px; translate: none; }
 }
 @media (min-width: 1024px) {
-  .hero-device { width: min(70vw, 1180px); padding: 9px; border-radius: 27px; }
+  .hero-device { width: min(84vw, 1180px); padding: 9px; border-radius: 27px; }
 }
-/* from 1280: the bezel leaves room on its right for the trailer card (24 px gap, 300 px card, 32 px to the edge) on
-   both sides, so it stays centred; the card's left edge sits 24 px past the bezel's right edge */
-@media (min-width: 1280px) {
-  .hero-device { width: min(1180px, calc(100% - 712px)); }
-  .trailer-side { left: calc(50% + min(590px, 50% - 356px) + 24px); bottom: 32px; }
+/* with the trailer out of the hero the console grows: 1180 from 1240, 1320 from 1440 */
+@media (min-width: 1240px) {
+  .hero-device { width: min(1180px, calc(100% - 60px)); }
 }
-.trailer-card {
-  aspect-ratio: 300 / 170;
-  box-shadow: 0 0 0 1px rgb(245 245 247 / 0.16), var(--shadow-device);
-  transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
+@media (min-width: 1440px) {
+  .hero-device { width: min(1320px, calc(100% - 120px)); }
 }
-.trailer-side { width: 300px; }
-.trailer-inline { width: 240px; }
-.trailer-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgb(245 245 247 / 0.3), 0 48px 100px rgb(0 0 0 / 0.55); }
-.trailer-card:active { transform: scale(0.98); }
+/* no hard cut where the hero ends: the console fades into the ground over the last 180 px of the hero */
+.hero-device-well {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 180px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 180px), transparent);
+}
 
 /* The nav bar: no background over the hero; once the page scrolls, a thin glass strip with a hairline under it. */
 .nav-bar { transition: background-color 0.3s linear, box-shadow 0.3s linear, backdrop-filter 0.3s linear; }
@@ -89,5 +86,5 @@
 .closing-frame { background: linear-gradient(var(--scrim), rgb(11 11 15 / 0.3) 240px); }
 @media (prefers-reduced-motion: reduce) {
   .mesh-canvas { display: none; }
-  .trailer-card, .trailer-card:hover, .trailer-card:active, .nav-bar { transition: none; transform: none; }
+  .nav-bar { transition: none; }
 }
