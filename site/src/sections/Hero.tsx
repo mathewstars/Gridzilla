@@ -19,10 +19,8 @@ const LINES = [
   </>,
 ];
 
-/** Scroll to the trailer strip (#trailer) and ask it to play: the strip listens for "gz:trailer-play". */
+/** Ask the trailer strip (#trailer) to scroll into view and play: App passes "gz:trailer-play" to its play(). */
 function watchTrailer() {
-  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document.getElementById("trailer")?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   window.dispatchEvent(new Event("gz:trailer-play"));
 }
 
