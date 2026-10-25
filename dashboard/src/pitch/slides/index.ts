@@ -21,7 +21,7 @@ export const SLIDES: SlideDef[] = [
   { id: "idea", title: "The idea", at: 50, steps: 2, Component: Slide3, bg: "calm" },
   { id: "signals", title: "Six words", at: 70, steps: 1, Component: SlideSignals, bg: "calm" },
   { id: "peaks", title: "The monster eats peaks", at: 85, steps: 1, Component: Slide4, bg: "calm" },
-  { id: "demo", title: "Live demo", at: 115, steps: 6, Component: Slide5, fullBleed: true, keepMounted: true, tour: true },
+  { id: "demo", title: "Live demo", at: 115, steps: 9, Component: Slide5, fullBleed: true, keepMounted: true, tour: true },
   { id: "real", title: "Real and simulated", at: 175, steps: 1, Component: Slide6, bg: "calm" },
   { id: "close", title: "Close", at: 200, steps: 2, Component: Slide7, bg: "hero" },
   { id: "end", title: "Gridzilla", at: 222, steps: 1, Component: Slide8, bg: "hero" },

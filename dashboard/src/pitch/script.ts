@@ -51,12 +51,15 @@ export const NOTES: Notes[] = [
     who: "Matthew",
     time: "1:55, 60 s",
     steps: [
-      "This is all of Vienna, tonight, live: seventy-two transformers. Talk while it runs; never wait for the screen.",
+      "This is the whole app, live, on all of Vienna: seventy-two transformers. Click anything; Space walks the tour.",
       "Saved tonight: what Gridzilla kept off the city's evening peak, and the car charging it moved into the night.",
       "The whole city added up: with Gridzilla against without, the limit, the peak it eats.",
       "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes every fifteen grid minutes; a thirty-line deterministic guard disposes, the platform signs and sends. A rule-based fallback runs through the same guard; every decision logged.",
       "Our family home in Blatnica, live: battery, car charger and heat pump answering the same signed messages.",
-      "Any substation, feeder or street, one tap: colour is how close each one is to its limit. Peter pauses the operator on the board: every house back to owner mode within two minutes.",
+      "Any substation, feeder or street, one tap: colour is how close each one is to its limit.",
+      "The diet plan: every street gets a 24-hour envelope, renewed every two hours from the real weather.",
+      "The real plant: our family home in Blatnica on its own page, every reading live.",
+      "Back to the live app. Peter pauses the operator on the board: every house back to owner mode within two minutes.",
     ],
   },
   {

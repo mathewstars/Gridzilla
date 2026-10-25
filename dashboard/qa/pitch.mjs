@@ -40,7 +40,7 @@ function readSteps() {
     rows.forEach((l, i) => (steps[i] = Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1)));
     if (Object.keys(steps).length) return steps;
   } catch {}
-  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 6, 7: 1, 8: 2, 9: 1 };
+  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 9, 7: 1, 8: 2, 9: 1 };
 }
 // Steps per slide number (0 = the trailer, 1-9 the slides).
 const STEPS = readSteps();
@@ -206,11 +206,11 @@ async function cell(slide, step, size, phase, theme) {
     const tour = slide === LIVE && step > 0;
     if (tour) await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "hidden")));
     const f = await page.evaluate(detect, [false, W]);
-    // Slide 6 runs the Operations view in a 1920x1080 iframe (pitch-ops.html): judge what is inside it too.
+    // Slide 6 runs the full console in an iframe that fills the window: judge what is inside it too.
     if (slide === LIVE)
       for (const fr of page.frames())
-        if (fr.url().includes("pitch-ops")) {
-          const g = await fr.evaluate(detect, [false, 1920]);
+        if (fr !== page.mainFrame()) {
+          const g = await fr.evaluate(detect, [false, W]);
           for (const [k, v] of Object.entries(g)) f[k] = [...(f[k] || []), ...v.map((x) => `frame: ${x}`)];
         }
     if (tour) {

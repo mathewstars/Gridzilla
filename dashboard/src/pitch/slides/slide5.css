@@ -14,18 +14,18 @@
   color: var(--color-ink);
 }
 
-/* The Operations view runs in a 1920x1080 iframe (Slide5.tsx), scaled from its top-left corner and centred. */
-.p-stage-framed {
+/* The full console fills the window (Slide5.tsx): its own responsive layout, no letterbox. */
+.p-stage-app {
   position: relative;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
 }
-.p-ops-frame {
+.p-app-frame {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   border: 0;
   display: block;
-  transform-origin: 0 0;
   background: var(--color-ground);
 }
