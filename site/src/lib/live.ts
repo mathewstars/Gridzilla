@@ -1,7 +1,8 @@
 // The real plant tile reads the Blatnica house from the live server, read-only, the way the console's Blatnica card
-// does (dashboard/src/ops/demo/live.ts): same origin /api on gridzilla.victronlab.sk, the /live-api proxy anywhere
-// else (vite dev and preview forward it, GET only). One poll every 30 s, aborted on unmount. GET only: this file never
-// sends anything else, and never calls a write endpoint.
+// does (dashboard/src/ops/demo/live.ts, the fields of BlatnicaLive.tsx): same origin /api/state on
+// gridzilla.victronlab.sk, the /live-api/state proxy anywhere else (vite dev and preview forward it, GET only). One poll
+// every 30 s, aborted on unmount; after a failure the same 30 s poll is the retry, and a failure never keeps old
+// numbers. GET only: this file never sends anything else, and never calls a write endpoint.
 import { useEffect, useState } from "react";
 
 const HH = "blatnica";
@@ -14,6 +15,8 @@ const FRESH_MS = 5 * 60_000;
 interface Telemetry {
   soc: number | null;
   grid_kw: number | null;
+  hp_kw?: number | null;
+  dhw_c?: number | null;
   mode?: string | null;
   rx?: string;
 }
@@ -24,7 +27,7 @@ interface Household {
 }
 interface State {
   households?: Record<string, Household>;
-  active?: Record<string, { mode?: string }>;
+  active?: Record<string, { mode?: string; envelope?: { by_tf?: Record<string, unknown> } }>;
 }
 
 export interface Plant {
@@ -32,6 +35,9 @@ export interface Plant {
   soc: number | null;
   /** grid power, kW: + import, - export */
   gridKw: number | null;
+  /** heat pump power, kW, and its hot-water tank, °C, when the plant sends them (ViCare) */
+  hpKw: number | null;
+  tankC: number | null;
   /** the signal steering the house right now (SUPPORT, ABSORB...), or null in owner mode */
   signal: string | null;
   /** when the plant sent this reading (ms), if it said */
@@ -46,15 +52,18 @@ function read(d: State): Plant | null {
   const h = d.households?.[HH];
   const t = h?.telemetry;
   if (!h || !t) return null;
-  // the active signal on the house's path wins over the telemetry's own mode (as in the console's card)
+  // the mode the house itself reports first; else a signal active on its path (a segment it sits in, or a substation
+  // signal whose envelope lists its transformer), as in the console's card
   const path = h.path ?? (h.tf ? [h.tf] : []);
-  const sig = Object.entries(d.active ?? {}).find(([seg]) => path.includes(seg))?.[1]?.mode;
+  const sig = Object.entries(d.active ?? {}).find(([seg, a]) => path.includes(seg) || (!!h.tf && !!a.envelope?.by_tf?.[h.tf]))?.[1]?.mode;
   const own = t.mode && t.mode.toLowerCase() !== "owner" ? t.mode : null;
   const at = t.rx ? Date.parse(t.rx) : NaN;
   return {
     soc: typeof t.soc === "number" ? t.soc : null,
     gridKw: typeof t.grid_kw === "number" ? t.grid_kw : null,
-    signal: (sig ?? own)?.toUpperCase() ?? null,
+    hpKw: typeof t.hp_kw === "number" ? t.hp_kw : null,
+    tankC: typeof t.dhw_c === "number" ? t.dhw_c : null,
+    signal: (own ?? sig)?.toUpperCase() ?? null,
     at: Number.isFinite(at) ? at : null,
     fresh: Number.isFinite(at) && Date.now() - at < FRESH_MS,
   };
