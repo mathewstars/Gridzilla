@@ -1,5 +1,5 @@
 // One line of the WHAT'S HAPPENING feed: grid time, who acted, what happened in plain words, the facts after it.
-// Click opens the details (DeepSeek's reason, latency, guard verdict, the per-slot limits as a sparkline).
+// Click opens the details (the advisor's reason, latency, guard verdict, the per-slot limits as a sparkline).
 // The only motion in the feed: a new row slides in (0.25 s ease-out).
 import { Fragment, memo } from "react";
 import { motion } from "motion/react";

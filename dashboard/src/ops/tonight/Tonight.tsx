@@ -90,7 +90,7 @@ export default function Tonight({ ops, compact }: { ops: Ops; compact?: boolean 
     ),
     feed && !compact && (
       <Stat key="ai" value={<Pg>{feed.ai.decisions}</Pg>} label="AI decisions today" note={<Pg>{`${feed.ai.sent} sent, ${feed.ai.refused} stopped by the guard${feed.plans ? `, diet plan renewed ${feed.plans}x` : ""}`}</Pg>}
-        tip="Each time the autopilot asked DeepSeek and what happened: sent after the guard's check, or stopped by the guard." />
+        tip="Each time the autopilot asked the advisor and what happened: sent after the guard's check, or stopped by the guard." />
     ),
   ].filter(Boolean);
 

@@ -109,7 +109,7 @@ Cheating on `PREPARE` or `STRETCH` only hurts the cheater. Cheating on the impor
 
 ## Reference installation and demo
 
-The reference plant is a Victron ESS system (Cerbo GX, MultiPlus-II, MPPT, battery, grid meter) on VRM. The local policy agent runs as a Node-RED flow on Venus OS. Demo script: valid signal, refused signal below minimum SoC, replayed signal, platform outage with fail-safe revert. See the architecture page for the Victron and GoodWe mappings.
+The reference plant was a Victron ESS system (Cerbo GX, MultiPlus-II, MPPT, battery, grid meter) on VRM, with the local policy agent as a Node-RED flow on Venus OS, plus a Viessmann Vitocal heat pump via ViCare; both ran live through the hackathon (23-25 Oct 2026). Since then the Blatnica house is a simulated twin (`sim-blatnica-01`, same sizes) and no real plant is connected; the Node-RED flow and the ViCare agent stay in the repo as reference implementations. Demo script: valid signal, refused signal below minimum SoC, replayed signal, platform outage with fail-safe revert. See the architecture page for the Victron and GoodWe mappings.
 
 ## Quickstart (the whole stack on one laptop)
 
@@ -167,11 +167,11 @@ docs/plan-saturday.md    who does what on the build day, demo script, cut order
 docs/Challenge-*.docx    the original challenge text
 ```
 
-## DeepSeek autopilot and envelope curves
+## Autopilot, advisor and envelope curves
 
-The platform runs the grid on its own. Every 10 s it forecasts each street transformer 90 grid minutes ahead. When one is forecast past ±85 % of its rating, or the operator sets a standing warning, it asks DeepSeek (any OpenAI-compatible endpoint, via the LLM gateway) for one signal or none. For `ABSORB` and `SUPPORT` the platform attaches a **dynamic operating envelope**: a per-house import or export ceiling for every 15-minute slot, computed from the forecast headroom of each transformer (see `protocol/PROTOCOL.md`, *Envelope curves*). The deterministic policy guard checks the result. If it passes, it is signed and sent with no human in the loop, within the autopilot's own brakes: a 30-minute cooldown per segment and at most 12 signals per grid day. It never releases a signal an operator sent by hand.
+The platform runs the grid on its own. Every 10 s it forecasts each street transformer 90 grid minutes ahead. When one is forecast past ±85 % of its rating, or the operator sets a standing warning, it asks the **advisor** for one signal or none. `GZ_ADVISOR=rules` (the default since the hackathon) is a deterministic rule set inside the platform: SUPPORT on a forecast import peak, ABSORB on forecast reverse flow, RELEASE when the event is over, nothing else, no network. `GZ_ADVISOR=llm` (or just `GZ_LLM_URL`) asks an LLM instead; during the hackathon that was DeepSeek, self-hosted, through the LLM gateway. Either way the proposal has the same shape and goes through the same guard. For `ABSORB` and `SUPPORT` the platform attaches a **dynamic operating envelope**: a per-house import or export ceiling for every 15-minute slot, computed from the forecast headroom of each transformer (see `protocol/PROTOCOL.md`, *Envelope curves*). The deterministic policy guard checks the result. If it passes, it is signed and sent with no human in the loop, within the autopilot's own brakes: a 30-minute cooldown per segment and at most 12 signals per grid day. It never releases a signal an operator sent by hand.
 
-Modes on the dashboard: **Autonomous** (default when `GZ_LLM_URL` is set, or `GZ_AUTOPILOT=auto`), **Operator approves** (one click per decision), **Off**. The dashboard shows the control loop live (sense → trigger → DeepSeek → guard → sign → houses), every decision with DeepSeek's rationale, and the envelope curve against the measured power of the program houses. Two demo scenarios on the dashboard scale the houses outside the program: *cold evening* (load ×1.2) and *sunny noon* (PV ×5); a third, `live-weather`, uses the real forecast (see *Live weather and warnings*).
+Modes on the dashboard: **Autonomous** (default unless `GZ_ADVISOR=off`; `GZ_AUTOPILOT` overrides), **Operator approves** (one click per decision), **Off**. The dashboard shows the control loop live (sense → trigger → advisor → guard → sign → houses), every decision with the advisor's rationale, and the envelope curve against the measured power of the program houses. Two demo scenarios on the dashboard scale the houses outside the program: *cold evening* (load ×1.2) and *sunny noon* (PV ×5); a third, `live-weather`, uses the real forecast (see *Live weather and warnings*).
 
 The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`); all autopilot and envelope times are grid minutes.
 
@@ -181,7 +181,7 @@ The simulation clock runs 60× real time (`GZ_SIM_X=60`, matching `sim-agent.js`
 
 ## Flattening: the monster's diet (SHAPE)
 
-Under the DeepSeek autopilot a deterministic planner (`platform/flatten.py`) flattens every street every day: a
+Under the autopilot a deterministic planner (`platform/flatten.py`) flattens every street every day: a
 water-filling plan per transformer, two per-slot ceilings per house for the next 24 grid hours, sent as one `SHAPE`
 signal per feeder on `gridzilla/shape/<segment>` and renewed every two grid hours. Cars plugged in at dinner trickle
 through the peak and charge at night, batteries eat the slice above the level, the noon PV surplus goes into the
@@ -191,7 +191,7 @@ eaten. `GET /api/flatten?node=` returns it, `POST /api/shape/off|on` pauses or r
 
 ## Live weather and warnings
 
-`platform/weather.py` fetches the real forecast every 15 minutes (`GZ_WEATHER_REFRESH_S=900`) and serves it at `GET /api/weather` (current values, 48 hours, official warnings, a one-sentence summary, and `grid_view`: the next 24 grid hours mapped onto the simulation clock). DeepSeek gets the summary, the next 6 grid hours and the active warnings in its context.
+`platform/weather.py` fetches the real forecast every 15 minutes (`GZ_WEATHER_REFRESH_S=900`) and serves it at `GET /api/weather` (current values, 48 hours, official warnings, a one-sentence summary, and `grid_view`: the next 24 grid hours mapped onto the simulation clock). The LLM advisor gets the summary, the next 6 grid hours and the active warnings in its context (the rule advisor reads the forecast directly).
 
 - Forecast: [Open-Meteo](https://open-meteo.com), global, no key. The free API is for non-commercial use; a production deployment would use their paid commercial endpoint, set with `GZ_WEATHER_URL`.
 - Warnings: MeteoAlarm (EUMETNET, ~38 European countries) for `GZ_WEATHER_COUNTRY` (default `AT`), filtered to the region of the location by EMMA_ID (`GZ_WEATHER_AREA`, `AT923` for the default Wien-Liesing) or else by name; the feed has no area shapes, so if the name matches no area, the country list is kept and the summary calls those warnings elsewhere in the country. In Austria, GeoSphere Austria's coordinate-based warnings are added on top.

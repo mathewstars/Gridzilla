@@ -130,8 +130,8 @@ export function plainReason(detail: string | null | undefined, mode?: string | n
   if ((m = d.match(/import cap below policy floor ([\d.]+)/))) return `Would leave a house under ${m[1]} kW, below the guaranteed minimum`;
   if (/export_min_kw above policy/.test(d)) return "Would force houses to push out more than allowed";
   if (/exceeds reverse rating/.test(d)) return "Would push more power back than the transformer can take";
-  if (/unknown segment/.test(d)) return "DeepSeek named a part of the grid that does not exist";
-  if (/unknown mode/.test(d)) return "DeepSeek asked for a signal type that does not exist";
+  if (/unknown segment/.test(d)) return "The advisor named a part of the grid that does not exist";
+  if (/unknown mode/.test(d)) return "The advisor asked for a signal type that does not exist";
   if (/may not carry/.test(d)) return "The signal carried settings its type may not use";
   if (/envelope/.test(d)) return "The allowed box broke a safety rule";
   if (/target_soc below/.test(d)) return "Asked batteries to fill too little to matter";

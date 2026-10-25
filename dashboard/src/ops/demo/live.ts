@@ -1,4 +1,5 @@
-// The demo's Blatnica card reads the REAL plant from the live server, whatever the rest of the demo reads.
+// The demo's Blatnica card reads the showcase house from the live server, whatever the rest of the demo reads.
+// (It was the real Victron plant during the hackathon; since 25 Oct 2026 it is the simulated twin sim-blatnica-01.)
 // Base: same origin on gridzilla.victronlab.sk, the ?api= base when set, the dev proxy /live-api under `npm run dev`;
 // anywhere else (a local platform build) there is no route to the plant: no request, the card says it is waiting.
 // GET only (never a POST from here). Each payload stays on window.__gz as "live:state" / "live:history" so the G2
@@ -6,8 +7,8 @@
 import { useEffect, useState } from "react";
 import { API_BASE, type Ack, type DevPoint, type LogEntry, type Signal } from "../../api";
 
-export const LIVE_HH = "blatnica";
-export const LIVE_DEVICE = "real-powerplant-blatnica";
+export const LIVE_HH = "sim-blatnica-01";
+export const LIVE_DEVICE = "sim-blatnica-01";
 
 export const LIVE_BASE: string | null = (() => {
   if (typeof location !== "undefined" && location.hostname === "gridzilla.victronlab.sk") return "/api";

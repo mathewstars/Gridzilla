@@ -1,5 +1,5 @@
-// The AI decision card: what Gridzilla's DeepSeek autopilot just did, as four plain sentences a judge reads in seconds.
-// Sees (the trigger + weather) -> Thinks (DeepSeek's reasoning) -> Checks (the policy guard) -> Acts (the signed signal
+// The AI decision card: what Gridzilla's autopilot just did, as four plain sentences a judge reads in seconds.
+// Sees (the trigger + weather) -> Thinks (the advisor's reasoning) -> Checks (the policy guard) -> Acts (the signed signal
 // and how many houses obeyed). No boxes, no icons, no motion: a step word turns ink once that step has happened.
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { post, type Autopilot, type Decision, type Proposal, type State, type WeatherFeed } from "../api";
@@ -43,7 +43,7 @@ function useFitLevel(contentKey: string) {
   return [box, level] as const;
 }
 
-/** Shorten DeepSeek's reasoning at a full stop: as many whole sentences as the detail level allows. */
+/** Shorten the advisor's reasoning at a full stop: as many whole sentences as the detail level allows. */
 function shortReason(text: string, level: number) {
   const all = sentences(text);
   const n = level === 0 ? 3 : level === 1 ? 2 : 1;
@@ -112,17 +112,17 @@ function Thinks({ s, dec, asking, ids, d }: { s: State; dec: Decision | undefine
         The AI is not connected; the grid runs on its own limits.
       </Body>
     );
-  if (asking) return <Body d={d}>Asking DeepSeek what to do now.</Body>;
+  if (asking) return <Body d={d}>Asking the advisor what to do now.</Body>;
   if (!dec)
     return (
       <Body d={d} dim>
-        DeepSeek is only asked when a transformer heads for its limit.
+        The advisor is only asked when a transformer heads for its limit.
       </Body>
     );
   if (dec.verdict === "error")
     return (
       <>
-        <Body d={d}>Could not reach DeepSeek, so nothing was sent. It tries again on the next check.</Body>
+        <Body d={d}>The advisor gave no answer, so nothing was sent. It tries again on the next check.</Body>
         {d.level < 3 && <p className="t-caption">{cleanText(dec.detail, ids)}</p>}
       </>
     );
@@ -131,7 +131,7 @@ function Thinks({ s, dec, asking, ids, d }: { s: State; dec: Decision | undefine
   return (
     <>
       <Body d={d}>
-        {why ? shortReason(why, d.level) : "DeepSeek gave no reason."}
+        {why ? shortReason(why, d.level) : "The advisor gave no reason."}
         {sec != null && d.level < 3 && (
           <span className="t-caption whitespace-nowrap tabular-nums"> answered in {sec < 10 ? sec.toFixed(1) : Math.round(sec)} s</span>
         )}
@@ -148,7 +148,7 @@ function Checks({ dec, checking, pendingWhy, d }: { dec: Decision | undefined; c
         {!dec
           ? "Every proposal must pass fixed safety rules before it is signed."
           : dec.verdict === "none"
-            ? "Nothing to check: DeepSeek suggested no action."
+            ? "Nothing to check: the advisor suggested no action."
             : "Nothing to check: no proposal came back."}
       </Body>
     );
@@ -318,7 +318,7 @@ function statusOf(s: State, liveIdx: number) {
   if (!s.llm) return "The AI is not connected";
   if (ap.mode === "off") return "Autopilot is off, nothing is sent on its own";
   if (ap.pending) return "Waiting for your OK";
-  if (liveIdx >= 0) return ["Looking at the grid", "Asking DeepSeek", "Checking the safety rules", "Signing and sending"][liveIdx];
+  if (liveIdx >= 0) return ["Looking at the grid", "Asking the advisor", "Checking the safety rules", "Signing and sending"][liveIdx];
   return "Watching the grid";
 }
 

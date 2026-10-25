@@ -1,5 +1,39 @@
 [
  {
+  "id": "sim-blatnica-01",
+  "kw": 10,
+  "kwh": 15,
+  "feedin_max_kw": 10,
+  "pv_kwp": 10,
+  "soc": 35,
+  "start_hour": 16,
+  "base_load_kw": 0.5,
+  "peak_load_kw": 3.5,
+  "owner": {
+   "min_soc": 20,
+   "max_charge_kw": 10,
+   "max_discharge_kw": 10,
+   "opt_out": false
+  },
+  "ev": {
+   "kw": 11,
+   "plugged": [
+    18,
+    7
+   ]
+  },
+  "heat": [
+   {
+    "type": "heatpump",
+    "kw": 3,
+    "tank_l": 300,
+    "dhw_set_c": 50,
+    "floor_c": 40,
+    "boost_c": 55
+   }
+  ]
+ },
+ {
   "id": "sim-atzgersdorf-75",
   "kw": 5,
   "kwh": 10,

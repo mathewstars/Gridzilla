@@ -463,7 +463,7 @@ tree:
     reverse_kw: 400
     other_houses: 34
 devices:
-- id: real-powerplant-blatnica
+- id: sim-blatnica-01
   tf: tf:atzgersdorf-1
   vendor: victron
   kw: 10
@@ -471,18 +471,9 @@ devices:
   feedin_max_kw: 10
   represents: 8
   ev_kw: 11
-  household: blatnica
-  note: 'the real Victron plant on VRM: Cerbo GX, MultiPlus-II, battery, EV Charging Station'
-- id: vicare-blatnica
-  tf: tf:atzgersdorf-1
-  vendor: viessmann
-  kw: 3
-  kwh: 0
-  feedin_max_kw: 0
-  represents: 8
   heat: heatpump
-  household: blatnica
-  note: the real Viessmann Vitocal at the same house, via ViCare
+  showcase: true
+  note: 'Blatnica showcase house: simulated twin of the Victron plant + Vitocal heat pump that ran live 23-25 Oct 2026'
 - id: sim-atzgersdorf-75
   tf: tf:atzgersdorf-1
   vendor: sma

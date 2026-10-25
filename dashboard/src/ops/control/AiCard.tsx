@@ -121,7 +121,7 @@ export default function AiCard({ ops }: { ops: Ops }) {
           )}
         </dd>
         <dt>Brain</dt>
-        <dd>{s.llm ? <>AI <span className="cp-sub">· DeepSeek V4 Flash, guard has the last word</span></> : <>Rules <span className="cp-sub">· no AI connected</span></>}</dd>
+        <dd>{s.llm ? <>AI <span className="cp-sub">· LLM advisor, guard has the last word</span></> : <>Rules <span className="cp-sub">· deterministic advisor, guard has the last word</span></>}</dd>
       </dl>
 
       <div className="cp-inline">

@@ -232,7 +232,7 @@ function NowCard({ ops }: { ops: Ops }) {
 
 
 
-/** "next DeepSeek review in N s · autonomous", counting down every second (autopilot.last_run + interval_s). */
+/** "next advisor review in N s · autonomous", counting down every second (autopilot.last_run + interval_s). */
 function ReviewIn({ s }: { s: State }) {
   const now = useNow();
   const ap = s.autopilot;
@@ -245,7 +245,7 @@ function ReviewIn({ s }: { s: State }) {
     const left = Math.max(0, Math.ceil((Date.parse(ap.last_run) + ap.interval_s * 1000 - now) / 1000));
     text = (
       <>
-        next DeepSeek review in <span data-src="state/autopilot/last_run">{left} s</span>
+        next advisor review in <span data-src="state/autopilot/last_run">{left} s</span>
       </>
     );
   } else text = "first review soon";
