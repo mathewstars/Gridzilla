@@ -1,6 +1,6 @@
 // G2 layout, at 2560x1440, 1440x900, 1024x768, 390x844, 390x667: no two text nodes overlap, no text clipped by its
-// container, no horizontal page scroll, the hero headline on 2 lines (at most 4 on a phone, each sentence may wrap
-// once), every pill label on one line, the nav on one line at 1024 and up. Detector after dashboard/qa/layout.mjs.
+// container, no horizontal page scroll, the hero headline on 2 lines (3 on a phone: ONE SIGNED LIMIT. / THE WHOLE /
+// STREET LISTENS.), every pill label on one line, the nav on one line at 1024 and up. Detector after dashboard/qa/layout.mjs.
 import { SIZES, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
@@ -72,7 +72,7 @@ function detect(W) {
   if (h1) {
     const lh = parseFloat(getComputedStyle(h1).lineHeight) || parseFloat(getComputedStyle(h1).fontSize);
     const lines = Math.round(h1.getBoundingClientRect().height / lh);
-    const max = W >= 1024 ? 2 : 4;
+    const max = W >= 1024 ? 2 : 3;
     if (lines > max) F.headline.push(`${lines} lines (max ${max})`);
   }
   // every pill and button label on one line

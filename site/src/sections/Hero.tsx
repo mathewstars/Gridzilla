@@ -35,7 +35,7 @@ export default function Hero() {
         <div className="hero-rays" aria-hidden="true" />
         <Nav />
 
-        <div className="relative z-10 flex flex-col items-center px-5 pt-[clamp(108px,15vh,176px)] text-center md:px-10">
+        <div className="relative z-10 flex flex-col items-center px-4 pt-[clamp(108px,15vh,176px)] text-center md:px-10">
           <h1 className="t-display hero-h1 m-0">
             {LINES.map((l, i) => (
               <motion.span key={l} className="block" {...rise(i)}>
@@ -43,7 +43,7 @@ export default function Hero() {
               </motion.span>
             ))}
           </h1>
-          <motion.p className="hero-sub mb-0 mt-6 max-w-[34ch] text-ink md:mt-7" {...rise(2)}>
+          <motion.p className="hero-sub mb-0 mt-6 max-w-[46ch] text-ink md:mt-7" {...rise(2)}>
             One bounded limit from the operator. Every battery, charger and heat pump on the street keeps the transformer under its rating.
           </motion.p>
           <motion.div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 min-[480px]:w-auto min-[480px]:flex-row min-[480px]:items-center md:mt-9" {...rise(3)}>

@@ -22,16 +22,20 @@
   mask-image: linear-gradient(180deg, #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%);
 }
 .hero-h1 {
-  font-size: clamp(38px, 5.5vw, 136px);
-  letter-spacing: -0.008em;
-  word-spacing: 0.06em;
+  font-size: clamp(38px, 5.83vw, 140px); /* 84 px at 1440 */
   text-wrap: balance;
 }
+/* phone: sized to the column (frame inset 12 + padding 16 each side) so it reads ONE SIGNED LIMIT. / THE WHOLE /
+   STREET LISTENS. on three lines at any phone width ("ONE SIGNED LIMIT." is 8.86 em wide, "THE WHOLE STREET" 9.94 em,
+   so 9.2 fits the first and always breaks the second after WHOLE) */
+@media (max-width: 767px) {
+  .hero-h1 { font-size: calc((100vw - 56px) / 9.2); }
+}
 .hero-sub {
-  font-size: clamp(17px, 1.35vw, 22px);
+  font-size: clamp(18px, 1.46vw, 24px); /* 21 px at 1440 */
   line-height: 1.45;
   letter-spacing: -0.014em;
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 /* the thin dark bezel around the real console */
 .hero-device {

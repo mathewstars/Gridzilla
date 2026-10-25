@@ -82,11 +82,10 @@
   /* the hero headline and every section title: Clash Display, uppercase, tight */
   .t-display {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: -0.01em;
-    word-spacing: 0.04em;
-    line-height: 0.92;
+    letter-spacing: 0; /* uppercase needs air (owner, 25 Oct) */
+    line-height: 0.98;
   }
   .t-section { font-size: clamp(36px, 4.4vw, 76px); }
   .t-lead { font-size: clamp(19px, 1.5vw, 24px); line-height: 1.4; letter-spacing: -0.015em; }
