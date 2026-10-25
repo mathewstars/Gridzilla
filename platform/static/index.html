@@ -261,6 +261,23 @@
   .tflist > span > b { text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .scroll::-webkit-scrollbar, main::-webkit-scrollbar { width:8px; height:8px; } .scroll::-webkit-scrollbar-thumb, main::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:4px; }
 
+  /* Flattening right column on screens under 1000 px tall: step title on the text line, tighter gaps, the diet paragraph in two lines (all of it on hover and in its tooltip) */
+  @media (max-height: 1000px) {
+    section[data-tab="flat"]:has(#flatsteps) { gap:8px; }
+    .flatsteps { gap:8px; }
+    .fstep { grid-template-columns:22px 1fr; gap:10px; }
+    .fstep .n { width:22px; height:22px; font-size:12px; }
+    .fstep .t, .fstep .d { display:inline; line-height:1.45; }
+    .fstep .t { display:inline-block; margin-right:6px; }
+    .monster { font-size:13px; padding:0 12px; border-block:8px solid var(--card); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; cursor:help; }
+    .monster:hover { -webkit-line-clamp:unset; }
+  }
+  @media (max-height: 700px) { main[data-view="flat"] { grid-template-rows: auto minmax(520px, 1fr); } }
+  section[data-tab="flat"]:has(#flatsteps) > * { flex-shrink:0; }   /* overflow shows as overflow, never as squeezed text */
+  /* when the column still cannot hold everything: a visible scrollbar and a fade at the bottom edge, so the cut is obvious */
+  section[data-tab="flat"].overflows { -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image:linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
+  section[data-tab="flat"].overflows::-webkit-scrollbar { width:8px; } section[data-tab="flat"].overflows::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.22); border-radius:4px; }
+
   @media (prefers-reduced-motion: reduce) { button, .citystrip .cell { transition:none; } }
 
   /* ---- phones and narrow tablets: one column, the page scrolls, charts get a fixed height, bigger tap targets ---- */
@@ -995,9 +1012,11 @@ function drawFlat() {
   ];
   document.getElementById("flatsteps").innerHTML = steps.map(([t, d]) => `<div class="fstep"><span class="n">${t.split(" · ")[0]}</span><div><div class="t">${t.split(" · ")[1]}</div><div class="d">${d}</div></div></div>`).join("");
   document.getElementById("flatmonster").innerHTML = `<b>Gridzilla is on a diet.</b> It eats exactly ${fmt(eaten)} of peak, never more: a car plugged in at 18:00 trickles through dinner and gulps at 02:00, a battery swallows the slice above L and burps it back into the house, and at noon it drinks the PV surplus above ${fmt(p.export_level_kw)} so the feeder never sees it. Every car is full by morning${p.cars_full ? "" : " (almost: L was raised so the cars fit)"}, nobody notices, and the transformer sleeps at ${p.peak_plan_pct} % instead of ${p.peak_naive_pct} %.`;
+  document.getElementById("flatmonster").title = document.getElementById("flatmonster").textContent;   // the whole paragraph when it is cut to two lines
   const tfs = p.tfs || [{tf: p.tf, rating_kw: p.rating_kw, level_kw: p.level_kw, peak_naive_pct: p.peak_naive_pct, peak_plan_pct: p.peak_plan_pct, houses: p.houses, ev_houses: p.ev_houses}];
   document.getElementById("flattfhint").textContent = `${tfs.length} · worst without: ${Math.max(...tfs.map(t => t.peak_naive_pct))} % · worst with: ${Math.max(...tfs.map(t => t.peak_plan_pct))} %`;
   document.getElementById("flattfs").innerHTML = tfs.sort((a, b) => b.peak_naive_pct - a.peak_naive_pct).slice(0, 36).map(t => `<span title="${t.tf}: ${t.houses} houses, ${t.ev_houses} cars, L = ${t.level_kw} kW"><b>${t.tf.split(":")[1]}</b> ${t.peak_naive_pct} → <span style="color:${t.peak_plan_pct >= 85 ? "var(--warn)" : "var(--ok)"}">${t.peak_plan_pct} %</span></span>`).join("");
+  const col = document.getElementById("flatsteps").closest("section"); col.classList.toggle("overflows", col.scrollHeight > col.clientHeight + 2);
 }
 function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
 function drawAll() { if (!S) return; drawHints(); drawStory(); drawFlat(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
