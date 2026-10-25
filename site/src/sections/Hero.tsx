@@ -91,7 +91,7 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.7, ease: EASE }}
         >
-          <img src={asset("trailer-poster.webp")} width={960} height={540} alt="" className="block h-full w-full object-cover transition-transform duration-500 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-[1.04]" />
+          <img src={asset("trailer-poster.webp")} width={960} height={540} alt="The trailer's first frame: an evening street in Vienna, cars at their chargers" className="block h-full w-full object-cover transition-transform duration-500 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-[1.04]" />
           <span className="absolute inset-0 grid place-items-center bg-[rgb(29_29_31/0.18)] transition-colors duration-300 group-hover:bg-[rgb(29_29_31/0.08)]">
             <span className="grid size-14 place-items-center rounded-full bg-ink text-on-ink shadow-[0_8px_24px_rgb(0_0_0/0.35)] transition-transform duration-300 [transition-timing-function:var(--ease-out-expo)] group-hover:scale-110 group-active:scale-95">
               <Play size={20} weight="fill" />

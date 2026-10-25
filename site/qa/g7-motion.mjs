@@ -45,14 +45,20 @@ const reducedText = await text(reduced.page);
 await reduced.ctx.close();
 await browser.close();
 
-let diff = "";
-if (reducedText !== normalText) {
-  let i = 0;
-  while (i < reducedText.length && reducedText[i] === normalText[i]) i++;
-  diff = `first difference at char ${i}: reduced "${reducedText.slice(Math.max(0, i - 30), i + 40)}" vs normal "${normalText.slice(Math.max(0, i - 30), i + 40)}"`;
-}
+// the same content, not the same order: under reduced motion a section may lay its parts out statically (How it works
+// puts each caption with its own step instead of in the pinned frame), so the words are compared as a multiset
+const words = (t) => {
+  const m = new Map();
+  for (const w of t.toLowerCase().match(/[\p{L}\p{N}%.,:;'’“”()-]+/gu) || []) m.set(w, (m.get(w) || 0) + 1);
+  return m;
+};
+const [wr, wn] = [words(reducedText), words(normalText)];
+const missing = [...wn].filter(([w, c]) => (wr.get(w) || 0) < c).map(([w]) => w);
+const extra = [...wr].filter(([w, c]) => (wn.get(w) || 0) < c).map(([w]) => w);
+const same = missing.length === 0 && extra.length === 0;
+const diff = same ? "" : `missing under reduced motion: ${missing.slice(0, 12).join(" ")}; extra: ${extra.slice(0, 12).join(" ")}`;
 process.exit(report("G7", [
   ["no element left at opacity 0", left.hidden.length === 0, left.hidden.slice(0, 8).join(" | ")],
   ["no element left with a transform", left.moved.length === 0, left.moved.slice(0, 8).join(" | ")],
-  ["same text as a normal load", reducedText === normalText, diff],
+  ["same words as a normal load", same, diff],
 ]) ? 1 : 0);
