@@ -3,11 +3,11 @@
    these through Tailwind utilities (bg-ground, text-secondary, rounded-card, shadow-card...) or the var(--...) names. */
 @import "tailwindcss";
 
-@font-face { font-family: "Clash Display"; src: url("/static/site/fonts/ClashDisplay-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: "Clash Display"; src: url("/static/site/fonts/ClashDisplay-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: "General Sans"; src: url("/static/site/fonts/GeneralSans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "General Sans"; src: url("/static/site/fonts/GeneralSans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: "General Sans"; src: url("/static/site/fonts/GeneralSans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/fonts/ClashDisplay-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Clash Display"; src: url("/fonts/ClashDisplay-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/GeneralSans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/GeneralSans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "General Sans"; src: url("/fonts/GeneralSans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 
 @theme {
   /* dashboard/src/pitch/pitch.css, the dark block */

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:vercel": "vite build --base / --outDir dist-vercel --emptyOutDir",
     "typecheck": "tsc -b",
     "preview": "vite preview --port 5181 --strictPort",
     "qa": "node qa/run.mjs",

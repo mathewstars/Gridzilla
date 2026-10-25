@@ -10,5 +10,5 @@ export const LINKS = {
   mail: "mailto:matthew@codeza.agency",
 } as const;
 
-/** A file in public/, under the site's base (/static/site/). */
+/** A file in public/, under the site's base (/static/site/ for the platform build, / for build:vercel). */
 export const asset = (p: string) => `${import.meta.env.BASE_URL}${p.replace(/^\//, "")}`;

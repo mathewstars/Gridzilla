@@ -10,7 +10,7 @@ import { LINKS } from "../lib/links";
 
 export const PEOPLE = [
   { name: "Matej Stafurik (Mathew)", org: "victronlab.sk / Coderama", handle: "mathewstars", role: "Lead: protocol, real-device integration (Victron, Viessmann), infrastructure" },
-  { name: "Peter Mikeska", org: "", handle: "petermikeska67", role: "Platform, policy guard, tests" },
+  { name: "Peter Mikeska", org: "", handle: "petermikeska67", role: "Cybersecurity and complete security overhaul; platform, policy guard, tests." },
   { name: "Matthew Stafurik", org: "", handle: "matixacik-cell", role: "Fallback checks and security checks, tests and fallback systems; dashboard, demo mode, pitch deck and trailer." },
 ];
 
