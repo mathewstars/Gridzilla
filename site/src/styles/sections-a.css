@@ -1,0 +1,43 @@
+/* Problem, How it works, Six words (helper A). Every colour is a token from tokens.css, so the sections follow the
+   page's theme (the deck's dark, change order 25 Oct 15:55); the only literals are the deck's two extra signal tones
+   and the STRETCH ground, both named below. */
+
+/* a tile: the surface at 92 % so the light behind shows faintly through, the card shadow (its inner hairline included) */
+.tile {
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-card);
+}
+.tile-lift {
+  transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
+}
+.tile-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-lift { transition: none; }
+  .tile-lift:hover { transform: none; }
+}
+
+/* six words: each cell carries its word's tone at 4 % over the tile and in its quote marks, like the deck's slide 4
+   cards (dashboard/src/pitch/slides/slideSignals.css); violet and teal are the deck's own two extra tones */
+.word-cell {
+  --face: color-mix(in srgb, var(--tone) 4%, var(--color-surface));
+  background: linear-gradient(180deg, var(--face), color-mix(in srgb, var(--face) 92%, transparent));
+}
+.word-cell .word-q { color: var(--tone); }
+.tone-support { --tone: var(--color-chart-limit); }
+.tone-absorb { --tone: var(--color-accent); }
+.tone-prepare { --tone: var(--color-chart-eaten); }
+.tone-stretch { --tone: #bf5af2; }
+.tone-recover { --tone: #40c8e0; }
+.tone-release { --tone: var(--color-secondary); }
+/* STRETCH: the street gone dark, the deepest colour of the deck's light (#040706, its dark palette's first stop) */
+.word-cell.word-dark { --face: #040706; }
+.word-word { letter-spacing: 0.03em; }
+
+/* the street chart's quiet parts (ticks, gridlines, the zero line) on whatever tile it sits on */
+.street-chart .recharts-cartesian-axis-tick-value { fill: var(--color-tertiary); }
+.street-chart .recharts-cartesian-grid line,
+.street-chart .gz-zero line { stroke: var(--color-fill); }

@@ -13,7 +13,15 @@ export default defineConfig({
     outDir: "../platform/static/site",
     emptyOutDir: true,
     rollupOptions: {
-      output: { manualChunks: { react: ["react", "react-dom"], motion: ["motion", "motion/react"], charts: ["recharts"] } },
+      // by path, not the object form: that one let recharts' chunk swallow react, so the landing page preloaded recharts
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return;
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          if (/node_modules\/(motion|framer-motion|motion-dom|motion-utils)\//.test(id)) return "motion";
+          if (/node_modules\/(recharts|recharts-scale|d3-[^/]+|victory-vendor|internmap|decimal\.js-light|lodash|react-smooth|eventemitter3|tiny-invariant|fast-equals|clsx|react-is|prop-types)\//.test(id)) return "charts";
+        },
+      },
     },
   },
   server: {
