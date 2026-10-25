@@ -19,6 +19,7 @@
   --color-on-ink: #0b0b0f; /* text on the white primary pill */
   --color-secondary: #a1a1a6; /* 4.5:1 or better on every ground here, scrim included */
   --color-tertiary: #8e8e93;
+  --color-ink-soft: rgb(245 245 247 / 0.82); /* small print over the strong light (AI) */
   --color-fill: #2a2a2e;
   --color-press: #3a3a3e;
   --color-accent: #34c759; /* the one accent, green: live dot, link hover underline, one proof number */

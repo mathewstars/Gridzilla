@@ -43,7 +43,7 @@ export default function Ai() {
               </Reveal>
             ))}
           </ol>
-          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink/80 md:mt-16">
+          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink-soft md:mt-16">
             A rule-based fallback runs through the same guard when the model is slow or down.
           </p>
         </div>
