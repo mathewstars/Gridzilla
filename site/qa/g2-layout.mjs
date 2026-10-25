@@ -6,7 +6,7 @@
 // Chrome and WebKit (Safari's engine), and checks there, on the pixels the engine actually paints, that nothing shows
 // through the fixed nav bar (its own contents hidden, every pixel of the bar must be the bar colour, at five scroll
 // depths) and that no section's title sits behind it once you scroll to that section. Detector after dashboard/qa/layout.mjs.
-import { SIZES, SITE, arg, devicePage, launch, launchWebkit, newPage, report, scrollThrough } from "./lib.mjs";
+import { ENGINE, SIZES, SITE, arg, devicePage, launch, launchChrome, launchWebkit, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
 const sizes = arg("sizes") ? String(arg("sizes")).split(",") : SIZES;
@@ -138,19 +138,20 @@ function navCheck() {
 const browser = await launch();
 const rows = [];
 // the real phones, in both engines
-for (const [engine, open] of [["chromium", () => browser], ["webkit", launchWebkit]]) {
+// (once, on the chromium pass: these runs open both engines themselves)
+for (const [engine, open, phone] of ENGINE !== "chromium" ? [] : [["chromium", launchChrome, "iPhone 14"], ["webkit", launchWebkit, "iPhone 14"], ["chromium", launchChrome, "iPhone SE"], ["webkit", launchWebkit, "iPhone SE"]]) {
   let b;
-  try { b = await open(); } catch (e) { rows.push([`${engine} iPhone 14 runs`, false, `${String(e).split("\n")[0]} (npm run qa:setup installs WebKit)`]); continue; }
-  const { ctx, page, width } = await devicePage(b, "iPhone 14");
+  try { b = await open(); } catch (e) { rows.push([`${engine} ${phone} runs`, false, `${String(e).split("\n")[0]} (npm run qa:setup installs WebKit)`]); continue; }
+  const { ctx, page, width } = await devicePage(b, phone);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   await page.waitForTimeout(2500);
   await scrollThrough(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(1200);
   const f = await page.evaluate(detect, width);
-  for (const [k, v] of Object.entries(f)) rows.push([`${engine} iPhone 14 ${k}`, v.length === 0, v.slice(0, 4).join(" | ")]);
+  for (const [k, v] of Object.entries(f)) rows.push([`${engine} ${phone} ${k}`, v.length === 0, v.slice(0, 4).join(" | ")]);
   const n = await page.evaluate(navCheck);
-  rows.push([`${engine} iPhone 14 no section title behind the nav`, n.length === 0, n.slice(0, 4).join(" | ")]);
+  rows.push([`${engine} ${phone} no section title behind the nav`, n.length === 0, n.slice(0, 4).join(" | ")]);
   // pixels: hide the bar's own contents, screenshot the bar (above its 1 px hairline) at several depths, and require
   // every pixel to be the bar colour; anything else is page content showing through
   const seen = [];
@@ -181,9 +182,9 @@ for (const [engine, open] of [["chromium", () => browser], ["webkit", launchWebk
     await page.evaluate(() => { for (const c of document.querySelector("nav[aria-label=Main]").children) c.style.visibility = ""; });
     if (worst > 6) seen.push(`at y ${y} a bar pixel is ${worst} off the bar colour`);
   }
-  rows.push([`${engine} iPhone 14 nothing shows through the nav bar (pixels)`, seen.length === 0, seen.slice(0, 3).join(" | ")]);
+  rows.push([`${engine} ${phone} nothing shows through the nav bar (pixels)`, seen.length === 0, seen.slice(0, 3).join(" | ")]);
   await ctx.close();
-  if (b !== browser) await b.close();
+  await b.close();
 }
 for (const size of sizes) {
   const { ctx, page, width } = await newPage(browser, size);

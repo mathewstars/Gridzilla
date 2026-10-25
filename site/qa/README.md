@@ -3,7 +3,9 @@
 Run them all from `site/`:
 
 ```
-npm run qa                  # build, serve the build on :5181, run G1 to G9, save the screenshots
+npm run qa:setup            # once: installs WebKit (Safari's engine) for playwright
+npm run qa                  # build, serve the build on :5181, run G1 to G9 on Chrome and on WebKit, save the screenshots
+GZ_ENGINES=chromium npm run qa   # one engine only
 GZ_PORT=5211 npm run qa     # same, on another port when 5181 is taken (G9 uses GZ_PORT + 1, or GZ_DEAD_PORT)
 npm run qa -- --only g4     # one gate
 npm run qa -- --no-build    # skip the build, test what is already in platform/static/site

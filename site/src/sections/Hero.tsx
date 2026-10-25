@@ -1,5 +1,5 @@
-// The hero (under 1024 px: the first screen is wordmark, menu, headline, subline and one button; the console's phone
-// view follows in a phone-shaped frame from the fold). The hero: full bleed, edge to edge like the deck's title slide; the deck's moving green light fills the viewport, a
+// The hero (under 1024 px: wordmark, menu, headline, subline and one button, then the console's phone view in a
+// phone-shaped frame 40 px under the button; the hero is as tall as that). The hero: full bleed, edge to edge like the deck's title slide; the deck's moving green light fills the viewport, a
 // soft shade behind the words keeps them readable. The two-line headline, one subline, two pills, and the real console
 // in a thin dark bezel rising from the hero's bottom edge (centred, at most 1320 px), fading into the ground over its
 // last 180 px so the hero has no hard cut. "Watch the trailer" scrolls to the trailer strip under the hero (#trailer)
@@ -77,8 +77,8 @@ export default function Hero() {
       </div>
 
       {/* under 1024: never the desktop frame. The console's own phone view (its Operations screen, dark, 2x) in a
-          phone-shaped frame that fits the screen with the side gutters, starting at the fold, fading out at its foot */}
-      <div className="hero-phone-well px-[var(--gutter)] pb-10 lg:hidden">
+          phone-shaped frame that fits the screen with the side gutters, 40 px under the button, fading out at its foot */}
+      <div className="hero-phone-well px-[var(--gutter)] pb-10 pt-10 lg:hidden">
         <div className="hero-phone mx-auto">
           <img
             src={asset("shots/console-phone.webp")}

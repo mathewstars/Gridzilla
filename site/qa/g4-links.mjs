@@ -5,7 +5,7 @@
 // phone renders the menu sheet's links too). A CTA is a pill or a button; the footer's small text links are
 // navigation and are listed, not judged.
 import fs from "node:fs";
-import { SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
+import { ENGINE, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
 // the console address, from the one file that holds every outside link
@@ -52,10 +52,11 @@ for (const size of ["1440x900", "390x844"]) {
     return { links, ids: [...ids], buttons };
   });
 
-  const cdp = await ctx.newCDPSession(page);
+  // the DevTools protocol (listener lookup) is Chrome's only; on WebKit a button counts by its React or native handler
+  const cdp = ENGINE === "chromium" ? await ctx.newCDPSession(page) : null;
   for (const b of dom.buttons) {
     let listeners = 0;
-    if (!b.react && !b.native) {
+    if (!b.react && !b.native && cdp) {
       const { result } = await cdp.send("Runtime.evaluate", { expression: `document.querySelector('[data-g4="${b.i}"]')` });
       if (result.objectId) listeners = (await cdp.send("DOMDebugger.getEventListeners", { objectId: result.objectId })).listeners.filter((l) => /click|pointer|mouse/.test(l.type)).length;
     }

@@ -14,7 +14,10 @@ export function arg(k, d) {
   return v && !v.startsWith("--") ? v : true;
 }
 
-export const launch = () => chromium.launch({ channel: "chrome", headless: true });
+/** The engine every gate runs on: chromium (Chrome) or webkit (Safari's engine); `npm run qa` runs both (GZ_ENGINES). */
+export const ENGINE = process.env.GZ_ENGINE === "webkit" ? "webkit" : "chromium";
+export const launch = () => (ENGINE === "webkit" ? webkit.launch({ headless: true }) : chromium.launch({ channel: "chrome", headless: true }));
+export const launchChrome = () => chromium.launch({ channel: "chrome", headless: true });
 /** WebKit, the engine of Safari on every iPhone (`npm run qa:setup` installs it once). */
 export const launchWebkit = () => webkit.launch({ headless: true });
 
@@ -55,7 +58,7 @@ export function report(gate, results) {
   let fails = 0;
   for (const [name, ok, detail] of results) {
     if (!ok) fails++;
-    console.log(`${ok ? "PASS" : "FAIL"} ${gate} ${name}${detail ? `: ${detail}` : ""}`);
+    console.log(`${ok ? "PASS" : "FAIL"} ${gate}${ENGINE === "webkit" ? "/webkit" : ""} ${name}${detail ? `: ${detail}` : ""}`);
   }
   return fails;
 }

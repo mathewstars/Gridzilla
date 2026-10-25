@@ -29,12 +29,11 @@
 }
 /* phone: the hero is one screen with the browser bars shown; the two pills sit side by side, compact, without their
    badges, so the console shows under them instead of below the fold */
-/* under 1024: the hero grows with its content; the words fill the first screen (centred under the bar) and the phone
-   frame starts at the fold */
+/* under 1024: the hero is as tall as its content (owner: "the demo is not connected to the top"): the words from under
+   the bar, then the phone frame 40 px below the button on every phone, never anchored to the fold */
 @media (max-width: 1023px) {
   .hero { height: auto; min-height: 0; max-height: none; }
-  /* the words fill the first screen less 88 px, so the phone frame peeks in above the fold */
-  .hero-first { min-height: calc(100vh - 88px); min-height: calc(100svh - 88px); justify-content: center; padding-top: 72px; padding-bottom: 32px; }
+  .hero-first { padding-top: 112px; padding-bottom: 0; }
 }
 /* the phone frame: phone shaped, never wider than the screen less its gutters, a thin graphite bezel, 28 px corners,
    the capture cropped to its upper part and fading into the ground at its foot */

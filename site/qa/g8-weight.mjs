@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { spawnSync } from "node:child_process";
-import { SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
+import { ENGINE, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
 const here = path.dirname(new URL(import.meta.url).pathname);
@@ -62,7 +62,7 @@ for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
   page.on("response", async (r) => { if (/shots\/console[^/]*\.webp/.test(r.url())) shots.push({ url: r.url(), bytes: (await r.body().catch(() => Buffer.alloc(0))).length }); });
   await page.addInitScript(() => {
     window.__lcp = [];
-    new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: "largest-contentful-paint", buffered: true });
+    try { new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: "largest-contentful-paint", buffered: true }); } catch {}
   });
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   await page.waitForTimeout(1500);
@@ -96,8 +96,11 @@ for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
   const l = fold.lcp;
   const isHeadline = l && (l.tag === "h1" || l.inH1);
   const isConsole = l && l.tag === "img" && /console/.test(l.src);
-  results.push([`${size} LCP element is the hero headline or the console image`, !!(isHeadline || isConsole), l ? `${l.tag} ${l.src || JSON.stringify(l.text)}` : "no LCP entry"]);
-  if (l?.tag === "img") results.push([`${size} the LCP image has fetchpriority high`, l.fp === "high", l.src]);
+  // WebKit has no largest-contentful-paint API: the LCP checks are Chrome's
+  if (ENGINE === "chromium") {
+    results.push([`${size} LCP element is the hero headline or the console image`, !!(isHeadline || isConsole), l ? `${l.tag} ${l.src || JSON.stringify(l.text)}` : "no LCP entry"]);
+    if (l?.tag === "img") results.push([`${size} the LCP image has fetchpriority high`, l.fp === "high", l.src]);
+  } else console.log(`INFO G8/webkit ${size} LCP not checked (WebKit has no LCP API)`);
   results.push([`${size} every <video> on load has preload none or metadata`, fold.videos.every((p) => p === "none" || p === "metadata"), fold.videos.join(", ")]);
 
   // the phone gets the light as a static gradient (no shader chunk) and its own console copy, at most 120 KB
