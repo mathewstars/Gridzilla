@@ -660,7 +660,7 @@
  {
   "type": "function",
   "name": "flow.ev",
-  "func": "const ev = flow.get(\"ev\") || {}; const k = { \"/Ac/Power\": \"power\", \"/Mode\": \"mode\", \"/Status\": \"status\", \"/SetCurrent\": \"setcurrent\", \"/MaxCurrent\": \"maxcurrent\", \"/StartStop\": \"startstop\", \"/Ac/L2/Power\": \"l2\" }[msg.path || msg.topic];\nif (k) { ev[k] = msg.payload; if (k === \"l2\") ev.phases = msg.payload > 50 ? 3 : 1; flow.set(\"ev\", ev); flow.set(\"ev_present\", true); }\nreturn null;",
+  "func": "const ev = flow.get(\"ev\") || {}; const map = { \"/Ac/Power\": \"power\", \"/Mode\": \"mode\", \"/Status\": \"status\", \"/SetCurrent\": \"setcurrent\", \"/MaxCurrent\": \"maxcurrent\", \"/StartStop\": \"startstop\", \"/Ac/L2/Power\": \"l2\" };\nconst t = String(msg.path || msg.topic || \"\"); let k = null; for (const p in map) { if (t === p || t.endsWith(p)) { k = map[p]; break; } }   // the Victron node puts its NAME in msg.topic (\"EV /Ac/Power\"), not the path\nif (k) { ev[k] = msg.payload; if (k === \"l2\") ev.phases = msg.payload > 50 ? 3 : 1; flow.set(\"ev\", ev); flow.set(\"ev_present\", true); }\nreturn null;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",
@@ -1013,7 +1013,7 @@
  {
   "type": "function",
   "name": "flow.current (saved for revert)",
-  "func": "// remember current ESS settings so revert can restore them\nconst c = flow.get(\"current\") || {}; c[msg.path || msg.topic] = msg.payload; flow.set(\"current\", c); return null;",
+  "func": "// remember current ESS settings so revert can restore them\nconst c = flow.get(\"current\") || {}; const t = String(msg.path || msg.topic || \"\"); const p = t.startsWith(\"/\") ? t : \"/Settings/CGwacs/\" + t.replace(/^current /, \"\");   // msg.topic is the node NAME (\"current MaxFeedInPower\"), revert looks up the path\nc[p] = msg.payload; flow.set(\"current\", c); return null;",
   "outputs": 1,
   "noerr": 0,
   "initialize": "",

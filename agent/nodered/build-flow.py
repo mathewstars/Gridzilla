@@ -161,7 +161,8 @@ return null;
 """
 F_CUR = """
 // remember current ESS settings so revert can restore them
-const c = flow.get("current") || {}; c[msg.path || msg.topic] = msg.payload; flow.set("current", c); return null;
+const c = flow.get("current") || {}; const t = String(msg.path || msg.topic || ""); const p = t.startsWith("/") ? t : "/Settings/CGwacs/" + t.replace(/^current /, "");   // msg.topic is the node NAME ("current MaxFeedInPower"), revert looks up the path
+c[p] = msg.payload; flow.set("current", c); return null;
 """
 F_OWNER = """
 // owner limits straight from ESS settings: min SoC
@@ -218,7 +219,8 @@ next(n for n in nodes if n["id"] == f_wd)["wires"] = [[f_apply], [f_sign]] + ([[
 if a.evcharger:
     svc = f"com.victronenergy.evcharger/{a.evcharger}"
     f_ev = fn("flow.ev", """
-const ev = flow.get("ev") || {}; const k = { "/Ac/Power": "power", "/Mode": "mode", "/Status": "status", "/SetCurrent": "setcurrent", "/MaxCurrent": "maxcurrent", "/StartStop": "startstop", "/Ac/L2/Power": "l2" }[msg.path || msg.topic];
+const ev = flow.get("ev") || {}; const map = { "/Ac/Power": "power", "/Mode": "mode", "/Status": "status", "/SetCurrent": "setcurrent", "/MaxCurrent": "maxcurrent", "/StartStop": "startstop", "/Ac/L2/Power": "l2" };
+const t = String(msg.path || msg.topic || ""); let k = null; for (const p in map) { if (t === p || t.endsWith(p)) { k = map[p]; break; } }   // the Victron node puts its NAME in msg.topic ("EV /Ac/Power"), not the path
 if (k) { ev[k] = msg.payload; if (k === "l2") ev.phases = msg.payload > 50 ? 3 : 1; flow.set("ev", ev); flow.set("ev_present", true); }
 return null;""", libs=False, x=420, y=1120)
     for i, p in enumerate(["/Ac/Power", "/Mode", "/Status", "/SetCurrent", "/MaxCurrent", "/StartStop", "/Ac/L2/Power"]):
