@@ -8,7 +8,7 @@ type F = "key" | "signals" | "ai" | "houses" | "all";
 const FILTERS: { value: F; label: string; title: string }[] = [
   { value: "key", label: "Main", title: "Key events, without house registrations" },
   { value: "signals", label: "Signals", title: "Signals sent to houses" },
-  { value: "ai", label: "AI", title: "Autopilot and DeepSeek" },
+  { value: "ai", label: "AI", title: "Autopilot and advisor" },
   { value: "houses", label: "Replies", title: "House replies and registrations" },
   { value: "all", label: "All", title: "Everything" },
 ];
@@ -19,7 +19,7 @@ const pass = (f: F, k: string) =>
 const KIND: Record<string, string> = {
   signal: "Signal",
   autopilot: "Autopilot",
-  advisor: "DeepSeek",
+  advisor: "Advisor",
   ack: "House reply",
   demo: "Demo",
   registry: "Registry",

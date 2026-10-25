@@ -27,7 +27,7 @@ const NAMES = ["Sees", "Thinks", "Checks", "Acts"];
 const STAGE_INDEX: Record<string, number> = { sense: 0, deepseek: 1, guard: 2, send: 3 };
 const EASE = [0, 0, 0.5, 1] as const;
 
-const secs = (ms: number | null | undefined) => (ms ? `DeepSeek ${(ms / 1000).toFixed(1)} s` : "DeepSeek");
+const secs = (ms: number | null | undefined) => (ms ? `Advisor ${(ms / 1000).toFixed(1)} s` : "Advisor");
 
 /** Homes a signal reached and how many obeyed: from the houses' signed acks when they are on screen, else from the
  *  segment's aggregate (each simulated household stands for several real homes). */
@@ -86,7 +86,7 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
       key: `busy-${ap.stage}-${ap.last_run}`,
       steps: mk(st, [
         [v, where],
-        k >= 1 ? ["DeepSeek", k === 1 ? "thinking" : "answered"] : ["DeepSeek", "next"],
+        k >= 1 ? ["Advisor", k === 1 ? "thinking" : "answered"] : ["Advisor", "next"],
         k > 2 ? ["Guard passed", null, "green"] : k === 2 ? ["Checking", "safety rules"] : ["Guard", "next"],
         k === 3 ? ["Signing", "Ed25519, over MQTT"] : ["Nothing yet", null],
       ]),
@@ -112,7 +112,7 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
   const d = ap.history?.[0];
   if (!d) {
     const [v, where] = seen(s, ap.last_trigger);
-    return { key: "watch", steps: mk(["active", "waiting", "waiting", "waiting"], [[v, where], ["DeepSeek", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
+    return { key: "watch", steps: mk(["active", "waiting", "waiting", "waiting"], [[v, where], ["Advisor", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
   }
 
   const key = `d-${d.at}-${d.verdict}`;
@@ -139,7 +139,7 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
     case "none":
       return { key, steps: mk(["done", "done", "waiting", "waiting"], [seeLine, [secs(d.latency_ms), "no action needed"], ["Nothing to check", null], ["Nothing sent", null]]) };
     case "error":
-      return { key, steps: mk(["done", "done", "waiting", "waiting"], [seeLine, ["DeepSeek", "no answer in time"], ["Nothing to check", null], ["Nothing sent", null]]) };
+      return { key, steps: mk(["done", "done", "waiting", "waiting"], [seeLine, ["Advisor", "no answer in time"], ["Nothing to check", null], ["Nothing sent", null]]) };
     case "pending":
       return { key, steps: mk(["done", "done", "done", "active"], [seeLine, think, allowed, ["Waiting", "for a human OK"]]) };
     case "rejected":
@@ -147,7 +147,7 @@ function stepsFor(s: State, weather: WeatherFeed): { steps: Step[]; key: string 
     case "expired":
       return { key, steps: mk(["done", "done", "done", "waiting"], [seeLine, think, allowed, ["Expired", "nobody approved in time"]]) };
   }
-  return { key, steps: mk(["done", "waiting", "waiting", "waiting"], [seeLine, ["DeepSeek", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
+  return { key, steps: mk(["done", "waiting", "waiting", "waiting"], [seeLine, ["Advisor", "next"], ["Guard", "next"], ["Nothing yet", null]]) };
 }
 
 /** Small check seal that draws itself when a new signed message goes out. */

@@ -465,8 +465,9 @@ const pathOf = (tree: Record<string, TreeNode>, n: string) => {
   return out;
 };
 
-/** The real Victron plant at the captain's family home (household "blatnica": Cerbo GX battery + Vitocal heat pump). */
-export const BLATNICA_DEVICE = "real-powerplant-blatnica";
+/** The Blatnica showcase house: during the hackathon the captain's real Victron plant and Vitocal heat pump (devices
+ *  real-powerplant-blatnica + vicare-blatnica); since 25 Oct 2026 one simulated twin, sim-blatnica-01. */
+export const BLATNICA_DEVICE = "sim-blatnica-01";
 
 /** The device that owns a household's meter and battery (the heat pump agent is a separate device behind the same meter). */
 export const meterDevice = (h: Household) => h.devices.find((d) => !/vicare/.test(d)) ?? h.devices[0] ?? h.id;

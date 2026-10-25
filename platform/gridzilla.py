@@ -2,7 +2,7 @@
 """Gridzilla: DSO-side grid signaling platform (hackathon mock).
 
 Run:   python gridzilla.py            (serves http://localhost:8080, needs an MQTT broker)
-Env:   GZ_BROKER=localhost:1883  GZ_PORT=8080  GZ_LLM_URL=http://spark:8000/v1  GZ_LLM_MODEL=deepseek-v4.1
+Env:   GZ_BROKER=localhost:1883  GZ_PORT=8080  GZ_ADVISOR=rules|llm|off  GZ_LLM_URL=http://spark:8000/v1  GZ_LLM_MODEL=deepseek-v4.1
 
 What it does
 - loads registry.yaml (grid tree, devices, policy)
@@ -10,7 +10,8 @@ What it does
 - sends a signed heartbeat every 30 s
 - collects acks and telemetry from devices, verifies ack signatures of registered devices
 - serves a one-page operator dashboard
-- optional: asks a local OpenAI-compatible LLM (DeepSeek) to PROPOSE a signal; the guard and a human decide
+- an advisor PROPOSES a signal, the guard and a human decide. GZ_ADVISOR=rules (default): a deterministic rule set with no
+  network; GZ_ADVISOR=llm: an OpenAI-compatible LLM (DeepSeek during the hackathon) at GZ_LLM_URL; off: no autopilot
 """
 import base64, json, os, sys, threading, time, random, collections, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -40,6 +41,13 @@ MQTT_PASS = os.environ.get("GZ_MQTT_PASS")
 PORT = int(os.environ.get("GZ_PORT", "8080"))
 LLM_URL = os.environ.get("GZ_LLM_URL")            # e.g. http://spark-1:8000/v1
 LLM_MODEL = os.environ.get("GZ_LLM_MODEL", "deepseek-v4.1")
+# Who proposes signals to the autopilot. "rules" needs nothing (the default since the hackathon ended, 25 Oct 2026); "llm" needs
+# GZ_LLM_URL; "off" disables the autopilot. GZ_LLM_URL alone still selects the LLM, as before.
+ADVISOR = os.environ.get("GZ_ADVISOR") or ("llm" if LLM_URL else "rules")
+if ADVISOR not in ("rules", "llm", "off"):
+    raise SystemExit(f"GZ_ADVISOR must be rules, llm or off, not {ADVISOR!r}")
+if ADVISOR == "llm" and not LLM_URL:
+    raise SystemExit("GZ_ADVISOR=llm needs GZ_LLM_URL")
 
 MODE_FIELDS = {
     "PREPARE": {"target_soc", "charge_max_kw"},
@@ -108,6 +116,7 @@ def path_of(node):
 
 
 DEVICES = {d["id"]: {**d, "path": path_of(d["tf"])} for d in REG["devices"]}
+SHOWCASE = {d for d, v in DEVICES.items() if v.get("showcase")}   # houses whose curve the board always shows: their history survives a restart
 
 # ---------------------------------------------------------------- state
 STATE_FILE = HERE / "state.json"
@@ -144,7 +153,7 @@ def save_history():
     tmp = HIST_FILE.with_suffix(".tmp")
     with _lock:
         tmp.write_text(json.dumps({"nodes": {n: list(v) for n, v in NODE_HIST.items()},
-                                   "devices": {d: list(v) for d, v in DEV_HIST.items() if d in ("real-powerplant-blatnica", "vicare-blatnica")}}))
+                                   "devices": {d: list(v) for d, v in DEV_HIST.items() if d in SHOWCASE}}))
     tmp.replace(HIST_FILE)
 
 
@@ -461,8 +470,9 @@ def tfs_under(node):
 
 
 def program_houses(tf):
-    """Connection points in the program behind tf that are online: battery devices only. A controllable load such as
-    vicare-blatnica sits behind a house that is already counted, so it shares that house's envelope."""
+    """Connection points in the program behind tf that are online: battery devices only. A controllable load that is its
+    own device (a heat pump agent behind a battery house) sits behind a house that is already counted, so it shares that
+    house's envelope."""
     return sum(d.get("represents", 1) for d in devices_under(tf) if d["id"] in state["telemetry"] and d.get("kwh", 0) > 0)
 
 
@@ -663,7 +673,7 @@ def has_real(node):
 
 
 def real_window(segment, mode, sim_dur):
-    """Real minutes for a window DeepSeek gave in grid minutes, floored so every device can finish its ramp."""
+    """Real minutes for a window the advisor gave in grid minutes, floored so every device can finish its ramp."""
     if mode == "RELEASE":
         return max(real_min(sim_dur), 1.0)
     floor = REAL_MIN_WINDOW_MIN if has_real(segment) else (POLICY["ramp_s"][1] + 30) / 60
@@ -688,9 +698,61 @@ def focus_context(focus):
                                                                 for n, s in state["active"].items() if overlaps(n, node)}}
 
 
+def rules_advisor(situation, focus):
+    """Deterministic stand-in for the LLM, same decision shape from the same inputs, no network, no key. The triggers already
+    say what is wrong; this turns them into the one signal the guard would expect: SUPPORT on a forecast import peak, ABSORB on
+    forecast reverse flow, RELEASE when the trigger says the event is over, nothing otherwise. Fields are left to the dynamic
+    envelope (its tightest slot becomes the flat fallback at send time); the window covers the forecast excursion plus margin.
+    It never proposes PREPARE, STRETCH or RECOVER: those stay with the operator."""
+    if not focus:
+        return {"mode": "NONE", "rationale": "Rule-based advisor: no transformer is forecast past the trigger, and free-text operator notes are not interpreted without the LLM."}
+    node = focus["node"]
+    if focus.get("release"):
+        return {"segment": node, "mode": "RELEASE", "fields": {}, "duration_min": ENV_SLOT_SIM_MIN, "start_in_min": 0,
+                "note": "The peak on your street is over; your battery is back in your hands.",
+                "rationale": f"Every transformer under {node} is forecast below {AP_RELEASE_PCT} % for the next {AP_HORIZON_MIN} grid minutes "
+                             f"even without the signal. Rule: release as soon as the counterfactual forecast is clear."}
+    mode = "SUPPORT" if focus.get("dir") == "import" else "ABSORB"
+    dur, last_over_h = 60.0, None
+    for tf in focus.get("hot") or [node]:
+        if tf not in TREE or not tf.startswith("tf:"):
+            continue
+        lim = TREE[tf]["rating_kw"] if mode == "SUPPORT" else (TREE[tf].get("reverse_kw") or TREE[tf]["rating_kw"])
+        fc = forecast(tf, hours=4.0)
+        over = [k for k, pt in enumerate(fc) if abs(pt["total_kw"]) >= AP_TRIGGER_PCT / 100 * lim]
+        if over:
+            dur = max(dur, (over[-1] + 1) * ENV_SLOT_SIM_MIN + 60)
+            last_over_h = fc[over[-1]]["h"]
+    dur = float(min(dur, POLICY["max_window_min"]))
+    hot_n, under = len(focus.get("hot") or [node]), focus.get("under") or 1
+    worst, pct, at_h = focus.get("worst", node), focus.get("worst_pct"), focus.get("worst_at_h")
+    when = f"{focus['worst_at_h']:.2f}h" if focus.get("worst_at_h") is not None else "now"
+    if mode == "SUPPORT":
+        note = "Your street transformer is heading for its limit this evening; your battery covers part of your own use for a while."
+        why = (f"{hot_n} of {under} transformers under {node} are forecast past {AP_TRIGGER_PCT} % within {AP_HORIZON_MIN} grid minutes, worst {worst} "
+               f"at {pct} % around {when}, so the flattening plan alone does not hold the import peak. ")
+    else:
+        note = "Midday solar is pushing power back up your street; your battery and car soak up the surplus for a while."
+        why = (f"{hot_n} of {under} transformers under {node} are forecast past {AP_TRIGGER_PCT} % reverse flow within {AP_HORIZON_MIN} grid minutes, worst {worst} "
+               f"at {pct} % around {when}, so export has to be capped beyond the plan. ")
+    why += (f"Rule: {mode} on the target with the per-slot envelope as the cap, {dur:g} grid minutes to cover the excursion "
+            + (f"(forecast clears after {last_over_h:.2f}h) " if last_over_h is not None else "") + "plus one hour of margin.")
+    return {"segment": node, "mode": mode, "fields": {}, "duration_min": dur, "start_in_min": 0, "note": note, "rationale": why}
+
+
 def ask_llm(situation: str, focus=None):
-    if not LLM_URL:
-        raise HTTPException(503, "GZ_LLM_URL not set")
+    """Ask the advisor for one proposal and run it through the guard. ADVISOR=llm calls the model; ADVISOR=rules answers from
+    rules_advisor with the same inputs (the focus from the trigger, or the current plan target for an ad-hoc review)."""
+    if ADVISOR == "off":
+        raise HTTPException(503, "advisor is off (GZ_ADVISOR=off)")
+    if ADVISOR == "rules":
+        t0 = time.time()
+        if focus is None:
+            AP["hotspots"] = hotspots()
+            focus = plan_target(AP["hotspots"])
+        proposal = rules_advisor(situation, focus)
+        proposal["advisor"] = "rules"
+        return finish_proposal(proposal, focus, round((time.time() - t0) * 1000))
     if focus:
         ctx = focus_context(focus)
     else:
@@ -715,6 +777,12 @@ def ask_llm(situation: str, focus=None):
         text = text[4:]
     start, end = text.find("{"), text.rfind("}")
     proposal = json.loads(text[start:end + 1])
+    proposal["advisor"] = "llm"
+    return finish_proposal(proposal, focus, latency)
+
+
+def finish_proposal(proposal, focus, latency):
+    """Envelope, window and guard for a proposal, whoever made it."""
     proposal["latency_ms"] = latency
     if proposal.get("mode") == "NONE":
         proposal["guard"] = None
@@ -739,11 +807,11 @@ def ask_llm(situation: str, focus=None):
 
 
 # ---------------------------------------------------------------- autopilot
-# Deterministic triggers decide WHEN to ask DeepSeek; DeepSeek decides WHAT; the guard decides whether it is allowed.
-# "auto" (default when an LLM is configured): a guard-approved decision is signed and sent at once, within the autopilot's
+# Deterministic triggers decide WHEN to ask the advisor; the advisor (rules or LLM) decides WHAT; the guard decides whether it
+# is allowed. "auto" (default unless GZ_ADVISOR=off): a guard-approved decision is signed and sent at once, within the autopilot's
 # own limits (cooldown per segment, max signals per grid day). "propose": it waits for one click. "off": nothing runs.
 # All autopilot times are grid (sim) minutes.
-AP = {"mode": os.environ.get("GZ_AUTOPILOT", "auto" if LLM_URL else "off"), "context": "", "context_seen": "",
+AP = {"mode": os.environ.get("GZ_AUTOPILOT", "auto" if ADVISOR != "off" else "off"), "context": "", "context_seen": "",
       "last_run": None, "last_trigger": None, "last_result": None, "pending": None, "busy": False, "stage": "idle",
       "sent": collections.deque(maxlen=200), "history": collections.deque(maxlen=20), "hotspots": {}, "target": None}
 AP_INTERVAL_S = POLICY.get("autopilot_interval_s", 10)
@@ -824,7 +892,7 @@ def plan_target(hs):
 
 
 def autopilot_trigger():
-    """Return (situation sentence, focus) if something deserves DeepSeek's attention, else (None, None)."""
+    """Return (situation sentence, focus) if something deserves the advisor's attention, else (None, None)."""
     hs = hotspots()
     AP["hotspots"] = hs
     t = plan_target(hs)
@@ -946,7 +1014,7 @@ def autopilot_step():
     elif AP["context"]:
         situation += " Standing operator warning: " + AP["context"]
     log("autopilot", f"trigger: {situation}")
-    AP["stage"] = "deepseek"
+    AP["stage"] = "deepseek"      # stage name kept for the dashboards: "the advisor is thinking"
     p = ask_llm(situation, focus)
     p["situation"], p["at"], p["focus"] = situation, iso(now()), focus
     AP["last_result"] = p
@@ -981,7 +1049,7 @@ def autopilot_step():
 def autopilot_loop():
     while True:
         time.sleep(AP_INTERVAL_S)
-        if AP["mode"] == "off" or not LLM_URL or AP["busy"]:
+        if AP["mode"] == "off" or ADVISOR == "off" or AP["busy"]:
             continue
         AP["busy"] = True
         try:
@@ -1067,7 +1135,7 @@ def get_state(hh: str = "", fc: str = "", tree: int = 1):
             if best: peaks[n] = best
         out = {"now": iso(now()), "sim_hour": round(sim_hour(), 2), "seq": state["seq"], "aggregates": aggregates(), "summary": tot,
                "households": sel, "active": state["active"], "recent": state.get("recent", {}), "shape": {"at": SHAPE["at"], "rounds": SHAPE["rounds"], "enabled": SHAPE["enabled"], "feeders": len(SHAPE["seq"])}, "log": list(LOG)[:60], "hb_paused": HB_PAUSED.is_set(),
-               "llm": bool(LLM_URL), "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
+               "llm": ADVISOR == "llm", "advisor": ADVISOR, "advisor_model": LLM_MODEL if ADVISOR == "llm" else None, "policy": POLICY, "autopilot": ap, "scenario": SCENARIO,
                "forecast_peak": peaks, "forecast": {fc: forecast(fc)} if fc in TREE and not fc.startswith("region") else {}}
         if tree: out["tree"] = TREE
         return out
@@ -1192,8 +1260,8 @@ def set_autopilot(a: Autopilot):
     if a.mode is not None:
         if a.mode not in ("off", "propose", "auto"):
             raise HTTPException(400, "mode must be off, propose or auto")
-        if a.mode != "off" and not LLM_URL:
-            raise HTTPException(503, "GZ_LLM_URL not set")
+        if a.mode != "off" and ADVISOR == "off":
+            raise HTTPException(503, "advisor is off (GZ_ADVISOR=off)")
         AP["mode"] = a.mode
         log("autopilot", f"mode {a.mode}")
     if a.context is not None and a.context != AP["context"]:
@@ -1216,7 +1284,7 @@ def set_scenario(name: str):
 @app.post("/api/autopilot/{decision}")
 def decide_autopilot(decision: str):
     """approve|reject the proposal waiting in propose mode"""
-    if decision == "review":                      # ask DeepSeek now, whatever the load (demo and operator use)
+    if decision == "review":                      # ask the advisor now, whatever the load (demo and operator use)
         AP["force"] = True
         log("autopilot", "operator asked for a review now")
         return {"ok": True}
@@ -1264,7 +1332,7 @@ def main():
     threading.Thread(target=shape_loop, daemon=True).start()
     threading.Thread(target=weather.loop, args=(TREE,), daemon=True).start()
     import uvicorn
-    log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  llm={LLM_URL or 'off'}")
+    log("platform", f"Gridzilla up on http://localhost:{PORT}  broker={BROKER}  advisor={ADVISOR}" + (f" ({LLM_MODEL} at {LLM_URL})" if ADVISOR == "llm" else ""))
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning")
 
 

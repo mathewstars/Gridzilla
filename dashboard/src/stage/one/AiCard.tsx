@@ -97,7 +97,7 @@ const PLAN_WORDS: Record<string, string> = {
   RECOVER: "refill slowly",
   NONE: "no action needed",
 };
-const planSub = (mode: string | null | undefined): Part[] => [mode ? `DeepSeek: ${PLAN_WORDS[mode] ?? modeTitle(mode).toLowerCase()}` : "DeepSeek"];
+const planSub = (mode: string | null | undefined): Part[] => [mode ? `Advisor: ${PLAN_WORDS[mode] ?? modeTitle(mode).toLowerCase()}` : "Advisor"];
 
 /** The box the guard checked: "at most 3 kW a home", or with its end "3 kW a home until 22:44" (the limited time). */
 function capParts(fields: Record<string, number | null> | null | undefined, base: string, until?: Part[] | null): Part[] | null {
@@ -168,7 +168,7 @@ function stepsFor(s: State, ctx: Ctx): View {
       seg: ap.target?.node ?? null,
       steps: mk(nodes, [
         [see.value, see.sub],
-        [["AI plan"], [k === 1 ? "DeepSeek is thinking" : k > 1 ? "DeepSeek answered" : "next"]],
+        [["AI plan"], [k === 1 ? "Advisor is thinking" : k > 1 ? "Advisor answered" : "next"]],
         k > 2 ? [["Guard passed"], ["every safety rule held"]] : k === 2 ? [["Checking"], ["the safety rules"]] : [["Guard"], ["next"]],
         k === 3 ? [["Signing"], ["the signal for every home"]] : [["Nothing yet"], null],
       ]),
@@ -262,7 +262,7 @@ function stepsFor(s: State, ctx: Ctx): View {
     case "none":
       return out(["done", "done", "waiting", "waiting"], [seeRow, [think[0], ["no action needed"]], [["Nothing to check"], null], nothing]);
     case "error":
-      return out(["done", "done", "waiting", "waiting"], [seeRow, [["AI plan"], ["DeepSeek gave no answer in time"]], [["Nothing to check"], null], nothing]);
+      return out(["done", "done", "waiting", "waiting"], [seeRow, [["AI plan"], ["Advisor gave no answer in time"]], [["Nothing to check"], null], nothing]);
     case "pending":
       return out(["done", "done", "done", "human"], [seeRow, think, passed, [["Waiting for a human OK"], d.mode ? [modeTitle(d.mode)] : null]]);
     case "rejected":
