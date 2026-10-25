@@ -62,7 +62,7 @@ export default function HelpOverlay({ route }: { route: Route }) {
             </div>
           ))}
         </dl>
-        <p className="hlp-keys">Keys: ? this help · D demo mode · Up / Down next transformer in demo · Escape close</p>
+        <p className="hlp-keys">Keys: ? this help · Escape close</p>
       </section>
     </div>
   );

@@ -1,11 +1,10 @@
 // Gridzilla operations console: the room where a grid operator runs the city (ops.md). Sidebar + top bar shell, hash
-// routes; Operations is the default view, #/demo is demo mode for the pitch. The old presentation stage is retired:
-// a #/present link from an old deck opens demo mode instead.
+// routes; Operations is the one view to show (one version only). #/demo and the old #/present open
+// Operations; ?bare=1 shows Operations alone, without sidebar and top bar. (The pitch deck embeds DemoView directly.)
 import { useEffect, useState } from "react";
 import { useOps } from "./useOps";
 import Sidebar, { type Route } from "./shell/Sidebar";
 import TopBar from "./shell/TopBar";
-import DemoView from "./demo/DemoView";
 import HelpOverlay from "./help/HelpOverlay";
 import OperationsView from "./ops2/OperationsView";
 import PlanView from "./plan/PlanView";
@@ -17,12 +16,12 @@ import { applyTheme, initialTheme } from "./theme";
 // Theme before the first paint, so the console never flashes light.
 applyTheme(initialTheme());
 
-const ROUTES: Route[] = ["ops", "demo", "plan", "city", "autopilot", "manual", "households", "plant", "weather", "log"];
+const ROUTES: Route[] = ["ops", "plan", "city", "autopilot", "manual", "households", "plant", "weather", "log"];
 const routeOf = (): Route => {
   const r = location.hash.replace(/^#\/?/, "");
-  if (r === "present") {
-    history.replaceState(null, "", "#/demo"); // the old stage is retired; say where we are
-    return "demo";
+  if (r === "demo" || r.startsWith("demo?") || r === "present") {
+    history.replaceState(null, "", `${location.pathname}${location.search}#/`); // one version: Operations; say where we are
+    return "ops";
   }
   return ROUTES.includes(r as Route) ? (r as Route) : "ops";
 };
@@ -39,9 +38,15 @@ function useRoute() {
 
 export default function OpsApp() {
   const route = useRoute();
-  // #/demo?bare=1 (query before the hash): demo mode alone, full-bleed, exactly as the pitch deck embeds DemoView
-  if (route === "demo" && new URLSearchParams(location.search).has("bare")) return <DemoView />;
+  // ?bare=1 (query before the hash): Operations alone, full-bleed, no sidebar and no top bar
+  if (route === "ops" && new URLSearchParams(location.search).has("bare")) return <Bare />;
   return <Console route={route} />;
+}
+
+function Bare() {
+  const ops = useOps();
+  if (!ops.s) return <div className="ops-splash"><div className="t-small">{ops.error ? "The grid platform is not answering yet." : "Connecting to the grid."}</div></div>;
+  return <main className="ops-op2 ops-bare" data-scroll="page"><OperationsView ops={ops} /></main>;
 }
 
 function Console({ route }: { route: Route }) {
@@ -55,12 +60,10 @@ function Console({ route }: { route: Route }) {
     );
   return (
     <div className="ops">
-      <Sidebar route={route} ops={ops} rail={route === "demo"} />
+      <Sidebar route={route} ops={ops} />
       <div className="ops-main">
-        <TopBar ops={ops} compact={route === "demo"} />
-        {route === "demo" ? (
-          <main className="ops-demo"><DemoView ops={ops} /></main>
-        ) : route === "ops" ? (
+        <TopBar ops={ops} />
+        {route === "ops" ? (
           <main className="ops-op2" data-scroll="page"><OperationsView ops={ops} /></main>
         ) : route === "plan" ? (
           <main className="ops-view"><PlanView ops={ops} /></main>
