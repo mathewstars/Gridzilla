@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 import weather
 import flatten
+import db
 
 HERE = Path(__file__).parent
 KEYS = HERE / "keys"
@@ -186,6 +187,9 @@ def other_profile_kw(hour):
     return (base + morning + evening) * load_x + pv * pv_x
 
 
+_sample_n = [0]
+
+
 def sample_history():
     h = sim_hour()
     with _lock:
@@ -200,6 +204,10 @@ def sample_history():
                         for t in TREE if n in path_of(t) and t.startswith("tf:"))
             NODE_HIST[n].append({"ts": iso(now()), "h": round(h, 2), "program_kw": round(prog, 1), "baseline_kw": round(base + other, 1),
                                  "other_kw": round(other, 1), "total_kw": round(prog + other, 1)})
+        _sample_n[0] += 1
+        rows = [(p["ts"], n, p["h"], p["program_kw"], p["baseline_kw"], p["other_kw"], p["total_kw"]) for n in TREE if NODE_HIST[n] for p in [NODE_HIST[n][-1]]] if _sample_n[0] % 12 == 0 else []
+    if rows: db.samples(rows)                       # one row per node per minute into SQLite (the 5 s ring buffer stays in memory)
+    with _lock:
         for d in DEVICES:
             t = state["telemetry"].get(d)
             if t:
@@ -238,6 +246,7 @@ def log(kind, msg, **extra):
     entry = {"ts": iso(now()), "kind": kind, "msg": msg, **extra}
     LOG.appendleft(entry)
     print(f"[{kind}] {msg}", flush=True)
+    db.log(entry)
 
 
 # ---------------------------------------------------------------- mqtt
@@ -281,6 +290,7 @@ def on_message(client, userdata, m):
             return
         with _lock:
             state["acks"][dev] = {**ack, "verified": verified, "rx": iso(now())}
+        db.ack(iso(now()), dev, ack, verified)
         log("ack", f"{dev}: {ack['status']}" + (f" ({ack['reason']})" if ack.get("reason") else "")
             + f" soc={ack.get('soc')} grid={ack.get('grid_kw')} kW" + ("" if verified else " [unverified]"),
             device=dev, status=ack["status"])
@@ -408,6 +418,7 @@ def send_signal(segment, mode, fields, duration_min, note="", start_in_min=0, co
             state["support_count"][key] = state["support_count"].get(key, 0) + 1
         persist()
     mq.publish(f"gridzilla/sig/{segment}", envelope(doc), qos=1)
+    db.signal(doc)
     log("signal", f"seq {seq} {mode} -> {segment}" + (f" cohort {cohort[0]}/{cohort[1]} " if cohort else " ") + " ".join(f"{k}={v}" for k, v in fields.items() if v is not None)
         + f" for {duration_min:g} min" + (f" with a {len(curve.get('import_max_kw') or curve.get('export_max_kw') or [])}-slot envelope" if curve else ""),
         seq=seq, mode=mode, segment=segment)
@@ -912,6 +923,7 @@ def record(p, verdict, detail="", seq=None):
         AP_HIST_FILE.write_text(json.dumps(list(AP["history"])))
     except Exception:
         pass
+    db.decision(AP["history"][0])
 
 
 def autopilot_step():
@@ -1061,6 +1073,12 @@ def get_state(hh: str = "", fc: str = "", tree: int = 1):
         return out
 
 
+@app.get("/api/audit")
+def get_audit(limit: int = 50):
+    """the audit trail from SQLite: last signals, acks and autopilot decisions, newest first, and row counts"""
+    return db.audit(limit)
+
+
 @app.get("/api/devices")
 def get_devices():
     """raw per-device view, for debugging; the board uses households"""
@@ -1128,6 +1146,8 @@ def register(r: Register):
         raise HTTPException(404, "device not in registry")
     with _lock:
         state["pubkeys"][r.device] = r.pubkey_pem
+    db.device(r.device, r.pubkey_pem, iso(now()))
+    with _lock:
         persist()
     log("registry", f"{r.device} registered its public key")
     return {"ok": True, "path": DEVICES[r.device]["path"], "platform_pubkey": PUB_PEM}
