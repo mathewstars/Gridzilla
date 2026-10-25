@@ -170,7 +170,6 @@ function Hero({ ops, tf }: { ops: Ops; tf: string }) {
           </p>
         </div>
         <p className="demo-sentence">{sentence(s, tf, plan)}</p>
-        <WeatherLine ops={ops} />
       </header>
       <div className="demo-hero-body">
         <div className="demo-curve">
@@ -232,36 +231,6 @@ function NowCard({ ops }: { ops: Ops }) {
 }
 
 
-/** Dad's weather line, one line under the hero sentence: what the grid's weather is right now. Hidden when the weather
- *  feed is not there (never a placeholder). Every number traced to /api/weather. */
-function WeatherLine({ ops }: { ops: Ops }) {
-  const w = ops.weather;
-  const d = w.data;
-  if (!w.available || !d?.now) return null;
-  const n = d.now;
-  const warns = d.warnings ?? [];
-  const sum = (d.summary ?? "").trim();
-  // at most 160 characters, cut at a whole word (no ellipsis on the stage)
-  const short = sum.length > 160 ? sum.slice(0, 160).replace(/\s+\S*$/, "") : sum;
-  const V = ({ k, v, unit }: { k: string; v: number | undefined; unit: string }) =>
-    v == null ? null : <span data-src={`weather/now/${k}`} data-val={v}>{Math.round(v * 10) / 10}{unit}</span>;
-  return (
-    <p className="demo-weather">
-      Weather {String(d.location?.name ?? "Vienna")}: <V k="temp_c" v={n.temp_c} unit=" °C" />
-      {n.feels_c != null && <>, feels <V k="feels_c" v={n.feels_c} unit=" °C" /></>}
-      {" · "}cloud <V k="cloud_pct" v={n.cloud_pct} unit=" %" />
-      {" · "}sun <V k="sun_wm2" v={n.sun_wm2} unit=" W/m²" />
-      {" · "}wind <V k="wind_kmh" v={n.wind_kmh} unit=" km/h" />
-      {" · "}
-      {warns.length ? (
-        <span data-src="derived" data-from="count(weather/warnings/*)" data-val={warns.length}>{warns.length} official warning{warns.length > 1 ? "s" : ""}</span>
-      ) : (
-        "no official warnings"
-      )}
-      {short && <span className="demo-weather-sum"> · <span data-src="weather/summary">{short}</span></span>}
-    </p>
-  );
-}
 
 /** "next DeepSeek review in N s · autonomous", counting down every second (autopilot.last_run + interval_s). */
 function ReviewIn({ s }: { s: State }) {

@@ -1,13 +1,12 @@
 // Left sidebar of the operations console. Adapted from the 21st.dev "Sidebar" by @wensity (design/21st/sidebar-shell.tsx):
 // live badges and an active pill that glides between items (motion layoutId). Four entries (Operations, Diet plan, Real
-// plant, Presentation); City, Autopilot, Manual, Households, Weather and Log sit under one More menu at the bottom. Full
+// plant, Presentation); City, Autopilot, Manual, Households and Log sit under one More menu at the bottom (Weather by URL only, #/weather). Full
 // width at >= 1240, an icon rail with hover labels below that, a Menu button on phones (shell.css).
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import {
   Broadcast,
   ChartLineDown,
-  CloudSun,
   DotsThreeCircle,
   GridFour,
   HouseLine,
@@ -37,7 +36,6 @@ const MORE: Item[] = [
   { r: "autopilot", label: "Autopilot", icon: Robot },
   { r: "manual", label: "Manual", icon: SlidersHorizontal },
   { r: "households", label: "Households", icon: HouseLine },
-  { r: "weather", label: "Weather", icon: CloudSun },
   { r: "log", label: "Log", icon: ListBullets },
 ];
 
@@ -60,7 +58,6 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
   const active = s ? Object.keys(s.active).length : 0;
   const pending = !!s?.autopilot?.pending;
   const plantLive = !!s?.households?.blatnica?.telemetry;
-  const warnings = ops.weather.data?.warnings?.length ?? 0;
   const tfs = s ? Object.keys(s.tree).filter((n) => n.startsWith("tf:")) : [];
   const over = s ? tfs.filter((t) => Math.abs(s.aggregates[t]?.load_pct ?? 0) >= 100).length : 0;
   const inMore = MORE.find((i) => i.r === route);
@@ -138,12 +135,11 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
     if (r === "autopilot" && pending) return <span className="sb-badge is-blue" title="A proposal is waiting for you" data-src="axis">1</span>;
     if (r === "manual" && active) return <span className="sb-badge" title={`${active} signals active`} data-src="derived" data-from="count(state/active/*)" data-val={active}>{active}</span>;
     if (r === "plant") return <span className={`sb-dot${plantLive ? " is-green" : ""}`} title={plantLive ? "The plant is reporting" : "Waiting for the plant"} />;
-    if (r === "weather" && warnings) return <span className="sb-badge is-orange" title={`${warnings} weather warnings`} data-src="derived" data-from="count(weather/warnings/*)" data-val={warnings}>{warnings}</span>;
     return null;
   };
   // The More button says when something inside needs a look: a waiting proposal first, then anything over its limit.
-  const moreFlag = pending ? "is-blue" : over || warnings ? "is-orange" : "";
-  const moreFlagTip = pending ? "A proposal is waiting in Autopilot" : over ? `${over} transformers over their limit (City)` : warnings ? `${warnings} weather warnings` : "";
+  const moreFlag = pending ? "is-blue" : over ? "is-orange" : "";
+  const moreFlagTip = pending ? "A proposal is waiting in Autopilot" : over ? `${over} transformers over their limit (City)` : "";
 
   const pill = (
     <motion.span layoutId="sb-pill" className="sb-pill" transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 40, mass: 0.7 }} />
