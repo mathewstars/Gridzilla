@@ -1,7 +1,7 @@
 // Dad's four decision tiles (board, Presentation tab), as four big readable cards in a 2x2 grid: what the AI saw, what
 // it chose, the rule check, the signed message; plus his "next review in N s" countdown. The tile of the step running
 // right now (autopilot.stage while busy) is lit. Every live number carries data-src/data-val (qa/README.md).
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import type { Decision, Proposal, State } from "../../api";
 import { hhmm, nice } from "../../model";
 import { cleanText, modeTitle, plainReason, sentences, worstOf } from "../../components/brain/plain";
@@ -21,16 +21,40 @@ function N({ src, val, from, scale, children }: { src: string; val?: number | nu
   );
 }
 
+/** One screen gives each tile a fixed cell: when its words do not fit, it drops its detail step by step (data-fit 1: the
+ *  AI's reasoning, 2: the replies line, 3: every text line), so nothing ever runs over the next tile. Measured after each
+ *  render and on resize; elsewhere the tiles grow with their text and stay at 0. */
+function useFit() {
+  const ref = useRef<HTMLDivElement>(null);
+  const fit = () => {
+    const el = ref.current;
+    if (!el) return;
+    let k = 0;
+    el.dataset.fit = "0";
+    while (el.scrollHeight > el.clientHeight + 1 && k < 3) el.dataset.fit = String(++k);
+  };
+  useLayoutEffect(fit);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return ref;
+}
+
 function Tile({ n, label, now, tone, value, children }: { n: number; label: string; now: boolean; tone?: "bad" | "wait"; value: ReactNode; children?: ReactNode }) {
+  const ref = useFit();
   return (
-    <div className={`ft-tile${now ? " is-now" : ""}${tone ? ` is-${tone}` : ""}`} aria-current={now ? "step" : undefined}>
+    <div ref={ref} className={`ft-tile${now ? " is-now" : ""}${tone ? ` is-${tone}` : ""}`} aria-current={now ? "step" : undefined}>
       <div className="ft-label">
         <span className="ft-n" aria-hidden data-src="axis">{n}</span>
         <span>{label}</span>
         {now && <span className="ft-live">running now</span>}
       </div>
       <div className="ft-value">{value}</div>
-      {children && <div className="ft-text">{children}</div>}
+      {children && <div className="ft-text" data-src="state/autopilot">{children}</div>}
     </div>
   );
 }
@@ -44,7 +68,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
     return (
       <>
         <div className="ft-big ft-words">Peak is over</div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           Every transformer under {nice(rel[1])} stays below <N src={ap.release_pct === +rel[2] ? "state/autopilot/release_pct" : src} val={ap.release_pct === +rel[2] ? ap.release_pct : undefined}>{rel[2]}</N>&nbsp;% of its limit
         </div>
       </>
@@ -56,7 +80,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
         <div className="ft-big">
           <N src={src}>{Math.abs(w.pct)}</N>&nbsp;%
         </div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           {w.pct < 0 ? "Sending back, forecast" : "Forecast"} on {nice(w.tf)} at <N src={src}>{w.at}</N>
           {w.others > 0 ? `, and ${w.others} more` : ""}
         </div>
@@ -69,7 +93,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
         <div className="ft-big">
           <N src="state/autopilot/target/worst_pct" val={t.worst_pct}>{Math.round(Math.abs(t.worst_pct))}</N>&nbsp;%
         </div>
-        <div className="ft-text">
+        <div className="ft-text" data-src="state/autopilot">
           Forecast on {nice(t.worst)} at <N src="state/autopilot/target/worst_at_h">{hhmm(t.worst_at_h)}</N>
         </div>
       </>
@@ -77,7 +101,7 @@ function Saw({ s, d, src }: { s: State; d: Decision | Proposal | null; src: stri
   return (
     <>
       <div className="ft-big">All calm</div>
-      <div className="ft-text">
+      <div className="ft-text" data-src="state/autopilot">
         No transformer forecast past <N src="state/autopilot/trigger_pct" val={ap.trigger_pct}>{ap.trigger_pct}</N>&nbsp;% of its limit
       </div>
     </>

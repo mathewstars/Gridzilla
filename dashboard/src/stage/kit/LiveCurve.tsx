@@ -118,19 +118,6 @@ function unwrapStage(history: History | null, node: string, tNow: number, nowH: 
   return out.reverse();
 }
 
-/** 0 and one round value for the stage's y axis: the biggest 1-2-5 step inside the domain that is not the limit
- *  (the limit has its own label), so the plot always carries a magnitude. */
-function stageTicks(lo: number, hi: number, limits: number[]): number[] {
-  const side = hi >= -lo ? hi : lo;
-  const m = Math.abs(side) * 0.92;
-  if (!(m > 0)) return [0];
-  const cands: number[] = [];
-  for (let e = Math.floor(Math.log10(m)); e >= Math.floor(Math.log10(m)) - 1; e--) for (const f of [5, 2, 1]) cands.push(f * 10 ** e);
-  const ok = cands.filter((v) => v <= m && limits.every((l) => Math.abs(Math.abs(l) - v) > Math.max(1, Math.abs(l) * 0.12)));
-  const r = ok.length ? ok[0] : null;
-  return r == null ? [0] : side >= 0 ? [0, r] : [-r, 0];
-}
-
 /** Straight segments through the readings (history is about one reading per grid hour: a spline would invent waves). */
 function linePath(pts: XYPt[], join = false): string {
   return pts.map((p, i) => `${i || join ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
@@ -180,7 +167,7 @@ type Placed = Map<string, Rect>;
 type XYPt = [number, number];
 
 /** A short legend swatch: solid, dashed, a filled square or the signal bar. */
-function Swatch({ color, dashed, width, kind = "line", opacity }: { color: string; dashed?: boolean; width?: number; kind?: "line" | "fill" | "bar"; opacity?: number }) {
+export function Swatch({ color, dashed, width, kind = "line", opacity }: { color: string; dashed?: boolean; width?: number; kind?: "line" | "fill" | "bar"; opacity?: number }) {
   if (kind === "fill")
     return <span className="inline-block shrink-0 rounded-[0.2em]" style={{ width: "0.9em", height: "0.9em", background: color, opacity: opacity ?? 0.45 }} aria-hidden />;
   if (kind === "bar")
@@ -197,10 +184,26 @@ function Swatch({ color, dashed, width, kind = "line", opacity }: { color: strin
   );
 }
 
-/** One legend entry: key, label in secondary, live value in ink. */
-function Key({ swatch, label, children }: { swatch: ReactNode; label: string; children?: ReactNode }) {
+/** The stage legend while the curve's history is still loading: dad's six keys, all muted, so the legend is there from
+ *  the first frame and never jumps when the lines arrive. Same container, swatches and type as the stage legend. */
+export function WaitLegend() {
   return (
-    <span className="inline-flex min-w-0 items-center gap-[0.4em] whitespace-nowrap">
+    <div className="lc-legend flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]" style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: "0.75em" }}>
+      <Key swatch={<Swatch color={P.blue} width={3.5} />} label="With Gridzilla (measured)" muted />
+      <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without Gridzilla (what the houses would draw)" muted />
+      <Key swatch={<Swatch color="rgb(232,137,58)" kind="fill" opacity={0.43} />} label="Peak eaten" muted />
+      <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" muted />
+      <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" muted />
+      <Key swatch={<Swatch color={P.red} width={2.5} dashed />} label="Limit" muted />
+    </div>
+  );
+}
+
+/** One legend entry: key, label in secondary, live value in ink. `muted` = the key stays in place, dimmed, while its
+ *  series has no data yet (the legend never jumps); data-key / data-muted are what the G4 legend gate reads. */
+export function Key({ swatch, label, children, muted }: { swatch: ReactNode; label: string; children?: ReactNode; muted?: boolean }) {
+  return (
+    <span className="lc-key inline-flex min-w-0 items-center gap-[0.4em] whitespace-nowrap" data-key={label} data-muted={muted ? "1" : undefined} style={muted ? { opacity: 0.4 } : undefined}>
       {swatch}
       <span style={{ color: P.secondary }}>{label}</span>
       {children != null && (
@@ -284,9 +287,12 @@ export default function LiveCurve({
   const rating = tn?.rating_kw ?? agg?.rating_kw ?? null;
   const reverse = rating != null ? tn?.reverse_kw ?? rating : null;
   const lineC = P.blue;
-  const washO = stage ? 0.22 : 0.38;
-  /** Stage: the eaten peak is orange (the pitch's word for it); classic: the kept-off gap stays green. */
-  const washC = stage ? P.orange : P.green;
+  /** Stage: the eaten peak is dad's orange rgba(232,137,58,0.35) (the pitch's word for it); classic: the kept-off gap
+   *  stays green. */
+  const washO = stage ? 0.35 : 0.38;
+  const washC = stage ? "rgb(232,137,58)" : P.green;
+  /** Stage: the soft fill under the measured line, dad's --s1 + "26" (0x26 / 255). */
+  const withFillO = 0x26 / 255;
   const legendAt = legend ?? (stage ? "above" : "below");
 
   // A scenario key starts a new story: the past line starts at the switch, never joining the last scenario's readings.
@@ -331,14 +337,36 @@ export default function LiveCurve({
   const showRev = stage ? reverse != null && vMin < -0.5 * reverse : backflow;
   /** The side of the limit that matters: export (-1) only while the backflow limit is drawn and it is the tighter one. */
   const side = showRev && reverse != null && (-vMin / reverse > Math.max(vMax, 0) / (rating || 1) || !showImp) ? -1 : 1;
-  const hiT = stage
+  const hiRaw = stage
     ? (showImp ? Math.max(lim, vMax) : Math.max(vMax, 0) + span_ * 0.08) * (showImp ? 1.08 : 1)
     : backflow
       ? Math.max(vMax, 0) + span_ * 0.08
       : Math.max(lim * 1.08, vMax + span_ * 0.08);
-  const loT = showRev
+  const loRaw = showRev
     ? Math.min(-(reverse as number) * 1.08, vMin - span_ * 0.08)
     : Math.min(0, vMin - span_ * (stage ? 0.06 : 0.05));
+  // Stage: dad's readable scale. One 1-2-5 step, the top rounded up to the next tick (0, 100, 200, 300 on a 250 kW
+  // transformer), the bottom only once the street pushes back more than half a step (a dip of a few kW keeps its few
+  // pixels of air under 0, not a whole empty band). Of the steps whose ticks fit the height (about 1.5 lines apart, at
+  // most 7), the one that wastes the least height; a tie goes to the bigger step.
+  const lowest = Math.min(vMin, showRev && reverse != null ? -reverse : 0);
+  const ends = (st: number) => {
+    const top = Math.ceil(hiRaw / st - 1e-6) * st;
+    const bot = lowest < -st * 0.5 ? Math.floor(loRaw / st + 1e-6) * st : loRaw;
+    return { st, top, bot, n: Math.floor(top / st + 1e-6) - Math.ceil(bot / st - 1e-6) + 1, waste: top - hiRaw + (loRaw - bot) };
+  };
+  const maxN = Math.max(3, Math.min(7, Math.floor((H - rem * 3.5) / (rem * 1.3 * 1.5)) + 1));
+  const span0 = Math.max(hiRaw, 0) - Math.min(loRaw, 0) || 1;
+  const e0 = Math.floor(Math.log10(span0 / maxN));
+  const fits = [e0, e0 + 1, e0 + 2]
+    .flatMap((e) => [1, 2, 5].map((f) => ends(f * 10 ** e)))
+    .filter((c) => c.n <= maxN);
+  // Three to six lines read best (a bare "0 / 500" says little); a cramped plot takes what fits.
+  const good = fits.filter((c) => c.n >= 3 && c.n <= 6);
+  const pick = (good.length ? good : fits).reduce<ReturnType<typeof ends> | null>((b, c) => (!b || c.waste < b.waste - 1e-6 || (Math.abs(c.waste - b.waste) <= 1e-6 && c.st > b.st) ? c : b), null) ?? ends(niceStep(span0, 4));
+  const stepS = pick.st;
+  const hiT = stage ? pick.top : hiRaw;
+  const loT = stage ? pick.bot : loRaw;
 
   const revOn = stage && showRev;
   useEffect(() => {
@@ -391,17 +419,16 @@ export default function LiveCurve({
   const ph = Math.max(1, H - padT - padB);
   const plotB = padT + ph;
   const yCount = stage ? 2 : Math.max(2, Math.min(hero ? 5 : 4, Math.floor(ph / (lhA * 2.2))));
-  const yStep = niceStep(hiT - loT || 1, yCount);
+  const yStep = stage ? stepS : niceStep(hiT - loT || 1, yCount);
   const ticksOf = (a: number, b: number) => {
     const out: number[] = [];
     for (let v = Math.ceil(a / yStep) * yStep; v <= b + 1e-9; v += yStep) out.push(Math.round(v * 1000) / 1000);
     return out;
   };
   const tickTxt = (v: number, top: boolean) => `${kwFmt(v)}${top ? " kW" : ""}`;
-  const limVals = [...(showImp && rating != null ? [rating] : []), ...(showRev && reverse != null ? [-reverse] : [])];
-  const ticksFor = (a: number, b: number) => (stage ? stageTicks(a, b, limVals) : ticksOf(a, b));
-  /** Stage: the unit rides on the round value, never on 0. */
-  const unitOn = (v: number, i: number, n: number) => (stage ? v !== 0 : i === n - 1);
+  const ticksFor = ticksOf;
+  /** Stage: every tick reads "N kW" (dad's axis); classic: the unit rides on the top tick. */
+  const unitOn = (_v: number, i: number, n: number) => stage || i === n - 1;
   const tgt = ticksFor(loT, hiT);
   const padR = Math.ceil(Math.max(rem * 2, ...tgt.map((v, i) => textW(tickTxt(v, unitOn(v, i, tgt.length)), fsAxis)))) + Math.round(rem * 0.7);
 
@@ -769,15 +796,16 @@ export default function LiveCurve({
   const keyLim = (rating != null && showImp) || (reverse != null && showRev);
   const stageLegend = (
     <div
-      className="flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
+      className="lc-legend flex flex-wrap items-center gap-x-[1.25em] gap-y-[0.35em]"
       style={{ fontSize: `clamp(0.875rem, 0.8rem + 0.25vw, 1.125rem)`, lineHeight: 1.3, paddingBottom: legendAt === "above" ? "0.75em" : 0, paddingTop: legendAt === "below" ? "0.6em" : 0 }}
     >
-      {totalPts.length > 1 && <Key swatch={<Swatch color={lineC} width={3.5} />} label={basePts.length > 1 ? "With Gridzilla" : "Load now"} />}
-      {(basePts.length > 1 || naivePts.length > 1) && <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without" />}
-      {((anyEaten && !!band) || (planEats && !!planBand)) && <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" />}
-      {(anyMoved || planMoves) && <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" />}
-      {usePlan && level != null && planLine.length > 1 && <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" />}
-      {keyLim && <Key swatch={<Swatch color={P.red} width={2.5} />} label="Limit" />}
+      {/* dad's six keys, always in the same places; a series with no data yet shows muted instead of missing */}
+      <Key swatch={<Swatch color={lineC} width={3.5} />} label="With Gridzilla (measured)" muted={totalPts.length < 2} />
+      <Key swatch={<Swatch color={P.secondary} width={3} dashed />} label="Without Gridzilla (what the houses would draw)" muted={!(basePts.length > 1 || naivePts.length > 1)} />
+      <Key swatch={<Swatch color={washC} kind="fill" opacity={washO + 0.08} />} label="Peak eaten" muted={!((anyEaten && !!band) || (planEats && !!planBand))} />
+      <Key swatch={<Swatch color={P.green} kind="fill" opacity={0.26} />} label="Charging moved" muted={!(anyMoved || planMoves)} />
+      <Key swatch={<Swatch color={P.green} width={3.5} />} label="The plan" muted={!(usePlan && level != null && planLine.length > 1)} />
+      <Key swatch={<Swatch color={P.red} width={2.5} dashed />} label="Limit" muted={!keyLim} />
       {win && winOn && !winLabelShown && (
         <Key swatch={<Swatch color={P.ink} kind="bar" />} label="Signal until">
           <span data-src="axis">{hhmm(win.t1)}</span>
@@ -863,10 +891,14 @@ export default function LiveCurve({
 
             {/* scale: faint grid lines */}
             {yTicks.map((v) => (
-              <line key={`g${v}`} x1={padL} x2={padL + pw} y1={y(v)} y2={y(v)} stroke={P.ink} strokeOpacity={v === 0 ? 0.16 : 0.06} strokeWidth={1} />
+              <line key={`g${v}`} x1={padL} x2={padL + pw} y1={y(v)} y2={y(v)} stroke={P.ink} strokeOpacity={v === 0 ? 0.16 : stage ? 0.08 : 0.06} strokeWidth={1} />
             ))}
 
             <g clipPath={`url(#${clipId}-plot)`}>
+              {/* stage: a soft fill under the measured "with Gridzilla" line, down to 0 (dad's fill: "origin") */}
+              {stage && totalPts.length > 1 && (
+                <path d={`${linePath(totalPts)}L${totalPts[totalPts.length - 1][0].toFixed(1)},${y(0).toFixed(1)}L${totalPts[0][0].toFixed(1)},${y(0).toFixed(1)}Z`} fill={lineC} fillOpacity={withFillO} />
+              )}
               {/* the peak eaten: kept off in the past, planned away from Now on (flat fill, no gradient) */}
               {bandMoved && <path d={bandMoved} fill={P.green} fillOpacity={0.18} />}
               {planMoved && <path d={planMoved} fill={P.green} fillOpacity={0.18} />}
@@ -904,8 +936,9 @@ export default function LiveCurve({
             {/* the limits */}
             {stage ? (
               <>
-                {showImp && rating != null && <line x1={padL} x2={padL + pw} y1={y(rating)} y2={y(rating)} stroke={P.red} strokeWidth={swLim} />}
-                {showRev && reverse != null && <line x1={padL} x2={padL + pw} y1={y(-reverse)} y2={y(-reverse)} stroke={P.red} strokeWidth={swLim} />}
+                {/* dashed like dad's rating line (6 on, 4 off at his 1.5 px width) */}
+                {showImp && rating != null && <line x1={padL} x2={padL + pw} y1={y(rating)} y2={y(rating)} stroke={P.red} strokeWidth={swLim} strokeDasharray={`${swLim * 2.5} ${swLim * 1.7}`} />}
+                {showRev && reverse != null && <line x1={padL} x2={padL + pw} y1={y(-reverse)} y2={y(-reverse)} stroke={P.red} strokeWidth={swLim} strokeDasharray={`${swLim * 2.5} ${swLim * 1.7}`} />}
               </>
             ) : (
               limV != null && <line x1={padL} x2={padL + pw} y1={y(limV)} y2={y(limV)} stroke={P.red} strokeWidth={swLim} />

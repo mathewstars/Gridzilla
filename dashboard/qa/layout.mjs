@@ -15,14 +15,17 @@ const out = String(arg("out", "/tmp/gzqa/layout"));
 fs.mkdirSync(out, { recursive: true });
 const themes = String(arg("theme", "")).split(",").filter(Boolean); // ops console: dark,light (empty = page default)
 const hash = String(arg("hash", "")); // e.g. /demo for the ops console's demo mode
-const url = (p, theme) => stageUrl(dev, p) + (theme ? `?theme=${theme}` : "") + (hash ? `#${hash}` : "");
+const bare = !!arg("bare", false); // --bare: the page alone, full-bleed (?bare=1, how the deck embeds the demo)
+const extra = String(arg("q", "")); // more query, e.g. --q hero=blatnica (the demo in Blatnica mode)
+const q = (theme) => [bare && "bare=1", theme && `theme=${theme}`, extra].filter(Boolean).join("&");
+const url = (p, theme) => stageUrl(dev, p) + (q(theme) ? `?${q(theme)}` : "") + (hash ? `#${hash}` : "");
 const API = "http://localhost:8081/api";
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
 
 // In-page detectors. Returns findings by kind; every count must be 0.
 function detect([oneScreen, W]) {
   const vw = Math.min(innerWidth, W), vh = innerHeight; // phones may widen the layout viewport: judge against the device width
-  const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], notOneScreen: [] };
+  const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], scrollCut: [], seriesOut: [], notOneScreen: [] };
   const hidden = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
@@ -104,6 +107,32 @@ function detect([oneScreen, W]) {
       if (b.r > r.right + 2 || b.l < r.left - 2 || b.b > r.bottom + 2 || b.t0 < r.top - 2) F.outside.push(`"${b.t}" outside ${label(card)}`);
     }
     if (b.r > vw + 1 || b.l < -1) F.wide.push(`"${b.t}" beyond the viewport`);
+    // 5. scroll cut: visible text crossing the bottom or right edge of its nearest scrolling box (a panel that scrolls
+    // shows half a line on a projector). A page-level scroll column (data-scroll="page") scrolls like the window: exempt.
+    for (let e = b.el.parentElement; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      const sy = /auto|scroll/.test(cs.overflowY), sx = /auto|scroll/.test(cs.overflowX);
+      if (!sy && !sx) continue;
+      if (e.dataset?.scroll !== "page") {
+        const r = e.getBoundingClientRect();
+        if ((sy && b.t0 < r.bottom - 1 && b.b > r.bottom + 1) || (sx && b.l < r.right - 1 && b.r > r.right + 1)) F.scrollCut.push(`"${b.t}" cut by ${label(e)}`);
+      }
+      break;
+    }
+  }
+  // 6. series outside the plot: a chart that marks its plot rect (data-plot) and its series group (data-series) must keep
+  // every series inside that rect, measured on the raw geometry (getBBox ignores the clip, so a wrong y domain still fails)
+  for (const pr of document.querySelectorAll("svg [data-plot]")) {
+    const svg = pr.ownerSVGElement;
+    if (!svg || hidden(svg)) continue;
+    const r = pr.getBBox();
+    for (const el of svg.querySelectorAll("[data-series] path, [data-series] line")) {
+      if (el.getAttribute("d") === "") continue;
+      let b; try { b = el.getBBox(); } catch { continue; }
+      if (!b.width && !b.height) continue;
+      if (b.y < r.y - 2 || b.y + b.height > r.y + r.height + 2 || b.x < r.x - 2 || b.x + b.width > r.x + r.width + 2)
+        F.seriesOut.push(`${el.getAttribute("class") || el.tagName} outside the plot of ${label(svg.parentElement)}`);
+    }
   }
   if (document.documentElement.scrollWidth > vw + 1) F.wide.push(`page ${document.documentElement.scrollWidth}px wide`);
   if (oneScreen && document.documentElement.scrollHeight > vh + 1) F.notOneScreen.push(`page ${document.documentElement.scrollHeight}px tall`);
@@ -131,7 +160,7 @@ async function cell(state, p, size, theme = "") {
     await ready(page, state === "live" ? 20000 : 4000);
     const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
     f.console = errors;
-    const shot = `${out}/${state}-${p}${theme ? "-" + theme : ""}-${size}.png`;
+    const shot = `${out}/${state}-${p}${extra ? "-" + extra.replace(/\W+/g, "_") : ""}${bare ? "-bare" : ""}${theme ? "-" + theme : ""}-${size}.png`;
     // Grow the window to the whole page so below-the-fold parts (the 3D street pauses off-screen) render for the capture.
     const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
     if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }

@@ -39,6 +39,8 @@ function useRoute() {
 
 export default function OpsApp() {
   const route = useRoute();
+  // #/demo?bare=1 (query before the hash): demo mode alone, full-bleed, exactly as the pitch deck embeds DemoView
+  if (route === "demo" && new URLSearchParams(location.search).has("bare")) return <DemoView />;
   return <Console route={route} />;
 }
 
