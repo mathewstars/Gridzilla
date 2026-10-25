@@ -1,11 +1,13 @@
 // Six words: a signal explorer, the deck's slide 4 made interactive. At 1024 and up the six words stand as vertical tabs
-// on the left (the active one in ink with its tone as a 3 px rule, a soft tile following the mouse, arrow keys move
-// between them) and one glass tile on the right shows the active signal: its chart, the situation, the operator's
-// message and what the house does; switching crossfades the tile in 0.3 s, and nothing ever rotates by itself. Below
-// 1024 the six are a scroll-snap row of compact cards with a "1 of 6" counter and 44 px previous and next buttons.
-// Content and charts: sixwords/signals.ts and sixwords/SignalChart.tsx. Reduced motion: no crossfade, no slide.
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+// on the left (the active one in ink with its tone as a 3 px rule, a soft tile following the mouse) and one glass tile
+// on the right shows the active signal: its chart, the situation, the operator's message and what the house does.
+// Scrolling drives it (round 3): the explorer pins below the nav inside a tall track and walks the six words in short
+// steps of 45 vh, crossfading the tile in 0.25 s; clicking a word or an arrow key scrolls to that word's step; past the
+// last step it lets go. Reduced motion: no pin, the plain tab explorer. Below 1024 the six are a scroll-snap row of
+// compact cards with a "1 of 6" counter and 44 px previous and next buttons, never pinned.
+// Content and charts: sixwords/signals.ts and sixwords/SignalChart.tsx.
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { Section, Title } from "../ui/Section";
 import { Reveal, EASE } from "../ui/Reveal";
@@ -51,10 +53,9 @@ function Panel({ s }: { s: Signal }) {
   );
 }
 
-/** Desktop: the tabs and the tile. */
-function Explorer() {
+/** Desktop: the tabs and the tile. `active` and `onPick` come from the scroll (pinned) or from plain tab state. */
+function Explorer({ active, onPick }: { active: number; onPick: (i: number) => void }) {
   const reduce = useReducedMotion();
-  const [active, setActive] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const s = SIGNALS[active];
@@ -66,7 +67,7 @@ function Explorer() {
     if (go === undefined) return;
     e.preventDefault();
     const next = (go + n) % n;
-    setActive(next);
+    onPick(next);
     tabs.current[next]?.focus();
   };
 
@@ -84,7 +85,7 @@ function Explorer() {
             aria-controls="sw-panel"
             tabIndex={i === active ? 0 : -1}
             className={`sw-tab ${tone(w)}`}
-            onClick={() => setActive(i)}
+            onClick={() => onPick(i)}
             onMouseEnter={() => setHover(i)}
           >
             {hover === i && <motion.span layoutId="sw-hover" className="sw-hover" transition={slide} aria-hidden="true" />}
@@ -102,7 +103,7 @@ function Explorer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0 : 0.25, ease: "easeOut" }}
           >
             <Panel s={s} />
           </motion.div>
@@ -113,6 +114,76 @@ function Explorer() {
             <Panel s={g} />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Reduced motion: the explorer as plain tabs, nothing pinned. */
+function TabExplorer() {
+  const [active, setActive] = useState(0);
+  return (
+    <Reveal amount={0.2}>
+      <Explorer active={active} onPick={setActive} />
+    </Reveal>
+  );
+}
+
+const STEP_VH = 0.45;
+const N = SIGNALS.length;
+
+/** The scroll-driven explorer: a track as tall as the stage plus six steps of 45 vh; the stage sticks below the nav,
+ *  centred in the space under it, and the scroll position inside the track picks the word. */
+function PinnedExplorer() {
+  const track = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const [m, setM] = useState({ stageH: 700, vh: 900, nav: 72 });
+  const [active, setActive] = useState(0);
+  const { scrollY } = useScroll();
+
+  useLayoutEffect(() => {
+    const measure = () =>
+      setM({
+        stageH: stage.current?.offsetHeight ?? 700,
+        vh: window.innerHeight,
+        nav: document.querySelector<HTMLElement>('nav[aria-label="Main"]')?.offsetHeight ?? 72,
+      });
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (stage.current) ro.observe(stage.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const top = Math.max(m.nav + 16, (m.vh - m.stageH + m.nav) / 2);
+  const step = STEP_VH * m.vh;
+
+  const update = useCallback(() => {
+    const r = track.current?.getBoundingClientRect();
+    if (!r) return;
+    // once the whole track has gone up past the screen the explorer rests on the first word again, unseen
+    const idx = r.bottom < 0 ? 0 : Math.min(N - 1, Math.max(0, Math.floor((top - r.top) / step)));
+    setActive((a) => (a === idx ? a : idx));
+  }, [top, step]);
+  useMotionValueEvent(scrollY, "change", update);
+  useEffect(update, [update]);
+
+  // a word picked by click or key: scroll to the middle of its step
+  const pick = (i: number) => {
+    const r = track.current?.getBoundingClientRect();
+    if (!r) return;
+    window.scrollTo({ top: scrollY.get() + r.top - top + (i + 0.5) * step, behavior: "smooth" });
+  };
+
+  return (
+    <div ref={track} className="relative" style={{ height: m.stageH + N * step }}>
+      <div ref={stage} className="sticky" style={{ top }}>
+        <Reveal amount={0.2}>
+          <Explorer active={active} onPick={pick} />
+        </Reveal>
       </div>
     </div>
   );
@@ -181,14 +252,13 @@ function Cards() {
 }
 
 export default function SixWords() {
+  const reduce = useReducedMotion();
   return (
     <Section id="words">
       <Reveal>
         <Title>Six words. Signed.</Title>
       </Reveal>
-      <Reveal className="mt-12 hidden md:mt-16 lg:block" amount={0.2}>
-        <Explorer />
-      </Reveal>
+      <div className="mt-12 hidden md:mt-16 lg:block">{reduce ? <TabExplorer /> : <PinnedExplorer />}</div>
       <Reveal className="mt-10 lg:hidden" amount={0.2}>
         <Cards />
       </Reveal>
