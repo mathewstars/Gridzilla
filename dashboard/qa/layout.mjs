@@ -16,7 +16,8 @@ fs.mkdirSync(out, { recursive: true });
 const themes = String(arg("theme", "")).split(",").filter(Boolean); // ops console: dark,light (empty = page default)
 const hash = String(arg("hash", "")); // e.g. /demo for the ops console's demo mode
 const bare = !!arg("bare", false); // --bare: the page alone, full-bleed (?bare=1, how the deck embeds the demo)
-const q = (theme) => [bare && "bare=1", theme && `theme=${theme}`].filter(Boolean).join("&");
+const extra = String(arg("q", "")); // more query, e.g. --q hero=blatnica (the demo in Blatnica mode)
+const q = (theme) => [bare && "bare=1", theme && `theme=${theme}`, extra].filter(Boolean).join("&");
 const url = (p, theme) => stageUrl(dev, p) + (q(theme) ? `?${q(theme)}` : "") + (hash ? `#${hash}` : "");
 const API = "http://localhost:8081/api";
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
@@ -145,7 +146,7 @@ async function cell(state, p, size, theme = "") {
     await ready(page, state === "live" ? 20000 : 4000);
     const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
     f.console = errors;
-    const shot = `${out}/${state}-${p}${bare ? "-bare" : ""}${theme ? "-" + theme : ""}-${size}.png`;
+    const shot = `${out}/${state}-${p}${extra ? "-" + extra.replace(/\W+/g, "_") : ""}${bare ? "-bare" : ""}${theme ? "-" + theme : ""}-${size}.png`;
     // Grow the window to the whole page so below-the-fold parts (the 3D street pauses off-screen) render for the capture.
     const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
     if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }

@@ -12,7 +12,8 @@ import { ActiveList } from "../control/SignalCard";
 import { Btn, Result, useAction, useNow } from "../control/ui";
 import FeedStrip from "../now/FeedStrip";
 import Tonight from "../tonight/Tonight";
-import BlatnicaLive from "./BlatnicaLive";
+import BlatnicaLive, { PlantHero } from "./BlatnicaLive";
+import { useLiveBlatnica } from "./live";
 import { cellOf } from "../city/cityData";
 import CityDots from "../ops2/Dots";
 import { loadTone } from "../../stage/palette";
@@ -50,31 +51,42 @@ function Demo({ ops }: { ops: Ops }) {
   useEffect(() => {
     if (tf && tf !== ops.tf) ops.select(tf);
   }, [tf, ops]);
+  // Blatnica mode: the real plant in the hero. In: key B or a click on the Blatnica card; out: B again, Up/Down or a
+  // city dot. Nothing switches by itself. ?hero=blatnica opens the demo in it (the gates, a deck link).
+  const plant = useLiveBlatnica();
+  const [showPlant, setShowPlant] = useState(() => new URLSearchParams(location.search).get("hero") === "blatnica");
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        setShowPlant((v) => !v);
+        return;
+      }
       if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       e.preventDefault();
+      if (showPlant) return setShowPlant(false); // back to the transformer that was showing
       if (!order.length) return;
       const i = Math.max(0, order.indexOf(tf));
       setPicked(order[(i + (e.key === "ArrowDown" ? 1 : order.length - 1)) % order.length]);
     };
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
-  }, [order, tf]);
+  }, [order, tf, showPlant]);
 
   return (
     <div className="demo">
       <div className="demo-left">
         <Tonight ops={ops} compact />
-        <Hero ops={ops} tf={tf} />
+        {showPlant ? <PlantHero plant={plant} /> : <Hero ops={ops} tf={tf} />}
         <FeedStrip ops={ops} />
       </div>
       <div className="demo-right">
         <NowCard ops={ops} />
-        <BlatnicaLive />
+        <BlatnicaLive plant={plant} open={showPlant} onOpen={() => setShowPlant(true)} />
       </div>
-      <CityDots s={s} ops={ops} selected={tf} onPick={setPicked} />
+      <CityDots s={s} ops={ops} selected={showPlant ? "" : tf} onPick={(n) => { setPicked(n); setShowPlant(false); }} />
     </div>
   );
 }

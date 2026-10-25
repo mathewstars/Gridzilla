@@ -37,7 +37,7 @@ export interface LiveHousehold {
   path?: string[];
   kwh?: number;
   telemetry: LiveTelemetry | null;
-  ack: (Partial<Pick<Ack, "status" | "reason" | "seq" | "verified">>) | null;
+  ack: (Partial<Pick<Ack, "status" | "reason" | "seq" | "verified">> & { applied?: { import_max_kw?: number | null; export_max_kw?: number | null } }) | null;
 }
 export interface LiveState {
   households?: Record<string, LiveHousehold>;

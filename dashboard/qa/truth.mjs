@@ -12,6 +12,7 @@ import { arg, launch, newPage, ready, stageUrl } from "./lib.mjs";
 const dev = !!arg("dev", false);
 const sizes = String(arg("sizes", "1440x900,390x844")).split(",");
 const hash = String(arg("hash", "")); // e.g. /demo
+const extra = String(arg("q", "")); // more query, e.g. --q hero=blatnica (the demo in Blatnica mode)
 const out = String(arg("out", "/tmp/gzqa/truth"));
 fs.mkdirSync(out, { recursive: true });
 
@@ -117,7 +118,7 @@ const browser = await launch();
 const results = [];
 for (const size of sizes) {
   const { ctx, page } = await newPage(browser, size);
-  await page.goto(stageUrl(dev) + (hash ? `#${hash}` : ""), { waitUntil: "domcontentloaded" });
+  await page.goto(stageUrl(dev) + (extra ? `?${extra}` : "") + (hash ? `#${hash}` : ""), { waitUntil: "domcontentloaded" });
   await ready(page, 6000);
   // freshness: what the page holds must be the live platform's current state (seq within a few ticks)
   const pageSeq = await page.evaluate(() => window.__gz?.state?.seq ?? null);
