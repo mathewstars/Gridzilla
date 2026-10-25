@@ -1,4 +1,4 @@
-// Slide 7, the close (Matthew). Two steps, no ask on screen (the captain says it when he wants to).
+// Slide 8 (file Slide7), the close (Matthew). Two steps, no ask on screen (the captain says it when he wants to).
 // Step 0: "So at six tomorrow, when the cars come home, the batteries answer before anyone notices.", alone and centred
 // on the hero background. Step 1 (Right): it leaves in 0.4 s and "It eats peaks for breakfast." stands alone.
 // No 21st.dev component: the slide is pure type on the pitch tokens.
@@ -61,7 +61,7 @@ export default function Slide7({ step, freeze }: SlideProps) {
   );
 
   return (
-    <div className="p-slide" data-slide="7" data-step={step}>
+    <div className="p-slide" data-slide="8" data-step={step}>
       {still ? (closing ? close : answer) : <AnimatePresence mode="wait">{closing ? close : answer}</AnimatePresence>}
     </div>
   );

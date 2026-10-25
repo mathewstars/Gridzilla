@@ -1,7 +1,7 @@
-// Slide 5, the live demo: the console's DEMO MODE (DemoView from src/ops/demo, imported, never copied or edited): one
+// Slide 6 (file Slide5), the live demo: the console's DEMO MODE (DemoView from src/ops/demo, imported, never copied or edited): one
 // transformer's story big, the AI's steps and the signals running, the newest events, the whole city as dots. The
 // shell keeps this slide mounted off-screen from the first frame (keepMounted), so its data is warm and it appears the
-// moment slide 4 is left. Steps 1-7 are the walkthrough (Tour5.tsx): each Right lights one area with a caption.
+// moment the monster slide is left. Steps 1-7 are the walkthrough (Tour5.tsx): each Right lights one area with a caption.
 // Keys: DemoView's own Up/Down pick the transformer. It has no scenario keys, so 1-4 set the live scenario here
 // (normal, cold evening, sunny noon, live weather), on this slide and on the title slide (the run of show: press 2
 // before you walk up). In read-only live mode (?api=) those POSTs are refused in the page. Left, Right, F, Esc and D
@@ -35,7 +35,7 @@ export default function Slide5({ active, step, tourOff }: SlideProps) {
   }, []);
 
   return (
-    <div ref={setRoot} className="p-stage" data-slide="5">
+    <div ref={setRoot} className="p-stage" data-slide="6">
       <DemoView />
       {active && step >= 1 && !tourOff && <Tour5 step={step} root={root} />}
     </div>

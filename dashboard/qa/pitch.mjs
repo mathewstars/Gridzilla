@@ -3,7 +3,7 @@
 //   G1  open the deck, step through every slide and build step with ArrowRight like the presenter (slide 1: the first
 //       press starts the jingle, the next one moves on), ~2.5 s per press (12 s on the live stage); every console error
 //       or warning and every page error fails, and so does a slide the presses never reached.
-//   G3  every slide x every step x every size, at "start" (0.4 s after load) and "end" (?freeze=end, 2.5 s; slide 5:
+//   G3  every slide x every step x every size, at "start" (0.4 s after load) and "end" (?freeze=end, 2.5 s; slide 6:
 //       8 s so the stage is live): the layout detectors of qa/layout.mjs (overlap, clipped, cut, outside its card, wider
 //       than the window, inner scroll; plus console errors), one PNG per cell. Slide 5 skips inner scroll: the stage
 //       scrolls inside the shell by design on short windows. notOneScreen is skipped everywhere (the deck never scrolls).
@@ -26,22 +26,23 @@ const sizes = String(arg("sizes", quick ? "1920x1080,1240x635" : "1920x1080,2560
 const out = String(arg("out", "/tmp/gzpitch/qa"));
 const only = String(arg("only", "all"));
 const CONC = 4;
-const LIVE = 5; // the live stage slide
+const LIVE = 6; // the live stage slide
 fs.mkdirSync(out, { recursive: true });
 
-// Build steps per slide, read from the registry (src/pitch/slides/index.ts) so the gate follows the deck.
+// Build steps per slide, read from the registry (src/pitch/slides/index.ts) so the gate follows the deck. The slide
+// number is the row's position in SLIDES (the files kept their first numbers, so SlideSignals is 4 and Slide4.tsx is 5).
 function readSteps() {
   try {
     const src = fs.readFileSync(new URL("../src/pitch/slides/index.ts", import.meta.url), "utf8");
     const body = src.slice(src.indexOf("SLIDES"));
-    const rows = body.split("\n").filter((l) => /Component:\s*Slide\d/.test(l));
+    const rows = body.split("\n").filter((l) => /Component:\s*\w+/.test(l));
     const steps = {};
-    for (const l of rows) steps[Number(/Component:\s*Slide(\d+)/.exec(l)[1])] = Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1);
+    rows.forEach((l, i) => (steps[i] = Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1)));
     if (Object.keys(steps).length) return steps;
   } catch {}
-  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 8, 6: 1, 7: 2, 8: 1 };
+  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 8, 7: 1, 8: 2, 9: 1 };
 }
-// Steps per slide number (0 = the trailer, 1-7 the slides).
+// Steps per slide number (0 = the trailer, 1-9 the slides).
 const STEPS = readSteps();
 const NUMS = Object.keys(STEPS).map(Number).sort((a, b) => a - b);
 const N = NUMS[NUMS.length - 1];
@@ -165,7 +166,7 @@ async function g1(theme) {
     if (cur) seen.add(cur);
     // Every step of every slide, one press for the jingle on slide 1, then a few spare presses at the end: the deck
     // must stay on the last slide.
-    // Slide 0: one press plays the trailer, the next skips it to the title. Then every step of slides 1-7.
+    // Slide 0: one press plays the trailer, the next skips it to the title. Then every step of slides 1-9.
     const presses = 2 + NUMS.filter((n) => n > 0).reduce((a, n) => a + STEPS[n], 0) + 1;
     for (let k = 1; k <= presses; k++) {
       await page.keyboard.press("ArrowRight");
@@ -200,7 +201,7 @@ async function cell(slide, step, size, phase, theme) {
     const url = `${base}${sep}theme=${theme}&slide=${slide}&step=${step}${phase === "end" ? "&freeze=end" : ""}`;
     await page.goto(url, { waitUntil: "load", timeout: 30000 });
     await page.waitForTimeout(phase === "start" ? 400 : slide === LIVE ? 8000 : 2500);
-    // The slide 5 walkthrough is an overlay that sits over the demo by design: judge the demo with it hidden, then
+    // The slide 6 walkthrough is an overlay that sits over the demo by design: judge the demo with it hidden, then
     // check the overlay on its own (its caption card fully inside the window).
     const tour = slide === LIVE && step > 0;
     if (tour) await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "hidden")));

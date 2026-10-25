@@ -1,4 +1,4 @@
-// Slide 4: the monster eats peaks (1:35, 40 s, Peter). One big curve from the live diet plan for Vienna
+// Slide 5 (file Slide4): the monster eats peaks (1:35, 40 s, Peter). One big curve from the live diet plan for Vienna
 // (/api/flatten?node=region:at), snapshotted once at mount: the next 24 hours from now, one continuous line (the plan
 // starts at the sim's now, which can be any hour, so a fixed clock window would stitch two days together). Without
 // Gridzilla the evening heads past the limit; the orange slice is the peak Gridzilla eats and stays on screen; green
@@ -148,7 +148,7 @@ export default function Slide4({ freeze }: SlideProps) {
   }, [snap, failed, timedOut]);
 
   return (
-    <div className="p-slide" data-slide="4">
+    <div className="p-slide" data-slide="5">
       <h1 className="p-head-xl s4-head">The monster eats peaks.</h1>
       <p className="p-sub p-secondary s4-sub">Every street, every evening.</p>
       {snap && <Chart key={snap.live ? "live" : "illustration"} snap={snap} still={still} />}
