@@ -1,5 +1,5 @@
 // Team + links (spec section 10): the three people in a row, each with their real GitHub avatar, name, role and
-// handle (the handle links to the profile); under them one tinted panel with the four pills and the hackathon
+// handle (the handle links to the profile); under them one tile with the four pills and the hackathon
 // line. Colours come from the tokens only (the page theme decides them). Phone: one column, the pills full width.
 // People rise in once, 80 ms apart; under reduced motion they are there.
 import { GithubLogo } from "@phosphor-icons/react";
@@ -39,7 +39,7 @@ export default function Team() {
               alt={p.name}
               loading="lazy"
               decoding="async"
-              className="block size-24 rounded-full bg-fill object-cover shadow-[0_0_0_1px_var(--color-fill),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-fill),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+              className="block size-24 rounded-full bg-fill object-cover shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-card)] transition-[translate,box-shadow] duration-[350ms] ease-[var(--ease-out-expo)] group-hover:-translate-y-0.5 group-hover:shadow-[0_0_0_1px_var(--color-hairline),var(--shadow-lift)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
             />
             <h3 className="m-0 mt-7 text-[21px] font-semibold leading-tight tracking-[-0.015em] lg:text-[22px]">{p.name}</h3>
             {p.org && <p className="m-0 mt-1 text-[15px] text-secondary">{p.org}</p>}
@@ -57,10 +57,10 @@ export default function Team() {
         ))}
       </ul>
 
-      <Reveal className="mt-16 rounded-[var(--radius-card)] bg-ground p-5 md:mt-24 md:p-8 lg:p-10 xl:flex xl:items-center xl:justify-between xl:gap-10">
+      <Reveal className="tile mt-16 p-5 md:mt-24 md:p-8 lg:p-10 xl:flex xl:items-center xl:justify-between xl:gap-10">
         <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap xl:shrink-0">
           {TEAM_LINKS.map((l) => (
-            <PillLink key={l.label} href={l.href} tone="light" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">
+            <PillLink key={l.label} href={l.href} tone="secondary" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">
               {l.label}
             </PillLink>
           ))}
