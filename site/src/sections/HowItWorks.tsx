@@ -8,15 +8,16 @@ import { Reveal } from "../ui/Reveal";
 import { asset } from "../lib/links";
 import "../styles/sections-a.css";
 
-// Screenshots: the live console at gridzilla.victronlab.sk, captured headless at 2x (GET only), cropped to one panel.
-export const STEPS: { title: string; body: string; shot: string; w: number; h: number; narrow?: { shot: string; w: number; h: number }; alt: string; caption: string }[] = [
+// Screenshots: the live console at gridzilla.victronlab.sk in its dark theme, captured headless at 2x (GET only, every
+// other request aborted) at the moment the live state matched the step, cropped to one panel.
+export const STEPS = [
   {
     title: "The operator signs a limit.",
     body: "“This street, next three hours, at most three kilowatts import per house.” Signed with Ed25519, scoped to one segment and one time window.",
     shot: "shots/step-signal.webp",
     w: 960,
     h: 848,
-    alt: "The console's signal card: an 85 % forecast on Landstrasse, the choice to use the batteries there, the rule check allowed, and signed message 20557 applied by 40 homes.",
+    alt: "The console's signal card: a 90 % forecast on Atzgersdorf at 22:24, the choice to use the batteries there, the rule check allowed, and signed message 21505 sent to 40 homes, 24 applied.",
     caption: "The console's signal card: what was seen, chosen, checked and signed.",
   },
   {
@@ -25,7 +26,7 @@ export const STEPS: { title: string; body: string; shot: string; w: number; h: n
     shot: "shots/step-plan.webp",
     w: 1600,
     h: 711,
-    alt: "The diet plan for all of Vienna over the next 24 hours: without Gridzilla the evening heads toward the 30 MVA limit, with the plan it stays flat at the level line, the eaten peak in orange.",
+    alt: "The diet plan for all of Vienna over the next 24 hours: without Gridzilla the evening peaks at 92 % of the 30 MVA limit, with the plan it stays flat at 57 %, the eaten peak in orange.",
     caption: "The diet plan for all of Vienna, the envelope each house merges with its own limits.",
   },
   {
@@ -34,25 +35,23 @@ export const STEPS: { title: string; body: string; shot: string; w: number; h: n
     shot: "shots/step-plant.webp",
     w: 1572,
     h: 1648,
-    alt: "The real plant in Blatnica following a signed signal: at most 2 kW from the grid, the grid power chart under the dashed import limit, battery at 50 %, heat pump at 3 kW.",
-    caption: "The real plant in Blatnica, holding a signed 2 kW import limit.",
+    alt: "The real plant in Blatnica following a signed signal: at most 5.4 kW from the grid; the grid power drops from about 9.5 kW to 4.5 kW under the dashed import limit while the car keeps charging at 11.3 kW.",
+    caption: "The real plant in Blatnica, holding a signed 5.4 kW import limit.",
   },
   {
     title: "A signed answer comes back.",
     body: "Acks are honest: “applied” or “partial”, never pretend. When the window ends or the heartbeat stops, everything reverts.",
+    // the log's left part (time, kind, what happened): the whole width would shrink the rows past reading
     shot: "shots/step-log.webp",
-    w: 1600,
-    h: 560,
-    // below 1024 a narrower crop (time, kind, what happened) so the rows stay readable
-    narrow: { shot: "shots/step-log-narrow.webp", w: 1000, h: 518 },
-    alt: "The platform log: a SUPPORT signal ended when its window was over, then one ack per house saying it reverted at the window end.",
-    caption: "The platform log: the window ran out and every house reverted.",
+    w: 1000,
+    h: 518,
+    alt: "The platform log: two SUPPORT signals ended when their windows were over, each followed by acks from the houses saying they reverted at the window end.",
+    caption: "The platform log: the window ran out and the houses reverted.",
   },
 ];
 
-function Shot({ s, narrow, className = "" }: { s: (typeof STEPS)[number]; narrow?: boolean; className?: string }) {
-  const f = (narrow && s.narrow) || s;
-  return <img src={asset(f.shot)} width={f.w} height={f.h} alt={s.alt} loading="lazy" decoding="async" className={`block h-auto max-h-full w-auto max-w-full rounded-[14px] shadow-card ${className}`} />;
+function Shot({ s, className = "" }: { s: (typeof STEPS)[number]; className?: string }) {
+  return <img src={asset(s.shot)} width={s.w} height={s.h} alt={s.alt} loading="lazy" decoding="async" className={`block h-auto max-h-full w-auto max-w-full rounded-[14px] shadow-card ${className}`} />;
 }
 
 export default function HowItWorks() {
@@ -96,7 +95,7 @@ export default function HowItWorks() {
               </Reveal>
               {/* phone and tablet: the screenshot under its own step */}
               <figure className="tile m-0 mt-8 p-3 md:p-8 lg:hidden">
-                <Shot s={s} narrow className="mx-auto" />
+                <Shot s={s} className="mx-auto" />
                 <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
               </figure>
             </li>
@@ -105,9 +104,10 @@ export default function HowItWorks() {
 
         {/* desktop: the pinned frame, its screenshot crossfading with the active step */}
         <div className="hidden lg:col-span-7 lg:block">
-          <div className="sticky top-0 flex h-[100svh] items-center">
+          {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
+          <div className="sticky top-[14svh] flex h-[72svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
-              <div className="tile relative aspect-[5/4] max-h-[72svh] w-full">
+              <div className="tile relative aspect-[5/4] max-h-[60svh] w-full">
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}
