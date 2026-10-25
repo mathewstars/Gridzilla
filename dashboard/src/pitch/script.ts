@@ -28,7 +28,7 @@ export const NOTES: Notes[] = [
     who: "Matthew",
     time: "0:50, 35 s",
     steps: [
-      "One message does the whole job. Every box reads the same line and sorts it out by itself: battery first, car second, hot water third. The operator asks, the house decides, the owner can always say no.",
+      "Every box reads the same line and sorts it out by itself: battery, car, hot water; the owner can always say no. One agent in every house, eight identical functions; only apply is vendor-specific: Victron via Node-RED, Viessmann via ViCare.",
       "Every fifteen minutes the AI reads the city and writes the message. Thirty lines of rules check it, the platform signs it, the houses reply, signed.",
     ],
   },
@@ -46,7 +46,7 @@ export const NOTES: Notes[] = [
       "This is one street in Vienna, tonight, live. Talk while it runs; never wait for the screen.",
       "The curve: with Gridzilla against without, the limit, tonight's plan, the peak it eats.",
       "The ring: how full this transformer is right now.",
-      "The AI saw the peak coming, wrote the message in about a second; the rules checked it, the platform signed and sent it.",
+      "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes every fifteen grid minutes; a thirty-line deterministic guard disposes, the platform signs and sends. A rule-based fallback runs through the same guard; every decision logged.",
       "A limit for a limited time: every message runs out by itself.",
       "The whole city: colour is how close each transformer is to its limit. Most need no upgrade tonight.",
       "What just happened: signed messages out, signed replies back. Any brand can join.",
