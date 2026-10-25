@@ -1,12 +1,11 @@
-// The demo slide's (slide 6) walkthrough as a spotlight: a 70 % black scrim over the whole live demo with one rounded, feathered cut-out
-// exactly around the area being talked about, and a caption card (heading + one line) beside it. No rings, no borders.
-// Each Right MORPHS the cut-out (x, y, size, corner radius) and slides the card with it in 250 ms (ease-out), driven by
-// one requestAnimationFrame tween that writes straight to the SVG mask and the card's transform (no React re-render per
-// frame). The cut-out's corners follow the panel's own border-radius (getComputedStyle; the inner blocks have none, so
-// the nearest rounded ancestor's). Anchors, tried in order: #gz-tour-* ids (if the console adds them), DemoView's own
-// parts (.demo-curve, .demo-ring, .gz-steps, .demo-sigs, .demo-city, .fstrip), then the presentation stage's (if slide 5
-// ever shows the stage again). The Pause lives on dad's board, not in the demo, so step 7 has no area: the scrim stays
-// and the card sits bottom centre. Captions in the run of show's plain words (firstmate data/gz-ui/pitch-script.md).
+// The demo slide's (slide 6) walkthrough as a spotlight: a 70 % black scrim over the console's live Operations view
+// with one rounded, feathered cut-out exactly around the area being talked about, and a caption card (heading + one
+// line) beside it. No rings, no borders. Each Right MORPHS the cut-out (x, y, size, corner radius) and slides the card
+// with it in 250 ms (ease-out), driven by one requestAnimationFrame tween that writes straight to the SVG mask and the
+// card's transform (no React re-render per frame). The cut-out's corners follow the panel's own border-radius
+// (getComputedStyle; the inner blocks have none, so the nearest rounded ancestor's). Five stops, anchored on the
+// Operations view's own parts: Saved tonight (.op2-tonight), the Vienna chart (.op2-curve), What the AI did
+// (.op2-tiles), the Blatnica card (.blat), the city chips (.bc-chips).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./tour5.css";
 
@@ -21,60 +20,24 @@ interface Stop {
 
 export const TOUR: Stop[] = [
   {
-    head: "This street, live",
-    try: [
-      ["#gz-tour-curve", "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
-      [".demo-curve", "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
-      ['[data-card="curve"]', "This street tonight, live: with Gridzilla against without, the limit, tonight's plan, and the peak it eats."],
-    ],
+    head: "Saved tonight",
+    try: [[".op2-tonight", "What Gridzilla saved tonight, across the whole city, and what it did to get there."]],
   },
   {
-    head: "The ring",
-    try: [
-      ["#gz-tour-ring", "How full this transformer is right now, against its limit."],
-      [".demo-ring", "How full this transformer is right now, against its limit."],
-      [".gzH-ring", "How full this transformer is right now, against its limit."],
-    ],
+    head: "All of Vienna, live",
+    try: [[".op2-curve", "All 72 transformers added up: with Gridzilla against without, the limit, and the peak it eats."]],
   },
   {
-    head: "The AI's four steps",
-    try: [
-      ["#gz-tour-ai", "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
-      [".demo-now .gz-steps", "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
-      ['[data-card="ai"]', "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"],
-    ],
+    head: "What the AI did",
+    try: [[".op2-tiles", "DeepSeek, self-hosted on our own NVIDIA DGX Spark, proposes · a thirty-line guard disposes · a rule-based fallback when the model is slow or down"]],
   },
   {
-    head: "Signals running",
-    try: [
-      ["#gz-tour-signals", "A limit for a limited time: every message runs out by itself, then the owners decide again."],
-      [".demo-sigs", "Signals running, each with its countdown: a limit for a limited time, then the owners decide again."],
-      [".gzF > :nth-child(1)", "A limit for a limited time: every message runs out by itself, then the owners decide again."],
-    ],
+    head: "Our family home",
+    try: [[".blat", "Blatnica, real and live: the battery, the car charger and the heat pump, following the same signed messages."]],
   },
   {
-    head: "The whole city",
-    try: [
-      ["#gz-tour-city", "The whole city: 72 transformers, the colour is how close each one is to its limit."],
-      [".demo-city", "The whole city: 72 transformers, the colour is how close each one is to its limit."],
-      ['[data-card="street"]', "One street: every home here follows the plan, and nobody gets cut off.", "One street"],
-    ],
-  },
-  {
-    head: "What just happened",
-    try: [
-      ["#gz-tour-feed", "What just happened: signed messages out, signed replies back from the houses."],
-      [".fstrip", "What just happened: signed messages out, signed replies back from the houses."],
-      [".gzF > :nth-child(5)", "Any maker of the box can join: every message is signed, every reply comes back signed and checked.", "Any maker can join"],
-    ],
-  },
-  {
-    head: "Owner mode",
-    try: [
-      ["#gz-tour-heartbeat", "Pause: the operator goes dark. Every house is back to owner mode within two minutes."],
-      [".gzF > :nth-child(2)", "The owner always wins: if the operator goes dark, every house is back to owner mode within two minutes."],
-    ],
-    alone: "Now the operator goes dark (Peter pauses it on the board). Every house is back to owner mode within two minutes.",
+    head: "Any street, one tap",
+    try: [[".bc-chips", "Every substation, feeder and street transformer: the colour is how close each one is to its limit."]],
   },
 ];
 

@@ -1,13 +1,14 @@
-// Slide 6 (file Slide5), the live demo: the console's DEMO MODE (DemoView from src/ops/demo, imported, never copied or edited): one
-// transformer's story big, the AI's steps and the signals running, the newest events, the whole city as dots. The
-// shell keeps this slide mounted off-screen from the first frame (keepMounted), so its data is warm and it appears the
-// moment the monster slide is left. Steps 1-7 are the walkthrough (Tour5.tsx): each Right lights one area with a caption.
-// Keys: DemoView's own Up/Down pick the transformer. It has no scenario keys, so 1-4 set the live scenario here
-// (normal, cold evening, sunny noon, live weather), on this slide and on the title slide (the run of show: press 2
-// before you walk up). In read-only live mode (?api=) those POSTs are refused in the page. Left, Right, F, Esc and D
-// belong to the shell.
+// Slide 6 (file Slide5), the live demo: the console's OPERATIONS view (OperationsView from src/ops/ops2, imported, never
+// copied or edited), full-bleed, opening on all of Vienna (the console's default node, region:at): Saved tonight, the
+// Vienna chart with its chips, the newest events, What the AI did and the real Blatnica plant. The shell keeps this
+// slide mounted off-screen from the first frame (keepMounted), so its data is warm and it appears the moment the monster
+// slide is left. Steps 1-5 are the walkthrough (Tour5.tsx): each Right lights one area with a caption.
+// Keys: 1-4 set the live scenario here (normal, cold evening, sunny noon, live weather), on this slide and on the title
+// slide (the run of show: press 2 before you walk up). In read-only live mode (?api=) those POSTs are refused in the
+// page. Left, Right, F, Esc and D belong to the shell.
 import { useEffect, useRef, useState } from "react";
-import { DemoView } from "../../ops/demo/DemoView";
+import OperationsView from "../../ops/ops2/OperationsView";
+import { useOps } from "../../ops/useOps";
 import { post } from "../../api";
 import Tour5 from "./Tour5";
 import type { SlideProps } from "../types";
@@ -36,8 +37,14 @@ export default function Slide5({ active, step, tourOff }: SlideProps) {
 
   return (
     <div ref={setRoot} className="p-stage" data-slide="6">
-      <DemoView />
+      <OpsLive />
       {active && step >= 1 && !tourOff && <Tour5 step={step} root={root} />}
     </div>
   );
+}
+
+/** The Operations view on its own data hook (the console's useOps), as the console's #/ops route shows it. */
+function OpsLive() {
+  const ops = useOps();
+  return ops.s ? <OperationsView ops={ops} /> : <div className="p-stage-wait">Connecting to the grid.</div>;
 }
