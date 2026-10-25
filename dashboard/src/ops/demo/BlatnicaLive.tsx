@@ -2,7 +2,7 @@
 // charger) on Gridzilla for real, read from the LIVE server (live.ts), with dad's labels from his Presentation tab:
 // four stats, his 30-minute grid kW line, and the ack/signal footer. No data = "waiting for the plant", never numbers
 // we made up; ?plant=sample shows a labelled fixture for design reviews.
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { kwTicks, LIVE_DEVICE, LIVE_HH, PLANT_SAMPLE, SAMPLE_HH, SAMPLE_POINTS, useLiveBlatnica, type LiveHousehold } from "./live";
 import type { DevPoint } from "../../api";
 import { Key, Swatch } from "../../stage/kit/LiveCurve";
@@ -46,11 +46,41 @@ function GridKey({ muted }: { muted?: boolean }) {
 }
 
 /** His realChart: grid kW, blue 2 px line with a soft fill to zero, "N kW" ticks (max 4) on faint gridlines, no x axis. */
+/** The plot's height in px (0 until measured), so the y labels never crowd each other. */
+function useHeight<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setH(e.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, h] as const;
+}
+
+/** The labelled ticks for a plot `ph` px tall at 14 px text: under 90 px (or not measured yet) only 0 and the end farthest
+ *  from it, "kW" once; taller, every tick that keeps 16 px between labels (thinned around 0, never more than fit). */
+function shownTicks(ticks: number[], lo: number, hi: number, ph: number): number[] {
+  const far = Math.abs(hi) >= Math.abs(lo) ? hi : lo;
+  const two = far === 0 ? [0] : [0, far];
+  if (ph < 90) return two;
+  const fit = Math.floor(ph / 16) + 1;
+  if (ticks.length <= fit) return ticks;
+  const z = Math.max(0, ticks.indexOf(0));
+  const thin = ticks.filter((_, i) => (i - z) % 2 === 0);
+  return thin.length <= fit ? thin : two;
+}
+
 function GridLine({ pts }: { pts: DevPoint[] }) {
+  const [box, ph] = useHeight<HTMLDivElement>();
   const v = pts.map((p) => p.grid_kw);
   const nums = v.filter((x): x is number => x != null);
   if (nums.length < 2) return <div className="blat-chart blat-chart-empty">collecting the last 30 minutes</div>;
-  const { lo, hi, ticks } = kwTicks(nums);
+  const { lo, hi, ticks: all } = kwTicks(nums);
+  const ticks = shownTicks(all, lo, hi, ph);
+  const sparse = ph < 90; // two labels: the unit once, on the far one
   const W = 1000, H = 100;
   const x = (i: number) => (i / (v.length - 1)) * W;
   const y = (k: number) => ((hi - k) / (hi - lo)) * H;
@@ -68,11 +98,12 @@ function GridLine({ pts }: { pts: DevPoint[] }) {
     .join("");
   const dec = ticks.some((t) => Math.abs(t - Math.round(t)) > 1e-6) ? (ticks.some((t) => Math.abs(t * 10 - Math.round(t * 10)) > 1e-6) ? 2 : 1) : 0;
   return (
-    <div className="blat-chart" role="img" aria-label="Blatnica grid kW, last 30 minutes">
+    <div ref={box} className="blat-chart" role="img" aria-label="Blatnica grid kW, last 30 minutes">
       <div className="blat-ticks" data-src="axis">
         {ticks.map((t) => (
           <span key={t} style={{ top: `${(y(t) / H) * 100}%` }}>
-            {minus(t.toFixed(dec))} kW
+            {minus(t.toFixed(dec))}
+            {sparse && t === 0 ? "" : " kW"}
           </span>
         ))}
       </div>

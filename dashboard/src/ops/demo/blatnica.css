@@ -76,12 +76,12 @@
 @media (min-width: 1240px) and (max-height: 1000px) {
   .blat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "stats fig" "foot foot"; column-gap: 14px; }
   .blat-head { grid-area: head; }
-  .blat-stats { grid-area: stats; align-content: start; gap: 4px 12px; }
+  .blat-stats { grid-area: stats; align-content: start; gap: 6px 24px; } /* each stat reads alone: 24 px between columns */
   .blat-fig { grid-area: fig; min-width: 0; }
   .blat-head + .blat-fig { grid-area: auto; grid-column: 1 / -1; } /* waiting: no numbers yet, the frame takes the width */
   .blat-foot { grid-area: foot; }
   .blat-more { display: none; }
-  .blat-l { white-space: nowrap; }
+  .blat-l { white-space: normal; } /* a long label wraps under its own value, never into the next stat */
   .blat-chart { height: 56px; }
 }
 @media (min-width: 1240px) and (max-height: 760px) { .blat { gap: 4px; } .blat-chart { height: 44px; padding: 6px 0; } }

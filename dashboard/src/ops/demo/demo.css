@@ -133,4 +133,5 @@
   .demo-now .gz-steps li > :nth-child(n + 3) { display: none; }
   .demo-now > .demo-h3 { display: none; }
   .demo-sigs .cp-code { display: none; } /* "SUPPORT" repeats "Use batteries"; the node name gets the room */
+  .demo-now > .demo-more { display: none; } /* the pointer to Operations gives way to the plant card */
 }
