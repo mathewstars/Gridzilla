@@ -89,7 +89,7 @@ const lerp = (a: Geo, b: Geo, k: number): Geo => ({
 });
 const cardWidth = (W: number) => Math.round(Math.min(520, Math.max(320, W * 0.25), W - 2 * EDGE));
 
-export default function Tour5({ step, root }: { step: number; root: HTMLElement | null }) {
+export default function Tour5({ step, root, frame }: { step: number; root: HTMLElement | null; frame?: HTMLIFrameElement | null }) {
   const stop = TOUR[step - 1];
   const [hit, setHit] = useState<Hit | null>(null);
   const [W, setW] = useState(() => window.innerWidth);
@@ -168,8 +168,12 @@ export default function Tour5({ step, root }: { step: number; root: HTMLElement 
         const alone = stop.alone;
         return setHit((h) => (!alone ? null : h && !h.box && h.caption === alone ? h : { box: null, r: 0, head: stop.head, caption: alone }));
       }
-      const b = f.el.getBoundingClientRect();
-      const r = radiusOf(f.el, root);
+      // In the slide 6 frame the area is measured in the iframe's 1920x1080 px: map it to the window (offset + scale).
+      const raw = f.el.getBoundingClientRect();
+      const fr = frame?.getBoundingClientRect();
+      const k = fr && frame ? fr.width / frame.offsetWidth : 1;
+      const b = fr ? { left: fr.left + raw.left * k, top: fr.top + raw.top * k, width: raw.width * k, height: raw.height * k } : raw;
+      const r = radiusOf(f.el, root) * k;
       setHit((h) =>
         h && h.box && h.caption === f.caption && h.head === f.head && Math.abs(h.r - r) < 0.5 && Math.abs(h.box.l - b.left) < 1 && Math.abs(h.box.t - b.top) < 1 && Math.abs(h.box.w - b.width) < 1 && Math.abs(h.box.h - b.height) < 1
           ? h
@@ -186,7 +190,7 @@ export default function Tour5({ step, root }: { step: number; root: HTMLElement 
       window.removeEventListener("resize", jump);
       window.removeEventListener("scroll", jump, true);
     };
-  }, [stop, root]);
+  }, [stop, root, frame]);
 
   // Where the cut-out and the card go for this hit (the card is rendered with its new words first, so its height is
   // real): the card beside the cut-out, right, else left, else below, else above; always fully inside the window.
