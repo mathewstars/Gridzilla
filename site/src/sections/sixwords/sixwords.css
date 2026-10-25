@@ -1,0 +1,102 @@
+/* The six words explorer (SixWords.tsx). Colours are tokens; each signal's one colour is var(--tone), set by the
+   tone-* classes in styles/sections-a.css (the deck's slide 4 tones), used on the rule, the chart highlight and the
+   quotation marks only. */
+
+/* desktop: the six words as vertical tabs */
+.sw-tab {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  padding: 16px 20px 16px 30px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--color-secondary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 3vw, 46px);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s linear, background-color 0.2s linear;
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-tab:hover,
+.sw-tab[aria-selected="true"] { color: var(--color-ink); }
+.sw-tab:active { background: color-mix(in srgb, var(--color-ink) 8%, transparent); }
+/* the soft tile that follows the mouse */
+.sw-hover {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+/* the active word's rule, in its tone */
+.sw-rule {
+  position: absolute;
+  left: 10px;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--tone);
+}
+.sw-q { color: var(--tone); }
+
+/* the charts: quiet parts take the theme's tokens */
+.sw-chart { display: block; overflow: visible; }
+.sw-grid { stroke: var(--color-fill); stroke-width: 1; }
+.sw-tick { fill: var(--color-tertiary); font-variant-numeric: tabular-nums; }
+.sw-label { fill: var(--color-secondary); font-weight: 500; }
+
+/* STRETCH: the rationing order as four small bars */
+.sw-bar { background: color-mix(in srgb, var(--tone) 45%, transparent); border-radius: 3px; }
+
+/* phone and tablet: a scroll-snap row of six cards. A card's content shows only while it is the current card, so a
+   neighbour peeking in at the edge is an empty tile and no text ever sits outside the screen (it fades, then hides). */
+.sw-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-radius: var(--radius-card);
+}
+.sw-row::-webkit-scrollbar { display: none; }
+.sw-card {
+  flex: 0 0 calc(100% - 40px);
+  scroll-snap-align: start;
+}
+@media (min-width: 768px) {
+  .sw-card { flex-basis: 72%; }
+}
+.sw-card-in { transition: opacity 0.3s var(--ease-out-expo), visibility 0s; }
+.sw-card:not(.is-current) .sw-card-in { opacity: 0; visibility: hidden; transition: opacity 0.3s var(--ease-out-expo), visibility 0s 0.3s; }
+
+/* previous and next: 44 px round targets */
+.sw-step {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color 0.15s linear, opacity 0.15s linear;
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-step:hover { background: var(--color-fill); }
+.sw-step:active { background: var(--color-press, var(--color-fill)); transform: scale(0.96); }
+.sw-step:disabled { opacity: 0.35; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-tab, .sw-card-in, .sw-step { transition: none; }
+  .sw-step:active { transform: none; }
+}
