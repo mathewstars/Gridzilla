@@ -1,5 +1,6 @@
-// The real plant: a split, the live tile left and the words right; on the phone the words come first and the tile under
-// them. The tile never looks empty (owner's round 2, data/gz-site/round2.md item 3): the live part on top (state of
+// The real plant: a split, the words left (the title on the page's content edge) and the live tile right; on the phone
+// the words come first and the tile under them. Since the hackathon the house runs as a simulated twin: whenever the
+// server no longer carries the real plant the tile says "Simulated since the hackathon" and drops the live dot. The tile never looks empty (owner's round 2, data/gz-site/round2.md item 3): the live part on top (state of
 // charge as a ring, grid kW with its direction in words, the mode as one small badge, the heat pump when the plant
 // sends it, how long ago it was read) and under it the plant's fixed facts with Phosphor icons. While the first
 // reading is on its way, or when the server or the plant cannot be reached, the same layout shows quiet dashes where
@@ -84,16 +85,22 @@ function Tile({ live }: { live: Live }) {
   const p: Plant | null = live.status === "live" ? live.plant : null;
   const now = useNow(!!p?.at);
   const ageS = p?.at != null ? Math.max(0, Math.round((now - p.at) / 1000)) : null;
-  const status = p ? (ageS != null ? `Updated ${ago(ageS)} ago` : "Live") : live.status === "down" ? "" : "Connecting";
+  const simulated = p ? p.simulated : live.status === "down" && live.simulated;
+  const status = simulated ? "Simulated since the hackathon" : p ? (ageS != null ? `Updated ${ago(ageS)} ago` : "Live") : live.status === "down" ? "" : "Connecting";
 
   return (
     <div className="card flex flex-col gap-7 p-6 md:gap-8 md:p-8" aria-live="polite">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="m-0 flex items-center gap-2.5 text-[15px] font-medium text-ink">
-          {p?.fresh && <span className="live-dot plant-dot" aria-hidden="true" />}
+          {p?.fresh && !p.simulated && <span className="live-dot plant-dot" aria-hidden="true" />}
           Blatnica, Slovakia
         </p>
-        {status && <p className="m-0 text-[15px] text-secondary t-num">{status}</p>}
+        {status && (
+          <p className="m-0 text-[15px] text-secondary t-num">
+            {status}
+            {simulated && ageS != null && <>, updated {ago(ageS)} ago</>}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-6 md:gap-8">
@@ -152,17 +159,17 @@ export default function RealPlant() {
   return (
     <Section id="plant">
       <div className="grid items-center gap-12 md:gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 xl:gap-24">
-        <Reveal className="order-2 lg:order-1">
-          <Tile live={live} />
-        </Reveal>
-        <Reveal className="order-1 lg:order-2" delay={0.08}>
+        <Reveal>
           <Title className="plant-title max-w-[16ch]">Two real devices, one house in Blatnica, Slovakia.</Title>
           <p className="t-lead mb-0 mt-8 max-w-[44ch] text-secondary">
-            A Victron plant (Cerbo GX, MultiPlus-II, battery, EV Charging Station) and a Viessmann Vitocal heat pump through the ViCare cloud. A signed message goes out over a public broker, the battery and the heat pump move, signed acks come back.
+            During the hackathon, 23 to 25 October, a Victron plant (Cerbo GX, MultiPlus-II, battery, EV Charging Station) and a Viessmann Vitocal heat pump through the ViCare cloud ran on this house. A signed message went out over a public broker, the battery and the heat pump moved, signed acks came back.
           </p>
           <p className="mb-0 mt-8 max-w-[52ch] text-[15px] leading-[1.5] text-secondary">
-            The battery sat at 20 % during the hackathon, so live demos leaned on the heat pump and the car charger.
+            The battery sat at 20 % during the hackathon, so live demos leaned on the heat pump and the car charger. Since then the house runs as a simulated twin on the platform.
           </p>
+        </Reveal>
+        <Reveal delay={0.08}>
+          <Tile live={live} />
         </Reveal>
       </div>
     </Section>

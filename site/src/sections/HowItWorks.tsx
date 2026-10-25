@@ -37,8 +37,8 @@ export const STEPS = [
     shot: "shots/step-plant.webp",
     w: 1572,
     h: 1648,
-    alt: "The real plant in Blatnica following a signed signal: at most 5.4 kW from the grid; the grid power drops from about 9.5 kW to 4.5 kW under the dashed import limit while the car keeps charging at 11.3 kW.",
-    caption: "The real plant in Blatnica, holding a signed 5.4 kW import limit.",
+    alt: "The real plant in Blatnica during the hackathon, following a signed signal: at most 5.4 kW from the grid; the grid power drops from about 9.5 kW to 4.5 kW under the dashed import limit while the car keeps charging at 11.3 kW.",
+    caption: "The real plant in Blatnica during the hackathon, holding a signed 5.4 kW import limit.",
   },
   {
     title: "A signed answer comes back.",

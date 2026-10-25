@@ -1,11 +1,14 @@
 // The real plant tile reads the Blatnica house from the live server, read-only, the way the console's Blatnica card
-// does (dashboard/src/ops/demo/live.ts, the fields of BlatnicaLive.tsx): same origin /api/state on
+// does (dashboard/src/ops/demo/live.ts, the fields of BlatnicaLive.tsx). The house was the real Victron plant during
+// the hackathon (id "blatnica"); since then it is the simulated twin "sim-blatnica-01", so whenever a payload no longer
+// carries the real id the tile is labelled simulated. Paths: same origin /api/state on
 // gridzilla.victronlab.sk, the /live-api/state proxy anywhere else (vite dev and preview forward it, GET only). One poll
 // every 30 s, aborted on unmount; after a failure the same 30 s poll is the retry, and a failure never keeps old
 // numbers. GET only: this file never sends anything else, and never calls a write endpoint.
 import { useEffect, useState } from "react";
 
-const HH = "blatnica";
+const REAL = "blatnica";
+const HH = "sim-blatnica-01";
 const BASE = typeof location !== "undefined" && location.host === "gridzilla.victronlab.sk" ? "/api" : "/live-api";
 const STATE = `${BASE}/state?hh=${HH}&tree=0`;
 const EVERY_MS = 30_000;
@@ -43,13 +46,17 @@ export interface Plant {
   /** when the plant sent this reading (ms), if it said */
   at: number | null;
   fresh: boolean;
+  /** the server no longer carries the real plant: these are the simulated twin's numbers */
+  simulated: boolean;
 }
 
-export type Live = { status: "loading" } | { status: "down" } | { status: "live"; plant: Plant };
+/** `simulated` on "down": the server answered, without the real plant (and without the twin's numbers) */
+export type Live = { status: "loading" } | { status: "down"; simulated: boolean } | { status: "live"; plant: Plant };
 
 /** The plant's numbers from one /api/state payload, or null when the house or its telemetry is missing. */
 function read(d: State): Plant | null {
-  const h = d.households?.[HH];
+  const real = d.households?.[REAL];
+  const h = real?.telemetry ? real : d.households?.[HH];
   const t = h?.telemetry;
   if (!h || !t) return null;
   // the mode the house itself reports first; else a signal active on its path (a segment it sits in, or a substation
@@ -66,6 +73,7 @@ function read(d: State): Plant | null {
     signal: (own ?? sig)?.toUpperCase() ?? null,
     at: Number.isFinite(at) ? at : null,
     fresh: Number.isFinite(at) && Date.now() - at < FRESH_MS,
+    simulated: h !== real,
   };
 }
 
@@ -81,9 +89,9 @@ export function useLivePlant(): Live {
         const r = await fetch(STATE, { method: "GET", cache: "no-store", signal: ctrl.signal, headers: { accept: "application/json" } });
         if (!r.ok) throw new Error(String(r.status));
         const plant = read((await r.json()) as State);
-        if (alive) setLive(plant ? { status: "live", plant } : { status: "down" });
+        if (alive) setLive(plant ? { status: "live", plant } : { status: "down", simulated: true });
       } catch (e) {
-        if (alive && (e as Error).name !== "AbortError") setLive({ status: "down" });
+        if (alive && (e as Error).name !== "AbortError") setLive({ status: "down", simulated: false });
       }
     };
     load();

@@ -12,7 +12,7 @@ const STEPS: { name: string; icon: Icon; body: string }[] = [
   {
     name: "Propose",
     icon: Brain,
-    body: "Every fifteen grid minutes a DeepSeek model, self-hosted on the team’s own NVIDIA DGX Spark, reads every transformer’s forecast, the real Vienna weather and official warnings, and proposes one signal or none, with a written reason.",
+    body: "During the hackathon a DeepSeek model, self-hosted on the team’s NVIDIA DGX Spark, read every transformer’s forecast, the real Vienna weather and official warnings every fifteen grid minutes, and proposed one signal or none, with a written reason. Since then the advisor runs on the same rules by default; the model path stays optional.",
   },
   {
     name: "Guard",
@@ -44,7 +44,7 @@ export default function Ai() {
             ))}
           </ol>
           <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink-soft md:mt-16">
-            A rule-based fallback runs through the same guard when the model is slow or down.
+            With the model path on, the rules still take over through the same guard whenever the model is slow or down.
           </p>
         </div>
       </Reveal>
