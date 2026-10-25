@@ -20,7 +20,7 @@ for (const size of sizes) {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${out}page-${size}.png`, fullPage: true });
   await ctx.close();
-  console.log(`shot ${size}`);
+  console.log(`shot ${size}: ${out}fold-${size}.png ${out}page-${size}.png`);
 }
 await browser.close();
 if (copy) {
