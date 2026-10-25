@@ -1,5 +1,8 @@
 # Node-RED agent on the Cerbo GX
 
+> **Status (25 Oct 2026):** reference implementation only. This flow ran on the real Blatnica Cerbo GX during the hackathon
+> (23-25 Oct 2026); it is disabled there now and the Blatnica house is the simulated twin `sim-blatnica-01` in `agent/houses.json`.
+
 The real device side. Same logic as `sim-agent.js`, split into function nodes you paste into Node-RED on Venus OS Large.
 
 ## Flow shape

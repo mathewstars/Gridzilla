@@ -3,7 +3,8 @@
 
     python3 tools/gen-vienna.py
 
-Deterministic (seeded). The real Blatnica plant and its heat pump stay on the first transformer of the first feeder.
+Deterministic (seeded). The Blatnica showcase house (modelled on the captain's real Victron plant and Vitocal heat pump that ran
+live during the hackathon, simulated since 25 Oct 2026) stays on the first transformer of the first feeder.
 Each simulated household stands for 8 real ones on the board (represents: 8). Households may have a battery,
 an EV charger, and a heat pump or an electric boiler; every one of them is a Gridzilla device with the same agent logic.
 """
@@ -84,17 +85,23 @@ for sub, sd in SUBS.items():
                 if not h["heat"]: del h["heat"]
                 houses.append(h)
 
-# the real plant and its heat pump stay on the first transformer (Blatnica demo plant on top)
+# the Blatnica showcase house stays on the first transformer: one simulated device shaped like the real plant that ran live
+# during the hackathon (10 kW MultiPlus-II, 15 kWh battery, 11 kW EV Charging Station, 3 kW Vitocal heat pump).
 first_tf = next(t for t in tree if t.startswith("tf:"))
-real = [
-    {"id": "real-powerplant-blatnica", "tf": first_tf, "vendor": "victron", "kw": 10, "kwh": 15, "feedin_max_kw": 10, "represents": REPRESENTS, "ev_kw": 11, "household": "blatnica",
-     "note": "the real Victron plant on VRM: Cerbo GX, MultiPlus-II, battery, EV Charging Station"},
-    {"id": "vicare-blatnica", "tf": first_tf, "vendor": "viessmann", "kw": 3, "kwh": 0, "feedin_max_kw": 0, "represents": REPRESENTS, "heat": "heatpump", "household": "blatnica",
-     "note": "the real Viessmann Vitocal at the same house, via ViCare"},
+BLATNICA = "sim-blatnica-01"
+blatnica_dev = [
+    {"id": BLATNICA, "tf": first_tf, "vendor": "victron", "kw": 10, "kwh": 15, "feedin_max_kw": 10, "represents": REPRESENTS, "ev_kw": 11, "heat": "heatpump",
+     "showcase": True, "note": "Blatnica showcase house: simulated twin of the Victron plant + Vitocal heat pump that ran live 23-25 Oct 2026"},
+]
+blatnica_house = [
+    {"id": BLATNICA, "kw": 10, "kwh": 15, "feedin_max_kw": 10, "pv_kwp": 10, "soc": 35, "start_hour": 16, "base_load_kw": 0.5, "peak_load_kw": 3.5,
+     "owner": {"min_soc": 20, "max_charge_kw": 10, "max_discharge_kw": 10, "opt_out": False},
+     "ev": {"kw": 11, "plugged": [18, 7]},
+     "heat": [{"type": "heatpump", "kw": 3, "tank_l": 300, "dhw_set_c": 50, "floor_c": 40, "boost_c": 55}]},
 ]
 registry = {
     "tree": tree,
-    "devices": real + devices,
+    "devices": blatnica_dev + devices,
     "policy": {"max_window_min": 1440, "max_stretch_window_min": 4320, "max_support_per_node_per_day": 96, "max_export_min_kw_per_device": 5,
                "max_import_cap_floor_kw": 2, "heartbeat_s": 30, "ramp_s": [20, 90],
                "autopilot_interval_s": 15, "autopilot_trigger_pct": 85, "autopilot_release_pct": 60, "autopilot_cooldown_min": 10, "autopilot_max_per_hour": 6},
@@ -104,9 +111,9 @@ hdr = ("# Gridzilla registry: Vienna-scale grid tree and the devices in the prog
        "# other_houses: houses on the transformer NOT in the program (synthetic background load). represents: real houses per simulated device.\n"
        "# household: devices that belong to one house (grouped on the board). heat: heatpump | boiler (a controllable thermal load).\n\n")
 (ROOT / "platform" / "registry.yaml").write_text(hdr + yaml.safe_dump(registry, sort_keys=False, width=140))
-(ROOT / "agent" / "houses.json").write_text(json.dumps(houses, indent=1) + "\n")
+(ROOT / "agent" / "houses.json").write_text(json.dumps(blatnica_house + houses, indent=1) + "\n")
 n_tf = sum(1 for t in tree if t.startswith("tf:"))
 print(f"tree: {len(SUBS)} substations, {sum(len(s['feeders']) for s in SUBS.values())} feeders, {n_tf} transformers; "
-      f"{len(devices)} simulated households (+2 real) = {REPRESENTS * (len(devices) + 2)} houses represented; "
+      f"{len(devices) + 1} simulated households (incl. Blatnica) = {REPRESENTS * (len(devices) + 1)} houses represented; "
       f"EV: {sum(1 for d in devices if 'ev_kw' in d)}, heat pumps: {sum(1 for d in devices if 'heatpump' in d.get('heat', ''))}, boilers: {sum(1 for d in devices if 'boiler' in d.get('heat', ''))}, "
       f"all four: {sum(1 for d in devices if 'ev_kw' in d and d.get('heat') == 'heatpump+boiler')}")

@@ -172,7 +172,7 @@ function fromDecision(d: Decision, s: State, r: number) {
 }
 
 // ------------------------------------------------------------------ platform log
-const FAMILY_DEV: Record<string, string> = { "real-powerplant-blatnica": "Blatnica battery", "vicare-blatnica": "Blatnica heat pump" };
+const FAMILY_DEV: Record<string, string> = { "sim-blatnica-01": "Blatnica house", "real-powerplant-blatnica": "Blatnica battery", "vicare-blatnica": "Blatnica heat pump" };
 
 function fromLog(e: LogEntry, s: State, r: number) {
   const t = ms(e.ts);
@@ -187,7 +187,7 @@ function fromLog(e: LogEntry, s: State, r: number) {
       const reason = e.msg.match(/: \w+ \(([^)]+)\)/)?.[1];
       if (FAMILY_DEV[dev]) {
         return add({ ...base, actor: "house", tone: status === "refused" ? "bad" : "plain", head: [`${FAMILY_DEV[dev]} ${ACK_WORD[status] ?? status}`],
-          meta: [reason ? cleanText(reason) : "", "real house"].filter(Boolean), keys: [`ack:${dev}`] });
+          meta: [reason ? cleanText(reason) : "", dev.startsWith("sim-") ? "showcase house" : "real house"].filter(Boolean), keys: [`ack:${dev}`] });
       }
       if (status !== "refused") return;
       if (reason === "stale_seq") {
@@ -406,7 +406,7 @@ export function details(e: FeedRowData) {
   if (d) {
     const why = plainTrigger(d.trigger);
     if (why) out.push({ k: "What it saw", v: cleanText(why) });
-    if (d.rationale) out.push({ k: "DeepSeek's reason", v: cleanText(d.rationale) });
+    if (d.rationale) out.push({ k: "Advisor's reason", v: cleanText(d.rationale) });
     if (d.latency_ms != null) out.push({ k: "Answered in", v: `${(d.latency_ms / 1000).toFixed(1)} s` });
     const verdict =
       d.verdict === "refused" || d.verdict === "held"
