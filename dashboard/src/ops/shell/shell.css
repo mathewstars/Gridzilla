@@ -252,13 +252,13 @@ button.sb-item { width: 100%; border: 0; background: transparent; font: inherit;
 /* the icon-rail widths: the weather pill goes too (the Weather page under More has it), so help and theme stay on the line */
 @media (min-width: 761px) and (max-width: 1099.98px) { .tb-wx { display: none; } }
 @media (max-width: 1439.98px) {
-  .tb { gap: 8px 10px; padding: 8px 10px; }
+  .tb { gap: 8px; padding: 8px 10px; }
   .tb-sep { display: none; }
-  .seg-btn { padding: 0 8px; }
-  .chip { padding: 0 9px; }
+  .seg-btn { padding: 0 7px; }
+  .chip { padding: 0 8px; gap: 5px; }
 }
 @media (max-width: 1239.98px) {
-  .seg-btn { padding: 0 7px; }
+  .seg-btn { padding: 0 6px; }
 }
 @media (max-width: 760px) {
   .tb { position: static; padding: 8px 12px; gap: 8px; }
