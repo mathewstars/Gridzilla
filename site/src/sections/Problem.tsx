@@ -1,10 +1,11 @@
 // The problem: the editorial statement, one short paragraph set off to the right, then the real with/without chart for
-// one street, full width on a tinted panel, its legend in words and its caption in words under it. The numbers in the
+// one street, full width on a tile, its legend in words and its caption in words under it. The numbers in the
 // caption are the chart's own (src/data/street.ts); the measured 511 to 325 kW lives in Proof.
 import { lazy, Suspense } from "react";
 import { Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { STREET } from "../data/street";
+import "../styles/sections-a.css";
 
 const StreetChart = lazy(() => import("../charts/StreetChart"));
 
@@ -33,7 +34,7 @@ export default function Problem() {
       </div>
 
       <Reveal as="figure" className="m-0 mt-16 md:mt-24" amount={0.2}>
-        <div className="rounded-card bg-ground p-5 shadow-card md:p-8 lg:p-10">
+        <div className="tile p-5 md:p-8 lg:p-10">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h3 className="m-0 text-[19px] font-semibold tracking-[-0.015em] md:text-[21px]">{STREET.name}, one street transformer</h3>

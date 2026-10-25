@@ -8,9 +8,11 @@ import { useInView, useReducedMotion } from "motion/react";
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { TooltipProps } from "recharts";
 import { STREET } from "../data/street";
+import "../styles/sections-a.css";
 
-// the chart colours from tokens.css (--color-chart-*): SVG attributes take them as plain values
-const C = { with: "#0071e3", without: "#86868b", eaten: "#ff9500", limit: "#ff3b30", grid: "#e8e8ed", tick: "#6e6e73" };
+// the chart data colours from tokens.css (--color-chart-*), the same in both themes; SVG attributes take them as plain
+// values. Ticks, gridlines and the zero line take the theme's tokens through sections-a.css (.street-chart).
+const C = { with: "#0071e3", without: "#86868b", eaten: "#ff9500", limit: "#ff3b30" };
 const STEP_H = 0.25;
 
 interface Pt { t: number; clock: number; without: number; with: number; eaten: [number, number] }
@@ -34,7 +36,7 @@ function Tip({ active, payload }: TooltipProps<number, string>) {
   const p = active && payload?.[0]?.payload as Pt | undefined;
   if (!p) return null;
   return (
-    <div className="rounded-card bg-surface px-4 py-3 text-[14px] leading-snug shadow-lift">
+    <div className="tile px-4 py-3 text-[14px] leading-snug">
       <div className="t-num font-semibold text-ink">{hhmm(p.clock)}</div>
       <div className="t-num mt-1 text-secondary">
         With Gridzilla <span className="font-medium text-ink">{kw(p.with)}</span>
@@ -70,11 +72,11 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
   const clockAt = (t: number) => hhmm(g.start + (t - g.t0));
 
   return (
-    <div ref={ref} className="h-full w-full" role="img" aria-label={label}>
+    <div ref={ref} className="street-chart h-full w-full" role="img" aria-label={label}>
       {draw && (
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={g.data} margin={compact ? { top: 6, right: 4, bottom: 6, left: 4 } : { top: 12, right: 8, bottom: 0, left: 0 }}>
-            {!compact && <CartesianGrid vertical={false} stroke={C.grid} />}
+            {!compact && <CartesianGrid vertical={false} />}
             <XAxis
               dataKey="t"
               type="number"
@@ -84,7 +86,7 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
               hide={compact}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: C.tick, fontSize: 13 }}
+              tick={{ fontSize: 13 }}
               tickMargin={10}
             />
             <YAxis
@@ -94,16 +96,16 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
               hide={compact}
               axisLine={false}
               tickLine={false}
-              tick={{ fill: C.tick, fontSize: 13 }}
+              tick={{ fontSize: 13 }}
               width={64}
             />
-            {compact && <ReferenceLine y={0} stroke={C.grid} strokeWidth={1.5} />}
+            {compact && <ReferenceLine y={0} className="gz-zero" strokeWidth={1.5} />}
             {!compact && <ReferenceLine y={STREET.ratingKw} stroke={C.limit} strokeWidth={1.5} strokeDasharray="6 6" />}
             {/* drawn bottom up: the eaten band, the street without Gridzilla, then Gridzilla's line on top */}
-            <Area type="monotone" dataKey="eaten" stroke="none" fill={C.eaten} fillOpacity={0.4} activeDot={false} {...anim} />
+            <Area type="monotone" dataKey="eaten" stroke="none" fill={C.eaten} fillOpacity={0.6} activeDot={false} {...anim} />
             <Line type="monotone" dataKey="without" stroke={C.without} strokeWidth={2} strokeDasharray="6 5" dot={false} activeDot={false} {...anim} />
-            <Area type="monotone" dataKey="with" stroke={C.with} strokeWidth={compact ? 2.5 : 3} fill={C.with} fillOpacity={0.12} strokeLinejoin="round" activeDot={compact ? false : { r: 4, fill: C.with, stroke: "#fff", strokeWidth: 2 }} {...anim} />
-            {!compact && <Tooltip content={<Tip />} cursor={{ stroke: C.tick, strokeWidth: 1, strokeDasharray: "3 4" }} isAnimationActive={false} />}
+            <Area type="monotone" dataKey="with" stroke={C.with} strokeWidth={compact ? 2.5 : 3} fill={C.with} fillOpacity={0.2} strokeLinejoin="round" activeDot={compact ? false : { r: 4.5, fill: C.with, strokeWidth: 0 }} {...anim} />
+            {!compact && <Tooltip content={<Tip />} cursor={{ stroke: C.without, strokeWidth: 1, strokeDasharray: "3 4" }} isAnimationActive={false} />}
           </ComposedChart>
         </ResponsiveContainer>
       )}

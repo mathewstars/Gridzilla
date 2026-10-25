@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { asset } from "../lib/links";
+import "../styles/sections-a.css";
 
 // Screenshots: the live console at gridzilla.victronlab.sk, captured headless at 2x (GET only), cropped to one panel.
 export const STEPS: { title: string; body: string; shot: string; w: number; h: number; narrow?: { shot: string; w: number; h: number }; alt: string; caption: string }[] = [
@@ -94,7 +95,7 @@ export default function HowItWorks() {
                 <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
               </Reveal>
               {/* phone and tablet: the screenshot under its own step */}
-              <figure className="m-0 mt-8 rounded-card bg-ground p-3 md:p-8 lg:hidden">
+              <figure className="tile m-0 mt-8 p-3 md:p-8 lg:hidden">
                 <Shot s={s} narrow className="mx-auto" />
                 <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
               </figure>
@@ -106,7 +107,7 @@ export default function HowItWorks() {
         <div className="hidden lg:col-span-7 lg:block">
           <div className="sticky top-0 flex h-[100svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
-              <div className="relative aspect-[5/4] max-h-[72svh] w-full rounded-card bg-ground shadow-card">
+              <div className="tile relative aspect-[5/4] max-h-[72svh] w-full">
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}

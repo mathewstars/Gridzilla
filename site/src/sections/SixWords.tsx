@@ -1,11 +1,13 @@
 // Six words: a bento of exactly six cells, two rows of three at 1024 and up (the first row taller, it carries the noon
-// curve), two columns on a tablet, one on a phone. ABSORB shows the real noon export of the Atzgersdorf street (the
-// problem chart's own data, cropped to 09:50 to 14:20); STRETCH is the one dark cell, the street gone dark. Words from
-// the spec, the same six as the deck's SlideSignals.tsx. Cells rise in 60 ms apart once and lift on hover.
+// curve), two columns on a tablet, one on a phone. Each cell is a tile tinted 4 % with its word's tone, like the deck's
+// slide 4 cards; ABSORB shows the real noon export of the Atzgersdorf street (the problem chart's own data, cropped to
+// 09:50 to 14:20); STRETCH sits on the deepest colour of the deck's light, the street gone dark. Words from the spec,
+// the same six as the deck's SlideSignals.tsx. Cells rise in 60 ms apart once and lift on hover.
 import { lazy, Suspense } from "react";
 import { Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { STREET } from "../data/street";
+import "../styles/sections-a.css";
 
 const StreetChart = lazy(() => import("../charts/StreetChart"));
 
@@ -37,10 +39,8 @@ export default function SixWords() {
           const absorb = w.word === "ABSORB";
           return (
             <Reveal as="li" key={w.word} delay={i * 0.06} amount={0.3} className="flex">
-              <div
-                className={`flex w-full flex-col rounded-card p-7 transition-[transform,box-shadow] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-lift motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-8 ${dark ? "bg-night text-night-text" : "bg-ground text-ink"}`}
-              >
-                <h3 className="t-display m-0 text-[40px] md:text-[44px] lg:text-[48px]">{w.word}</h3>
+              <div className={`tile tile-lift word-cell tone-${w.word.toLowerCase()} flex w-full flex-col p-7 text-ink md:p-8 ${dark ? "word-dark" : ""}`}>
+                <h3 className="t-display word-word m-0 text-[38px] font-semibold md:text-[42px] lg:text-[44px]">{w.word}</h3>
                 {absorb && (
                   <figure className="m-0 mt-6">
                     <div className="h-[112px] lg:h-[128px]">
@@ -54,9 +54,15 @@ export default function SixWords() {
                   </figure>
                 )}
                 <div className="mt-auto pt-8">
-                  <p className={`m-0 text-[15px] ${dark ? "text-night-secondary" : "text-secondary"}`}>{w.when}</p>
+                  <p className="m-0 text-[15px] text-secondary">{w.when}</p>
                   <p className="m-0 mt-2 text-[19px] font-medium leading-[1.35] tracking-[-0.015em] md:text-[20px]">
-                    {w.says && <>&ldquo;{w.says}&rdquo;</>}
+                    {w.says && (
+                      <>
+                        <span className="word-q">&ldquo;</span>
+                        {w.says}
+                        <span className="word-q">&rdquo;</span>
+                      </>
+                    )}
                     {w.says && w.then && " "}
                     {w.then}
                   </p>
