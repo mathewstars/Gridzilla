@@ -10,9 +10,15 @@ import type { TooltipProps } from "recharts";
 import { STREET } from "../data/street";
 import "../styles/sections-a.css";
 
-// the chart data colours from tokens.css (--color-chart-*), the same in both themes; SVG attributes take them as plain
-// values. Ticks, gridlines and the zero line take the theme's tokens through sections-a.css (.street-chart).
-const C = { with: "#0071e3", without: "#86868b", eaten: "#ff9500", limit: "#ff3b30" };
+// the chart data colours are the theme's tokens (--color-chart-*), read once from the page: SVG attributes need plain
+// values. Ticks, gridlines and the zero line take their tokens through sections-a.css (.street-chart).
+const token = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+const chartColours = () => ({
+  with: token("--color-chart-with", "#0a84ff"),
+  without: token("--color-chart-without", "#8e8e93"),
+  eaten: token("--color-chart-eaten", "#ff9f0a"),
+  limit: token("--color-chart-limit", "#ff453a"),
+});
 const STEP_H = 0.25;
 
 interface Pt { t: number; clock: number; without: number; with: number; eaten: [number, number] }
@@ -53,6 +59,7 @@ export default function StreetChart({ compact = false, from = 0, to = 24, label 
   const reduce = useReducedMotion();
   const seen = useInView(ref, { once: true, amount: 0.3 });
   const draw = !!reduce || seen;
+  const C = useMemo(chartColours, []);
 
   const g = useMemo(() => {
     const data = POINTS.filter((p) => p.t >= from && p.t <= to);

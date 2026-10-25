@@ -2,18 +2,18 @@
    page's theme (the deck's dark, change order 25 Oct 15:55); the only literals are the deck's two extra signal tones
    and the STRETCH ground, both named below. */
 
-/* a tile: the surface at 92 % so the light behind shows faintly through, an inner hairline, the card shadow */
+/* a tile: the surface at 92 % so the light behind shows faintly through, the card shadow (its inner hairline included) */
 .tile {
   border-radius: var(--radius-card);
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent), var(--shadow-card);
+  box-shadow: var(--shadow-card);
 }
 .tile-lift {
   transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
 }
 .tile-lift:hover {
   transform: translateY(-2px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 12%, transparent), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 @media (prefers-reduced-motion: reduce) {
   .tile-lift { transition: none; }
