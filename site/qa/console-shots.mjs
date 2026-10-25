@@ -55,14 +55,14 @@ async function panel(text) {
   return h.asElement();
 }
 
-async function save(name, buf, width) {
+async function save(name, buf, width, as = name) {
   if (!want(name)) return;
   const png = `${TMP}${name}.png`;
   fs.writeFileSync(png, buf);
   const args = ["-quiet", "-q", "80", "-m", "6"];
   if (width) args.push("-resize", String(width), "0");
-  execFileSync("cwebp", [...args, png, "-o", `${OUT}${name}.webp`]);
-  console.log(`${name}.webp ${Math.round(fs.statSync(`${OUT}${name}.webp`).size / 1024)} KB`);
+  execFileSync("cwebp", [...args, png, "-o", `${OUT}${as}.webp`]);
+  console.log(`${as}.webp ${Math.round(fs.statSync(`${OUT}${as}.webp`).size / 1024)} KB`);
 }
 
 const settle = (ms) => page.waitForTimeout(ms);
@@ -71,7 +71,9 @@ const settle = (ms) => page.waitForTimeout(ms);
 await page.goto(`${LOCAL}/static/new/index.html?theme=${THEME}&api=http://localhost:5189#/`);
 await hideChrome();
 await settle(9000);
-await save("console", await page.screenshot());
+const whole = await page.screenshot();
+await save("console", whole);
+await save("console", whole, 1360, "console-phone"); // the phone's copy: shown 680 px wide, at most 120 KB
 
 // 2. The signal: what the AI saw, chose, checked and signed
 const ai = await panel("What the AI did");

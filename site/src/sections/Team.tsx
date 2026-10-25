@@ -29,7 +29,7 @@ export default function Team() {
         <Title>The team</Title>
       </Reveal>
 
-      <ul className="m-0 mt-14 grid list-none grid-cols-1 gap-12 p-0 md:mt-20 md:grid-cols-3 md:gap-8 lg:gap-14">
+      <ul className="m-0 mt-14 grid list-none grid-cols-1 gap-12 p-0 md:mt-16 md:grid-cols-3 md:gap-8 lg:gap-14">
         {PEOPLE.map((p, i) => (
           <Reveal as="li" key={p.handle} delay={i * 0.08} className="group flex flex-col items-start">
             <img
@@ -57,7 +57,7 @@ export default function Team() {
         ))}
       </ul>
 
-      <Reveal className="tile mt-16 p-5 md:mt-24 md:p-8 lg:p-10 xl:flex xl:items-center xl:justify-between xl:gap-10">
+      <Reveal className="tile mt-12 p-6 md:mt-16 md:p-8 xl:flex xl:items-center xl:justify-between xl:gap-10">
         <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap xl:shrink-0">
           {TEAM_LINKS.map((l) => (
             <PillLink key={l.label} href={l.href} tone="secondary" className="w-full justify-between pl-6 sm:w-auto sm:justify-center sm:pl-[22px]">

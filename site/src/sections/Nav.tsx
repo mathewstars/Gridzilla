@@ -1,6 +1,7 @@
-// The nav, drawn on the hero frame: the wordmark top left, the six section links in a white notch cut into the frame's
-// top edge (inverted-curve notch adapted from 21st.dev "Adaptive Notch Navigation Bar" by @arunachalam), the console
-// pill top right. Under 1024 px: wordmark, the pill (from 390 up) and a menu button that opens a sheet with the links.
+// The nav: a plain bar across the top of the page, on the content width (wordmark left, the six section links centred,
+// the white console pill right). Over the hero it has no background at all, like the deck's title slide; once the page
+// scrolls it becomes a thin glass strip (blur and a hairline). Under 1024 px: wordmark, the pill (from 340 up) and a
+// menu button that opens a sheet with the links.
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { List, X } from "@phosphor-icons/react";
@@ -17,20 +18,6 @@ export const NAV = [
   { id: "team", label: "Team" },
 ] as const;
 
-/** The concave fillet that joins the notch to the frame's top edge (the same glass as the notch). */
-function Wing({ side }: { side: "left" | "right" }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      className={`pointer-events-none absolute top-0 size-5 ${side === "left" ? "right-full" : "left-full"}`}
-      shapeRendering="geometricPrecision"
-    >
-      <path d={side === "left" ? "M 0 0 C 11.046 0 20 8.954 20 20 H 21 V -1 H 0 Z" : "M 20 0 C 8.954 0 0 8.954 0 20 H -1 V -1 H 20 Z"} fill="var(--glass)" />
-    </svg>
-  );
-}
-
 export function Wordmark() {
   return (
     <a href="#top" className="font-display text-[19px] font-semibold uppercase tracking-[0.04em] text-ink no-underline lg:text-[21px]" aria-label="Gridzilla, back to the top">
@@ -43,6 +30,14 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
   const menuBtn = useRef<HTMLButtonElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const on = () => setScrolled(scrollY > 8);
+    on();
+    addEventListener("scroll", on, { passive: true });
+    return () => removeEventListener("scroll", on);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -57,14 +52,12 @@ export default function Nav() {
   }, [open]);
 
   return (
-    <nav aria-label="Main" className="absolute inset-x-0 top-0 z-30">
-      <div className="flex h-16 items-center justify-between gap-3 pl-5 pr-3 lg:h-[72px] lg:pl-8 lg:pr-4">
+    <nav aria-label="Main" className={`nav-bar fixed inset-x-0 top-0 z-40 ${scrolled || open ? "is-scrolled" : ""}`}>
+      <div className="relative mx-auto flex h-16 w-full max-w-[calc(var(--content)+2*var(--gutter))] items-center justify-between gap-3 px-[var(--gutter)] lg:h-[72px]">
         <Wordmark />
 
-        {/* the notch: a glass tab hanging from the frame's top edge, the six links inside */}
-        <div className="absolute left-1/2 top-0 hidden h-[60px] -translate-x-1/2 items-center rounded-b-[24px] bg-[var(--glass)] px-2.5 lg:flex">
-          <Wing side="left" />
-          <Wing side="right" />
+        {/* the six links, centred on the bar */}
+        <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 lg:flex">
           <ul className="m-0 flex list-none items-center gap-0.5 p-0">
             {NAV.map((n) => (
               <li key={n.id}>
@@ -105,7 +98,7 @@ export default function Nav() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.35, ease: EASE }}
-            className="absolute inset-x-3 top-[68px] origin-top rounded-[24px] bg-surface p-3 shadow-[var(--shadow-lift)] lg:hidden"
+            className="absolute inset-x-3 top-[68px] mx-auto max-w-[560px] origin-top rounded-[24px] bg-surface p-3 shadow-[var(--shadow-lift)] lg:hidden"
           >
             <ul className="m-0 list-none p-0">
               {NAV.map((n) => (

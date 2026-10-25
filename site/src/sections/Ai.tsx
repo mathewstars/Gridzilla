@@ -1,5 +1,5 @@
-// AI: the one full-strength patch of the deck's light on the page (no section scrim; a thin glass panel, 40 px frame,
-// keeps the type at 7:1 or better over the brightest teal). The title, then the spec's body read across
+// AI: the one strong patch of the deck's light on the page, full bleed (the section scrim lifts to a thin shade, which
+// keeps the type at 7:1 or better over the brightest teal); title and columns on the page's content edge. The title, then the spec's body read across
 // three typographic columns in its own order (Propose, Guard, Sign, with Phosphor Brain, ShieldCheck and Signature),
 // not cards, and its last sentence, the fallback, under them. One column on the phone. Spec section 8.
 import type { Icon } from "@phosphor-icons/react";
@@ -30,7 +30,7 @@ export default function Ai() {
   return (
     <Section id="ai" light>
       <Reveal>
-        <div className="ai-panel rounded-frame px-6 py-14 text-ink md:px-14 md:py-20 lg:px-20 lg:py-24">
+        <div className="text-ink">
           <Title>
             <span className="block">AI proposes.</span> <span className="block">The guard disposes.</span>
           </Title>
@@ -43,7 +43,7 @@ export default function Ai() {
               </Reveal>
             ))}
           </ol>
-          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-[rgb(245_245_247/0.82)] md:mt-16">
+          <p className="mb-0 mt-14 max-w-[60ch] text-[15px] leading-[1.5] text-ink/80 md:mt-16">
             A rule-based fallback runs through the same guard when the model is slow or down.
           </p>
         </div>

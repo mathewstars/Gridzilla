@@ -74,7 +74,7 @@ export default function HowItWorks() {
   }, []);
 
   return (
-    <Section id="how">
+    <Section id="how" className={still ? undefined : "lg:pb-0!"}>
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
@@ -85,7 +85,7 @@ export default function HowItWorks() {
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className={still ? "py-10 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 md:py-14 lg:flex lg:min-h-[72svh] lg:flex-col lg:justify-center lg:py-0"}
+              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[72svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[56svh]"}
             >
               <Reveal className={still ? "lg:col-span-5" : undefined}>
                 <h3
@@ -97,7 +97,7 @@ export default function HowItWorks() {
                 <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
               </Reveal>
               {/* phone and tablet (and every width under reduced motion): the screenshot with its own step */}
-              <figure className={`tile m-0 mt-8 p-3 md:p-8 ${still ? "lg:col-span-7 lg:mt-0" : "lg:hidden"}`}>
+              <figure className={`tile m-0 mt-8 p-6 md:p-8 ${still ? "lg:col-span-7 lg:mt-0" : "lg:hidden"}`}>
                 <Shot s={s} className="mx-auto" />
                 <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
               </figure>

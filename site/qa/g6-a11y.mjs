@@ -13,7 +13,7 @@ const url = String(arg("url", SITE));
 const browser = await launch();
 const results = [];
 
-for (const size of ["1440x900", "390x844"]) {
+for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
   const { ctx, page } = await newPage(browser, size);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   await page.waitForTimeout(1500);

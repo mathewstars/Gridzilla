@@ -59,10 +59,11 @@
 }
 
 :root {
+  --content: 1240px; /* the one content width: every section title and block starts on its left edge */
   --gutter: 16px; /* side gutter at phone width */
-  --frame-inset: 12px; /* the light showing around the hero frame */
   --tile: rgb(29 29 31 / 0.92); /* a tile over the light, like the deck's six-words cards */
   --scrim: rgb(11 11 15 / 0.65); /* behind content sections: the light at about 35 % */
+  --shade: rgb(11 11 15 / 0.38); /* the AI patch: the light nearly at full strength */
   --glass: rgb(11 11 15 / 0.7); /* the hero frame and the nav tab over the light */
   color-scheme: dark;
 }
@@ -70,7 +71,7 @@
   :root { --gutter: 32px; }
 }
 @media (min-width: 1024px) {
-  :root { --gutter: 48px; --frame-inset: 16px; }
+  :root { --gutter: 48px; }
 }
 
 @layer base {
@@ -91,7 +92,7 @@
   }
   ::selection { background: var(--color-accent); color: var(--color-on-ink); }
   :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-page), 0 0 0 5px var(--color-ink); border-radius: 8px; }
-  [id] { scroll-margin-top: 24px; }
+  [id] { scroll-margin-top: 72px; } /* under the fixed nav bar */
 }
 
 @layer components {
@@ -148,8 +149,8 @@
 
   /* primary: the white pill (pill-dark is its old name, kept for sections written before the dark theme) */
   .pill-primary, .pill-dark, .pill-onnight { background: var(--color-ink); color: var(--color-on-ink); box-shadow: 0 8px 24px rgb(0 0 0 / 0.3); }
-  .pill-primary:hover, .pill-dark:hover, .pill-onnight:hover { background: #ffffff; box-shadow: 0 0 0 4px rgb(245 245 247 / 0.12), 0 12px 30px rgb(0 0 0 / 0.38); }
-  .pill-primary:active, .pill-dark:active, .pill-onnight:active { background: #e8e8ed; box-shadow: 0 4px 12px rgb(0 0 0 / 0.3); }
+  .pill-primary:hover, .pill-dark:hover, .pill-onnight:hover { background: var(--color-ink-hover); box-shadow: 0 0 0 4px rgb(245 245 247 / 0.12), 0 12px 30px rgb(0 0 0 / 0.38); }
+  .pill-primary:active, .pill-dark:active, .pill-onnight:active { background: var(--color-ink-press); box-shadow: 0 4px 12px rgb(0 0 0 / 0.3); }
 
   /* secondary: the dark pill with the inner hairline (pill-light is its old name) */
   .pill-secondary, .pill-light { background: var(--color-surface); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-hairline), 0 8px 24px rgb(0 0 0 / 0.25); }

@@ -1,5 +1,6 @@
-// The page, in order (data/gz-site/spec.md section 2), over the deck's light (ui/Backdrop). Nav lives inside the Hero frame.
+// The page, in order (data/gz-site/spec.md section 2), over the deck's light (ui/Backdrop). The nav is a fixed bar over everything.
 import Backdrop from "./ui/Backdrop";
+import Nav from "./sections/Nav";
 import Hero from "./sections/Hero";
 import Problem from "./sections/Problem";
 import HowItWorks from "./sections/HowItWorks";
@@ -15,6 +16,7 @@ export default function App() {
   return (
     <>
       <Backdrop />
+      <Nav />
       <Hero />
       <main>
         <Problem />

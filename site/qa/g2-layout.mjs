@@ -1,13 +1,15 @@
 // G2 layout, at 2560x1440, 1440x900, 1024x768, 390x844, 390x667: no two text nodes overlap, no text clipped by its
 // container, no horizontal page scroll, the hero headline on 2 lines (3 on a phone: ONE SIGNED LIMIT. / THE WHOLE /
-// STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up. Detector after dashboard/qa/layout.mjs.
+// STREET LISTENS., in sentence case), every pill label on one line, the nav on one line at 1024 and up, every section
+// title on the same left content edge, and under 768 px every tap target at least 44 x 44 (links inside a sentence
+// excepted, as WCAG 2.5.8 does). Detector after dashboard/qa/layout.mjs.
 import { SIZES, SITE, arg, launch, newPage, report, scrollThrough } from "./lib.mjs";
 
 const url = String(arg("url", SITE));
 const sizes = arg("sizes") ? String(arg("sizes")).split(",") : SIZES;
 
 function detect(W) {
-  const F = { overlap: [], clipped: [], wide: [], headline: [], ctaWrap: [], nav: [] };
+  const F = { overlap: [], clipped: [], wide: [], headline: [], ctaWrap: [], nav: [], edge: [], tap: [] };
   const hidden = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
@@ -89,6 +91,19 @@ function detect(W) {
     const tops = new Set(links.map((e) => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); }));
     const spread = Math.max(...tops) - Math.min(...tops);
     if (spread > 8) F.nav.push(`nav items spread ${spread}px vertically`);
+  }
+  // one layout system: every section title starts on the same left edge
+  const edges = [...document.querySelectorAll("main section h2, footer h2")].filter((e) => !hidden(e)).map((e) => ({ id: e.closest("[id]")?.id || "footer", x: Math.round(e.getBoundingClientRect().left) }));
+  const x0 = edges[0]?.x;
+  for (const e of edges) if (Math.abs(e.x - x0) > 1) F.edge.push(`#${e.id} title at x ${e.x}, the others at ${x0}`);
+  // phone: tap targets of at least 44 x 44
+  if (W < 768) {
+    for (const el of document.querySelectorAll("a[href], button")) {
+      if (hidden(el)) continue;
+      if (el.closest("p, li > p") && getComputedStyle(el).display === "inline") continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 43.5 || r.width < 43.5) F.tap.push(`${label(el)} "${el.textContent.trim().slice(0, 24)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
+    }
   }
   for (const k of Object.keys(F)) F[k] = [...new Set(F[k])];
   return F;
