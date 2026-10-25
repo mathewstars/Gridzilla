@@ -3,15 +3,18 @@
 // The Real plant view needs the real Blatnica plant: a small proxy on :5189 sends exactly two GET reads to the live
 // server (/api/state?hh=blatnica, /api/history?devices=real-powerplant-blatnica) and everything else to the local
 // platform; the console runs read-only there (?api=), so it refuses every write anyway.
-// usage: node qa/console-shots.mjs     (needs cwebp on PATH)
+// usage: node qa/console-shots.mjs [--theme dark|light] [--only console,step-plan,...]   (needs cwebp on PATH)
 import http from "node:http";
 import https from "node:https";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
-import { launch } from "./lib.mjs";
+import { arg, launch } from "./lib.mjs";
 
 const LOCAL = process.env.GZ_API || "http://localhost:8190";
 const LIVE = "https://gridzilla.victronlab.sk";
+const THEME = String(arg("theme", "dark")); // the page is the deck's dark theme (owner, 25 Oct)
+const ONLY = arg("only") ? String(arg("only")).split(",") : null;
+const want = (name) => !ONLY || ONLY.includes(name);
 const OUT = new URL("../public/shots/", import.meta.url).pathname;
 const TMP = new URL("./shots/raw/", import.meta.url).pathname;
 fs.mkdirSync(OUT, { recursive: true });
@@ -53,6 +56,7 @@ async function panel(text) {
 }
 
 async function save(name, buf, width) {
+  if (!want(name)) return;
   const png = `${TMP}${name}.png`;
   fs.writeFileSync(png, buf);
   const args = ["-quiet", "-q", "80", "-m", "6"];
@@ -64,7 +68,7 @@ async function save(name, buf, width) {
 const settle = (ms) => page.waitForTimeout(ms);
 
 // 1. The whole console, Operations (the hero image), with the real plant card live
-await page.goto(`${LOCAL}/static/new/index.html?theme=light&api=http://localhost:5189#/`);
+await page.goto(`${LOCAL}/static/new/index.html?theme=${THEME}&api=http://localhost:5189#/`);
 await hideChrome();
 await settle(9000);
 await save("console", await page.screenshot());
@@ -74,20 +78,20 @@ const ai = await panel("What the AI did");
 if (ai) await save("step-signal", await ai.screenshot(), 1200);
 
 // 3. The diet plan for the city
-await page.goto(`${LOCAL}/static/new/index.html?theme=light#/plan`);
+await page.goto(`${LOCAL}/static/new/index.html?theme=${THEME}#/plan`);
 await settle(7000);
 const plan = await panel("Vienna, all transformers");
 if (plan) await save("step-plan", await plan.screenshot(), 1600);
 
 // 4. The real plant (live reads through the proxy)
-await page.goto(`${LOCAL}/static/new/index.html?theme=light&api=http://localhost:5189#/plant`);
+await page.goto(`${LOCAL}/static/new/index.html?theme=${THEME}&api=http://localhost:5189#/plant`);
 await hideChrome();
 await settle(9000);
 const plant = await panel("Blatnica");
 if (plant) await save("step-plant", await plant.screenshot(), 1600);
 
 // 5. The audit log
-await page.goto(`${LOCAL}/static/new/index.html?theme=light#/log`);
+await page.goto(`${LOCAL}/static/new/index.html?theme=${THEME}#/log`);
 await settle(5000);
 const log = await panel("Platform log");
 if (log) {
