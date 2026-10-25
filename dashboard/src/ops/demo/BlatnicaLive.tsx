@@ -144,8 +144,19 @@ export function usePlant({ state, stateFailed, history }: LivePlant) {
   return { state, live, sample, h, t, ageS, pts };
 }
 
-/** The card is the way into Blatnica mode: a click (or Enter / Space) puts the plant in the hero. */
-export default function BlatnicaLive({ plant, onOpen, open }: { plant: LivePlant; onOpen?: () => void; open?: boolean }) {
+/** The card. In the demo it shares the demo's live poll (`plant`) and is the way into Blatnica mode; anywhere else
+ *  (Operations) it is used bare and polls the plant itself. */
+export default function BlatnicaLive(props: { plant?: LivePlant; onOpen?: () => void; open?: boolean }) {
+  return props.plant ? <BlatnicaCard {...props} plant={props.plant} /> : <OwnPoll {...props} />;
+}
+
+function OwnPoll(props: { onOpen?: () => void; open?: boolean }) {
+  const plant = useLiveBlatnica();
+  return <BlatnicaCard {...props} plant={plant} />;
+}
+
+/** A click (or Enter / Space) on the card puts the plant in the demo's hero. */
+function BlatnicaCard({ plant, onOpen, open }: { plant: LivePlant; onOpen?: () => void; open?: boolean }) {
   const { state, live, sample, h, t, ageS, pts } = usePlant(plant);
   const press = onOpen
     ? {
@@ -397,7 +408,7 @@ function PlantChart({ pts, limit, limitSrc }: { pts: DevPoint[]; limit: number |
   }
   return (
     <div ref={ref} className="plant-chart" role="img" aria-label="Blatnica grid kW, last 30 minutes">
-      {body ?? <p className="demo-wait">{rows.length > 1 ? "" : "Collecting the plant's last 30 minutes"}</p>}
+      {body ?? <p className="demo-wait" data-src="axis">{rows.length > 1 ? "" : "Collecting the plant's last 30 minutes"}</p>}
     </div>
   );
 }

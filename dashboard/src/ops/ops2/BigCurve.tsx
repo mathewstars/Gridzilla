@@ -125,7 +125,8 @@ export default function BigCurve({ ops }: { ops: Ops }) {
     const ratingNear = !!rating && rating < dataMax * 2.2;
     const n = pts.length;
     const xMax = Math.max(n - 1, 1);
-    const top = ratingNear ? rating * 1.15 : dataMax * 1.15;
+    // the top covers the limit, "with" and "without" (dataMax holds both), plus headroom: no series above the plot
+    const top = Math.max(ratingNear ? rating : 0, dataMax) * 1.15;
     const lo = Math.min(0, ...pts.map((p) => Math.min(p.total_kw, base(p))));
     const yt = ticks(lo, top, h < 240 ? 3 : 4);
     const yLabel = (v: number) => `${fmt(v)} kW`;
@@ -245,11 +246,20 @@ export default function BigCurve({ ops }: { ops: Ops }) {
                   {hhmm(pts[i].h)}
                 </text>
               ))}
-              <path className="bc-with-fill" d={chart.withFill} />
-              <path className="bc-eaten" d={chart.eaten} />
-              {chart.ratingNear && <line className="bc-limit" x1={chart.pad.l} x2={chart.pad.l + chart.pw} y1={chart.Y(chart.rating)} y2={chart.Y(chart.rating)} />}
-              <path className="bc-without" d={chart.basePath} />
-              <path className="bc-with" d={chart.withPath} />
+              <defs>
+                <clipPath id="bc-plot">
+                  <rect x={chart.pad.l} y={chart.pad.t - 2} width={chart.pw} height={chart.ph + 4} />
+                </clipPath>
+              </defs>
+              {/* every series stays inside the plot rect (the gate checks it too) */}
+              <g className="bc-series" clipPath="url(#bc-plot)" data-series="">
+                <path className="bc-with-fill" d={chart.withFill} />
+                <path className="bc-eaten" d={chart.eaten} />
+                {chart.ratingNear && <line className="bc-limit" x1={chart.pad.l} x2={chart.pad.l + chart.pw} y1={chart.Y(chart.rating)} y2={chart.Y(chart.rating)} />}
+                <path className="bc-without" d={chart.basePath} />
+                <path className="bc-with" d={chart.withPath} />
+              </g>
+              <rect className="bc-plotrect" data-plot="" x={chart.pad.l} y={chart.pad.t} width={chart.pw} height={chart.ph} fill="none" stroke="none" />
               {hp && hover != null && (
                 <g className="bc-hover">
                   <line x1={chart.X(hover)} x2={chart.X(hover)} y1={chart.pad.t} y2={chart.pad.t + chart.ph} />
@@ -291,6 +301,19 @@ function Chips({ s, node, pick }: { s: State; node: string; pick: (n: string) =>
   const path = pathOf(s, node);
   const subs = Object.keys(s.tree).filter((n) => n.startsWith("sub:"));
   const pct = (n: string) => s.aggregates[n]?.load_pct ?? null;
+  // two chips with the same short name (a Stockerau feeder and its Stockerau transformer, or two transformers) keep
+  // their number, so no two chips in the row read the same
+  const shown = [
+    ...subs,
+    ...subs.filter((sub) => path.includes(sub)).flatMap((sub) => Object.keys(s.tree).filter((f) => s.tree[f].parent === sub)),
+    ...path.filter((f) => f.startsWith("feeder:")).flatMap((f) => Object.keys(s.tree).filter((t) => s.tree[t].parent === f)),
+  ];
+  const label = (n: string, _sibs: string[]) => {
+    const short = nice(n);
+    const twin = shown.some((o) => o !== n && nice(o) === short);
+    const num = n.match(/-(\d+)$/)?.[1];
+    return twin && num ? `${short} ${num}` : short;
+  };
   const chip = (n: string, label: string, cls = "") => (
     <button key={n} type="button" className={`bc-chip ${cls}${n === node ? " on" : path.includes(n) ? " in" : ""}`} aria-pressed={n === node} title={n} onClick={() => pick(n)}>
       {(cls === "feeder" || cls === "tf") && <i className="bc-tone" style={{ background: loadTone(pct(n)) }} />}
@@ -305,9 +328,12 @@ function Chips({ s, node, pick }: { s: State; node: string; pick: (n: string) =>
         const open = path.includes(sub);
         const feeders = open ? Object.keys(s.tree).filter((f) => s.tree[f].parent === sub) : [];
         return [
-          chip(sub, nice(sub), "sub"),
+          chip(sub, label(sub, subs), "sub"),
           // the picked feeder opens into its transformers
-          ...feeders.flatMap((f) => [chip(f, nice(f), "feeder"), ...(path.includes(f) ? Object.keys(s.tree).filter((t) => s.tree[t].parent === f).map((t) => chip(t, nice(t), "tf")) : [])]),
+          ...feeders.flatMap((f) => {
+            const tfs = path.includes(f) ? Object.keys(s.tree).filter((t) => s.tree[t].parent === f) : [];
+            return [chip(f, label(f, feeders), "feeder"), ...tfs.map((t) => chip(t, label(t, tfs), "tf"))];
+          }),
         ];
       })}
     </nav>

@@ -8,34 +8,34 @@
   .plant-page > .plant-hero { min-height: 0; }
 }
 
-.pl-card { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; min-width: 0; }
-.pl-h2 { margin: 0; font-size: max(17px, 1.0625rem); font-weight: 600; color: var(--color-ink); }
-.pl-empty { margin: 0; font-size: max(16px, 1rem); line-height: 1.4; color: var(--color-secondary); }
+.rp-card { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; min-width: 0; }
+.rp-h2 { margin: 0; font-size: max(17px, 1.0625rem); font-weight: 600; color: var(--color-ink); }
+.rp-empty { margin: 0; font-size: max(16px, 1rem); line-height: 1.4; color: var(--color-secondary); }
 
 /* the chain: four steps on a thin rail, each dot coloured by how that step went */
-.pl-chain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.pl-step { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 12px; padding-bottom: 14px; }
-.pl-step:last-child { padding-bottom: 0; }
-.pl-step:not(:last-child)::before { content: ""; position: absolute; left: 6px; top: 16px; bottom: 0; width: 2px; border-radius: 1px; background: var(--color-fill); }
-.pl-dot { width: 14px; height: 14px; margin-top: 3px; border-radius: 50%; background: var(--color-fill-press); box-shadow: 0 0 0 3px var(--color-card); }
-.pl-step.is-ok .pl-dot { background: #34c759; }
-.pl-step.is-warn .pl-dot { background: #ff9500; }
-.pl-step.is-bad .pl-dot { background: var(--color-red); }
-.pl-step-name { font-size: max(16px, 1rem); font-weight: 600; color: var(--color-ink); }
-.pl-step-line { margin-top: 2px; font-size: max(16px, 1rem); line-height: 1.35; color: var(--color-secondary); }
+.rp-chain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rp-step { position: relative; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 12px; padding-bottom: 14px; }
+.rp-step:last-child { padding-bottom: 0; }
+.rp-step:not(:last-child)::before { content: ""; position: absolute; left: 6px; top: 16px; bottom: 0; width: 2px; border-radius: 1px; background: var(--color-fill); }
+.rp-dot { width: 14px; height: 14px; margin-top: 3px; border-radius: 50%; background: var(--color-fill-press); box-shadow: 0 0 0 3px var(--color-card); }
+.rp-step.is-ok .rp-dot { background: #34c759; }
+.rp-step.is-warn .rp-dot { background: #ff9500; }
+.rp-step.is-bad .rp-dot { background: var(--color-red); }
+.rp-step-name { font-size: max(16px, 1rem); font-weight: 600; color: var(--color-ink); }
+.rp-step-line { margin-top: 2px; font-size: max(16px, 1rem); line-height: 1.35; color: var(--color-secondary); }
 
 /* the replies: time, a status tag, the reply in words */
-.pl-replies { flex: 1 1 auto; min-height: 0; }
-.pl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pl-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; gap: 10px; font-size: max(16px, 1rem); line-height: 1.35; }
-.pl-time { color: var(--color-secondary); font-variant-numeric: tabular-nums; }
-.pl-tag { font-size: 14px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--color-fill); color: var(--color-ink); }
-.pl-tag.is-ok { background: rgb(52 199 89 / 0.16); color: #1f8a3b; }
-.pl-tag.is-bad { background: rgb(255 59 48 / 0.14); color: var(--color-red); }
-.pl-tag.is-warn { background: rgb(255 149 0 / 0.16); color: #b86e00; }
-:root[data-theme="dark"] .pl-tag.is-ok { color: #30d158; }
-:root[data-theme="dark"] .pl-tag.is-warn { color: #ff9f0a; }
-.pl-msg { color: var(--color-ink); overflow-wrap: anywhere; }
+.rp-replies { flex: 1 1 auto; min-height: 0; }
+.rp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rp-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; gap: 10px; font-size: max(16px, 1rem); line-height: 1.35; }
+.rp-time { color: var(--color-secondary); font-variant-numeric: tabular-nums; }
+.rp-tag { font-size: 14px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--color-fill); color: var(--color-ink); }
+.rp-tag.is-ok { background: rgb(52 199 89 / 0.16); color: #1f8a3b; }
+.rp-tag.is-bad { background: rgb(255 59 48 / 0.14); color: var(--color-red); }
+.rp-tag.is-warn { background: rgb(255 149 0 / 0.16); color: #b86e00; }
+:root[data-theme="dark"] .rp-tag.is-ok { color: #30d158; }
+:root[data-theme="dark"] .rp-tag.is-warn { color: #ff9f0a; }
+.rp-msg { color: var(--color-ink); overflow-wrap: anywhere; }
 
 /* on the page the hero is the whole left column: no demo short-window caps on its readings */
 .plant-page .plant-hero .demo-ring { width: min(clamp(160px, 16vw, 320px), 30vh); }

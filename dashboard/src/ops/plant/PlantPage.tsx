@@ -14,11 +14,11 @@ type Tone = "ok" | "warn" | "bad" | "idle";
 
 function Step({ tone, name, children }: { tone: Tone; name: string; children: React.ReactNode }) {
   return (
-    <li className={`pl-step is-${tone}`}>
-      <span className="pl-dot" aria-hidden />
-      <div className="pl-step-body">
-        <div className="pl-step-name">{name}</div>
-        <div className="pl-step-line">{children}</div>
+    <li className={`rp-step is-${tone}`}>
+      <span className="rp-dot" aria-hidden />
+      <div className="rp-step-body">
+        <div className="rp-step-name">{name}</div>
+        <div className="rp-step-line">{children}</div>
       </div>
     </li>
   );
@@ -43,12 +43,12 @@ export default function PlantPage() {
     <div className="plant-page">
       <PlantHero plant={plant} />
       <div className="plant-side">
-        <section className="panel pl-card">
-          <h2 className="pl-h2">Signature chain</h2>
+        <section className="panel rp-card">
+          <h2 className="rp-h2">Signature chain</h2>
           {!h ? (
-            <p className="pl-empty">Waiting for the plant. The chain shows the moment it reports.</p>
+            <p className="rp-empty">Waiting for the plant. The chain shows the moment it reports.</p>
           ) : (
-            <ol className="pl-chain">
+            <ol className="rp-chain">
               <Step tone={sig ? "ok" : "idle"} name="Signed">
                 {sig ? (
                   <>
@@ -83,20 +83,20 @@ export default function PlantPage() {
             </ol>
           )}
         </section>
-        <section className="panel pl-card pl-replies">
-          <h2 className="pl-h2">What the plant replied</h2>
+        <section className="panel rp-card rp-replies">
+          <h2 className="rp-h2">What the plant replied</h2>
           {replies.length ? (
-            <ul className="pl-list">
+            <ul className="rp-list">
               {replies.map(({ e, i }) => (
-                <li key={`${e.ts}-${i}`} className="pl-row">
-                  <span className="pl-time" data-src="axis">{clockOf(e.ts)}</span>
-                  <span className={`pl-tag is-${statusTone(e.status)}`} data-src={`live:state/log/${i}/status`}>{e.status ?? e.kind}</span>
-                  <span className="pl-msg" data-src={`live:state/log/${i}/msg`}>{e.msg.replace(/^[^:]+:\s*/, "")}</span>
+                <li key={`${e.ts}-${i}`} className="rp-row">
+                  <span className="rp-time" data-src="axis">{clockOf(e.ts)}</span>
+                  <span className={`rp-tag is-${statusTone(e.status)}`} data-src={`live:state/log/${i}/status`}>{e.status ?? e.kind}</span>
+                  <span className="rp-msg" data-src={`live:state/log/${i}/msg`}>{e.msg.replace(/^[^:]+:\s*/, "")}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="pl-empty">
+            <p className="rp-empty">
               No reply from Blatnica in the platform's last{" "}
               <span data-src="derived" data-from="count(live:state/log/*)" data-val={log.length}>{log.length}</span> events.
               {ak?.status && <> Its latest reply was “{ak.status}”{ak.reason ? ` (${ak.reason.replace(/_/g, " ")})` : ""}.</>}

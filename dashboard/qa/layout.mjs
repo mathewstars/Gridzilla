@@ -25,7 +25,7 @@ const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "su
 // In-page detectors. Returns findings by kind; every count must be 0.
 function detect([oneScreen, W]) {
   const vw = Math.min(innerWidth, W), vh = innerHeight; // phones may widen the layout viewport: judge against the device width
-  const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], scrollCut: [], notOneScreen: [] };
+  const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], scrollCut: [], seriesOut: [], notOneScreen: [] };
   const hidden = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
       const cs = getComputedStyle(e);
@@ -118,6 +118,20 @@ function detect([oneScreen, W]) {
         if ((sy && b.t0 < r.bottom - 1 && b.b > r.bottom + 1) || (sx && b.l < r.right - 1 && b.r > r.right + 1)) F.scrollCut.push(`"${b.t}" cut by ${label(e)}`);
       }
       break;
+    }
+  }
+  // 6. series outside the plot: a chart that marks its plot rect (data-plot) and its series group (data-series) must keep
+  // every series inside that rect, measured on the raw geometry (getBBox ignores the clip, so a wrong y domain still fails)
+  for (const pr of document.querySelectorAll("svg [data-plot]")) {
+    const svg = pr.ownerSVGElement;
+    if (!svg || hidden(svg)) continue;
+    const r = pr.getBBox();
+    for (const el of svg.querySelectorAll("[data-series] path, [data-series] line")) {
+      if (el.getAttribute("d") === "") continue;
+      let b; try { b = el.getBBox(); } catch { continue; }
+      if (!b.width && !b.height) continue;
+      if (b.y < r.y - 2 || b.y + b.height > r.y + r.height + 2 || b.x < r.x - 2 || b.x + b.width > r.x + r.width + 2)
+        F.seriesOut.push(`${el.getAttribute("class") || el.tagName} outside the plot of ${label(svg.parentElement)}`);
     }
   }
   if (document.documentElement.scrollWidth > vw + 1) F.wide.push(`page ${document.documentElement.scrollWidth}px wide`);
