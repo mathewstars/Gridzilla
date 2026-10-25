@@ -9,7 +9,8 @@ const url = String(arg("url", SITE));
 const BANNED_WORD = ["capt", "ain"].join("");
 const browser = await launch();
 const { page } = await newPage(browser, "1440x900");
-await page.goto(url, { waitUntil: "networkidle" });
+await page.goto(url, { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(1500);
 await scrollThrough(page);
 const { text, eyebrows, alts } = await page.evaluate(() => {
   const eyebrows = [];

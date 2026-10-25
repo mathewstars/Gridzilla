@@ -14,7 +14,7 @@ export function Container({ children, className = "" }: { children: ReactNode; c
   return <div className={`mx-auto w-full max-w-[1280px] px-[var(--gutter)] ${className}`}>{children}</div>;
 }
 
-/** A section title: Clash Display, uppercase. Pass `as` for the heading level (h2 by default). */
+/** A section title: Clash Display 500, sentence case. Pass `as` for the heading level (h2 by default). */
 export function Title({ children, className = "", as: Tag = "h2" }: { children: ReactNode; className?: string; as?: "h2" | "h3" }) {
   return <Tag className={`t-display t-section m-0 ${className}`}>{children}</Tag>;
 }
