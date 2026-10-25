@@ -40,7 +40,7 @@ function readSteps() {
     rows.forEach((l, i) => (steps[i] = Number(/steps:\s*(\d+)/.exec(l)?.[1] ?? 1)));
     if (Object.keys(steps).length) return steps;
   } catch {}
-  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 8, 7: 1, 8: 2, 9: 1 };
+  return { 0: 1, 1: 1, 2: 2, 3: 2, 4: 1, 5: 1, 6: 6, 7: 1, 8: 2, 9: 1 };
 }
 // Steps per slide number (0 = the trailer, 1-9 the slides).
 const STEPS = readSteps();
