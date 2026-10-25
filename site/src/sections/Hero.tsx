@@ -78,7 +78,7 @@ export default function Hero() {
 
       {/* under 1024: never the desktop frame. The console's own phone view (its Operations screen, dark, 2x) in a
           phone-shaped frame that fits the screen with the side gutters, starting at the fold, fading out at its foot */}
-      <div className="hero-phone-well px-[var(--gutter)] pb-14 lg:hidden">
+      <div className="hero-phone-well px-[var(--gutter)] pb-10 lg:hidden">
         <div className="hero-phone mx-auto">
           <img
             src={asset("shots/console-phone.webp")}
