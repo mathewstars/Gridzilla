@@ -104,8 +104,12 @@
 .demo-standalone > .demo { flex: 1 1 auto; }
 @media (min-width: 1240px) { .demo-standalone { height: 100vh; height: 100dvh; } .demo-standalone > .demo { height: auto; min-height: 0; } }
 
-/* the curve legend: one line where six keys fit, two even rows of three below that (never a ragged wrap) */
-.demo-curve .lc-legend { flex-wrap: nowrap; white-space: nowrap; }
-@media (max-width: 1599px) {
-  .demo-curve .lc-legend { display: grid !important; grid-template-columns: repeat(3, max-content); column-gap: 1.25em; }
-}
+/* the curve legend in dad's words: even rows of three where they fit, two columns below that (never a ragged wrap) */
+.demo-curve .lc-legend { display: grid !important; grid-template-columns: repeat(2, max-content); column-gap: 1.25em; white-space: nowrap; }
+@media (min-width: 1750px) { .demo-curve .lc-legend { grid-template-columns: repeat(3, max-content); } }
+
+/* dad's weather line and the review countdown; short windows keep the numbers and drop the summary */
+@media (min-width: 1240px) and (max-height: 760px) { .demo-weather-sum { display: none; } .demo-curve { --demo-plot-min: 6.5rem; } }
+.demo-weather { margin: 0; flex-basis: 100%; font-size: max(14px, 0.875rem); line-height: 1.35; color: var(--color-secondary); overflow-wrap: anywhere; }
+.demo-now-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.demo-review { font-size: max(14px, 0.875rem); font-weight: 500; color: var(--color-secondary); font-variant-numeric: tabular-nums; }
