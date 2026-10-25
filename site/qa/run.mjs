@@ -1,9 +1,9 @@
-// npm run qa: build the site, serve the build with `vite preview` on :5181, run every gate (qa/g*.mjs, in order),
-// stop the server, exit non-zero if any gate failed. Flags: --no-build, --only g2 (one gate), --url (test elsewhere).
+// npm run qa: build the site, serve the build with `vite preview` on :5181 (GZ_PORT), run every gate (qa/g*.mjs, in order),
+// save the review screenshots, stop the server, exit non-zero if any gate failed. Flags: --no-build, --only g2 (one gate), --url (test elsewhere).
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { arg } from "./lib.mjs";
+import { PORT, arg } from "./lib.mjs";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const root = path.join(here, "..");
@@ -17,7 +17,7 @@ if (!arg("no-build") && !ext) {
 
 let server = null;
 if (!ext) {
-  server = spawn("npx", ["vite", "preview", "--port", "5181", "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env });
+  server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { cwd: root, stdio: ["ignore", "pipe", "pipe"], env: process.env });
   await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error("vite preview did not start")), 20000);
     server.stdout.on("data", (d) => { if (/Local/.test(String(d))) { clearTimeout(t); res(); } });
@@ -31,6 +31,11 @@ for (const g of gates) {
   console.log(`\n== ${g}`);
   const r = spawnSync("node", [path.join(here, g), ...(ext ? ["--url", String(ext)] : [])], { cwd: root, stdio: "inherit", env: process.env });
   if (r.status) failed++;
+}
+// the review screenshots at the five sizes (qa/shots/, gitignored), on every full run
+if (!only) {
+  console.log("\n== shots");
+  spawnSync("node", [path.join(here, "shots.mjs"), ...(ext ? ["--url", String(ext)] : [])], { cwd: root, stdio: "inherit", env: process.env });
 }
 server?.kill();
 console.log(`\n${failed ? `FAIL: ${failed} of ${gates.length} gates` : `PASS: all ${gates.length} gates`}`);

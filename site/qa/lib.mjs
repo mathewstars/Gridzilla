@@ -2,8 +2,10 @@
 import { chromium } from "playwright-core";
 
 export const SIZES = ["2560x1440", "1440x900", "1024x768", "390x844", "390x667"];
+/** The port `vite preview` serves the build on (qa/run.mjs starts it); GZ_PORT moves it when 5181 is taken. */
+export const PORT = Number(process.env.GZ_PORT || 5181);
 /** The page under test: the built site served by `vite preview` (qa/run.mjs starts it), or --url. */
-export const SITE = process.env.GZ_SITE_URL || "http://localhost:5181/static/site/";
+export const SITE = process.env.GZ_SITE_URL || `http://localhost:${PORT}/static/site/`;
 
 export function arg(k, d) {
   const i = process.argv.indexOf(`--${k}`);

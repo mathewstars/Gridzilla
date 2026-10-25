@@ -28,7 +28,7 @@ for (const size of sizes) {
     await page.screenshot({ path: `${out}sec-${id}-${size}.png` });
   }
   await ctx.close();
-  console.log(`shot ${size}`);
+  console.log(`shot ${size}: ${out}fold-${size}.png ${out}page-${size}.png`);
 }
 await browser.close();
 if (copy) {
