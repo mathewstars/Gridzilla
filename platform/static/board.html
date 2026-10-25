@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gridzilla control</title>
+<link rel="icon" href="data:,">
+<script src="/static/vendor/chart.umd.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg:#15181c; --panel:#1d2127; --panel2:#232934; --fg:#e8e6e0; --muted:#a2a9b3; --line:#343b45;
+    --acc:#e8893a; --acc-soft:#3a2a1c;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --ok:#5fc48a; --warn:#e6c45a; --crit:#e66767;
+    --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; overflow:hidden; }
+  body { background:var(--bg); color:var(--fg); font:13px/1.4 "IBM Plex Sans", system-ui, sans-serif; display:flex; flex-direction:column; }
+  header { flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:8px 18px; border-bottom:1px solid var(--line); background:var(--panel); }
+  header h1 { font-size:18px; margin:0; color:var(--acc); letter-spacing:.06em; }
+  header .sub { color:var(--muted); font-size:12px; }
+  header .clock { font-family:var(--mono); font-size:20px; margin-left:auto; font-variant-numeric:tabular-nums; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; border:1px solid var(--line); color:var(--muted); font-family:var(--mono); white-space:nowrap; }
+  .pill.ok { color:var(--ok); border-color:var(--ok); } .pill.bad { color:var(--crit); border-color:var(--crit); }
+  .views { display:flex; gap:4px; margin-left:12px; }
+  .views button { margin:0; padding:5px 14px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+  .views button.on { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
+
+  main { flex:1 1 auto; min-height:0; padding:10px 18px 12px; display:grid; gap:10px; }
+  main[data-view="auto"]   { grid-template-columns: 1.05fr 1.25fr 0.9fr; grid-template-rows: auto minmax(0, 1fr) minmax(0, 0.62fr); }
+  main[data-view="manual"] { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); }
+  main[data-view="homes"]  { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+  main[data-view="auto"] section:not([data-tab="auto"]), main[data-view="manual"] section:not([data-tab="manual"]), main[data-view="homes"] section:not([data-tab="homes"]) { display:none; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px 12px; min-width:0; min-height:0; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
+  .span3 { grid-column:1 / -1; }
+  h2 { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:8px; flex:0 0 auto; }
+  h2 .hint { text-transform:none; letter-spacing:0; font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fill { flex:1 1 auto; min-height:0; }
+  .scroll { overflow:auto; }
+
+  .kpis { display:grid; grid-template-columns:repeat(8, 1fr); gap:8px; }
+  .kpi { background:var(--panel2); border-radius:6px; padding:7px 10px; min-width:0; }
+  .kpi .v { font-family:var(--mono); font-size:20px; font-variant-numeric:tabular-nums; line-height:1.1; white-space:nowrap; }
+  .kpi .l { color:var(--muted); font-size:10.5px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .kpi.warn .v { color:var(--warn); } .kpi.crit .v { color:var(--crit); } .kpi.ok .v { color:var(--ok); }
+
+  /* city heat map: every transformer, grouped by substation */
+  .city { display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:10px; }
+  .city .sub { display:grid; grid-template-columns: 86px 1fr; gap:6px; align-items:center; }
+  .city .subname { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .city .subname.on { color:var(--acc); }
+  .city .cells { display:flex; gap:3px; flex-wrap:wrap; }
+  .city .cell { flex:1 1 0; min-width:44px; height:26px; border-radius:3px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer; color:#15181c; font-weight:600; line-height:1; border:2px solid transparent; }
+  .city .cell small { font-weight:400; font-size:8.5px; opacity:.85; overflow:hidden; white-space:nowrap; max-width:100%; }
+  .city .cell.sel { border-color:#fff; }
+  .city .cell.sig { box-shadow: inset 0 0 0 1px var(--acc); }
+
+  .schem { width:100%; height:100%; display:block; font-family:var(--mono); }
+  .schem text { fill:var(--fg); font-size:11px; }
+  .schem .muted { fill:var(--muted); }
+  .schem .box { fill:var(--panel2); stroke:var(--line); }
+  .schem .box.sel { stroke:var(--acc); stroke-width:2; }
+  .schem .bar-bg { fill:#2a3039; }
+  .schem .wire { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .schem .house { stroke:var(--panel); stroke-width:1.5; }
+  .loop { height:auto; }
+
+  .chartbox { position:relative; flex:1 1 auto; min-height:0; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:10.5px; color:var(--muted); flex:0 0 auto; }
+  .legend i { display:inline-block; width:12px; height:3px; vertical-align:middle; margin-right:4px; border-radius:2px; }
+
+  label { display:block; font-size:11px; color:var(--muted); margin-top:6px; }
+  input, select, textarea { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:5px 8px; width:100%; }
+  textarea { min-height:56px; resize:vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  button { font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:5px 11px; cursor:pointer; margin-top:6px; }
+  button.primary { background:var(--acc); color:#15181c; border-color:var(--acc); font-weight:600; }
+  button.danger { border-color:var(--crit); color:var(--crit); }
+  .modes { display:flex; flex-wrap:wrap; gap:6px; }
+  .modes button { margin:0; padding:4px 10px; font-size:12px; }
+  .modes button.on { background:var(--acc); color:#15181c; border-color:var(--acc); }
+  .err { color:var(--crit); font-size:12px; min-height:14px; flex:0 0 auto; }
+  .prop { background:var(--panel2); border-left:3px solid var(--s1); padding:6px 10px; font-size:12px; display:none; overflow:auto; }
+  .city .cell.tgt { animation:pulse 1.2s ease-in-out infinite; border-color:#fff; }
+  @keyframes pulse { 50% { filter:brightness(1.35); } }
+  .target { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; align-items:baseline; }
+  .target .big { font-family:var(--mono); font-size:16px; font-weight:600; color:var(--acc); grid-column:1 / -1; }
+  .chips span { display:inline-block; font-family:var(--mono); font-size:11px; border:1px solid var(--line); border-radius:10px; padding:0 7px; margin:2px 3px 0 0; }
+  .dcard { display:grid; grid-template-columns:52px 1fr 120px; gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--line); font-family:"IBM Plex Sans", system-ui, sans-serif; font-size:12px; }
+  .dcard .why { color:var(--muted); font-size:11.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .dcard .t { font-family:var(--mono); color:var(--muted); font-size:11px; }
+
+  table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
+  th, td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; font-size:11px; position:sticky; top:0; background:var(--panel); }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .st-applied{color:var(--ok)} .st-partial{color:var(--warn)} .st-refused{color:var(--crit)} .st-reverted{color:var(--muted)}
+  .sig { display:grid; grid-template-columns: 70px 1fr 54px; gap:8px; align-items:center; padding:5px 0; border-bottom:1px dashed var(--line); font-family:var(--mono); font-size:11px; }
+  .sig .mode { color:var(--acc); font-weight:600; }
+  .bar { height:6px; background:#2a3039; border-radius:4px; overflow:hidden; margin-top:3px; }
+  .bar i { display:block; height:100%; background:var(--acc); }
+  .log { font-family:var(--mono); font-size:11px; overflow:auto; }
+  .log div { padding:2px 0; border-bottom:1px dashed #2a3039; }
+  .log .k { color:var(--muted); display:inline-block; width:58px; }
+  .log .k-signal{color:var(--acc)} .log .k-guard{color:var(--crit)} .log .k-ack{color:var(--ok)} .log .k-advisor{color:var(--s1)} .log .k-demo{color:var(--warn)} .log .k-autopilot{color:var(--s1)}
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; }
+  .tabs button { margin:0; padding:2px 8px; font-size:11px; }
+  .tabs button.on { border-color:var(--acc); color:var(--acc); }
+  select.feeder { width:auto; padding:2px 6px; font-size:11px; }
+  main[data-view="story"]  { grid-template-columns: 1.7fr 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
+  main[data-view="story"] section:not([data-tab="story"]) { display:none; }
+  main[data-view="flat"]   { grid-template-columns: 1.7fr 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  main[data-view="flat"] section:not([data-tab="flat"]) { display:none; }
+  .monster { font-size:13px; line-height:1.45; color:var(--fg); }
+  .monster b { color:var(--acc); }
+  .flatsteps { display:grid; grid-template-columns: 1fr; gap:8px; }
+  .flatsteps .step .v { font-size:15px; white-space:normal; }
+  .tflist { font-family:var(--mono); font-size:11px; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:3px 10px; color:var(--muted); }
+  .tflist span b { color:var(--fg); font-weight:500; }
+  .steps { display:grid; grid-template-columns: repeat(4, 1fr) auto; gap:10px; align-items:stretch; }
+  .step { background:var(--panel2); border-radius:6px; padding:10px 14px; min-width:0; border-left:4px solid var(--line); }
+  .step.on { border-left-color:var(--acc); }
+  .step .t { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .step .v { font-family:var(--mono); font-size:22px; font-weight:600; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .step .d { font-size:12px; color:var(--fg); margin-top:3px; max-height:34px; overflow:hidden; }
+  .step .s { font-size:10.5px; color:var(--muted); margin-top:3px; }
+  #storydelta { white-space:normal; line-height:1.35; }
+  .countdown { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:6px 16px; background:var(--panel2); border-radius:6px; min-width:140px; }
+  .countdown .v { font-family:var(--mono); font-size:30px; font-weight:600; color:var(--acc); }
+  .countdown .l { font-size:10.5px; color:var(--muted); }
+  .bignum { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .tile { background:var(--panel2); border-radius:6px; padding:8px 12px; min-width:0; }
+  .tile .v { font-family:var(--mono); font-size:26px; font-weight:600; line-height:1.1; white-space:nowrap; }
+  .tile .u { font-size:12px; color:var(--muted); font-weight:400; }
+  .tile .l { font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .delta { font-family:var(--mono); font-size:13px; color:var(--ok); }
+  .ticker { font-family:var(--mono); font-size:11.5px; display:flex; flex-direction:column; gap:3px; }
+  .ticker div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .citystrip { display:flex; gap:2px; flex-wrap:wrap; }
+  .citystrip .cell { width:26px; height:15px; border-radius:2px; font-family:var(--mono); font-size:8px; display:flex; align-items:center; justify-content:center; color:#15181c; font-weight:600; cursor:pointer; }
+  .citystrip .cell.sig { box-shadow: inset 0 0 0 2px var(--acc); }
+
+  /* ---- board refresh: one spacing scale (8 / 12 / 16 / 24), one card style, one chip style, system type ---- */
+  :root {
+    --sans: -apple-system, "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif;
+    --bg:#121519; --panel:#1a1e24; --panel2:#22272f; --card:#20252c; --ter:#7f8792;
+    --edge:rgba(255,255,255,0.08); --edge2:rgba(255,255,255,0.12);
+    --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 1px 2px rgba(0,0,0,0.35), 0 12px 28px -12px rgba(0,0,0,0.55);
+  }
+  body { font:14px/1.45 var(--sans); font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased; background:radial-gradient(1200px 600px at 20% -10%, #1a1f27 0%, transparent 60%), var(--bg); }
+  .tile .v, .step .v, .kpi .v, .countdown .v, .city, .tflist, table, .schem, .chips span, .sig, .dcard .t, .target .big, .delta, .pill, header .clock { font-family:var(--sans); }
+
+  header { gap:16px; padding:10px 24px; background:rgba(22,26,31,0.92); border-bottom:1px solid var(--edge); box-shadow:0 1px 0 rgba(0,0,0,0.4); }
+  header .brand { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  header .brandrow { display:flex; align-items:center; gap:8px; }
+  header h1 { font-size:15px; font-weight:700; letter-spacing:.08em; margin-right:8px; }
+  header .sub { font-size:13px; color:var(--muted); white-space:nowrap; }
+  header .clock { font-size:20px; font-weight:600; color:var(--fg); margin-left:16px; }
+  .pill { padding:2px 10px; border-radius:999px; font-size:12px; line-height:18px; background:rgba(255,255,255,0.04); border-color:var(--edge); }
+  .pill.ok { border-color:rgba(95,196,138,0.45); background:rgba(95,196,138,0.08); } .pill.bad { border-color:rgba(230,103,103,0.5); background:rgba(230,103,103,0.1); }
+  .views { margin-left:auto; gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid var(--edge); box-shadow:inset 0 1px 2px rgba(0,0,0,0.4); }
+  .views button { padding:6px 14px; font-size:13px; font-weight:500; letter-spacing:0; text-transform:none; border:0; border-radius:7px; background:transparent; box-shadow:none; color:var(--muted); }
+  .views button:hover { background:rgba(255,255,255,0.06); color:var(--fg); }
+  .views button.on, .views button.on:hover { background:linear-gradient(#f1efe9, #dcd9d2); color:#15181c; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.6); }
+
+  /* buttons: raised, with hover, pressed and focus states */
+  button { font-size:13px; border-radius:8px; border:1px solid var(--edge2); background:linear-gradient(#2a3039, #232830); box-shadow:inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4); transition:background .12s, border-color .12s, transform .06s, box-shadow .12s; }
+  button:hover { background:linear-gradient(#323943, #2a3039); border-color:rgba(255,255,255,0.18); }
+  button:active { transform:translateY(1px); background:#1f242b; box-shadow:inset 0 1px 3px rgba(0,0,0,0.5); }
+  button:focus-visible { outline:2px solid var(--s1); outline-offset:2px; }
+  button.primary { background:linear-gradient(#f09a4e, #e0802f); border-color:#e8893a; }
+  button.primary:hover { background:linear-gradient(#f5a660, #e8893a); }
+  input, select, textarea { border-radius:8px; border-color:var(--edge2); background:#161a1f; }
+
+  main { padding:16px 24px 24px; gap:16px; overflow:auto; }
+  section { background:linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 120px), var(--panel); border:1px solid var(--edge); border-radius:14px; padding:16px; gap:12px; box-shadow:var(--shadow); }
+  h2 { font-size:15px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--fg); }
+  h2 .hint { font-size:13px; font-weight:400; color:var(--muted); }
+  section[data-tab="story"] h2, section[data-tab="flat"] h2 { flex-wrap:wrap; row-gap:8px; }
+  main[data-view="story"] { grid-template-rows: auto minmax(380px, 1fr) auto; }
+  main[data-view="flat"]   { grid-template-rows: auto minmax(380px, 1fr); }
+  main[data-view="auto"] section { padding:12px 16px; gap:8px; }   /* the dense tabs keep their old rhythm */
+  .city .cell small { text-overflow:ellipsis; padding:0 2px; }
+  main[data-view="auto"] h2, main[data-view="manual"] h2, main[data-view="homes"] h2 { font-size:14px; }
+  main[data-view="story"] > section.span3, main[data-view="story"] > section:has(#realtiles), main[data-view="flat"] > section.span3 { min-height:auto; overflow:visible; }   /* short screens: the board scrolls instead of squeezing a panel */
+
+  /* one card style inside panels: a lighter fill, no second border */
+  .step, .tile, .kpi { background:var(--card); border:0; border-radius:10px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); }
+  .step { padding:12px 16px; border-left:0; }
+  .step .t, .tile .l.lab { font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ter); }
+  .step .v { font-size:clamp(22px, 1.55vw, 30px); font-weight:600; letter-spacing:-0.01em; margin-top:6px; white-space:normal; line-height:1.15; overflow-wrap:anywhere; }
+  .step .d { font-size:13px; color:var(--muted); margin-top:6px; max-height:none; line-height:1.4; }
+  .step .s { font-size:12px; color:var(--ter); margin-top:4px; }
+  .steps { gap:12px; }
+  #steps { counter-reset:step; }
+  #steps .step { counter-increment:step; position:relative; }
+  #steps .step .t::before { content:counter(step); display:inline-grid; place-items:center; width:18px; height:18px; margin-right:8px; border-radius:50%; background:rgba(255,255,255,0.08); color:var(--muted); font-size:11px; letter-spacing:0; vertical-align:1px; }
+  #steps .step.on { box-shadow:inset 0 0 0 1px rgba(232,137,58,0.6), 0 0 0 3px rgba(232,137,58,0.12); }
+  #steps .step.on .t::before { background:var(--acc); color:#15181c; }
+  .countdown { background:transparent; padding:0; min-width:180px; gap:8px; }
+  .countdown .cdpill { display:flex; align-items:baseline; gap:8px; padding:6px 14px; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid var(--edge); }
+  .countdown .cdpill .l { font-size:12px; color:var(--muted); }
+  .countdown .cdpill .v { font-size:20px; font-weight:600; color:var(--acc); }
+  .countdown > .l { font-size:13px; }
+  .countdown button.review { margin:0; padding:8px 18px; font-weight:600; }
+  #rationale { font-size:13px !important; color:var(--muted) !important; margin-top:0 !important; line-height:1.45; }
+  #weather { font-size:13px !important; color:var(--ter) !important; margin-top:0 !important; }
+
+  .tile { padding:12px 16px; }
+  .tile .v { font-size:30px; font-weight:600; letter-spacing:-0.01em; }
+  .tile .u { font-size:14px; }
+  .tile .l { font-size:13px; color:var(--muted); margin-top:4px; }
+  .bignum { gap:12px; }
+  #realage.live::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ok); margin-right:6px; vertical-align:1px; box-shadow:0 0 0 3px rgba(95,196,138,0.18); }
+  #realsig { font-size:13px !important; }
+  .delta { font-size:14px; font-weight:600; }
+  #storydelta { flex-basis:100%; order:3; font-size:13px; }
+  #storytitle { flex:1 1 auto; }
+
+  /* legends: one row of chips, swatch + words */
+  .legend { gap:6px; font-size:12px; }
+  .legend span { display:inline-flex; align-items:center; gap:8px; padding:3px 9px; border-radius:999px; background:rgba(255,255,255,0.035); border:1px solid var(--edge); color:var(--muted); white-space:nowrap; }
+  .legend i { width:16px; height:3px; margin:0; border-radius:2px; }
+  .legend i.dash { background-image:linear-gradient(90deg, transparent 55%, var(--panel) 55%) !important; background-size:6px 3px; }
+  .legend i.area { height:10px; width:14px; border-radius:3px; opacity:.85; }
+  #devlegend span:last-child { background:none; border:0; }
+
+  /* chips that are buttons (feeders, pins): one shape, real states */
+  .tabs { gap:6px; align-items:center; }
+  .tabs button { padding:4px 10px; font-size:12px; border-radius:8px; }
+  .tabs button.on { border-color:var(--acc); background:linear-gradient(rgba(232,137,58,0.22), rgba(232,137,58,0.12)); }
+  .tabs:has(#pin-auto) { gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid var(--edge); }
+  .tabs:has(#pin-auto) button { border:0; background:transparent; box-shadow:none; color:var(--muted); }
+  .tabs:has(#pin-auto) button:hover { background:rgba(255,255,255,0.06); color:var(--fg); }
+  .tabs:has(#pin-auto) button.on { background:linear-gradient(#f1efe9, #dcd9d2); color:#15181c; font-weight:600; }
+  #flatchips { flex-basis:100%; order:3; font-weight:400; }
+
+  /* city heat strip: colour only, numbers in the tooltip */
+  .citystrip { display:grid; grid-template-columns:repeat(auto-fill, minmax(20px, 1fr)); gap:4px; }
+  .citystrip .cell { width:auto; height:20px; border-radius:6px; font-size:0; color:transparent; transition:transform .1s, filter .1s; }
+  .citystrip .cell:hover { transform:scale(1.15); filter:brightness(1.15); }
+
+  /* what happened: one line each */
+  .ticker { font-family:var(--sans); font-size:13px; gap:6px; }
+  .ticker .tm { color:var(--ter); margin-right:4px; }
+  .ticker b { font-weight:600; }
+
+  /* flattening */
+  #flattiles { grid-template-columns:repeat(5, minmax(0, 1fr)); }
+  .flatsteps { counter-reset:none; gap:12px; }
+  .fstep { display:grid; grid-template-columns:28px 1fr; gap:12px; align-items:start; }
+  .fstep .n { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:rgba(232,137,58,0.14); color:var(--acc); border:1px solid rgba(232,137,58,0.45); font-weight:600; font-size:13px; }
+  .fstep .t { font-weight:600; font-size:14px; line-height:28px; }
+  .fstep .t::first-letter { text-transform:uppercase; }
+  .fstep .d { font-size:13px; color:var(--muted); line-height:1.45; }
+  .monster { font-size:14px; line-height:1.5; padding:12px 16px; border-radius:10px; background:var(--card); }
+  .tflist { font-size:13px; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:6px 24px; }
+  .tflist > span { display:grid; grid-template-columns:minmax(0, 1fr) auto 4.5em; gap:8px; align-items:baseline; text-align:right; }
+  .tflist > span > b { text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scroll::-webkit-scrollbar, main::-webkit-scrollbar { width:8px; height:8px; } .scroll::-webkit-scrollbar-thumb, main::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:4px; }
+
+  /* Flattening right column on screens under 1000 px tall: step title on the text line, tighter gaps, the diet paragraph in two lines (all of it on hover and in its tooltip) */
+  @media (max-height: 1000px) {
+    section[data-tab="flat"]:has(#flatsteps) { gap:8px; }
+    .flatsteps { gap:8px; }
+    .fstep { grid-template-columns:22px 1fr; gap:10px; }
+    .fstep .n { width:22px; height:22px; font-size:12px; }
+    .fstep .t, .fstep .d { display:inline; line-height:1.45; }
+    .fstep .t { display:inline-block; margin-right:6px; }
+    .monster { font-size:13px; padding:0 12px; border-block:8px solid var(--card); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; cursor:help; }
+    .monster:hover { -webkit-line-clamp:unset; }
+  }
+  @media (max-height: 700px) { main[data-view="flat"] { grid-template-rows: auto minmax(520px, 1fr); } }
+  section[data-tab="flat"]:has(#flatsteps) > * { flex-shrink:0; }   /* overflow shows as overflow, never as squeezed text */
+  /* when the column still cannot hold everything: a visible scrollbar and a fade at the bottom edge, so the cut is obvious */
+  section[data-tab="flat"].overflows { -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image:linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
+  section[data-tab="flat"].overflows::-webkit-scrollbar { width:8px; } section[data-tab="flat"].overflows::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.22); border-radius:4px; }
+
+  @media (prefers-reduced-motion: reduce) { button, .citystrip .cell { transition:none; } }
+
+  /* ---- phones and narrow tablets: one column, the page scrolls, charts get a fixed height, bigger tap targets ---- */
+  @media (max-width: 900px) {
+    html, body { height:auto; min-height:100%; overflow:auto; -webkit-text-size-adjust:100%; }
+    body { font-size:14px; }
+    header { flex-wrap:wrap; gap:6px 8px; padding:8px 12px; position:sticky; top:0; z-index:5; }
+    header h1 { font-size:17px; }
+    header .sub { display:none; }
+    header .clock { font-size:14px; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .views { order:10; flex:1 0 100%; margin:2px 0 0; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .views::-webkit-scrollbar { display:none; }
+    .views button { flex:0 0 auto; padding:8px 12px; min-height:36px; }
+    body { overflow-x:hidden; }
+    main, main[data-view] { display:grid; grid-template-columns:minmax(0, 1fr) !important; grid-template-rows:none !important; grid-auto-rows:auto; padding:10px 12px 24px; gap:10px; overflow-x:hidden; }
+    .span3 { grid-column:1; }
+    section { overflow:visible; min-height:auto; max-width:100%; min-width:0; }
+    section > * { min-width:0; max-width:100%; }
+    .ticker div, .step .v, .tile .v { white-space:normal; }
+    canvas { max-width:100%; }
+    section.scroll { overflow:visible; }
+    section[data-tab="homes"] { overflow-x:auto; }
+    h2 { flex-wrap:wrap; }
+    h2 .hint { white-space:normal; }
+    .fill { flex:none; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .schem { height:auto; }
+    #schem { min-width:600px; }   /* the feeder schematic keeps readable labels and scrolls sideways */
+    .chartbox { flex:none; height:220px; min-height:220px; }
+    .city, #signals, #apstatus, #rationale { max-height:none !important; }
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .kpi .l { white-space:normal; }
+    .steps { grid-template-columns:1fr 1fr; }
+    .countdown { grid-column:1 / -1; }
+    .step .v { font-size:19px; }
+    .dcard { grid-template-columns:44px 1fr; }
+    .dcard > :nth-child(3) { grid-column:1 / -1; }
+    .sig { grid-template-columns:62px 1fr 50px; }
+    .row { grid-template-columns:1fr; }
+    .log, #decisions { max-height:320px; overflow:auto; }
+    .tflist { grid-template-columns:1fr 1fr; }
+    .tile .v { font-size:22px; }
+    section > div[style*="grid-template-columns: 1fr 1.4fr"] { grid-template-columns:1fr !important; }
+    section[data-tab="story"][style*="flex-direction:row"] { flex-direction:column !important; }
+    button, .modes button, .tabs button { min-height:36px; padding:7px 12px; }
+    input, select, textarea { padding:9px 10px; font-size:15px; }
+    th, td { padding:7px 8px; }
+  }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns:repeat(2, 1fr); }
+    .steps { grid-template-columns:1fr; }
+    .sig { grid-template-columns:56px 1fr 46px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="brandrow"><h1>GRIDZILLA</h1>
+    <span class="pill" id="seqpill">seq –</span>
+    <span class="pill ok" id="hbpill">heartbeat on</span>
+    <span class="pill" id="llmpill">advisor off</span></div>
+    <span class="sub" id="subtitle">DSO control · Vienna</span>
+  </div>
+  <span class="views"><button id="v-story" onclick="setView('story')">Presentation</button><button id="v-flat" onclick="setView('flat')">Flattening</button><button id="v-auto" onclick="setView('auto')">Autopilot</button><button id="v-manual" onclick="setView('manual')">Manual</button><button id="v-homes" onclick="setView('homes')">Households</button></span>
+  <span class="clock" id="clock">--:--</span>
+</header>
+
+<main data-view="auto">
+  <!-- row 1: KPI strip -->
+  <section class="span3" data-tab="auto" style="padding:8px 10px"><div class="kpis" id="kpis"></div></section>
+
+  <!-- row 2 -->
+  <section data-tab="auto">
+    <h2>City · 72 transformers <span class="hint" id="cityhint">load now · click to select</span></h2>
+    <div class="city scroll" id="city" style="flex:0 1 auto; max-height:46%"></div>
+    <h2 style="margin-top:4px">Selected feeder <span class="tabs" id="nodetabs"></span></h2>
+    <div class="fill"><svg id="schem" class="schem" viewBox="0 0 760 300" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Feeder schematic with transformer load bars and program houses"></svg></div>
+  </section>
+
+  <section data-tab="auto">
+    <h2>DeepSeek control <span class="hint" id="aphint"></span></h2>
+    <div class="modes" id="apmodes">
+      <button data-ap="auto" onclick="setAp({mode:'auto'})">Autonomous</button>
+      <button data-ap="propose" onclick="setAp({mode:'propose'})">Operator approves</button>
+      <button data-ap="off" onclick="setAp({mode:'off'})">Off</button>
+      <button onclick="decideAp('review')" style="margin:0">Review now</button>
+      <span style="flex:1"></span>
+      <span class="modes" id="scenarios"><button data-sc="normal" onclick="demo('scenario/normal')">Normal day</button><button data-sc="cold-evening" onclick="demo('scenario/cold-evening')">Cold evening</button><button data-sc="sunny-noon" onclick="demo('scenario/sunny-noon')">Sunny noon</button><button data-sc="live-weather" onclick="demo('scenario/live-weather')">Live weather</button></span>
+    </div>
+    <svg id="loop" class="schem loop" viewBox="0 0 760 172" role="img" aria-label="Control loop: sense, trigger, DeepSeek, guard, sign and publish, houses" style="flex:0 0 auto"></svg>
+    <div class="prop" id="apstatus" style="display:block; flex:0 0 auto; max-height:132px"></div>
+    <h2>Decisions <span class="hint">newest first · every 15 grid minutes</span></h2>
+    <div class="log fill" id="decisions"></div>
+    <div class="row" style="flex:0 0 auto"><input id="apctx" placeholder="Operator note for DeepSeek, e.g. heat wave tomorrow, high evening load 17:00–21:00"><button style="margin:0" onclick="setAp({context: document.getElementById('apctx').value})">Set note</button></div>
+    <div class="err"></div>
+  </section>
+
+  <section data-tab="auto">
+    <h2>Active signals <span class="hint" id="sighint"></span></h2>
+    <div class="scroll" id="signals" style="flex:0 1 auto; max-height:34%"></div>
+    <h2 style="margin-top:4px">Transformer load <span class="hint" id="loadhint"></span></h2>
+    <div class="chartbox"><canvas id="loadChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>total load</span><span><i style="background:var(--s1);opacity:.5"></i>forecast</span><span><i style="background:var(--s2)"></i>program houses</span><span><i style="background:var(--muted)"></i>rating</span></div>
+  </section>
+
+  <!-- row 3 -->
+  <section data-tab="auto">
+    <h2>Envelope curve <span class="hint" id="envhint">per house, per 15-min slot</span></h2>
+    <div class="chartbox"><canvas id="envChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--acc)"></i>envelope ceiling per house</span><span><i style="background:var(--s1)"></i>measured, average program house</span></div>
+  </section>
+  <section data-tab="auto">
+    <h2>Program households <span class="hint" id="rephint"></span></h2>
+    <div style="display:grid; grid-template-columns: 1fr 1.4fr; gap:8px; flex:1 1 auto; min-height:0">
+      <div class="chartbox"><canvas id="socChart"></canvas></div>
+      <div class="chartbox"><canvas id="gridChart"></canvas></div>
+    </div>
+    <div class="legend" id="devlegend"></div>
+  </section>
+  <section data-tab="auto">
+    <h2>Log</h2>
+    <div class="log fill" id="log"></div>
+  </section>
+
+  <!-- manual tab -->
+  <section data-tab="manual" class="scroll">
+    <h2>Compose signal <span class="hint">reference only · the autopilot does this on its own</span></h2>
+    <label>Segment</label>
+    <select id="segment"></select>
+    <div class="modes" id="modes" style="margin-top:6px"></div>
+    <div class="row">
+      <div id="f-import_max_kw"><label>import_max_kw · "take N kW only"</label><input id="import_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-export_min_kw"><label>export_min_kw · "give at least N kW"</label><input id="export_min_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-export_max_kw"><label>export_max_kw · cap export</label><input id="export_max_kw" type="number" step="0.5" value="2"></div>
+      <div id="f-charge_max_kw"><label>charge_max_kw</label><input id="charge_max_kw" type="number" step="0.5" value="3"></div>
+      <div id="f-discharge_max_kw"><label>discharge_max_kw · ration</label><input id="discharge_max_kw" type="number" step="0.5" value="1"></div>
+      <div id="f-target_soc"><label>target_soc % · fill by deadline</label><input id="target_soc" type="number" step="5" value="90"></div>
+      <div id="f-max_soc_by"><label>max_soc_by % · make room</label><input id="max_soc_by" type="number" step="5" value="40"></div>
+    </div>
+    <div class="row">
+      <div><label>Duration (min)</label><input id="duration_min" type="number" value="120"></div>
+      <div><label>Start in (min)</label><input id="start_in_min" type="number" value="0"></div>
+    </div>
+    <div class="row">
+      <div><label>Cohort k (blank = everyone)</label><input id="cohort_k" type="number" min="0" placeholder="0"></div>
+      <div><label>of n</label><input id="cohort_n" type="number" min="1" placeholder="2"></div>
+    </div>
+    <label>Note to owners</label>
+    <input id="note" placeholder="Transformer Atzgersdorf-1 near limit 17:00–19:00">
+    <div><button class="primary" onclick="send()">Sign and publish</button></div>
+    <div class="err"></div>
+  </section>
+  <section data-tab="manual" class="scroll">
+    <h2>Advisor <span class="hint">ask DeepSeek for one proposal · guard and operator decide</span></h2>
+    <textarea id="situation" placeholder="Feeder Liesing-3 forecast 110 % 17:00–19:00. Drone strike warning tonight."></textarea>
+    <div><button onclick="advise()">Propose a signal</button></div>
+    <div class="prop" id="prop"></div>
+    <h2 style="margin-top:12px">Fail-safe demo <span class="hint">what the houses do when the DSO disappears or repeats itself</span></h2>
+    <div class="modes">
+      <button onclick="demo('heartbeat/pause')" class="danger">Pause heartbeat (outage)</button>
+      <button onclick="demo('heartbeat/resume')">Resume</button>
+      <button onclick="replay()">Replay last signal</button>
+    </div>
+    <div class="err"></div>
+  </section>
+
+
+  <!-- presentation tab -->
+  <section class="span3" data-tab="story">
+    <div class="steps" id="steps"></div>
+    <div id="rationale" style="font-size:12.5px; color:var(--fg); margin-top:4px; max-height:64px; overflow:auto"></div>
+    <div id="weather" style="font-size:12px; color:var(--muted); margin-top:4px"></div>
+  </section>
+  <section data-tab="story">
+    <h2><span id="storytitle">Transformer</span> <span class="tabs"><button id="pin-auto" onclick="storyPin('auto')">follow autopilot</button><button id="pin-blatnica" onclick="storyPin('blatnica')">pin Blatnica</button><button id="pin-selected" class="on" onclick="storyPin('selected')">selected</button></span> <span class="hint" id="storydelta"></span></h2>
+    <div class="chartbox"><canvas id="storyChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>with Gridzilla (measured)</span><span><i class="dash" style="background:var(--muted)"></i>without Gridzilla (what the houses would draw)</span><span><i class="area" style="background:var(--acc)"></i>orange = load taken off the transformer</span><span><i class="dash" style="background:var(--crit)"></i>rating</span></div>
+  </section>
+  <section data-tab="story">
+    <h2>Blatnica · real plant · live <span class="hint" id="realage"></span></h2>
+    <div class="bignum" id="realtiles"></div>
+    <div class="chartbox" style="min-height:90px;max-height:150px"><canvas id="realChart"></canvas></div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>grid kW, + import − export, last 30 min</span><span><i style="background:var(--s3)"></i>EV</span><span><i style="background:var(--s5)"></i>heat pump</span></div>
+    <div id="realsig" style="font-size:12px;color:var(--muted)"></div>
+  </section>
+  <section class="span3" data-tab="story" style="flex-direction:row; gap:16px; align-items:flex-start">
+    <div style="flex:1 1 55%; min-width:0"><h2>City <span class="hint" id="striphint"></span></h2><div class="tabs" id="feederchips" style="margin-top:6px"></div><div class="citystrip" id="citystrip" style="margin-top:6px"></div></div>
+    <div style="flex:1 1 45%; min-width:0"><h2>What happened <span class="hint">latest decisions</span></h2><div class="ticker" id="ticker" style="margin-top:6px"></div></div>
+  </section>
+
+  <!-- flattening tab: the monster's diet -->
+  <section class="span3" data-tab="flat" style="gap:6px">
+    <h2>Flattening · the diet plan <span class="hint" id="flathint"></span><span class="tabs" id="flatchips"></span></h2>
+    <div class="steps" id="flattiles"></div>
+  </section>
+  <section data-tab="flat">
+    <h2><span id="flattitle">Vienna · next 24 grid hours</span> <span class="hint" id="flatdelta"></span></h2>
+    <div class="chartbox"><canvas id="flatChart"></canvas></div>
+    <div class="legend"><span><i class="dash" style="background:var(--muted)"></i>without Gridzilla: every car charges the moment it is plugged in</span><span><i style="background:var(--s1)"></i>with the diet plan</span><span><i class="area" style="background:#5a6270"></i>load nobody controls (other houses + base − PV)</span><span><i class="dash" style="background:var(--acc)"></i>level L: the flattest the street can be</span><span><i class="dash" style="background:var(--crit)"></i>rating</span></div>
+  </section>
+  <section data-tab="flat" style="gap:8px; overflow:auto">
+    <h2>How the monster eats a peak</h2>
+    <div class="flatsteps" id="flatsteps"></div>
+    <div class="monster" id="flatmonster"></div>
+    <h2 style="margin-top:4px">Transformers in this plan <span class="hint" id="flattfhint"></span></h2>
+    <div class="tflist" id="flattfs"></div>
+  </section>
+
+  <!-- households tab -->
+  <section data-tab="homes">
+    <h2>Households <span class="hint" id="homeshint">battery · EV · heat pump or boiler behind one meter</span></h2>
+    <div class="modes"><button id="hf-node" class="on" onclick="homesFilter('node')">selected node</button><button id="hf-all" onclick="homesFilter('all')">whole city</button><input id="hsearch" placeholder="search id or transformer" style="width:260px;margin:0" oninput="drawDevices()"></div>
+    <div class="scroll fill">
+    <table>
+      <thead><tr><th>household</th><th>tf</th><th>soc</th><th>grid kW</th><th>EV kW / size</th><th>heat kW · tank now→set · room now→set</th><th>mode</th><th>last ack</th><th>sig</th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const ALL = ["import_max_kw","export_max_kw","export_min_kw","charge_max_kw","discharge_max_kw","target_soc","max_soc_by"];
+const SERIES = ["#3987e5","#d95926","#199e70","#c98500","#d55181"];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let S = null, H = null, selNode = "tf:atzgersdorf-1", devOrder = [];
+
+async function api(path, body) {
+  const r = await fetch("/api/" + path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {method:"POST"});
+  const j = await r.json(); if (!r.ok) throw new Error(j.detail || r.statusText); return j;
+}
+const err = m => document.querySelectorAll(".err").forEach(e => e.textContent = m || "");
+function setView(v) { document.querySelector("main").dataset.view = v; document.querySelectorAll(".views button").forEach(b => b.classList.toggle("on", b.id === "v-" + v)); try { localStorage.setItem("gz.view", v); } catch (e) {} if (S) drawAll(); }
+try { setView(localStorage.getItem("gz.view") || "story"); } catch (e) { setView("story"); }
+let homesMode = "node"; function homesFilter(m) { homesMode = m; document.getElementById("hf-node").classList.toggle("on", m === "node"); document.getElementById("hf-all").classList.toggle("on", m === "all"); drawDevices(); }
+
+// ---------- manual compose (reference)
+const MODES = ["PREPARE","ABSORB","SUPPORT","STRETCH","RECOVER","RELEASE"];
+const MODE_FIELDS = {PREPARE:["target_soc","charge_max_kw"], ABSORB:["export_max_kw","charge_max_kw","max_soc_by"], SUPPORT:["import_max_kw","export_min_kw"], STRETCH:["discharge_max_kw"], RECOVER:["charge_max_kw"], RELEASE:[]};
+let mode = "SUPPORT";
+function setMode(m) {
+  mode = m; document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.textContent === m));
+  ALL.forEach(f => document.getElementById("f-" + f).style.display = MODE_FIELDS[m].includes(f) ? "" : "none");
+  document.getElementById("duration_min").value = m === "STRETCH" ? 720 : (m === "PREPARE" ? 240 : 120);
+}
+document.getElementById("modes").innerHTML = MODES.map(m => `<button onclick="setMode('${m}')">${m}</button>`).join(""); setMode(mode);
+async function send() {
+  const body = {segment: document.getElementById("segment").value, mode, duration_min: +document.getElementById("duration_min").value,
+    start_in_min: +document.getElementById("start_in_min").value, note: document.getElementById("note").value};
+  const ck = document.getElementById("cohort_k").value, cn = document.getElementById("cohort_n").value; if (ck !== "" && cn !== "") body.cohort = [+ck, +cn];
+  MODE_FIELDS[mode].forEach(f => body[f] = +document.getElementById(f).value);
+  err(); try { await api("signal", body); } catch (e) { err("Guard refused: " + e.message); } refresh();
+}
+async function advise() {
+  const box = document.getElementById("prop"); box.style.display = "block"; box.textContent = "thinking…";
+  try {
+    const p = await api("advise", {situation: document.getElementById("situation").value});
+    box.innerHTML = `<b>${esc(p.mode)} → ${esc(p.segment)}</b> ${esc(JSON.stringify(p.fields))} · ${esc(p.duration_min)} min<br>${esc(p.rationale || "")}<br>` +
+      (p.guard ? `<span style="color:var(--crit)">guard: ${esc(p.guard)}</span>` : `<span style="color:var(--ok)">guard ok</span>`) + `<br><button onclick='fill(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Load into form</button>`;
+  } catch (e) { box.textContent = "advisor error: " + e.message; }
+}
+function fill(p) {
+  selectNode(p.segment); setMode(p.mode);
+  Object.entries(p.fields || {}).forEach(([k, v]) => { const el = document.getElementById(k); if (el && v != null) el.value = v; });
+  document.getElementById("duration_min").value = p.duration_min || 120; document.getElementById("start_in_min").value = p.start_in_min || 0; document.getElementById("note").value = p.note || "";
+}
+async function demo(p) { err(); try { await api(p); } catch (e) { err(e.message); } refresh(); }
+async function replay() {
+  const seqs = Object.values(S.active || {}).map(s => s.seq);
+  if (!seqs.length) return err("no active signal to replay");
+  err(); try { await api("replay/" + Math.max(...seqs)); } catch (e) { err(e.message); }
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"})[c]);
+async function setAp(body) { err(); try { await api("autopilot", body); } catch (e) { err("autopilot: " + e.message); } refresh(); }
+async function decideAp(d) { err(); try { await api("autopilot/" + d); } catch (e) { err(e.message); } refresh(); }
+function selectNode(n) { selNode = n; const sel = document.getElementById("segment"); if (sel && sel.options.length) sel.value = n; drawAll(); if (document.querySelector("main").dataset.view === "flat") loadFlat(true); }
+function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
+function feederOf0(n) { if (!TREE) return n; while (n && !n.startsWith("feeder:") && TREE[n] && TREE[n].parent) { if (n.startsWith("tf:")) return TREE[n].parent; n = TREE[n].parent; } return n; }
+
+// ---------- DeepSeek control loop
+const VERDICT = {sent: "--ok", held: "--warn", refused: "--crit", error: "--crit", none: "--muted", pending: "--s1", rejected: "--muted", expired: "--muted"};
+function worstForecast() {
+  let best = null;
+  Object.entries(S.forecast_peak || {}).forEach(([tf, p]) => { if (!best || Math.abs(p.pct) > Math.abs(best.pct)) best = {tf, pct: p.pct, h: p.h}; });
+  return best;
+}
+function drawLoop() {
+  const ap = S.autopilot, last = ap.history[0], w = worstForecast();
+  const lastSent = ap.history.find(d => d.verdict === "sent");
+  const under = lastSent ? Object.values(S.devices).filter(d => d.path.includes(lastSent.segment) && d.ack) : [];
+  const ok = under.filter(d => d.ack.seq === lastSent.seq && d.ack.status === "applied").length;
+  const part = under.filter(d => d.ack.seq === lastSent.seq && d.ack.status === "partial").length;
+  const rev = under.filter(d => d.ack.status === "reverted").length;
+  const live = ap.mode === "off" ? null : (ap.busy ? ap.stage : null);
+  const trig = ap.target ? `congestion ${ap.target.hot.length} hot` : !ap.last_trigger ? "quiet" : ap.last_trigger.startsWith("Operator") ? "operator note" : ap.last_trigger.includes("Release it") ? "release check" : "quiet";
+  const seg = n => n ? n.split(":")[1] : "";
+  const stages = [   // id, title, headline, detail, footnote
+    ["sense", "SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? seg(w.tf) : "", `forecast ${ap.horizon_min} min`],
+    ["trigger", "TRIGGER", trig.split(" ")[0], trig.split(" ").slice(1).join(" "), `at ±${ap.trigger_pct} %`],
+    ["deepseek", "DEEPSEEK", last && last.mode ? last.mode : "–", last ? seg(last.segment) : "", last && last.latency_ms ? `${(last.latency_ms / 1000).toFixed(1)} s` : "V4 Flash"],
+    ["guard", "GUARD", last ? last.verdict : "–", last && last.detail ? last.detail.split(":")[0] : "", "policy limits"],
+    ["send", "SIGN + PUBLISH", lastSent ? `seq ${lastSent.seq}` : "–", lastSent && lastSent.envelope ? `${(lastSent.envelope.import_max_kw || lastSent.envelope.export_max_kw).length}-slot curve` : "", "Ed25519 · MQTT"],
+    ["houses", "HOUSES", !lastSent ? "–" : ok + part ? `${ok} ok` : rev ? "ended" : "waiting", !lastSent ? "" : ok + part ? `${part} partial` : rev ? `${rev} reverted` : "", "follow envelope"]];
+  const bw = 112, gap = 17.6, y = 34, bh = 92;
+  let g = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${css("--muted")}"/></marker></defs>`;
+  stages.forEach(([id, title, val, detail, sub], i) => {
+    const x = i * (bw + gap), on = live === id || (live === "sense" && id === "trigger");
+    const vc = id === "guard" && last ? css(VERDICT[last.verdict] || "--fg") : css("--fg");
+    g += `<rect class="box" x="${x}" y="${y}" width="${bw}" height="${bh}" rx="6" style="${on ? `stroke:${css("--acc")};stroke-width:2.5;fill:${css("--acc-soft")}` : id === "deepseek" ? `stroke:${css("--s1")}` : ""}"/>
+      <text x="${x + bw / 2}" y="${y + 18}" text-anchor="middle" style="font-size:10px;letter-spacing:.08em;fill:${id === "deepseek" ? css("--s1") : css("--muted")}">${title}</text>
+      <text x="${x + bw / 2}" y="${y + 42}" text-anchor="middle" style="font-size:15px;font-weight:600;fill:${vc}">${esc(val)}</text>
+      <text x="${x + bw / 2}" y="${y + 60}" text-anchor="middle" style="font-size:11px">${esc(detail.slice(0, 16))}</text>
+      <text x="${x + bw / 2}" y="${y + 80}" text-anchor="middle" class="muted" style="font-size:10px">${esc(sub)}</text>`;
+    if (i < stages.length - 1) g += `<line x1="${x + bw + 2}" y1="${y + bh / 2}" x2="${x + bw + gap - 2}" y2="${y + bh / 2}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#arr)"/>`;
+  });
+  const xe = 5 * (bw + gap) + bw / 2, ye = y + bh;
+  const banner = ap.mode === "auto" ? "● AUTONOMOUS · no human in the loop, the guard is the brake" : ap.mode === "off" ? "○ OFF" : "● OPERATOR APPROVES every DeepSeek decision";
+  const bc = ap.mode === "auto" ? css("--ok") : ap.mode === "off" ? css("--muted") : css("--warn");
+  g += `<path d="M${xe},${ye} L${xe},${ye + 34} L${bw / 2},${ye + 34} L${bw / 2},${ye + 4}" fill="none" stroke="${css("--muted")}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    <text x="380" y="${ye + 28}" text-anchor="middle" class="muted" style="font-size:10px">smart meter · signed acks · telemetry every 10 s</text>
+    <text x="0" y="16" style="font-size:11px;fill:${bc}">${banner}${ap.busy ? "  ·  thinking…" : ""}</text>`;
+  document.getElementById("loop").innerHTML = g;
+}
+function drawDecisions() {
+  const hs = S.autopilot.history;
+  document.getElementById("decisions").innerHTML = hs.map(d => {
+    const c = css(VERDICT[d.verdict] || "--fg"), env = d.envelope ? (d.envelope.import_max_kw || d.envelope.export_max_kw) : null;
+    const nTf = d.envelope && d.envelope.by_tf ? Object.keys(d.envelope.by_tf).length : (env ? 1 : 0);
+    return `<div class="dcard"><div><div class="t">${hhmm(d.sim_h)}</div><span class="pill" style="color:${c};border-color:${c}">${esc(d.verdict)}</span></div>` +
+      `<div>${d.mode ? `<b style="color:var(--acc)">${esc(d.mode)}</b> → <b>${esc(d.segment || "")}</b>` : `<b>${esc(d.verdict === "none" ? "no signal" : d.verdict)}</b>`}` +
+      `${d.hot ? ` <span class="t">· ${d.hot.length} hot</span>` : ""}${d.duration_min ? ` <span class="t">· ${esc(d.duration_min)} min</span>` : ""}${d.seq ? ` <span class="t">· seq ${d.seq}</span>` : ""}` +
+      `${d.latency_ms ? ` <span class="t">· DeepSeek ${(d.latency_ms / 1000).toFixed(1)} s</span>` : ""}` +
+      `<div class="why">${esc(d.rationale || d.trigger || "")}${d.detail ? " · " + esc(d.detail) : ""}</div></div>` +
+      `<div>${spark(env)}${nTf > 1 ? `<div class="t" style="text-align:right">${nTf} transformer curves</div>` : ""}</div></div>`;
+  }).join("") || `<div style="color:var(--muted)">no decisions yet · DeepSeek is asked when a transformer is forecast past ±${S.autopilot.trigger_pct} %</div>`;
+}
+const short = n => String(n || "").split(":").pop();
+function spark(curve, w = 120, h = 34) {
+  if (!curve || !curve.length) return "";
+  const mx = Math.max(...curve, 1), step = w / curve.length;
+  let d = "";
+  curve.forEach((v, i) => { const y = h - 3 - (v / mx) * (h - 8); d += `${i ? "L" : "M"}${(i * step).toFixed(1)},${y.toFixed(1)} L${((i + 1) * step).toFixed(1)},${y.toFixed(1)} `; });
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${css("--acc")}" stroke-width="2"/><text x="${w}" y="9" text-anchor="end" style="font-size:9px;fill:${css("--muted")}">${Math.min(...curve)}–${mx} kW</text></svg>`;
+}
+function drawTarget() {
+  const ap = S.autopilot, t = ap.target, p = ap.pending, r = ap.last_result;
+  let h;
+  if (t) h = `<div class="target"><div class="big">${esc(t.node)}</div>
+      <span style="color:var(--muted)">why</span><span>${t.hot.length} of ${t.under} transformers forecast past ${ap.trigger_pct} % · worst <b>${esc(short(t.worst))}</b> ${t.worst_pct > 0 ? "+" : ""}${t.worst_pct} % at ${hhmm(t.worst_at_h)} · ${t.excess_kw.toFixed(0)} kW over</span>
+      <span style="color:var(--muted)">covers</span><span class="chips">${t.hot.map(x => `<span>${esc(short(x))}</span>`).join("")}</span>
+      <span style="color:var(--muted)">DeepSeek may pick</span><span class="chips">${t.choices.map(x => `<span>${esc(x)}</span>`).join("")}</span>
+      ${t.others ? `<span style="color:var(--muted)">next</span><span>${t.others} more hot transformers queued for the next cycles</span>` : ""}</div>`;
+  else h = Object.keys(ap.hotspots || {}).length && !Object.values(ap.hotspots).some(x => Math.abs(x.pct) >= ap.trigger_pct && !x.covered)
+      ? `<span style="color:var(--ok)">Every transformer is inside ${ap.trigger_pct} % or already under a signal for the next ${ap.horizon_min} grid minutes.</span>`
+      : `<span style="color:var(--muted)">${ap.mode === "off" ? "Autopilot off." : "Watching the forecast."}</span>`;
+  if (p) h += `<br><b>Waiting for you: ${esc(p.mode)} → ${esc(p.segment)}</b> · ${esc(p.duration_min)} min · ${esc(JSON.stringify(p.fields || {}))}<br>${esc(p.rationale)}` +
+    `<br><button class="primary" onclick="decideAp('approve')">Approve and send</button> <button onclick="decideAp('reject')">Reject</button>`;
+  else if (r && r.error) h += `<br><span style="color:var(--crit)">DeepSeek error: ${esc(r.error)}</span>`;
+  document.getElementById("apstatus").innerHTML = h;
+}
+function drawAutopilot() {
+  const ap = S.autopilot; if (!ap) return;
+  document.querySelectorAll("#apmodes button").forEach(b => b.classList.toggle("on", b.dataset.ap === ap.mode));
+  document.querySelectorAll("#scenarios button").forEach(b => b.classList.toggle("on", S.scenario && b.dataset.sc === S.scenario.name));
+  const ctx = document.getElementById("apctx"); if (document.activeElement !== ctx) ctx.value = ap.context || "";
+  document.getElementById("aphint").textContent = `every ${ap.interval_s} s · looks ${ap.horizon_min} grid min ahead · ${ap.cooldown_min} min cooldown · max ${ap.max_per_day}/grid day`;
+  drawTarget();
+  drawLoop(); drawDecisions();
+}
+
+// ---------- envelope curve
+function activeEnvelope() {
+  const path = pathOf(selNode);
+  for (const n of [...path].reverse()) { const s = S.active[n]; if (s && s.envelope) return {sig: s, node: n, live: true}; }
+  const d = S.autopilot.history.find(d => d.envelope && path.includes(d.segment)) || S.autopilot.history.find(d => d.envelope && d.verdict === "sent");   // fall back to the latest sent envelope anywhere
+  if (d) { const live = S.active[d.segment]; if (live && live.envelope) return {sig: live, node: d.segment, live: true}; }
+  return d ? {sig: {mode: d.mode, seq: d.seq, envelope: d.envelope, valid_from: d.at}, node: d.segment, live: false} : null;
+}
+function drawEnvelope() {
+  const a = activeEnvelope(), hint = document.getElementById("envhint");
+  if (!a) {
+    envChart.data.labels = []; envChart.data.datasets.forEach(ds => ds.data = []); envChart.update();
+    hint.textContent = "no envelope yet · DeepSeek's ABSORB/SUPPORT signals carry one"; return;
+  }
+  const e = a.sig.envelope, imp = e.import_max_kw, curve = imp || e.export_max_kw, sign = imp ? 1 : -1;
+  const t0 = Date.parse(a.sig.valid_from), slotMs = e.slot_s * 1000;
+  envChart.data.labels = curve.map((_, k) => hhmm((e.start_sim_h ?? 0) + k * e.slot_sim_min / 60));
+  envChart.data.datasets[0].label = imp ? "import ceiling" : "export ceiling";
+  envChart.data.datasets[0].data = curve.map(v => sign * v);
+  const devs = Object.keys(S.devices).filter(d => S.devices[d].path.includes(selNode) && S.devices[d].telemetry && S.devices[d].kwh > 0);
+  envChart.data.datasets[1].data = curve.map((_, k) => {
+    const lo = t0 + k * slotMs, hi = lo + slotMs, vals = [];
+    devs.forEach(d => (H.devices[d] || []).forEach(p => { const t = Date.parse(p.ts); if (t >= lo && t < hi && p.grid_kw != null) vals.push(p.grid_kw); }));
+    return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : null;
+  });
+  envChart.update();
+  hint.textContent = `${a.sig.mode} seq ${a.sig.seq ?? "–"} on ${a.node} · ${curve.length} × ${e.slot_sim_min} min · ${a.live ? "active" : "last, ended"}`;
+}
+
+// ---------- charts
+const GRID = "rgba(255,255,255,0.06)";
+Chart.defaults.color = css("--ter"); Chart.defaults.borderColor = GRID; Chart.defaults.font.family = css("--sans"); Chart.defaults.font.size = 13;
+Object.assign(Chart.defaults.plugins.tooltip, {backgroundColor: css("--panel"), titleColor: css("--fg"), bodyColor: css("--fg"), borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+  padding: 10, cornerRadius: 10, boxPadding: 4, titleFont: {weight: "600", size: 13}, bodyFont: {size: 13}});
+const baseOpts = (ySuffix, extra = {}) => ({
+  responsive: true, maintainAspectRatio: false, animation: false,
+  interaction: {mode: "index", intersect: false},
+  plugins: {legend: {display: false}, tooltip: {
+    callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(1)}${ySuffix}`}}},
+  scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 8, maxRotation: 0}}, y: {grid: {color: GRID}, ticks: {callback: v => v + ySuffix}}},
+  elements: {line: {borderWidth: 2, tension: 0.2}, point: {radius: 0, hoverRadius: 4}}, ...extra});
+const loadChart = new Chart(document.getElementById("loadChart"), {type: "line", data: {labels: [], datasets: [
+  {label: "total load", data: [], borderColor: SERIES[0], backgroundColor: SERIES[0] + "22", fill: "origin"},
+  {label: "program houses", data: [], borderColor: SERIES[1]},
+  {label: "rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5},
+  {label: "forecast", data: [], borderColor: SERIES[0], borderDash: [3, 3], borderWidth: 1.5},
+  {label: "reverse rating", data: [], borderColor: css("--muted"), borderDash: [6, 4], borderWidth: 1.5}]}, options: baseOpts(" kW")});
+const envChart = new Chart(document.getElementById("envChart"), {type: "line", data: {labels: [], datasets: [
+  {label: "ceiling", data: [], borderColor: css("--acc"), backgroundColor: css("--acc") + "22", stepped: "before", fill: "origin", borderWidth: 2.5},
+  {label: "measured", data: [], borderColor: SERIES[0], stepped: "before", spanGaps: false}]}, options: baseOpts(" kW")});
+const socChart = new Chart(document.getElementById("socChart"), {type: "bar", data: {labels: [], datasets: [{label: "SoC", data: [], backgroundColor: [], borderRadius: 4, borderSkipped: "start", barThickness: 14}]},
+  options: {...baseOpts("%"), indexAxis: "y", scales: {x: {min: 0, max: 100, grid: {color: GRID}, ticks: {callback: v => v + "%"}}, y: {grid: {display: false}, ticks: {font: {family: css("--mono")}}}},
+    plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => ` SoC ${c.parsed.x.toFixed(0)}%`}}}}});
+const gridChart = new Chart(document.getElementById("gridChart"), {type: "line", data: {labels: [], datasets: []}, options: baseOpts(" kW")});
+
+function hhmm(h) { const m = Math.round(h * 60); return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
+
+function drawCharts() {
+  if (!H || !S) return;
+  const nh = H.nodes[selNode] || [], rating = S.tree[selNode].rating_kw, rev = S.tree[selNode].reverse_kw;
+  const fc = ((S.forecast || {})[selNode] || []).slice(1), pad = a => a.concat(fc.map(() => null));
+  loadChart.data.labels = nh.map(p => hhmm(p.h)).concat(fc.map(p => hhmm(p.h)));
+  loadChart.data.datasets[0].data = pad(nh.map(p => p.total_kw));
+  loadChart.data.datasets[1].data = pad(nh.map(p => p.program_kw));
+  loadChart.data.datasets[2].data = loadChart.data.labels.map(() => rating);
+  loadChart.data.datasets[3].data = nh.map((p, i) => i === nh.length - 1 ? p.total_kw : null).concat(fc.map(p => p.total_kw));
+  loadChart.data.datasets[4].data = rev ? loadChart.data.labels.map(() => -rev) : [];
+  loadChart.options.scales.y.suggestedMax = rating ? rating * 1.15 : undefined;
+  loadChart.update();
+  drawEnvelope();
+
+  const devs = devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12);
+  socChart.data.labels = devs.map(d => HH[d].telemetry ? d : d + " (offline)");
+  socChart.data.datasets[0].data = devs.map(d => HH[d].telemetry ? HH[d].telemetry.soc : null);   // offline = gap, not 0
+  socChart.data.datasets[0].backgroundColor = devs.map(d => SERIES[devOrder.indexOf(d) % 5]);
+  socChart.update();
+
+  const hist = d => H.devices[d] || H.devices[((HH[d] || {}).devices || [])[0]] || [];   // a household's curve comes from its meter-owning device
+  const longest = devs.reduce((a, d) => hist(d).length > a.length ? hist(d) : a, []);
+  gridChart.data.labels = longest.map(p => hhmm(p.h));
+  gridChart.data.datasets = devs.map(d => ({label: d, data: hist(d).map(p => p.grid_kw), borderColor: SERIES[devOrder.indexOf(d) % 5]}));
+  gridChart.update();
+  document.getElementById("devlegend").innerHTML = devs.map(d => `<span><i style="background:${SERIES[devOrder.indexOf(d) % 5]}"></i>${d}</span>`).join("") + `<span style="margin-left:auto">grid kW · + import · − export</span>`;
+}
+
+// ---------- schematic
+function statusColor(pct) { const p = Math.abs(pct); return pct == null ? css("--muted") : p >= 100 ? css("--crit") : p >= 85 ? css("--warn") : css("--ok"); } // negative = reverse flow (PV), loads the transformer just the same
+function modeColor(t, a) { if (!t) return "#3a414a"; const st = a && a.status; if (st === "refused") return css("--crit"); if (st === "partial") return css("--warn"); return t.mode && t.mode !== "owner" ? css("--acc") : css("--muted"); }
+function feederOf(n) {
+  if (n.startsWith("feeder:")) return n;
+  if (n.startsWith("tf:")) return S.tree[n].parent;
+  return Object.keys(S.tree).find(f => f.startsWith("feeder:") && pathOf(f).includes(n)) || Object.keys(S.tree).find(f => f.startsWith("feeder:"));
+}
+function pathOf(n) { const out = []; while (n) { out.unshift(n); n = S.tree[n].parent; } return out; }
+function feederOf0(n) { if (!TREE) return n; while (n && !n.startsWith("feeder:") && TREE[n] && TREE[n].parent) { if (n.startsWith("tf:")) return TREE[n].parent; n = TREE[n].parent; } return n; }
+function drawSchem() {
+  const feeder = feederOf(selNode), sub = S.tree[feeder].parent;
+  const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
+  const W = 760, colW = W / tfs.length;
+  const fa = S.aggregates[feeder], sa = S.aggregates[sub];
+  let g = `<rect class="box ${selNode === sub ? "sel" : ""}" x="280" y="10" width="200" height="36" rx="4" onclick="selectNode('${sub}')" style="cursor:pointer"/>
+    <text x="380" y="25" text-anchor="middle">${sub}</text><text x="380" y="39" text-anchor="middle" class="muted">110 / 22 kV · ${sa.total_kw != null ? sa.total_kw.toFixed(0) + " kW" : "–"}</text>
+    <line class="wire" x1="380" y1="46" x2="380" y2="70"/><line class="wire" x1="${colW / 2}" y1="70" x2="${W - colW / 2}" y2="70"/>
+    <text x="${W / 2}" y="63" text-anchor="middle" class="muted" onclick="selectNode('${feeder}')" style="cursor:pointer;fill:${selNode === feeder ? css("--acc") : ""}">${feeder.split(":")[1]} · 22 kV · ${fa.total_kw != null ? fa.total_kw.toFixed(0) + " kW" : "–"}</text>`;
+  tfs.forEach((tf, i) => {
+    const x = colW * i + 20, w = colW - 40, a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct);
+    const devs = devOrder.filter(d => HH[d].tf === tf);
+    const step = Math.min(48, (w - 20) / Math.max(devs.length, 1));
+    g += `<line class="wire" x1="${x + w / 2}" y1="70" x2="${x + w / 2}" y2="96"/>
+      <g onclick="selectNode('${tf}')" style="cursor:pointer">
+      <rect class="box ${selNode === tf ? "sel" : ""}" x="${x}" y="96" width="${w}" height="92" rx="4"/>
+      <text x="${x + 10}" y="114">${tf}</text><text x="${x + w - 10}" y="114" text-anchor="end" class="muted">${S.tree[tf].rating_kw} kVA</text>
+      <text x="${x + 10}" y="134" class="muted">load <tspan style="fill:${c}">${a.total_kw != null ? a.total_kw.toFixed(0) + " kW · " + pct + "%" : "–"}</tspan></text>
+      <rect class="bar-bg" x="${x + 10}" y="142" width="${w - 20}" height="10" rx="3"/>
+      <rect x="${x + 10}" y="142" width="${Math.min(1, Math.abs(pct || 0) / 120) * (w - 20)}" height="10" rx="3" fill="${c}"/>
+      <line x1="${x + 10 + (100 / 120) * (w - 20)}" y1="138" x2="${x + 10 + (100 / 120) * (w - 20)}" y2="156" stroke="${css("--fg")}" stroke-width="1"/>
+      <text x="${x + 10}" y="176" class="muted" style="font-size:10px">program ${a.program_kw != null ? (a.program_kw >= 0 ? "+" : "") + a.program_kw.toFixed(0) + " kW" : "–"} · ${Math.round(a.kwh_available)} kWh · ${S.tree[tf].other_houses || 0} others</text>
+      ${a.active ? `<text x="${x + w - 10}" y="134" text-anchor="end" style="fill:${css("--acc")};font-weight:600">${a.active}</text>` : ""}
+      </g>`;
+    devs.forEach((d, j) => {
+      const dx = x + 10 + j * step + 14, D = HH[d], t = D.telemetry, ak = D.ack, real = D.real || !d.startsWith("sim-");
+      g += `<line class="wire" x1="${x + w / 2}" y1="188" x2="${x + w / 2}" y2="206"/><line class="wire" x1="${x + 24}" y1="206" x2="${x + 10 + (devs.length - 1) * step + 14}" y2="206"/>
+        <line class="wire" x1="${dx}" y1="206" x2="${dx}" y2="222"/>
+        <circle class="house" cx="${dx}" cy="236" r="13" fill="${modeColor(t, ak)}" ${real ? `stroke="${css("--fg")}" stroke-width="2"` : ""}><title>${d}${t ? `: SoC ${t.soc}% · grid ${t.grid_kw} kW · EV ${t.ev_kw ?? 0} kW · heat ${t.hp_kw ?? 0} kW · ${t.mode}` : ": offline"}</title></circle>
+        <text x="${dx}" y="240" text-anchor="middle" style="font-size:10px;fill:#15181c;font-weight:600">${t ? (D.kwh ? Math.round(t.soc) : (t.dhw_c != null ? Math.round(t.dhw_c) + "°" : "")) : "–"}</text>
+        ${t && t.ev_kw > 0 ? `<text x="${dx + 14}" y="228" style="font-size:9px;fill:${css("--s3")}">EV</text>` : ""}
+        ${t && t.hp_kw > 0 ? `<text x="${dx + 14}" y="250" style="font-size:9px;fill:${css("--s5")}">HP</text>` : ""}
+        <text x="${dx}" y="262" text-anchor="middle" class="muted" style="font-size:9px">${real ? "REAL" : d.replace(/^sim-[a-z-]+-/, "#")}</text>`;
+    });
+
+  });
+  g += `<text x="20" y="292" class="muted" style="font-size:9.5px">SoC % · ° tank · orange under signal · yellow partial · red refused · grey owner · ring = real · EV / HP = drawing now</text>`;
+  document.getElementById("schem").innerHTML = g;
+}
+
+// ---------- panels
+function rep1() { return (HH[devOrder[0]] || {}).represents || 1; }
+function drawKpis() {
+  const root = S.aggregates["region:at"];
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const worstTf = tfs.reduce((a, n) => Math.abs(S.aggregates[n].load_pct || 0) > Math.abs(S.aggregates[a].load_pct || 0) ? n : a, tfs[0]);
+  const worst = Math.abs(S.aggregates[worstTf].load_pct || 0);
+  const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
+  const active = Object.keys(S.active).length;
+  const online = S.summary.online, total = S.summary.households;
+  const rep = S.summary.houses;
+  const ev = S.summary.ev_kw;
+  const hp = S.summary.hp_kw;
+  const k = (v, l, cls = "") => `<div class="kpi ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  document.getElementById("kpis").innerHTML =
+    k(`${(root.kwh_available * rep1()).toFixed(0)} kWh`, "stored in program batteries") +
+    k(`${(root.kw * rep1()).toFixed(0)} kW`, "inverter capacity in program") +
+    k(`${ev.toFixed(0)} kW`, "EVs charging now", ev ? "warn" : "") +
+    k(`${hp.toFixed(0)} kW`, "heat pumps + boilers now", hp ? "warn" : "") +
+    k(`${worst}%`, `worst · ${worstTf.replace("tf:", "")}`, worst >= 100 ? "crit" : worst >= 85 ? "warn" : "ok") +
+    k(over, "transformers over rating", over ? "crit" : "ok") +
+    k(active, "active signals", active ? "warn" : "") +
+    k(`${online}/${total}`, `households online · ${rep} houses`);
+}
+function drawSignals() {
+  const now = Date.now();
+  const rows = Object.entries(S.active).map(([n, s]) => {
+    const a = Date.parse(s.valid_from), b = Date.parse(s.valid_to), p = Math.max(0, Math.min(1, (now - a) / (b - a)));
+    const f = ALL.filter(k => s[k] != null).map(k => `${k.replace("_kw", "").replace("_max", "≤").replace("_min", "≥")}${s[k]}`).join(" ");
+    return `<div class="sig"><span class="mode">${s.mode}</span><span>${n.split(":")[1]}${s.cohort ? ` <span class="muted">[${s.cohort[0]}/${s.cohort[1]}]</span>` : ""} <span style="color:var(--muted)">${f} · ${s.valid_from.slice(11, 16)}–${s.valid_to.slice(11, 16)}</span><div class="bar"><i style="width:${p * 100}%"></i></div></span><span style="color:var(--muted)">seq ${s.seq}</span></div>`;
+  });
+  document.getElementById("signals").innerHTML = rows.join("") || `<div style="color:var(--muted);font-size:12px">none · owners run their batteries as they like</div>`;
+}
+function drawDevices() {
+  const q = (document.getElementById("hsearch").value || "").toLowerCase();
+  let rows = [...devOrder].filter(d => homesMode === "all" || HH[d].path.includes(selNode)).filter(d => !q || d.includes(q) || HH[d].tf.includes(q));
+  rows.sort((a, b) => (HH[b].real ? 1 : 0) - (HH[a].real ? 1 : 0) || (HH[a].path.join("/") + a).localeCompare(HH[b].path.join("/") + b));
+  document.getElementById("homeshint").textContent = `${rows.length} of ${S.summary.households} households · ${homesMode === "all" ? "whole city" : selNode} · battery · EV · heat pump or boiler behind one meter`;
+  document.getElementById("devices").innerHTML = rows.slice(0, 400).map(d => {
+    const D = HH[d], t = D.telemetry || {}, a = D.ack || {}, real = D.real || !d.startsWith("sim-");
+    const heat = t.heat ? t.heat.replace("heatpump", "heat pump") : "";
+    return `<tr${real ? ' style="font-weight:600"' : ""}><td><span class="dot" style="background:${SERIES[devOrder.indexOf(d) % 5]}"></span>${d}${D.devices && D.devices.length > 1 ? ` <span class="muted">· ${D.devices.join(" + ")}</span>` : ""}</td><td>${D.tf.replace("tf:", "")}</td>
+      <td>${D.kwh ? (t.soc != null ? Number(t.soc).toFixed(0) + "%" : "–") : ""}</td><td>${t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(1) : "–"}</td>
+      <td>${t.ev ? (t.ev_kw > 0 ? Number(t.ev_kw).toFixed(1) : "0") + ` <span class="muted">/ ${t.ev}</span>` : ""}</td>
+      <td>${heat ? `${Number(t.hp_kw || 0).toFixed(1)} <span class="muted">${heat === "boiler" ? "boiler · " : ""}${t.dhw_c != null ? `tank ${Number(t.dhw_c).toFixed(0)}°→${t.dhw_set_c ?? "–"}°` : ""}${t.heat_set_c != null ? ` · room ${t.room_c != null ? Number(t.room_c).toFixed(1) + "°" : ""}→${t.heat_set_c}°${t.room_c == null && t.flow_c != null ? ` · floor flow ${Number(t.flow_c).toFixed(0)}°` : ""}` : ""}</span>` : ""}</td>
+      <td style="color:${t.mode && t.mode !== "owner" ? "var(--acc)" : "var(--muted)"}">${t.mode || (t.soc != null ? "owner" : "offline")}</td>
+      <td class="st-${a.status || ""}">${a.status || ""}${a.reason ? " (" + a.reason + ")" : ""}</td>
+      <td>${D.registered ? (a.verified === false ? "✗" : "✓") : "–"}</td></tr>`;
+  }).join("");
+}
+function drawLog() { document.getElementById("log").innerHTML = S.log.map(l => `<div title="${esc(l.msg)}"><span class="k k-${l.kind}">${l.ts.slice(11, 19)} ${l.kind}</span> ${esc(l.msg.length > 170 ? l.msg.slice(0, 170) + " …" : l.msg)}</div>`).join(""); }
+function drawTabs() {
+  const feeder = feederOf(selNode);
+  const feeders = Object.keys(S.tree).filter(n => n.startsWith("feeder:"));
+  const tfs = Object.keys(S.tree).filter(n => S.tree[n].parent === feeder);
+  const pct = n => { const a = S.aggregates[n]; return a && a.load_pct != null ? ` ${a.load_pct}%` : ""; };
+  document.getElementById("nodetabs").innerHTML =
+    `<select class="feeder" onchange="selectNode(this.value)">${feeders.map(n => `<option value="${n}" ${n === feeder ? "selected" : ""}>${n.split(":")[1]} · ${S.tree[n].parent.split(":")[1]}${pct(n)}</option>`).join("")}</select>` +
+    tfs.map(n => `<button class="${n === selNode ? "on" : ""}" onclick="selectNode('${n}')">${n.split(":")[1]}${pct(n)}</button>`).join("");
+}
+
+function drawCity() {
+  const subs = Object.keys(S.tree).filter(n => n.startsWith("sub:"));
+  document.getElementById("city").innerHTML = subs.map(sub => {
+    const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(sub));
+    return `<div class="sub"><span class="subname ${selNode === sub ? "on" : ""}" onclick="selectNode('${sub}')" title="${sub}">${sub.split(":")[1]}</span><div class="cells">` +
+      tfs.map(tf => { const a = S.aggregates[tf], pct = a.load_pct, c = statusColor(pct), bg = pct == null ? "#3a414a" : c;
+        const fc = (S.autopilot.hotspots || {})[tf], tgt = S.autopilot.target && S.autopilot.target.hot.includes(tf);
+        return `<div class="cell ${tf === selNode ? "sel" : ""} ${a.active ? "sig" : ""} ${tgt ? "tgt" : ""}" style="background:${bg}" onclick="selectNode('${tf}')" title="${tf} · ${a.total_kw != null ? a.total_kw.toFixed(0) + " kW" : "–"} of ${S.tree[tf].rating_kw} kVA${fc ? ` · forecast peak ${fc.pct} % at ${hhmm(fc.at_h)}` : ""}${a.active ? " · " + a.active : ""}${tgt ? " · DeepSeek's current target" : ""}"><span>${pct == null ? "–" : pct + "%"}</span><small>${tf.split(":")[1].replace(/-\d+$/, "")}</small></div>`; }).join("") + `</div></div>`;
+  }).join("");
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length, warn = tfs.filter(n => { const p = Math.abs(S.aggregates[n].load_pct || 0); return p >= 85 && p < 100; }).length;
+  document.getElementById("cityhint").textContent = `${tfs.length} transformers · ${over} over rating · ${warn} near · ${Object.keys(S.active).length} under signal`;
+  document.getElementById("sighint").textContent = `${Object.keys(S.active).length} active`;
+  document.getElementById("loadhint").textContent = selNode;
+}
+
+// ---------- presentation view
+let storyChart = null, realChart = null, pinMode = "selected";   // the operator picks the transformer; the board never re-picks on its own
+function storyPin(v) { pinMode = v; ["auto", "blatnica", "selected"].forEach(m => document.getElementById("pin-" + m).classList.toggle("on", m === v)); drawAll(); }
+function storyNode() {
+  if (pinMode === "blatnica") return (HH["blatnica"] || {}).tf || "tf:atzgersdorf-1";
+  if (pinMode === "selected") return selNode;
+  const sent = (S.autopilot && S.autopilot.history || []).find(d => d.verdict === "sent" && d.segment);
+  if (!sent) return selNode.startsWith("tf:") ? selNode : "tf:atzgersdorf-1";
+  return sent.segment;   // the curve of whatever DeepSeek addressed: transformer, feeder, substation or the whole city
+}
+function drawStory() {
+  const ap = S.autopilot || {history: []};
+  const node0 = storyNode();
+  const related = d => d.segment && (pathOf(node0).includes(d.segment) || pathOf(d.segment).includes(node0));
+  const scoped = ap.history.filter(related);
+  const dh = scoped.length ? scoped : ap.history, scopedLabel = scoped.length ? "" : " (city-wide, nothing for this node yet)";
+  const last = dh[0], sent = dh.find(d => d.verdict === "sent");
+  const w = typeof worstForecast === "function" ? worstForecast() : null;
+  const node = storyNode(), a = S.aggregates[node], tree = S.tree[node];
+  // steps
+  const nextIn = ap.last_run ? Math.max(0, ap.interval_s - (Date.now() - Date.parse(ap.last_run)) / 1000) : null;
+  const stage = ap.busy ? ap.stage : null;
+  const hh = n => n ? n.split(":")[1] : "–";
+  const sentHouses = sent ? Object.values(S.devices).filter(d => d.path.includes(sent.segment) && d.ack && d.ack.seq === sent.seq) : [];
+  const okN = sentHouses.filter(d => d.ack.status === "applied").length, partN = sentHouses.filter(d => d.ack.status === "partial").length;
+  const steps = [
+    ["SENSE", w ? `${w.pct > 0 ? "+" : ""}${w.pct} %` : "–", w ? `${hh(w.tf)} forecast ${ap.horizon_min} grid min ahead` : "nothing above the trigger", `trigger at ±${ap.trigger_pct || 85} % · every ${ap.interval_s || 15} grid min`, stage === "sense" || stage === "deepseek"],
+    ["DEEPSEEK DECIDES", last && last.mode ? `${last.mode} → ${hh(last.segment)}` : (ap.last_run ? "nothing to do" : "–"), last ? esc((last.rationale || last.trigger || "").slice(0, 110)) + "…" : (ap.last_run ? `last review ${ap.last_run.slice(11, 16)} UTC · no transformer forecast past ±${ap.trigger_pct || 85} %` : ""), last && last.latency_ms ? `answered in ${(last.latency_ms / 1000).toFixed(1)} s · ${last.duration_min || ""} min · ${last.fields ? Object.entries(last.fields).filter(([k, v]) => v != null).map(([k, v]) => k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ") + v + " kW").join(", ") : ""}` : "DeepSeek-V4.1-Flash on the DGX Spark", stage === "deepseek"],
+    ["GUARD", last ? last.verdict.toUpperCase() : "–", last && last.detail ? esc(last.detail.slice(0, 120)) : (last ? "within policy: window, depth, rate, reverse rating" : ""), "deterministic policy, not AI", stage === "guard"],
+    ["SIGNED SIGNAL", sent ? `seq ${sent.seq}` : "–", sent ? `${sent.mode} on ${sent.segment} · ${sentHouses.length ? `${okN} applied, ${partN} partial` : "waiting for acks"}` : "", "Ed25519 · MQTT over TLS · houses merge with owner limits", stage === "send"]];
+  document.getElementById("steps").innerHTML = steps.map(([t, v, d, sub, on]) => `<div class="step ${on ? "on" : ""}"><div class="t">${t}</div><div class="v">${v}</div><div class="d">${d}</div><div class="s">${sub}</div></div>`).join("") +
+    `<div class="countdown"><div class="cdpill"><span class="l">next DeepSeek review</span><span class="v">${nextIn == null ? "–" : (ap.mode === "off" ? "off" : Math.ceil(nextIn) + " s")}</span></div><div class="l" style="color:${ap.mode === "auto" ? "var(--ok)" : "var(--warn)"}">${ap.mode === "auto" ? "autonomous" : ap.mode === "propose" ? "operator approves" : "off"}</div><button class="review" onclick="decideAp('review')">Review now</button></div>`;
+  document.getElementById("rationale").innerHTML = last ? `<span style="color:var(--muted)">${hhmm(last.sim_h)} · DeepSeek on ${esc(last.segment || "the grid")}${scopedLabel}:</span> ${esc(last.rationale || "")}${last.trigger ? ` <span style="color:var(--muted)">· trigger: ${esc(last.trigger)}</span>` : ""}` : "";
+  // curve with vs without
+  const nh = (H && H.nodes[node]) || [], rating = tree.rating_kw || Object.keys(S.tree).filter(n => n.startsWith("tf:") && pathOf(n).includes(node)).reduce((a, n) => a + S.tree[n].rating_kw, 0);
+  if (!storyChart) storyChart = new Chart(document.getElementById("storyChart"), {type: "line", data: {labels: [], datasets: [
+      {label: "with Gridzilla (measured)", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "26", fill: "origin", borderWidth: 3, order: 3},
+      {label: "without Gridzilla (what the houses would draw)", data: [], borderColor: css("--muted"), backgroundColor: css("--acc") + "55", fill: "-1", borderDash: [6, 4], borderWidth: 2.5, order: 2},
+      {label: "rating", data: [], borderColor: css("--crit"), borderDash: [6, 4], borderWidth: 1.5, order: 1},
+      {label: "signal window", data: [], borderColor: "transparent", backgroundColor: css("--acc") + "0e", fill: "origin", pointRadius: 0, order: 4}]},
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false, callbacks: {label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : c.parsed.y.toFixed(0)} kW`}}}}});
+  storyChart.data.labels = nh.map(p => hhmm(p.h));
+  storyChart.data.datasets[0].data = nh.map(p => p.total_kw);
+  storyChart.data.datasets[1].data = nh.map(p => p.baseline_kw ?? p.total_kw);
+  const dataMax = Math.max(1, ...nh.map(p => Math.max(p.total_kw, p.baseline_kw ?? p.total_kw)));
+  const ratingNear = rating && rating < dataMax * 2.2;                                   // only draw the rating when the load can reach it
+  storyChart.data.datasets[2].data = nh.map(() => ratingNear ? rating : null);
+  const act = Object.entries(S.active).find(([n]) => pathOf(node).includes(n));
+  const recent = Object.entries(S.recent || {}).filter(([n]) => pathOf(node).includes(n) || pathOf(n).includes(node)).sort((x, y) => Date.parse(y[1].valid_from) - Date.parse(x[1].valid_from))[0];
+  const shown = act || recent;
+  const win = shown ? [Date.parse(shown[1].valid_from), Date.parse(shown[1].ended_at || shown[1].valid_to)] : null;
+  const top = ratingNear ? rating * 1.15 : dataMax * 1.15;
+  storyChart.data.datasets[3].data = nh.map(p => { const t = Date.parse(p.ts); return win && t >= win[0] && t <= win[1] ? top : null; });
+  storyChart.options.scales.y.suggestedMax = top; storyChart.options.scales.y.min = Math.min(0, ...nh.map(p => Math.min(p.total_kw, p.baseline_kw ?? p.total_kw)));
+  storyChart.update();
+  document.getElementById("storytitle").textContent = (node.startsWith("region") ? `Vienna · all 72 transformers` : `${node.replace(":", " ")} · ${(S.tree[node].parent || "").split(":")[1] || ""}`) + ` · ${rating >= 10000 ? (rating / 1000).toFixed(0) + " MVA" : rating + " kVA"}${ratingNear ? "" : " (rating off scale)"}`;
+  const lastp = nh[nh.length - 1];
+  const hr = S.sim_hour, tod = hr < 5 ? "night" : hr < 9 ? "morning ramp" : hr < 16 ? "midday, PV" : hr < 22 ? "evening peak" : "late evening";
+  const f = sig => ALL.filter(k => sig[k] != null).map(k => `${k.replace("_kw", "").replace("_max", " ≤ ").replace("_min", " ≥ ")}${sig[k]} kW`).join(", ");
+  const sigTxt = act ? `<b style="color:var(--acc)">${act[1].mode} active</b> on ${act[0].split(":")[1]} · seq ${act[1].seq} · ${f(act[1])} · until ${act[1].valid_to.slice(11, 16)}`
+    : recent ? `<span style="color:var(--muted)">no active signal · last: <b>${recent[1].mode}</b> seq ${recent[1].seq} on ${recent[0].split(":")[1]} · ${f(recent[1])} · ${recent[1].valid_from.slice(11, 16)}–${(recent[1].ended_at || recent[1].valid_to).slice(11, 16)} · ${recent[1].ended || "active now, below this node"}</span>`
+    : `<span style="color:var(--muted)">no signal has touched this node yet</span>`;
+  document.getElementById("storydelta").innerHTML = `<span class="delta">${lastp && lastp.baseline_kw != null ? `${(lastp.baseline_kw - lastp.total_kw) >= 0 ? "−" : "+"}${Math.abs(lastp.baseline_kw - lastp.total_kw).toFixed(0)} kW vs without Gridzilla · ` : ""}${a.load_pct != null ? a.load_pct + "% of rating" : rating && lastp ? Math.round(100 * lastp.total_kw / rating) + "% of rating" : ""} · ${hhmm(hr)} ${tod}</span><br>${sigTxt}`;
+  // real plant
+  const b = HH["blatnica"] || {}; const t = b.telemetry || {}; const age = t.rx ? Math.round((Date.now() - Date.parse(t.rx)) / 1000) : null;
+  document.getElementById("realage").classList.toggle("live", age != null);
+  document.getElementById("realage").textContent = age == null ? "offline" : `live · updated ${age} s ago · Cerbo GX + Vitocal via Gridzilla agents`;
+  const tile = (v, u, l) => `<div class="tile"><div class="v">${v}<span class="u"> ${u}</span></div><div class="l">${l}</div></div>`;
+  document.getElementById("realtiles").innerHTML =
+    tile(t.grid_kw != null ? (t.grid_kw > 0 ? "+" : "") + Number(t.grid_kw).toFixed(2) : "–", "kW", t.grid_kw > 0.05 ? "grid import" : t.grid_kw < -0.05 ? "grid export" : "grid · balanced") +
+    tile(t.soc != null ? Number(t.soc).toFixed(0) : "–", "%", "battery SoC · 15 kWh · owner floor 20 %") +
+    tile(t.ev_kw != null ? Number(t.ev_kw).toFixed(1) : "–", "kW", `EV charger · ${t.ev || 11} kW station${t.ev_kw > 0 ? " · charging" : " · idle"}`) +
+    tile(t.hp_kw != null ? Number(t.hp_kw).toFixed(1) : "–", "kW", `heat pump · tank ${t.dhw_c != null ? Number(t.dhw_c).toFixed(1) + " °C → " + (t.dhw_set_c ?? "–") + " °C" : "–"}${t.heat_set_c != null ? ` · room → ${t.heat_set_c} °C${t.room_c != null ? ` (now ${Number(t.room_c).toFixed(1)})` : (t.flow_c != null ? ` · floor flow ${Number(t.flow_c).toFixed(0)} °C` : "")}` : ""}`);
+  const hist = (H && (H.devices["real-powerplant-blatnica"] || [])) || [];
+  if (!realChart) realChart = new Chart(document.getElementById("realChart"), {type: "line", data: {labels: [], datasets: [
+      {label: "grid kW", data: [], borderColor: css("--s1"), backgroundColor: css("--s1") + "22", fill: "origin", borderWidth: 2}]},
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}}, scales: {x: {display: false}, y: {grid: {color: GRID}, ticks: {callback: v => v + " kW", maxTicksLimit: 4}}}}});
+  realChart.data.labels = hist.map(p => p.ts.slice(11, 16)); realChart.data.datasets[0].data = hist.map(p => p.grid_kw); realChart.update();
+  const ak = b.ack || {}; const mine = Object.entries(S.active).find(([n]) => (b.path || []).includes(n));
+  document.getElementById("realsig").innerHTML = (mine ? `<b style="color:var(--acc)">${mine[1].mode}</b> seq ${mine[1].seq} on ${mine[0]} · ` : "owner mode · ") + (ak.status ? `last ack <span class="st-${ak.status}">${ak.status}${ak.reason ? " (" + ak.reason + ")" : ""}</span>${ak.seq ? " seq " + ak.seq : ""} · signature ${ak.verified === false ? "✗" : "✓"}` : "no ack yet");
+  // city strip + ticker
+  const tfs = Object.keys(S.tree).filter(n => n.startsWith("tf:"));
+  const pctOf = n => { const g = S.aggregates[n]; return g && g.load_pct != null ? g.load_pct : null; };
+  document.getElementById("feederchips").innerHTML = `<button class="${node === "region:at" ? "on" : ""}" style="font-weight:700;color:var(--acc)" onclick="selectNode('region:at'); storyPin('selected')">VIENNA</button><span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(n => n.startsWith("sub:")).map(sub =>
+    `<button class="${node === sub ? "on" : ""}" style="font-weight:600" onclick="selectNode('${sub}'); storyPin('selected')" title="${sub}">${sub.split(":")[1]}${S.active[sub] ? " ●" : ""}</button>` +
+    Object.keys(S.tree).filter(f => S.tree[f].parent === sub).map(f => `<button class="${node === f ? "on" : ""}" style="color:${statusColor(pctOf(f))}" onclick="selectNode('${f}'); storyPin('selected')" title="${f}">${f.split(":")[1]}${S.active[f] ? " ●" : ""}</button>`).join("")).join(`<span style="color:var(--muted)">·</span>`);
+  document.getElementById("citystrip").innerHTML = tfs.map(tf => { const g = S.aggregates[tf], pct = g.load_pct; return `<div class="cell ${g.active ? "sig" : ""}" style="background:${statusColor(pct)}" title="${tf} ${pct}%" onclick="selectNode('${tf}'); storyPin('selected')">${pct == null ? "–" : pct}</div>`; }).join("");
+  const over = tfs.filter(n => Math.abs(S.aggregates[n].load_pct || 0) >= 100).length;
+  document.getElementById("striphint").textContent = `${tfs.length} transformers · ${over} over rating · ${Object.keys(S.active).length} under signal · ${S.summary.online} households live · ${S.summary.shaped || 0} on the diet plan`;
+  document.querySelector("#ticker").previousElementSibling.querySelector(".hint").textContent = "all of Vienna, latest first";
+  document.getElementById("ticker").innerHTML = ap.history.slice(0, 6).map(d => `<div><span class="tm">${hhmm(d.sim_h)}</span> <span style="color:${css(VERDICT[d.verdict] || "--fg")}">${esc(d.verdict)}</span> ${d.mode ? `<b>${esc(d.mode)}</b> → ${esc(hh(d.segment))}` : ""} <span style="color:var(--muted)">${esc((d.rationale || d.trigger || "").slice(0, 110))}</span></div>`).join("") || `<div style="color:var(--muted)">waiting for the first review</div>`;
+}
+// ---------- flattening view
+let flatChart = null, FP = null, fpNode = null, fpAt = 0;
+async function loadFlat(force) {
+  const node = selNode;
+  if (!force && FP && fpNode === node && Date.now() - fpAt < 15000) return;
+  try { const r = await fetch(`/api/flatten?node=${encodeURIComponent(node)}`).then(r => r.json()); FP = r; fpNode = node; fpAt = Date.now(); } catch { return; }
+  drawFlat();
+}
+function drawFlat() {
+  if (document.querySelector("main").dataset.view !== "flat") return;
+  const node = selNode;
+  document.getElementById("flatchips").innerHTML = `<button class="${node === "region:at" ? "on" : ""}" style="font-weight:700;color:var(--acc)" onclick="selectNode('region:at'); loadFlat(true)">VIENNA</button><span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(n => n.startsWith("sub:")).map(sub =>
+    `<button class="${node === sub ? "on" : ""}" style="font-weight:600" onclick="selectNode('${sub}'); loadFlat(true)">${sub.split(":")[1]}</button>` +
+    Object.keys(S.tree).filter(f => S.tree[f].parent === sub).map(f => `<button class="${node === f || S.tree[node].parent === f ? "on" : ""}" onclick="selectNode('${f}'); loadFlat(true)">${f.split(":")[1]}</button>`).join("")).join(`<span style="color:var(--muted)">·</span>`) +
+    (node.startsWith("feeder:") || node.startsWith("tf:") ? `<span style="color:var(--muted)">·</span>` + Object.keys(S.tree).filter(t => S.tree[t].parent === (node.startsWith("tf:") ? S.tree[node].parent : node)).map(t => `<button class="${node === t ? "on" : ""}" style="color:var(--s1)" onclick="selectNode('${t}'); loadFlat(true)">${t.split(":")[1]}</button>`).join("") : "");
+  if (!FP || fpNode !== node) { loadFlat(true); return; }
+  const p = FP.plan; if (!p) { document.getElementById("flathint").textContent = "no houses in the program here"; return; }
+  const name = node === "region:at" ? "Vienna · all transformers" : node.replace(":", " ");
+  const rating = p.rating_kw, big = rating >= 10000;
+  const fmt = kw => big ? (kw / 1000).toFixed(2) + " MW" : kw.toFixed(0) + " kW";
+  document.getElementById("flattitle").textContent = `${name} · next 24 grid hours from ${hhmm(p.start_h)} · ${big ? (rating / 1000).toFixed(0) + " MVA" : rating + " kVA"}`;
+  document.getElementById("flathint").textContent = `${FP.enabled ? "SHAPE renewed " + (FP.renewed_at ? FP.renewed_at.slice(11, 19) + " UTC" : "soon") + " · round " + FP.rounds + " · every 2 grid hours" : "diet plan OFF"} · ${p.houses} program houses, ${p.ev_houses} with a car`;
+  const eaten = p.peak_naive_kw - p.peak_plan_kw;
+  document.getElementById("flattiles").innerHTML = [
+    ["peak without Gridzilla", fmt(p.peak_naive_kw), `${p.peak_naive_pct} % of rating · cars at 11 kW at ${hhmm(17)}`, p.peak_naive_pct >= 100 ? "crit" : p.peak_naive_pct >= 85 ? "warn" : ""],
+    ["peak with the diet plan", fmt(p.peak_plan_kw), `${p.peak_plan_pct} % of rating · level L = ${fmt(p.level_kw)}`, "ok"],
+    ["peak eaten", fmt(eaten), `${p.peak_naive_kw ? Math.round(100 * eaten / p.peak_naive_kw) : 0} % off the top · ${p.shaved_kwh.toFixed(0)} kWh from batteries`, "acc"],
+    ["car charging moved", `${p.shifted_kwh >= 1000 ? (p.shifted_kwh / 1000).toFixed(1) + " MWh" : p.shifted_kwh.toFixed(0) + " kWh"}`, `into the night valley · ${p.cars_full ? "every car full by 07:00" : "not all cars full: level raised"}`, ""],
+    ["noon export level", fmt(p.export_level_kw), `${p.batt_kwh_free.toFixed(0)} kWh of battery room absorbs the PV surplus`, ""],
+  ].map(([t, v, d, c]) => `<div class="step on"><div class="t">${t}</div><div class="v" style="${c === "ok" ? "color:var(--ok)" : c === "crit" ? "color:var(--crit)" : c === "warn" ? "color:var(--warn)" : c === "acc" ? "color:var(--acc)" : ""}">${v}</div><div class="d">${d}</div></div>`).join("");
+  const labels = p.hours.map(h => hhmm(h));
+  const unc = p.other_kw.map((o, i) => o + p.base_kw[i] - p.pv_kw[i]);
+  if (!flatChart) flatChart = new Chart(document.getElementById("flatChart"), {type: "line", data: {labels, datasets: [
+      {label: "without Gridzilla", data: [], borderColor: "#9aa3ad", borderWidth: 2, borderDash: [5, 4], pointRadius: 0, tension: 0.3, fill: false},
+      {label: "with the diet plan", data: [], borderColor: css("--s1"), backgroundColor: "rgba(120,170,230,0.18)", borderWidth: 2.5, pointRadius: 0, tension: 0.3, fill: "origin"},
+      {label: "load nobody controls", data: [], borderColor: "#5a6270", backgroundColor: "rgba(90,98,112,0.25)", borderWidth: 1, pointRadius: 0, tension: 0.3, fill: "origin"},
+      {label: "level L", data: [], borderColor: css("--acc"), borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false},
+      {label: "rating", data: [], borderColor: css("--crit"), borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false},
+      {label: "eaten", data: [], borderColor: "transparent", backgroundColor: "rgba(232,137,58,0.35)", pointRadius: 0, tension: 0.3, fill: "-5"},
+    ]},
+    options: {...baseOpts(" kW"), plugins: {legend: {display: false}, tooltip: {mode: "index", intersect: false, callbacks: {label: c => c.dataset.label === "eaten" ? null : ` ${c.dataset.label}: ${c.parsed.y == null ? "–" : (big ? (c.parsed.y / 1000).toFixed(2) + " MW" : c.parsed.y.toFixed(0) + " kW")}`}}}}});
+  flatChart.data.labels = labels;
+  flatChart.data.datasets[0].data = p.naive_kw; flatChart.data.datasets[1].data = p.planned_kw; flatChart.data.datasets[2].data = unc;
+  flatChart.data.datasets[3].data = p.hours.map(() => p.level_kw);
+  const dataMax = Math.max(...p.naive_kw, ...p.planned_kw), ratingNear = rating < dataMax * 2.2;
+  flatChart.data.datasets[4].data = p.hours.map(() => ratingNear ? rating : null);
+  flatChart.data.datasets[5].data = p.naive_kw.map((v, i) => Math.max(v, p.planned_kw[i]));   // orange = between naive (above) and planned
+  flatChart.data.datasets[5].fill = {target: 1, above: "rgba(232,137,58,0.35)", below: "transparent"};
+  flatChart.options.scales.y.ticks = {callback: v => big ? (v / 1000).toFixed(1) + " MW" : v + " kW", maxTicksLimit: 7};
+  flatChart.options.scales.y.suggestedMax = (ratingNear ? rating : dataMax) * 1.12;
+  flatChart.update();
+  document.getElementById("flatdelta").innerHTML = `<span class="delta">${fmt(eaten)} off the peak · ${p.peak_naive_pct} % → ${p.peak_plan_pct} % of rating${ratingNear ? "" : " · rating off scale"}</span>`;
+  const steps = [
+    ["1 · sense", `forecast what nobody controls: ${p.houses} program houses' base load, their PV, and the ${node === "region:at" ? "thousands of" : ""} houses outside the program, weather-aware`],
+    ["2 · count the flexibility", `${p.ev_kwh.toFixed(0)} kWh of car charging that must be done by 07:00 · ${p.batt_kwh_usable.toFixed(0)} kWh of battery for the peak · ${p.batt_kwh_free.toFixed(0)} kWh of battery room for the noon PV`],
+    ["3 · water-fill", `find the lowest level L = ${fmt(p.level_kw)} where the cars fit in the valley below it AND the peak above it fits in the batteries. L is the flattest shape physics allows`],
+    ["4 · send the ceilings", `every 15-minute slot gets a per-house import ceiling (L − uncontrolled) ÷ houses and an export ceiling (Le + uncontrolled) ÷ houses, signed, renewed every 2 grid hours as one SHAPE signal per feeder. Owner limits still win`],
+  ];
+  document.getElementById("flatsteps").innerHTML = steps.map(([t, d]) => `<div class="fstep"><span class="n">${t.split(" · ")[0]}</span><div><div class="t">${t.split(" · ")[1]}</div><div class="d">${d}</div></div></div>`).join("");
+  document.getElementById("flatmonster").innerHTML = `<b>Gridzilla is on a diet.</b> It eats exactly ${fmt(eaten)} of peak, never more: a car plugged in at 18:00 trickles through dinner and gulps at 02:00, a battery swallows the slice above L and burps it back into the house, and at noon it drinks the PV surplus above ${fmt(p.export_level_kw)} so the feeder never sees it. Every car is full by morning${p.cars_full ? "" : " (almost: L was raised so the cars fit)"}, nobody notices, and the transformer sleeps at ${p.peak_plan_pct} % instead of ${p.peak_naive_pct} %.`;
+  document.getElementById("flatmonster").title = document.getElementById("flatmonster").textContent;   // the whole paragraph when it is cut to two lines
+  const tfs = p.tfs || [{tf: p.tf, rating_kw: p.rating_kw, level_kw: p.level_kw, peak_naive_pct: p.peak_naive_pct, peak_plan_pct: p.peak_plan_pct, houses: p.houses, ev_houses: p.ev_houses}];
+  document.getElementById("flattfhint").textContent = `${tfs.length} · worst without: ${Math.max(...tfs.map(t => t.peak_naive_pct))} % · worst with: ${Math.max(...tfs.map(t => t.peak_plan_pct))} %`;
+  document.getElementById("flattfs").innerHTML = tfs.sort((a, b) => b.peak_naive_pct - a.peak_naive_pct).slice(0, 36).map(t => `<span title="${t.tf}: ${t.houses} houses, ${t.ev_houses} cars, L = ${t.level_kw} kW"><b>${t.tf.split(":")[1]}</b> ${t.peak_naive_pct} → <span style="color:${t.peak_plan_pct >= 85 ? "var(--warn)" : "var(--ok)"}">${t.peak_plan_pct} %</span></span>`).join("");
+  const col = document.getElementById("flatsteps").closest("section"); col.classList.toggle("overflows", col.scrollHeight > col.clientHeight + 2);
+}
+function drawHints() { const r = (HH[devOrder[0]] || {}).represents || 1; document.getElementById("rephint").textContent = `each simulated household stands for ${r} real ones`; }
+function drawAll() { if (!S) return; drawHints(); drawStory(); drawFlat(); drawCity(); drawKpis(); drawSchem(); drawTabs(); drawSignals(); drawDevices(); drawLog(); drawCharts(); drawAutopilot(); }
+
+let tick = 0;
+function wanted() {
+  const nodes = new Set([selNode, ...pathOf(selNode)]); try { nodes.add(storyNode()); } catch (e) {}
+  const devs = new Set(["real-powerplant-blatnica"]);
+  devOrder.filter(d => HH[d].path.includes(selNode)).slice(0, 12).forEach(d => (HH[d].devices || [d]).forEach(x => devs.add(x)));
+  return { nodes: [...nodes].join(","), devices: [...devs].join(",") };
+}
+let TREE = null, WX = null, wxTick = 0;
+async function loadWeather() {
+  try { WX = await fetch("/api/weather").then(r => r.json()); } catch { WX = null; }
+  const el = document.getElementById("weather"); if (!el) return;
+  if (!WX || !WX.now) { el.textContent = ""; return; }
+  const n = WX.now, warns = (WX.warnings || []);
+  const sc = S && S.scenario ? S.scenario.name : "";
+  el.innerHTML = `<span style="color:var(--fg)">Weather ${esc(WX.location.name)}:</span> ${n.temp_c} °C, feels ${n.feels_c} °C · cloud ${n.cloud_pct} % · sun ${Math.round(n.sun_wm2)} W/m² · wind ${Math.round(n.wind_kmh)} km/h, gusts ${Math.round(n.gust_kmh)} · ` +
+    (warns.length ? `<span style="color:var(--warn)">${warns.length} official warning${warns.length > 1 ? "s" : ""}: ${esc(warns.map(w => (w.level || "") + " " + (w.type || "")).join(", "))}</span>` : "no official warnings") +
+    ` · ${WX.summary ? esc(String(WX.summary).slice(0, 160)) : ""}` + (sc === "live-weather" ? ` · <span style="color:var(--ok)">live weather drives the simulated city</span>` : ` · scenario: ${esc(sc || "normal")}`);
+}
+async function refresh() {
+  if (wxTick++ % 20 === 0) loadWeather();
+  const view = document.querySelector("main").dataset.view;
+  const hh = view === "homes" && homesMode === "all" ? "all" : (view === "homes" ? selNode : feederOf0(selNode));
+  let n;
+  try { n = await fetch(`/api/state?hh=${encodeURIComponent(hh)}&fc=${encodeURIComponent(selNode)}&tree=${TREE ? 0 : 1}`).then(r => r.json()); } catch { return; }
+  if (n.tree) TREE = n.tree; n.tree = TREE; S = n;
+  devOrder = Object.keys(S.households); HH = S.households;
+  for (const h of Object.values(HH)) h.path = pathOf(h.tf);                       // derived here instead of shipped 272 times
+  S.devices = {}; for (const h of Object.values(HH)) for (const id of (h.devices || [h.id])) S.devices[id] = h;   // older code paths index by device id
+  if (!H || tick % 2 === 0) {                                                       // history every second tick, only what is on screen
+    const q = wanted();
+    try { H = await fetch(`/api/history?nodes=${encodeURIComponent(q.nodes)}&devices=${encodeURIComponent(q.devices)}&limit=120`).then(r => r.json()); } catch { H = H || { nodes: {}, devices: {} }; }
+  }
+  tick++;
+  if (document.querySelector("main").dataset.view === "flat" && tick % 10 === 0) loadFlat(true);
+  document.getElementById("clock").textContent = hhmm(S.sim_hour) + " sim";
+  const focus = document.querySelector("main").dataset.view === "story" ? storyNode() : selNode;
+  const chain = pathOf(focus).filter(n => !n.startsWith("region")).map(n => n.split(":")[1]).join(" › ");
+  document.getElementById("subtitle").textContent = `DSO control · Vienna${chain ? " · " + chain : " · whole city"}`;
+  document.getElementById("seqpill").textContent = "seq " + S.seq;
+  const hb = document.getElementById("hbpill"); hb.textContent = S.hb_paused ? "heartbeat PAUSED" : "heartbeat on"; hb.className = "pill " + (S.hb_paused ? "bad" : "ok");
+  document.getElementById("llmpill").textContent = S.autopilot ? `DeepSeek · ${S.autopilot.mode === "auto" ? "autonomous" : S.autopilot.mode === "propose" ? "operator approves" : "off"}` : (S.llm ? "advisor: DeepSeek" : "advisor off");
+  const sel = document.getElementById("segment"); if (sel && !sel.options.length) { Object.keys(S.tree).forEach(n => sel.add(new Option(n, n))); sel.value = selNode; }
+  drawAll();
+}
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>
