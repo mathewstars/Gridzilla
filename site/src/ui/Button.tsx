@@ -1,9 +1,11 @@
-// The page's only button shape: a pill (dark or light), optionally with the round arrow badge at its end.
+// The page's only button shape: a pill, primary (white on the dark page) or secondary (dark with the inner hairline),
+// optionally with the round arrow badge at its end. "dark"/"light"/"onnight" are the old names from the light theme:
+// dark = primary, light = secondary.
 // One label per intent across the page: "Open the console", "Watch the trailer", "Read the protocol".
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 
-type Tone = "dark" | "light" | "onnight";
+type Tone = "primary" | "secondary" | "dark" | "light" | "onnight";
 type Size = "sm" | "md" | "lg";
 interface Common {
   tone?: Tone;
@@ -25,7 +27,7 @@ function Badge({ icon }: { icon: boolean | ReactNode }) {
   );
 }
 
-export function PillLink({ tone = "dark", size = "md", badge, children, className, href, ...rest }: Common & AnchorHTMLAttributes<HTMLAnchorElement>) {
+export function PillLink({ tone = "primary", size = "md", badge, children, className, href, ...rest }: Common & AnchorHTMLAttributes<HTMLAnchorElement>) {
   const external = !!href && /^https?:/.test(href);
   const b = badge ?? external;
   return (
@@ -36,7 +38,7 @@ export function PillLink({ tone = "dark", size = "md", badge, children, classNam
   );
 }
 
-export function PillButton({ tone = "dark", size = "md", badge, children, className, type = "button", ...rest }: Common & ButtonHTMLAttributes<HTMLButtonElement>) {
+export function PillButton({ tone = "primary", size = "md", badge, children, className, type = "button", ...rest }: Common & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button type={type} className={cls(tone, size, !!badge, className)} {...rest}>
       <span>{children}</span>

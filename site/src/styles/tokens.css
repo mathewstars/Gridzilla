@@ -1,5 +1,6 @@
-/* Gridzilla website tokens (site/DESIGN.md). The only colours, radii, shadows and type on the page: sections use these
-   through Tailwind utilities (bg-ground, text-secondary, rounded-card, shadow-card...) or the var(--...) names. */
+/* Gridzilla website tokens (site/DESIGN.md). The deck's DARK theme, black and green (owner, 25 Oct: "ours is black
+   and green and super premium"), one theme, locked. The only colours, radii, shadows and type on the page: sections use
+   these through Tailwind utilities (bg-ground, text-secondary, rounded-card, shadow-card...) or the var(--...) names. */
 @import "tailwindcss";
 
 @font-face { font-family: "Clash Display"; src: url("/static/site/fonts/ClashDisplay-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
@@ -9,28 +10,38 @@
 @font-face { font-family: "General Sans"; src: url("/static/site/fonts/GeneralSans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 
 @theme {
-  --color-page: #ffffff;
-  --color-ground: #f5f5f7; /* the quiet tint: tiles, panels on white */
-  --color-surface: #ffffff;
-  --color-ink: #1d1d1f;
-  --color-ink-hover: #333336;
-  --color-ink-press: #18181a;
-  --color-secondary: #6e6e73; /* AA on white and on ground */
-  --color-tertiary: #86868b; /* large text, lines and icons only (3.6:1 on white) */
-  --color-fill: #e8e8ed;
-  --color-press: #d2d2d7;
-  --color-hero-top: #e9eef3;
-  --color-hero-bottom: #f6f8fa;
-  --color-accent: #ff9500; /* the one accent: live dot, eaten peak, link hover underline, one proof number */
+  /* dashboard/src/pitch/pitch.css, the dark block */
+  --color-page: #0b0b0f; /* the ground under everything */
+  --color-ground: #141418; /* the quiet tile */
+  --color-surface: #1d1d1f; /* a tile */
+  --color-hairline: #2a2a2e; /* the inner edge of a tile (inset 1 px), never a divider */
+  --color-ink: #f5f5f7;
+  --color-on-ink: #0b0b0f; /* text on the white primary pill */
+  --color-secondary: #a1a1a6; /* 4.5:1 or better on every ground here, scrim included */
+  --color-tertiary: #8e8e93;
+  --color-fill: #2a2a2e;
+  --color-press: #3a3a3e;
+  --color-accent: #34c759; /* the one accent, green: live dot, link hover underline, one proof number */
+  --color-accent-text: #34c759; /* green as text on dark */
+  /* the deck's mesh light (shell/Backdrop.tsx, dark palette) */
+  --color-mesh-1: #040706;
+  --color-mesh-2: #0b5d3d;
+  --color-mesh-3: #0f8f7f;
+  --color-mesh-4: #06261c;
   /* chart grammar, allowed only inside charts (same as the deck and the console) */
-  --color-chart-with: #0071e3;
-  --color-chart-without: #86868b;
-  --color-chart-eaten: #ff9500;
-  --color-chart-limit: #ff3b30;
-  /* the one dark panel (the AI section) */
+  --color-chart-with: #0a84ff;
+  --color-chart-without: #8e8e93;
+  --color-chart-eaten: #ff9f0a;
+  --color-chart-limit: #ff453a;
+  /* kept for sections written against the light theme: the old dark panel is now a tile */
   --color-night: #1d1d1f;
   --color-night-text: #f5f5f7;
   --color-night-secondary: #a1a1a6;
+  /* legacy names from the light theme, mapped to the dark ones */
+  --color-hero-top: #0b0b0f;
+  --color-hero-bottom: #0b0b0f;
+  --color-ink-hover: #ffffff;
+  --color-ink-press: #e8e8ed;
 
   --font-display: "Clash Display", "General Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-sans: "General Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
@@ -39,16 +50,21 @@
   --radius-card: 24px;
   --radius-pill: 980px;
 
-  --shadow-card: 0 1px 2px rgb(29 39 52 / 0.04), 0 10px 30px rgb(29 39 52 / 0.06);
-  --shadow-lift: 0 2px 6px rgb(29 39 52 / 0.06), 0 22px 48px rgb(29 39 52 / 0.12);
-  --shadow-device: 0 2px 4px rgb(29 39 52 / 0.08), 0 40px 90px rgb(29 39 52 / 0.24);
+  /* depth on dark: the inner hairline plus the deck's soft drop */
+  --shadow-card: inset 0 0 0 1px #2a2a2e, 0 24px 60px rgb(0 0 0 / 0.25);
+  --shadow-lift: inset 0 0 0 1px #3a3a3e, 0 30px 70px rgb(0 0 0 / 0.38);
+  --shadow-device: 0 30px 80px rgb(0 0 0 / 0.5);
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
   --gutter: 16px; /* side gutter at phone width */
-  --frame-inset: 12px; /* white page around the hero and closing frames */
+  --frame-inset: 12px; /* the light showing around the hero frame */
+  --tile: rgb(29 29 31 / 0.92); /* a tile over the light, like the deck's six-words cards */
+  --scrim: rgb(11 11 15 / 0.65); /* behind content sections: the light at about 35 % */
+  --glass: rgb(11 11 15 / 0.7); /* the hero frame and the nav tab over the light */
+  color-scheme: dark;
 }
 @media (min-width: 768px) {
   :root { --gutter: 32px; }
@@ -58,11 +74,11 @@
 }
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: #0b0b0f; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   body {
     margin: 0;
-    background: var(--color-page);
+    background: transparent; /* the ground is on html: a body background would cover the light (ui/Backdrop, z -1) */
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 17px;
@@ -73,8 +89,8 @@
     text-rendering: optimizeLegibility;
     overflow-x: clip;
   }
-  ::selection { background: var(--color-ink); color: var(--color-page); }
-  :focus-visible { outline: none; box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--color-ink); border-radius: 8px; }
+  ::selection { background: var(--color-accent); color: var(--color-on-ink); }
+  :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-page), 0 0 0 5px var(--color-ink); border-radius: 8px; }
   [id] { scroll-margin-top: 24px; }
 }
 
@@ -130,18 +146,15 @@
   .pill-sm.pill-badge { padding-right: 5px; }
   .pill-lg.pill-badge { padding-right: 8px; }
 
-  .pill-dark { background: var(--color-ink); color: #fff; box-shadow: 0 1px 2px rgb(29 39 52 / 0.12), 0 6px 18px rgb(29 39 52 / 0.16); }
-  .pill-dark:hover { background: var(--color-ink-hover); box-shadow: 0 2px 4px rgb(29 39 52 / 0.14), 0 12px 28px rgb(29 39 52 / 0.22); }
-  .pill-dark:active { background: var(--color-ink-press); box-shadow: 0 1px 2px rgb(29 39 52 / 0.12); }
+  /* primary: the white pill (pill-dark is its old name, kept for sections written before the dark theme) */
+  .pill-primary, .pill-dark, .pill-onnight { background: var(--color-ink); color: var(--color-on-ink); box-shadow: 0 8px 24px rgb(0 0 0 / 0.3); }
+  .pill-primary:hover, .pill-dark:hover, .pill-onnight:hover { background: #ffffff; box-shadow: 0 0 0 4px rgb(245 245 247 / 0.12), 0 12px 30px rgb(0 0 0 / 0.38); }
+  .pill-primary:active, .pill-dark:active, .pill-onnight:active { background: #e8e8ed; box-shadow: 0 4px 12px rgb(0 0 0 / 0.3); }
 
-  .pill-light { background: #fff; color: var(--color-ink); box-shadow: inset 0 0 0 1px rgb(29 29 31 / 0.1), 0 1px 2px rgb(29 39 52 / 0.04), 0 6px 18px rgb(29 39 52 / 0.06); }
-  .pill-light:hover { background: var(--color-ground); box-shadow: inset 0 0 0 1px rgb(29 29 31 / 0.12), 0 2px 4px rgb(29 39 52 / 0.05), 0 12px 28px rgb(29 39 52 / 0.1); }
-  .pill-light:active { background: var(--color-fill); box-shadow: inset 0 0 0 1px rgb(29 29 31 / 0.14); }
-
-  /* on the one dark panel */
-  .pill-onnight { background: var(--color-night-text); color: var(--color-ink); }
-  .pill-onnight:hover { background: #fff; }
-  .pill-onnight:active { background: var(--color-press); }
+  /* secondary: the dark pill with the inner hairline (pill-light is its old name) */
+  .pill-secondary, .pill-light { background: var(--color-surface); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-hairline), 0 8px 24px rgb(0 0 0 / 0.25); }
+  .pill-secondary:hover, .pill-light:hover { background: var(--color-fill); box-shadow: inset 0 0 0 1px var(--color-press), 0 12px 30px rgb(0 0 0 / 0.35); }
+  .pill-secondary:active, .pill-light:active { background: var(--color-press); box-shadow: inset 0 0 0 1px var(--color-press); }
 
   /* the round arrow badge at the end of a pill (Vexo): turns a quarter on hover */
   .pill-icon {
@@ -155,15 +168,14 @@
   }
   .pill-sm .pill-icon { width: 30px; height: 30px; }
   .pill-lg .pill-icon { width: 42px; height: 42px; }
-  .pill-dark .pill-icon { background: #fff; color: var(--color-ink); }
-  .pill-light .pill-icon { background: var(--color-ink); color: #fff; }
-  .pill-onnight .pill-icon { background: var(--color-ink); color: #fff; }
+  .pill-primary .pill-icon, .pill-dark .pill-icon, .pill-onnight .pill-icon { background: var(--color-on-ink); color: var(--color-ink); }
+  .pill-secondary .pill-icon, .pill-light .pill-icon { background: var(--color-ink); color: var(--color-on-ink); }
   .pill:hover .pill-icon { transform: rotate(45deg); }
 
-  /* a lifted card (24 px), hover raises it */
+  /* a lifted tile (24 px) over the light, hover raises it */
   .card {
     border-radius: var(--radius-card);
-    background: var(--color-surface);
+    background: var(--tile);
     box-shadow: var(--shadow-card);
     transition: transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
   }
@@ -172,6 +184,9 @@
   /* the live dot: the only loop on the page */
   .live-dot { position: relative; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); flex: none; }
   .live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--color-accent); animation: live-ping 2.4s var(--ease-out-expo) infinite; }
+
+  /* a quiet tile (not interactive): the same glass, no hover */
+  .tile { border-radius: var(--radius-card); background: var(--tile); box-shadow: var(--shadow-card); }
 }
 
 @keyframes live-ping {
