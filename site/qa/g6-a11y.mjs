@@ -13,7 +13,7 @@ const url = String(arg("url", SITE));
 const browser = await launch();
 const results = [];
 
-for (const size of ["1440x900", "390x844"]) {
+for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
   const { ctx, page } = await newPage(browser, size);
   await page.goto(url, { waitUntil: "load", timeout: 60000 });
   await page.waitForTimeout(1500);
@@ -40,7 +40,7 @@ for (const size of ["1440x900", "390x844"]) {
   const n = await page.evaluate(() => {
     // hides a text and its children's text (and currentColor icons) while its box is screenshotted
     const st = document.createElement("style");
-    st.textContent = ".g6-hide, .g6-hide * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }";
+    st.textContent = "[data-g6-hide], [data-g6-hide] * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; transition: none !important; }";
     document.head.append(st);
     let i = 0;
     for (const el of document.querySelectorAll("body *")) {
@@ -75,17 +75,20 @@ for (const size of ["1440x900", "390x844"]) {
       const m = cs.color.match(/[\d.]+/g).map(Number);
       let alpha = m[3] ?? 1;
       for (let e = el; e; e = e.parentElement) alpha *= parseFloat(getComputedStyle(e).opacity);
+      // text that is invisible by design at this moment (a crossfade's hidden layer) has no contrast to judge; G7
+      // covers anything left invisible by mistake
+      if (alpha < 0.05) return null;
       // an inline run is hidden with its whole block, so the sentence around it is not taken for background
       let blk = el;
       while (blk.parentElement && getComputedStyle(blk).display.startsWith("inline")) blk = blk.parentElement;
-      blk.classList.add("g6-hide");
+      blk.setAttribute("data-g6-hide", ""); // an attribute, not a class: a React re-render would drop the class
       const px = parseFloat(cs.fontSize), weight = parseInt(cs.fontWeight);
-      return { clip: { x, y, width: w, height: h }, fg: m.slice(0, 3), alpha, px, large: px >= 24 || (weight >= 700 && px >= 18.66), text: (el.innerText || el.textContent).replace(/\s+/g, " ").trim().slice(0, 50), where: `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className ? "." + el.className.replace("g6-hide", "").trim().split(/\s+/).slice(0, 2).join(".") : ""} in #${el.closest("[id]")?.id || "page"}` };
+      return { clip: { x, y, width: w, height: h }, fg: m.slice(0, 3), alpha, px, large: px >= 24 || (weight >= 700 && px >= 18.66), text: (el.innerText || el.textContent).replace(/\s+/g, " ").trim().slice(0, 50), where: `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : ""} in #${el.closest("[id]")?.id || "page"}` };
     }, i);
     if (!info) continue;
     await page.waitForTimeout(30);
     const png = await page.screenshot({ clip: info.clip, animations: "disabled" });
-    await page.evaluate(() => document.querySelectorAll(".g6-hide").forEach((e) => e.classList.remove("g6-hide")));
+    await page.evaluate(() => document.querySelectorAll("[data-g6-hide]").forEach((e) => e.removeAttribute("data-g6-hide")));
     const r = await page.evaluate(async ({ b64, fg, alpha }) => {
       const img = new Image();
       img.src = `data:image/png;base64,${b64}`;

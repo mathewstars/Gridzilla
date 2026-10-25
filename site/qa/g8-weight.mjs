@@ -53,10 +53,13 @@ const fontPreloads = preloadLinks.filter((l) => /as="font"/.test(l)).map((l) => 
 
 const browser = await launch();
 const usedAbove = new Set();
-for (const size of ["1440x900", "390x844"]) {
-  const { ctx, page } = await newPage(browser, size);
+for (const size of ["1440x900", "390x844", "390x667", "430x932"]) {
+  const { ctx, page, width } = await newPage(browser, size);
   const mp4 = [];
-  page.on("request", (r) => { if (/\.mp4(\?|$)/.test(r.url())) mp4.push(r.url()); });
+  const mesh = [];
+  const shots = [];
+  page.on("request", (r) => { if (/\.mp4(\?|$)/.test(r.url())) mp4.push(r.url()); if (/MeshLight/.test(r.url())) mesh.push(r.url()); });
+  page.on("response", async (r) => { if (/shots\/console[^/]*\.webp/.test(r.url())) shots.push({ url: r.url(), bytes: (await r.body().catch(() => Buffer.alloc(0))).length }); });
   await page.addInitScript(() => {
     window.__lcp = [];
     new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: "largest-contentful-paint", buffered: true });
@@ -83,7 +86,7 @@ for (const size of ["1440x900", "390x844"]) {
     const el = lcp?.element;
     return {
       faces: [...faces],
-      lcp: el ? { tag: el.tagName.toLowerCase(), inH1: !!el.closest("h1"), hero: !!el.closest("header"), src: el.getAttribute?.("src") || "", fp: el.getAttribute?.("fetchpriority") || "", text: (el.innerText || "").slice(0, 40) } : null,
+      lcp: el ? { tag: el.tagName.toLowerCase(), inH1: !!el.closest("h1"), hero: !!el.closest("header"), src: el.currentSrc || el.getAttribute?.("src") || "", fp: el.getAttribute?.("fetchpriority") || "", text: (el.innerText || "").slice(0, 40) } : null,
       videos: [...document.querySelectorAll("video")].map((v) => v.getAttribute("preload")),
     };
   });
@@ -96,6 +99,13 @@ for (const size of ["1440x900", "390x844"]) {
   results.push([`${size} LCP element is the hero headline or the console image`, !!(isHeadline || isConsole), l ? `${l.tag} ${l.src || JSON.stringify(l.text)}` : "no LCP entry"]);
   if (l?.tag === "img") results.push([`${size} the LCP image has fetchpriority high`, l.fp === "high", l.src]);
   results.push([`${size} every <video> on load has preload none or metadata`, fold.videos.every((p) => p === "none" || p === "metadata"), fold.videos.join(", ")]);
+
+  // the phone gets the light as a static gradient (no shader chunk) and its own console copy, at most 120 KB
+  if (width < 768) {
+    results.push([`${size} the mesh shader is not loaded under 768 px`, mesh.length === 0, mesh.join(" ")]);
+    const big = shots.filter((s) => s.bytes > 120 * 1024 || !/console-phone/.test(s.url));
+    results.push([`${size} the console image is the phone copy, at most 120 KB`, shots.length > 0 && big.length === 0, shots.map((s) => `${path.basename(s.url)} ${(s.bytes / 1024).toFixed(1)} KB`).join(", ") || "no console image"]);
+  } else results.push([`${size} the mesh shader loads (lazily) on a desktop`, mesh.length > 0, ""]);
 
   await scrollThrough(page, 80);
   results.push([`${size} no trailer request on a load and full scroll`, mp4.length === 0, mp4.join(" ")]);

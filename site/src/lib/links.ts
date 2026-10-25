@@ -7,7 +7,7 @@ export const LINKS = {
   repo: "https://github.com/mathewstars/Gridzilla",
   protocol: "https://github.com/mathewstars/Gridzilla/blob/main/protocol/PROTOCOL.md",
   architecture: "https://github.com/mathewstars/Gridzilla/blob/main/docs/architecture.html",
-  mail: "mailto:stafurik@gmail.com",
+  mail: "mailto:matthew@codeza.agency",
 } as const;
 
 /** A file in public/, under the site's base (/static/site/). */

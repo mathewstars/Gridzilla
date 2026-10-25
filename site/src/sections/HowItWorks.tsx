@@ -1,8 +1,10 @@
 // How it works: a sticky split (after 21st.dev "Sticky Content Wrapper" by @hyperiux, rebuilt on IntersectionObserver
 // instead of GSAP). At 1024 and up the four steps scroll on the left and the step crossing the middle of the screen is
 // the active one; on the right a pinned frame crossfades (0.4 s) to its real console screenshot. Below 1024 it is one
-// column, each screenshot under its own step. Reduced motion: no crossfade, the swap is instant.
+// column, each screenshot under its own step. Reduced motion: no pinned frame and no crossfade at any width; every
+// screenshot sits beside (from 1024) or under its own step, so nothing waits hidden.
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
 import { Section, Title } from "../ui/Section";
 import { Reveal } from "../ui/Reveal";
 import { asset } from "../lib/links";
@@ -56,6 +58,7 @@ function Shot({ s, className = "" }: { s: (typeof STEPS)[number]; className?: st
 
 export default function HowItWorks() {
   const [active, setActive] = useState(0);
+  const still = !!useReducedMotion();
   const items = useRef<(HTMLLIElement | null)[]>([]);
 
   // the active step is the one crossing the horizontal middle of the screen
@@ -71,30 +74,30 @@ export default function HowItWorks() {
   }, []);
 
   return (
-    <Section id="how">
+    <Section id="how" className={still ? undefined : "lg:pb-0!"}>
       <Reveal>
         <Title>How it works</Title>
       </Reveal>
       <div className="mt-6 lg:mt-0 lg:grid lg:grid-cols-12 lg:gap-14">
-        <ol className="m-0 list-none p-0 lg:col-span-5">
+        <ol className={`m-0 list-none p-0 ${still ? "lg:col-span-12" : "lg:col-span-5"}`}>
           {STEPS.map((s, i) => (
             <li
               key={s.title}
               ref={(el) => { items.current[i] = el; }}
               data-i={i}
-              className="py-10 md:py-14 lg:flex lg:min-h-[72svh] lg:flex-col lg:justify-center lg:py-0"
+              className={still ? "py-10 first:pt-0 last:pb-0 md:py-14 lg:grid lg:grid-cols-12 lg:items-center lg:gap-14" : "py-10 first:pt-0 last:pb-0 md:py-14 lg:flex lg:min-h-[60svh] lg:flex-col lg:justify-center lg:py-0 lg:last:min-h-[52svh]"}
             >
-              <Reveal>
+              <Reveal className={still ? "lg:col-span-5" : undefined}>
                 <h3
-                  className={`m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] transition-colors duration-[400ms] motion-reduce:transition-none md:text-[32px] ${active === i ? "text-ink" : "text-ink lg:text-tertiary"}`}
-                  aria-current={active === i ? "step" : undefined}
+                  className={`m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] transition-colors duration-[400ms] motion-reduce:transition-none md:text-[32px] ${active === i || still ? "text-ink" : "text-ink lg:text-tertiary"}`}
+                  aria-current={active === i && !still ? "step" : undefined}
                 >
                   {s.title}
                 </h3>
                 <p className="mb-0 mt-4 max-w-[44ch] text-secondary">{s.body}</p>
               </Reveal>
-              {/* phone and tablet: the screenshot under its own step */}
-              <figure className="tile m-0 mt-8 p-3 md:p-8 lg:hidden">
+              {/* phone and tablet (and every width under reduced motion): the screenshot with its own step */}
+              <figure className={`tile m-0 mt-8 p-6 md:p-8 ${still ? "lg:col-span-7 lg:mt-0" : "lg:hidden"}`}>
                 <Shot s={s} className="mx-auto" />
                 <figcaption className="mx-1 mt-4 text-[14px] text-secondary md:mx-0">{s.caption}</figcaption>
               </figure>
@@ -103,15 +106,15 @@ export default function HowItWorks() {
         </ol>
 
         {/* desktop: the pinned frame, its screenshot crossfading with the active step */}
-        <div className="hidden lg:col-span-7 lg:block">
+        {!still && <div className="hidden lg:col-span-7 lg:block">
           {/* as tall as one step and pinned where a centred step sits, so it stays centred through the last step */}
-          <div className="sticky top-[14svh] flex h-[72svh] items-center">
+          <div className="sticky top-[16svh] flex h-[68svh] items-center">
             <figure className="m-0 w-full" aria-label="The console view for the active step">
               <div className="tile relative aspect-[5/4] max-h-[60svh] w-full">
                 {STEPS.map((s, i) => (
                   <div
                     key={s.shot}
-                    className={`absolute inset-8 flex items-center justify-center transition-opacity duration-[400ms] ease-out motion-reduce:transition-none xl:inset-10 ${active === i ? "opacity-100" : "opacity-0"}`}
+                    className={`absolute inset-8 flex items-center justify-center transition-opacity duration-[400ms] ease-out motion-reduce:transition-none ${active === i ? "opacity-100" : "opacity-0"}`}
                     aria-hidden={active === i ? undefined : true}
                   >
                     <Shot s={s} />
@@ -132,7 +135,7 @@ export default function HowItWorks() {
               </div>
             </figure>
           </div>
-        </div>
+        </div>}
       </div>
     </Section>
   );

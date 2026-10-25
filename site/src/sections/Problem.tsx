@@ -34,7 +34,7 @@ export default function Problem() {
       </div>
 
       <Reveal as="figure" className="m-0 mt-16 md:mt-24" amount={0.2}>
-        <div className="tile p-5 md:p-8 lg:p-10">
+        <div className="tile p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h3 className="m-0 text-[19px] font-semibold tracking-[-0.015em] md:text-[21px]">{STREET.name}, one street transformer</h3>
@@ -57,7 +57,7 @@ export default function Problem() {
             </Suspense>
           </div>
         </div>
-        <figcaption className="mt-5 max-w-[64ch] text-[15px] text-secondary md:mt-6">
+        <figcaption className="mt-5 max-w-[60ch] px-6 text-[15px] text-secondary md:mt-6 md:px-8">
           One street in {STREET.name}, from the platform&rsquo;s plan: the evening peak drops from {r(STREET.peakWithoutKw)} to {r(STREET.peakWithKw)} kW, under its {STREET.ratingKw} kW transformer. Same houses, same cars, same weather.
         </figcaption>
       </Reveal>

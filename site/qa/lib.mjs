@@ -1,7 +1,7 @@
 // Shared bits of the site gates (qa/README.md). Headless Chrome through playwright-core, like dashboard/qa/lib.mjs.
 import { chromium } from "playwright-core";
 
-export const SIZES = ["2560x1440", "1440x900", "1024x768", "390x844", "390x667"];
+export const SIZES = ["2560x1440", "1440x900", "1024x768", "390x844", "390x667", "430x932"];
 /** The port `vite preview` serves the build on (qa/run.mjs starts it); GZ_PORT moves it when 5181 is taken. */
 export const PORT = Number(process.env.GZ_PORT || 5181);
 /** The page under test: the built site served by `vite preview` (qa/run.mjs starts it), or --url. */
