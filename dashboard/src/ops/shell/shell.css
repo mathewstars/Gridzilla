@@ -29,14 +29,13 @@
   box-shadow: inset -1px 0 0 var(--sh-line);
   overflow: hidden;
 }
-.sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; min-width: 0; }
-.sb-logo {
-  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
-  background: var(--color-ink); color: var(--color-card);
-}
-.sb-brand-txt { min-width: 0; line-height: 1.15; }
-.sb-name { font-size: 0.9375rem; font-weight: 600; color: var(--color-ink); letter-spacing: -0.01em; }
-.sb-sub { font-size: max(14px, 0.6875rem); color: var(--color-tertiary); white-space: nowrap; }
+/* the wordmark: the deck's Clash Display 600 (public/pitch/fonts), its own family name so the deck's faces stay its own */
+@font-face { font-family: "GZ Wordmark"; src: url("/pitch/fonts/ClashDisplay-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+.sb-brand { display: flex; align-items: center; padding: 6px 8px 14px; min-width: 0; text-decoration: none; border-radius: 8px; outline: none; }
+.sb-brand:focus-visible { box-shadow: 0 0 0 2px var(--sh-blue); }
+.sb-brand-txt { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sb-name { font-family: "GZ Wordmark", var(--font-sans); font-size: 15px; line-height: 1; font-weight: 600; letter-spacing: 0.04em; color: var(--color-ink); }
+.sb-sub { font-size: max(14px, 0.6875rem); line-height: 1.2; color: var(--color-secondary); white-space: nowrap; }
 .sb-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; min-height: 0; padding-top: 4px; }
 .sb-item {
   position: relative; display: flex; align-items: center; gap: 10px;
@@ -99,8 +98,7 @@ button.sb-item { width: 100%; border: 0; background: transparent; font: inherit;
 /* icon rail between phone and 1240 */
 @media (min-width: 761px) and (max-width: 1239.98px) {
   .sb { width: 60px; padding: 12px 8px; align-items: stretch; }
-  .sb-brand { justify-content: center; padding: 4px 0 12px; }
-  .sb-brand-txt, .sb-item > .sb-lbl, .sb-foot-txt { display: none; }
+  .sb-brand, .sb-item > .sb-lbl, .sb-foot-txt { display: none; }
   .sb-item { justify-content: center; padding: 0; height: 40px; }
   .sb-flag { position: absolute; z-index: 2; top: 6px; right: 8px; width: 7px; height: 7px; }
   .sb-pop { left: calc(100% + 10px); right: auto; bottom: 0; width: 200px; transform-origin: 0 100%; }
@@ -122,8 +120,7 @@ button.sb-item { width: 100%; border: 0; background: transparent; font: inherit;
 /* the same rail at every width above phones when the view asks for it (demo mode: <Sidebar rail />) */
 @media (min-width: 761px) {
   .sb.is-rail { width: 60px; padding: 12px 8px; align-items: stretch; overflow: visible; }
-  .sb.is-rail .sb-brand { justify-content: center; padding: 4px 0 12px; }
-  .sb.is-rail :is(.sb-brand-txt, .sb-item > .sb-lbl, .sb-foot-txt) { display: none; }
+  .sb.is-rail :is(.sb-brand, .sb-item > .sb-lbl, .sb-foot-txt) { display: none; }
   .sb.is-rail .sb-item { justify-content: center; padding: 0; height: 40px; }
   .sb.is-rail .sb-flag { position: absolute; z-index: 2; top: 6px; right: 8px; width: 7px; height: 7px; }
   .sb.is-rail .sb-pop { left: calc(100% + 10px); right: auto; bottom: 0; width: 200px; transform-origin: 0 100%; }
@@ -147,9 +144,8 @@ button.sb-item { width: 100%; border: 0; background: transparent; font: inherit;
     position: relative; width: auto; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px;
     box-shadow: inset 0 -1px 0 var(--sh-line); overflow: visible;
   }
-  .sb-brand { padding: 0; gap: 8px; }
-  .sb-brand-txt, .sb-foot { display: none; }
-  .sb-logo { width: 30px; height: 30px; }
+  .sb-brand { padding: 0; }
+  .sb-sub, .sb-foot { display: none; }
   .sb-cur { display: block; flex: 1; min-width: 0; font-size: 1rem; font-weight: 600; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sb-menu {
     display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 17px; flex: none;

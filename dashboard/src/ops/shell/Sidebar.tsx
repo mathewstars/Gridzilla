@@ -10,7 +10,6 @@ import {
   DotsThreeCircle,
   GridFour,
   HouseLine,
-  Lightning,
   List,
   ListBullets,
   Robot,
@@ -130,10 +129,10 @@ export default function Sidebar({ route, ops, rail = false }: { route: Route; op
 
   return (
     <nav className={`sb${rail ? " is-rail" : ""}${open ? " is-open" : ""}`} aria-label="Console sections">
+      {/* the wordmark alone: GRIDZILLA in Clash Display, no icon (hidden on the icon rail, where it does not fit) */}
       <a className="sb-brand" href="#/" aria-label="Gridzilla operations">
-        <span className="sb-logo"><Lightning size={16} weight="fill" /></span>
         <span className="sb-brand-txt">
-          <div className="sb-name">Gridzilla</div>
+          <div className="sb-name">GRIDZILLA</div>
           <div className="sb-sub">Operations · Vienna</div>
         </span>
       </a>
