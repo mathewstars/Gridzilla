@@ -8,19 +8,29 @@
 // (Up/Down, ?, typing) stays with the app. Steps 1-7 are the walkthrough (Tour5.tsx), step 8 clears the dim.
 // 1-4 set the live scenario (normal, cold evening, sunny noon, live weather) on this slide and on the title slide (the run
 // of show: press 2 before you walk up). In read-only live mode (?api=) those POSTs are refused in the page.
-import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { post } from "../../api";
 import Tour5, { TOUR } from "./Tour5";
 import type { SlideProps } from "../types";
 import "./slide5.css";
 
 const SCENARIOS = ["normal", "cold-evening", "sunny-noon", "live-weather"];
+/** The app's address, fixed once: the deck's own query (api, theme) without its position (slide, step, freeze), which
+ *  the deck rewrites on every key press. A changing src would reload the app (a white flash on every step). */
+const appSrc = () => {
+  const q = new URLSearchParams(location.search);
+  for (const k of ["slide", "step", "freeze"]) q.delete(k);
+  const s = q.toString();
+  return `index.html${s ? `?${s}` : ""}#/`;
+};
 /** The deck's keys: caught inside the app's window and handed to the deck. */
 const DECK_KEYS = /^(ArrowRight|ArrowLeft| |Spacebar|PageUp|PageDown|Escape|[fFnNtTdD1-4])$/;
 
 export default function Slide5({ active, step, tourOff }: SlideProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const [root, setRoot] = useState<HTMLElement | null>(null);
+  const [src] = useState(appSrc);
+  const loads = useRef(0);
   // The app's own document follows the deck's theme (D toggles data-theme on the deck's <html>).
   useEffect(() => {
     const doc = frame?.contentDocument;
@@ -51,9 +61,14 @@ export default function Slide5({ active, step, tourOff }: SlideProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const onLoad = (e: SyntheticEvent<HTMLIFrameElement>) => {
+  const onLoad = useCallback((e: SyntheticEvent<HTMLIFrameElement>) => {
     const win = e.currentTarget.contentWindow;
-    setRoot(e.currentTarget.contentDocument?.body ?? null);
+    const doc = e.currentTarget.contentDocument;
+    // How often the app has loaded (QA reads it: once per deck visit, never per step).
+    loads.current += 1;
+    (window as unknown as { __gzAppLoads?: number }).__gzAppLoads = loads.current;
+    if (doc) doc.documentElement.style.colorScheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    setRoot(doc?.body ?? null);
     if (!win) return;
     win.addEventListener(
       "keydown",
@@ -67,11 +82,11 @@ export default function Slide5({ active, step, tourOff }: SlideProps) {
       },
       true,
     );
-  };
+  }, []);
 
   return (
     <div className="p-stage p-stage-app" data-slide="6">
-      <iframe ref={setFrame} className="p-app-frame" src={`index.html${location.search}#/`} title="Gridzilla operations, live" onLoad={onLoad} />
+      <iframe ref={setFrame} className="p-app-frame" src={src} title="Gridzilla operations, live" onLoad={onLoad} />
       {active && step >= 1 && step <= TOUR.length && !tourOff && <Tour5 step={step} root={root} frame={frame} />}
     </div>
   );
