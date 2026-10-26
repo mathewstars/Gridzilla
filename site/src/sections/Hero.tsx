@@ -5,6 +5,7 @@
 // last 180 px so the hero has no hard cut. "Watch the trailer" scrolls to the trailer strip under the hero (#trailer)
 // and sends the window event "gz:trailer-play" so the strip can start the video from this click. Entry: the headline lines rise 24 px 80 ms apart, the console rises last. Reduced
 // motion: all of it is simply there.
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Play } from "@phosphor-icons/react";
 import { PillButton, PillLink } from "../ui/Button";
@@ -25,8 +26,23 @@ function watchTrailer() {
   window.dispatchEvent(new Event("gz:trailer-play"));
 }
 
+/** From 1024 px the desktop frame, under it the phone frame: only the one shown is rendered, so a phone never fetches
+ *  the desktop capture (and a desktop never the phone one; G8). */
+function useWide() {
+  const q = "(min-width: 1024px)";
+  const [wide, setWide] = useState(() => matchMedia(q).matches);
+  useEffect(() => {
+    const m = matchMedia(q);
+    const on = () => setWide(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
 export default function Hero() {
   const reduce = useReducedMotion();
+  const wide = useWide();
   const rise = (i: number) =>
     reduce ? {} : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: 0.15 + i * 0.08, ease: EASE } };
 
@@ -55,7 +71,7 @@ export default function Hero() {
       </div>
 
       {/* the real console, rising out of the hero's bottom edge (the hero crops its lower part, the mask fades it out) */}
-      <div className="hero-device-well relative z-0 mt-12 min-h-[180px] flex-1 max-lg:hidden">
+      {wide && <div className="hero-device-well relative z-0 mt-12 min-h-[180px] flex-1">
         <motion.div
           className="hero-device absolute left-1/2 top-0 -translate-x-1/2"
           initial={reduce ? false : { opacity: 0, y: 60 }}
@@ -74,11 +90,11 @@ export default function Hero() {
             />
           </picture>
         </motion.div>
-      </div>
+      </div>}
 
       {/* under 1024: never the desktop frame. The console's own phone view (its Operations screen, dark, 2x) in a
           phone-shaped frame that fits the screen with the side gutters, 40 px under the button, fading out at its foot */}
-      <div className="hero-phone-well px-[var(--gutter)] pb-10 pt-10 lg:hidden">
+      {!wide && <div className="hero-phone-well px-[var(--gutter)] pb-10 pt-10">
         <div className="hero-phone mx-auto">
           <img
             src={asset("shots/console-phone.webp")}
@@ -90,7 +106,7 @@ export default function Hero() {
             className="block h-auto w-full rounded-[22px]"
           />
         </div>
-      </div>
+      </div>}
     </header>
   );
 }
