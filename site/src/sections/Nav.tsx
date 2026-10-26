@@ -22,8 +22,16 @@ export const NAV = [
   { id: "live", label: "Live", href: LINKS.console },
 ] as const;
 
-/** A nav entry's address: an outside link when it has one, else the section anchor. */
-const navHref = (n: (typeof NAV)[number]) => ("href" in n ? n.href : `#${n.id}`);
+/** A nav entry's address: an outside link when it has one, the sendable /at-home for the testimonial, else the section anchor. */
+const navHref = (n: (typeof NAV)[number]) => ("href" in n ? n.href : n.id === "home" ? "/at-home" : `#${n.id}`);
+
+/** "At home" scrolls like the other anchors but leaves /at-home in the address bar, so the link can be copied and sent. */
+function goHome(e: { preventDefault: () => void }) {
+  e.preventDefault();
+  history.pushState(null, "", "/at-home");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("home")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
 
 export function Wordmark() {
   return (
@@ -77,6 +85,7 @@ export default function Nav() {
               <li key={n.id}>
                 <a
                   href={navHref(n)}
+                  onClick={n.id === "home" ? goHome : undefined}
                   className="flex h-10 items-center whitespace-nowrap rounded-full px-[14px] text-[14px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-fill active:bg-press xl:px-4"
                 >
                   {n.label}
@@ -119,7 +128,7 @@ export default function Nav() {
                 <li key={n.id}>
                   <a
                     href={navHref(n)}
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => { if (n.id === "home") goHome(e); setOpen(false); }}
                     className="flex h-16 items-center rounded-[16px] px-2 font-display text-[30px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-fill active:bg-press"
                   >
                     {n.label}

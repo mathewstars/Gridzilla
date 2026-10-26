@@ -22,8 +22,13 @@ export default function App() {
   // preview tags for it, see platform/gridzilla.py)
   useEffect(() => {
     if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
-    const t = setTimeout(() => document.getElementById("home")?.scrollIntoView({ block: "start" }), 250);
-    return () => clearTimeout(t);
+    // images and fonts above the section arrive after first paint and push it down, so land on it again once the
+    // page has loaded (scroll-margin-top in tokens.css keeps it clear of the bar)
+    const go = () => document.getElementById("home")?.scrollIntoView({ block: "start" });
+    const timers = [setTimeout(go, 250), setTimeout(go, 1200)];
+    const onLoad = () => { go(); timers.push(setTimeout(go, 600)); };
+    if (document.readyState === "complete") onLoad(); else addEventListener("load", onLoad, { once: true });
+    return () => { timers.forEach(clearTimeout); removeEventListener("load", onLoad); };
   }, []);
   useEffect(() => {
     const play = () => trailer.current?.play();
