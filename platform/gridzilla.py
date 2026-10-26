@@ -23,7 +23,7 @@ import paho.mqtt.client as mqtt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -1101,6 +1101,23 @@ def root():
     """The public site (site/, built to static/site) since 2026-10-26. What used to be here, the Chart.js operator board
     (static/index.html), is at /console (and /board); the React console stays at /static/new/index.html#/ (also /live)."""
     return FileResponse(HERE / "static" / "site" / "index.html")
+
+
+AT_HOME_META = {"title": "One day later, the same agent runs the house",
+                "description": "The day after the hackathon the Blatnica house became a daily user of the Gridzilla stack: a 79 kWh battery, the heat pump, eight rooms and the car charger planned every 15 minutes against spot prices, applied by the same agent flow on the Cerbo GX."}
+
+
+@app.get("/at-home")
+@app.get("/testimonial")
+def at_home():
+    """The testimonial as a link you can send: the site, opened on its At home section, with its own preview card."""
+    import re
+    html = (HERE / "static" / "site" / "index.html").read_text()
+    html = re.sub(r"<title>[^<]*</title>", f"<title>{AT_HOME_META['title']} | Gridzilla</title>", html, count=1)
+    for prop, val in (("og:title", AT_HOME_META["title"]), ("og:description", AT_HOME_META["description"]), ("og:url", "https://gridzilla.victronlab.sk/at-home")):
+        html = re.sub(rf'(<meta property="{prop}" content=")[^"]*(")', lambda m: m.group(1) + val + m.group(2), html, count=1)
+    html = re.sub(r'(<meta name="description" content=")[^"]*(")', lambda m: m.group(1) + AT_HOME_META["description"] + m.group(2), html, count=1)
+    return HTMLResponse(html)
 
 
 @app.get("/console")

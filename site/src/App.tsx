@@ -18,6 +18,13 @@ import Footer from "./sections/Footer";
 export default function App() {
   // the hero's "Watch the trailer" pill sends "gz:trailer-play" (in its click, so the video may start with sound)
   const trailer = useRef<TrailerHandle>(null);
+  // /at-home is the sendable address of the testimonial: the same page, opened on that section (the server swaps the
+  // preview tags for it, see platform/gridzilla.py)
+  useEffect(() => {
+    if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
+    const t = setTimeout(() => document.getElementById("home")?.scrollIntoView({ block: "start" }), 250);
+    return () => clearTimeout(t);
+  }, []);
   useEffect(() => {
     const play = () => trailer.current?.play();
     addEventListener("gz:trailer-play", play);
