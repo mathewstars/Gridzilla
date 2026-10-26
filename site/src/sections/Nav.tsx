@@ -29,8 +29,11 @@ const navHref = (n: (typeof NAV)[number]) => ("href" in n ? n.href : n.id === "h
 function goHome(e: { preventDefault: () => void }) {
   e.preventDefault();
   history.pushState(null, "", "/at-home");
+  const el = document.getElementById("home");
+  if (!el) return;
+  const offset = parseFloat(getComputedStyle(el).scrollMarginTop) || 72;      // the same knob as /at-home (tokens.css)
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document.getElementById("home")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: reduce ? "auto" : "smooth" });
 }
 
 export function Wordmark() {
