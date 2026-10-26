@@ -19,7 +19,7 @@ export const NAV = [
   { id: "home", label: "At home" },
   { id: "security", label: "Security" },
   { id: "team", label: "Team" },
-  { id: "live", label: "Live", href: LINKS.console },
+  { id: "live", label: "Live", href: LINKS.board },        // the old Chart.js operator board at /console; the pills keep the React console
 ] as const;
 
 /** A nav entry's address: an outside link when it has one, the sendable /at-home for the testimonial, else the section anchor. */
