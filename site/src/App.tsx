@@ -20,18 +20,21 @@ export default function App() {
   const trailer = useRef<TrailerHandle>(null);
   // /at-home is the sendable address of the testimonial: the same page, opened on that section (the server swaps the
   // preview tags for it, see platform/gridzilla.py). Sections above it (the scroll-driven Six words, images, fonts) keep
-  // changing the page height for a while after first paint, so the page re-lands on the section at every height change
-  // until the layout is still, the reader scrolls, or four seconds pass. scroll-margin-top in tokens.css clears the bar.
+  // changing the page height for a while after first paint, so for three seconds a slow poll re-lands on the section
+  // whenever it has drifted from the bar; the first wheel, touch or key stops it. (A ResizeObserver here fed back on its
+  // own scrolls and froze the tab.) scroll-margin-top in tokens.css clears the bar.
   useEffect(() => {
     if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    const go = () => document.getElementById("home")?.scrollIntoView({ block: "start" });
-    let done = false;
-    const ro = new ResizeObserver(() => { if (!done) go(); });
-    const stop = () => { done = true; ro.disconnect(); };
-    ro.observe(document.body);
-    go();
-    const t = setTimeout(stop, 4000);
+    const target = () => (matchMedia("(max-width: 1023px)").matches ? 88 : 72);
+    const land = () => {
+      const el = document.getElementById("home");
+      if (el && Math.abs(el.getBoundingClientRect().top - target()) > 4) el.scrollIntoView({ block: "start" });
+    };
+    land();
+    const iv = setInterval(land, 200);
+    const stop = () => clearInterval(iv);
+    const t = setTimeout(stop, 3000);
     const evs: (keyof WindowEventMap)[] = ["wheel", "touchstart", "keydown", "pointerdown"];
     evs.forEach((ev) => addEventListener(ev, stop, { once: true, passive: true }));
     return () => { clearTimeout(t); stop(); evs.forEach((ev) => removeEventListener(ev, stop)); };
