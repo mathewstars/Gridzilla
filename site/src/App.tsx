@@ -18,26 +18,21 @@ import Footer from "./sections/Footer";
 export default function App() {
   // the hero's "Watch the trailer" pill sends "gz:trailer-play" (in its click, so the video may start with sound)
   const trailer = useRef<TrailerHandle>(null);
-  // /at-home is the sendable address of the testimonial: the same page, opened on that section (the server swaps the
-  // preview tags for it, see platform/gridzilla.py). Sections above it (the scroll-driven Six words, images, fonts) keep
-  // changing the page height for a while after first paint, so for three seconds a slow poll re-lands on the section
-  // whenever it has drifted from the bar; the first wheel, touch or key stops it. (A ResizeObserver here fed back on its
-  // own scrolls and froze the tab.) scroll-margin-top in tokens.css clears the bar.
+  // /at-home is the sendable address of the testimonial: once the page has loaded, jump to the section, bar height
+  // subtracted, instantly (the page scrolls smoothly by CSS, so an animated jump here would be overtaken by the layout
+  // still settling above). One more silent correction a second later for anything that loaded late.
   useEffect(() => {
     if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    const target = () => (matchMedia("(max-width: 1023px)").matches ? 88 : 72);
-    const land = () => {
+    const jump = () => {
       const el = document.getElementById("home");
-      if (el && Math.abs(el.getBoundingClientRect().top - target()) > 4) el.scrollIntoView({ block: "start" });
+      const bar = document.querySelector<HTMLElement>('nav[aria-label="Main"]')?.offsetHeight ?? 72;
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - bar, behavior: "instant" as ScrollBehavior });
     };
-    land();
-    const iv = setInterval(land, 200);
-    const stop = () => clearInterval(iv);
-    const t = setTimeout(stop, 3000);
-    const evs: (keyof WindowEventMap)[] = ["wheel", "touchstart", "keydown", "pointerdown"];
-    evs.forEach((ev) => addEventListener(ev, stop, { once: true, passive: true }));
-    return () => { clearTimeout(t); stop(); evs.forEach((ev) => removeEventListener(ev, stop)); };
+    const timers: number[] = [];
+    const onLoad = () => { jump(); timers.push(window.setTimeout(jump, 1000)); };
+    if (document.readyState === "complete") onLoad(); else addEventListener("load", onLoad, { once: true });
+    return () => { timers.forEach(clearTimeout); removeEventListener("load", onLoad); };
   }, []);
   useEffect(() => {
     const play = () => trailer.current?.play();
