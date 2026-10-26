@@ -18,21 +18,30 @@ import Footer from "./sections/Footer";
 export default function App() {
   // the hero's "Watch the trailer" pill sends "gz:trailer-play" (in its click, so the video may start with sound)
   const trailer = useRef<TrailerHandle>(null);
-  // /at-home is the sendable address of the testimonial: once the page has loaded, jump to the section, bar height
-  // subtracted, instantly (the page scrolls smoothly by CSS, so an animated jump here would be overtaken by the layout
-  // still settling above). One more silent correction a second later for anything that loaded late.
+  // /at-home is the sendable address of the testimonial. The sections above it keep growing for a moment after first
+  // paint (fonts, images, the scroll-driven Six words measuring itself, a lazy chart chunk), so the page is kept on the
+  // section from inside a ResizeObserver: its callback runs after layout and before paint, and the scroll is instant,
+  // so every correction is applied in the same frame as the shift and none is ever visible. Stops at the first wheel,
+  // touch or key, or after six seconds.
   useEffect(() => {
     if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    const jump = () => {
+    const settle = () => {
       const el = document.getElementById("home");
+      if (!el) return;
       const bar = document.querySelector<HTMLElement>('nav[aria-label="Main"]')?.offsetHeight ?? 72;
-      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - bar, behavior: "instant" as ScrollBehavior });
+      const drift = el.getBoundingClientRect().top - bar;
+      if (Math.abs(drift) > 1) window.scrollTo({ top: window.scrollY + drift, behavior: "instant" as ScrollBehavior });
     };
-    const timers: number[] = [];
-    const onLoad = () => { jump(); timers.push(window.setTimeout(jump, 1000)); };
-    if (document.readyState === "complete") onLoad(); else addEventListener("load", onLoad, { once: true });
-    return () => { timers.forEach(clearTimeout); removeEventListener("load", onLoad); };
+    settle();
+    const ro = new ResizeObserver(settle);
+    ro.observe(document.documentElement);
+    ro.observe(document.body);
+    const stop = () => ro.disconnect();
+    const t = setTimeout(stop, 6000);
+    const evs: (keyof WindowEventMap)[] = ["wheel", "touchstart", "keydown", "pointerdown"];
+    evs.forEach((ev) => addEventListener(ev, stop, { once: true, passive: true }));
+    return () => { clearTimeout(t); stop(); evs.forEach((ev) => removeEventListener(ev, stop)); };
   }, []);
   useEffect(() => {
     const play = () => trailer.current?.play();
