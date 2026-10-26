@@ -1098,19 +1098,20 @@ class Register(BaseModel):
 
 @app.get("/")
 def root():
-    """The public site (site/, built to static/site). The operator console moved to /console on 2026-10-26, the first
-    Chart.js board stays at /board."""
+    """The public site (site/, built to static/site) since 2026-10-26. What used to be here, the Chart.js operator board
+    (static/index.html), is at /console (and /board); the React console stays at /static/new/index.html#/ (also /live)."""
     return FileResponse(HERE / "static" / "site" / "index.html")
 
 
 @app.get("/console")
-def console():
-    return FileResponse(HERE / "static" / "new" / "index.html")
-
-
 @app.get("/board")
-def board():
+def console():
     return FileResponse(HERE / "static" / "index.html")
+
+
+@app.get("/live")
+def live_console():
+    return FileResponse(HERE / "static" / "new" / "index.html")
 
 
 @app.get("/api/pubkey", response_class=PlainTextResponse)

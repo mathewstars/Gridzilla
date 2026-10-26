@@ -8,6 +8,7 @@ import { Container } from "../ui/Section";
 
 const SMALL = [
   { label: "Console", href: LINKS.console },
+  { label: "Operator board", href: LINKS.board },
   { label: "Deck", href: LINKS.deck },
   { label: "Protocol", href: LINKS.protocol },
   { label: "GitHub", href: LINKS.repo },
