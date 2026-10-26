@@ -19,16 +19,22 @@ export default function App() {
   // the hero's "Watch the trailer" pill sends "gz:trailer-play" (in its click, so the video may start with sound)
   const trailer = useRef<TrailerHandle>(null);
   // /at-home is the sendable address of the testimonial: the same page, opened on that section (the server swaps the
-  // preview tags for it, see platform/gridzilla.py)
+  // preview tags for it, see platform/gridzilla.py). Sections above it (the scroll-driven Six words, images, fonts) keep
+  // changing the page height for a while after first paint, so the page re-lands on the section at every height change
+  // until the layout is still, the reader scrolls, or four seconds pass. scroll-margin-top in tokens.css clears the bar.
   useEffect(() => {
     if (!/^\/(at-home|testimonial)\/?$/.test(location.pathname)) return;
-    // images and fonts above the section arrive after first paint and push it down, so land on it again once the
-    // page has loaded (scroll-margin-top in tokens.css keeps it clear of the bar)
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     const go = () => document.getElementById("home")?.scrollIntoView({ block: "start" });
-    const timers = [setTimeout(go, 250), setTimeout(go, 1200)];
-    const onLoad = () => { go(); timers.push(setTimeout(go, 600)); };
-    if (document.readyState === "complete") onLoad(); else addEventListener("load", onLoad, { once: true });
-    return () => { timers.forEach(clearTimeout); removeEventListener("load", onLoad); };
+    let done = false;
+    const ro = new ResizeObserver(() => { if (!done) go(); });
+    const stop = () => { done = true; ro.disconnect(); };
+    ro.observe(document.body);
+    go();
+    const t = setTimeout(stop, 4000);
+    const evs: (keyof WindowEventMap)[] = ["wheel", "touchstart", "keydown", "pointerdown"];
+    evs.forEach((ev) => addEventListener(ev, stop, { once: true, passive: true }));
+    return () => { clearTimeout(t); stop(); evs.forEach((ev) => removeEventListener(ev, stop)); };
   }, []);
   useEffect(() => {
     const play = () => trailer.current?.play();
