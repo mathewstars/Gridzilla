@@ -1104,7 +1104,7 @@ def root():
 
 
 AT_HOME_META = {"title": "One day later, the same agent runs the house",
-                "description": "The day after the hackathon the Blatnica house became a daily user of the Gridzilla stack: a 79 kWh battery, the heat pump, eight rooms and the car charger planned every 15 minutes on the house's own tariff, applied by the same agent flow on the Cerbo GX; the plan and the savings ledger are public at home.stafurik.com/energy."}
+                "description": "The day after the hackathon the Blatnica house became a daily user of the Gridzilla stack: a 79 kWh battery, the heat pump, eight rooms and the Tesla (charge state and location over the Fleet API) planned every 15 minutes on the house's own tariff, applied by the same agent flow on the Cerbo GX; the plan and the savings ledger are public at home.stafurik.com/energy."}
 
 
 @app.get("/at-home")
