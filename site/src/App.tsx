@@ -29,8 +29,8 @@ export default function App() {
     const settle = () => {
       const el = document.getElementById("home");
       if (!el) return;
-      const bar = document.querySelector<HTMLElement>('nav[aria-label="Main"]')?.offsetHeight ?? 72;
-      const drift = el.getBoundingClientRect().top - bar;
+      const offset = parseFloat(getComputedStyle(el).scrollMarginTop) || 72;   // #home's scroll-margin-top in tokens.css: the one knob
+      const drift = el.getBoundingClientRect().top - offset;
       if (Math.abs(drift) > 1) window.scrollTo({ top: window.scrollY + drift, behavior: "instant" as ScrollBehavior });
     };
     settle();

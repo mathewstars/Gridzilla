@@ -94,7 +94,8 @@
   ::selection { background: var(--color-accent); color: var(--color-on-ink); }
   :focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-page), 0 0 0 5px var(--color-ink); border-radius: 8px; }
   [id] { scroll-margin-top: 72px; } /* anchors land under the fixed nav bar, not behind it */
-  @media (max-width: 1023px) { [id] { scroll-margin-top: 88px; } .t-lead { font-size: 17px; } }
+  #home { scroll-margin-top: 172px; } /* the testimonial (/at-home and the At home link) lands 100 px lower than the other anchors; tune here */
+  @media (max-width: 1023px) { [id] { scroll-margin-top: 88px; } #home { scroll-margin-top: 148px; } .t-lead { font-size: 17px; } }
 }
 
 @layer components {
