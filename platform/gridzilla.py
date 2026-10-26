@@ -1097,7 +1097,19 @@ class Register(BaseModel):
 
 
 @app.get("/")
-def index():
+def root():
+    """The public site (site/, built to static/site). The operator console moved to /console on 2026-10-26, the first
+    Chart.js board stays at /board."""
+    return FileResponse(HERE / "static" / "site" / "index.html")
+
+
+@app.get("/console")
+def console():
+    return FileResponse(HERE / "static" / "new" / "index.html")
+
+
+@app.get("/board")
+def board():
     return FileResponse(HERE / "static" / "index.html")
 
 

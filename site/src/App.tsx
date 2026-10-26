@@ -9,6 +9,7 @@ import HowItWorks from "./sections/HowItWorks";
 import SixWords from "./sections/SixWords";
 import Proof from "./sections/Proof";
 import RealPlant from "./sections/RealPlant";
+import AtHome from "./sections/AtHome";
 import Ai from "./sections/Ai";
 import Security from "./sections/Security";
 import Team from "./sections/Team";
@@ -34,6 +35,7 @@ export default function App() {
         <SixWords />
         <Proof />
         <RealPlant />
+        <AtHome />
         <Ai />
         <Security />
         <Team />

@@ -1,6 +1,6 @@
 // Every outside address the site points at, in one place (the live domain and the public repo).
 export const LINKS = {
-  console: "https://gridzilla.victronlab.sk/static/new/index.html#/",
+  console: "https://gridzilla.victronlab.sk/console#/",
   deck: "https://gridzilla.victronlab.sk/static/new/pitch.html",
   pdf: "https://gridzilla.victronlab.sk/static/new/pitch.pdf",
   board: "https://gridzilla.victronlab.sk/static/board.html",
