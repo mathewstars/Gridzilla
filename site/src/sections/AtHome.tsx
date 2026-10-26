@@ -1,20 +1,24 @@
 // After the hackathon: the same agent flow runs the owner's own house every day (added 26 October 2026, one day after the
 // pitch). Left: the owner's words. Right: what runs, as facts with Phosphor icons, and four small numbers. Everything here is
-// what the home optimizer (homeopt, in the owner's home-auto repo) actually did on its first evening; nothing is invented.
+// what the home optimizer (homeopt, in the owner's home-auto repo) actually does; nothing is invented. Since 26 October the house
+// is priced on its real bill (fixed-price SSE contract, SSD DD5 two-tariff distribution), not on the OKTE spot market, and the
+// page links to the owner's own Energy dashboard, home.stafurik.com/energy, where the plan and the ledger are public.
 import type { Icon } from "@phosphor-icons/react";
 import { BatteryCharging, Car, Plugs, Thermometer } from "@phosphor-icons/react";
 import { Section, Title } from "../ui/Section";
+import { PillLink } from "../ui/Button";
+import { LINKS } from "../lib/links";
 import { Reveal } from "../ui/Reveal";
 
 const RUNS: { icon: Icon; text: string }[] = [
-  { icon: BatteryCharging, text: "22 × Dyness B3, 79 kWh: planned every 15 minutes against OKTE spot prices; on a clear forecast it leaves room for the sun instead of charging from the grid at night" },
+  { icon: BatteryCharging, text: "22 × Dyness B3, 79 kWh: planned every 15 minutes on the bill the house actually pays, a fixed-price contract with two-tariff distribution, not the spot market; on a clear forecast it leaves room for the sun instead of charging from the grid at night" },
   { icon: Thermometer, text: "Vitocal heat pump: hot-water boosts and room offsets within per-room bands via ViCare and the TECH room controller; the two bedrooms are never heated above their sleeping setpoint" },
   { icon: Car, text: "Victron EV Charging Station, 11 kW: charges in the cheapest quarter-hours before the morning departure" },
   { icon: Plugs, text: "The hackathon's Node-RED agent on the Cerbo GX applies the ESS limits and hands everything back to the owner 180 s after the last command" },
 ];
 
 const NUMBERS: { n: string; what: string }[] = [
-  { n: "15 min", what: "planning step, OKTE day-ahead" },
+  { n: "15 min", what: "planning step, 36 hours ahead" },
   { n: "20 ms", what: "to solve the 36-hour plan" },
   { n: "4", what: "actuators under control" },
   { n: "180 s", what: "to owner mode if the optimizer goes quiet" },
@@ -30,11 +34,14 @@ export default function AtHome() {
         <Reveal>
           <figure className="card m-0 flex flex-col gap-6 p-6 md:p-8">
             <blockquote className="m-0 t-lead text-balance text-ink">
-              “The hackathon ended on Saturday. On Sunday evening the Blatnica house was no longer the demo plant but a daily user of the same stack: the agent flow on the Cerbo, the signed command path, the advisor-proposes-guard-disposes pattern. Its first plan did what I would have done by hand, and said why: hold the battery at its floor, no grid charging tonight, let the clear morning fill it before the evening price spike.”
+              “The hackathon ended on Saturday. On Sunday evening the Blatnica house was no longer the demo plant but a daily user of the same stack: the agent flow on the Cerbo, the signed command path, the advisor-proposes-guard-disposes pattern. Its first plan did what I would have done by hand, and said why: hold the battery at its floor, no grid charging tonight, let the clear morning fill it. A day later I dropped the spot prices: the house is on a fixed-price contract with two-tariff distribution, so the optimizer now plans against the bill I actually pay and books each day's saving against what the ESS would have done on its own.”
             </blockquote>
             <figcaption className="m-0 text-[15px] leading-[1.5] text-secondary">
-              <span className="font-semibold text-ink">Matej Stafurik</span>, owner of the Blatnica plant, victronlab.sk. The optimizer, DeepSeek as the advisor and a linear program as the planner, lives in his home-automation repo next to the sprinklers and the chicken guard.
+              <span className="font-semibold text-ink">Matej Stafurik</span>, owner of the Blatnica plant, victronlab.sk. The optimizer, DeepSeek as the advisor and a linear program as the planner, lives in his home-automation repo next to the sprinklers and the chicken guard. The plan, the prices and the savings ledger are public on his home dashboard.
             </figcaption>
+            <PillLink href={LINKS.home} tone="secondary" className="self-start">
+              See the house live
+            </PillLink>
           </figure>
         </Reveal>
         <Reveal delay={0.08}>

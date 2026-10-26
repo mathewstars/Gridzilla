@@ -1,4 +1,4 @@
-// Every outside address the site points at, in one place (the live domain and the public repo).
+// Every outside address the site points at, in one place (the live domain, the public repo, the owner's home dashboard).
 export const LINKS = {
   console: "https://gridzilla.victronlab.sk/static/new/index.html#/",
   board: "https://gridzilla.victronlab.sk/console",
@@ -8,6 +8,7 @@ export const LINKS = {
   protocol: "https://github.com/mathewstars/Gridzilla/blob/main/protocol/PROTOCOL.md",
   architecture: "https://github.com/mathewstars/Gridzilla/blob/main/docs/architecture.html",
   mail: "mailto:matthew@codeza.agency",
+  home: "https://home.stafurik.com/energy",
 } as const;
 
 /** A file in public/, under the site's base (/static/site/ for the platform build, / for build:vercel). */
