@@ -2,6 +2,10 @@
 import { chromium } from "playwright-core";
 
 export const SIZES = ["2560x1440", "1920x1080", "1680x1050", "1440x900", "1280x800", "1240x635", "1022x884", "1024x600", "390x844", "390x667", "360x740"];
+/** The phone matrix (qa/README.md "Phones"): portrait small, short and large, and landscape. */
+export const PHONES = ["390x844", "390x667", "430x932", "844x390"];
+/** A phone viewport (src/phone.ts): under 900 wide or 500 tall; it gets a touch screen and the mobile viewport. */
+export const isPhone = (w, h) => w < 900 || h <= 500;
 export const SCENARIOS = ["normal", "cold-evening", "sunny-noon", "live-weather"];
 export const API = process.env.GZ_QA_API || "http://localhost:8081/api";
 
@@ -14,7 +18,8 @@ export function arg(k, d) {
 
 /** The stage URL: the built page on the local platform, or the Vite dev server with --dev. */
 export function stageUrl(dev, page = "stage") {
-  const base = dev ? "http://127.0.0.1:5174/static/new/" : "http://localhost:8081/static/new/";
+  // GZ_QA_BASE points the gates at another server (e.g. http://localhost:8241/static/new/ for a second local platform)
+  const base = process.env.GZ_QA_BASE || (dev ? "http://127.0.0.1:5174/static/new/" : "http://localhost:8081/static/new/");
   if (page === "B") return base + "b.html";
   return base + (dev ? "" : "index.html");
 }
@@ -22,10 +27,11 @@ export function stageUrl(dev, page = "stage") {
 export const launch = () =>
   chromium.launch({ channel: "chrome", headless: true, args: ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
 
-export async function newPage(browser, size) {
+/** reducedMotion: "reduce" | "no-preference" (the gates run phones both ways). */
+export async function newPage(browser, size, reducedMotion = "no-preference") {
   const [width, height] = size.split("x").map(Number);
-  const phone = width < 500;
-  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone });
+  const phone = isPhone(width, height);
+  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone, reducedMotion });
   const page = await ctx.newPage();
   const errors = [];
   page.on("console", (m) => {

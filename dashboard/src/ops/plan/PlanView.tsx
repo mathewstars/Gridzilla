@@ -10,6 +10,7 @@ import { P } from "../../stage/palette";
 import { Swatch } from "../../stage/kit/LiveCurve";
 import { smoothBand, smoothPath } from "../../stage/kit/smooth";
 import type { Ops } from "../useOps";
+import { usePhone } from "../../phone";
 import "./plan.css";
 
 const CITY = "region:at";
@@ -40,6 +41,8 @@ function Chips({ s, node, set }: { s: State; node: string; set: (n: string) => v
   const subs = Object.keys(t).filter((n) => n.startsWith("sub:"));
   const feeders = subOf ? Object.keys(t).filter((n) => n.startsWith("feeder:") && t[n].parent === subOf) : [];
   const tfs = feederOf ? Object.keys(t).filter((n) => n.startsWith("tf:") && t[n].parent === feederOf) : [];
+  // phones: each row scrolls sideways in one line and snaps to each chip (data-scroll="row" for the layout gate)
+  const row = usePhone() ? { "data-scroll": "row" } : {};
   const B = ({ n, label, on }: { n: string; label: string; on: boolean }) => (
     <button type="button" className={`pl-chip${on ? " is-on" : ""}`} aria-pressed={on} onClick={() => set(n)} title={n}>
       {label}
@@ -47,13 +50,13 @@ function Chips({ s, node, set }: { s: State; node: string; set: (n: string) => v
   );
   return (
     <div className="pl-chips" role="group" aria-label="Choose what the plan is for">
-      <div className="pl-chiprow">
+      <div className="pl-chiprow" {...row}>
         <B n={CITY} label="Vienna" on={node === CITY} />
         <span className="pl-sep" aria-hidden />
         {subs.map((n) => <B key={n} n={n} label={nice(n)} on={n === subOf} />)}
       </div>
       {feeders.length > 0 && (
-        <div className="pl-chiprow">
+        <div className="pl-chiprow" {...row}>
           <span className="pl-chiplabel">Feeder</span>
           {feeders.map((n) => <B key={n} n={n} label={nice(n)} on={n === feederOf} />)}
           {tfs.length > 0 && (
@@ -89,6 +92,7 @@ type XY = [number, number];
 function Chart({ p, F }: { p: FlattenPlan; F: string }) {
   const { ref, w, h } = useSize<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
+  const phone = usePhone();
   const { big, pw } = units(p);
   const unc = p.other_kw.map((o, i) => o + p.base_kw[i] - p.pv_kw[i]);
   const dataMax = Math.max(...p.naive_kw, ...p.planned_kw);
@@ -97,12 +101,14 @@ function Chart({ p, F }: { p: FlattenPlan; F: string }) {
   const hi = (ratingNear ? Math.max(p.rating_kw, dataMax) : dataMax) * 1.06;
   // nice ticks, at most one every 44 px
   const span = hi - lo || 1;
-  const want = Math.max(2, Math.min(6, Math.floor((h - 40) / 44)));
+  // phones: at most three y ticks (every second step until they fit)
+  const want = phone ? 2 : Math.max(2, Math.min(6, Math.floor((h - 40) / 44)));
   const raw = span / want;
   const mag = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
   const ticks: number[] = [];
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(v);
+  while (phone && ticks.length > 3) ticks.splice(0, ticks.length, ...ticks.filter((_, i) => i % 2 === 0));
   const yTick = (v: number) => (big ? `${+(v / 1000).toFixed(step >= 1000 ? 0 : 1)} MW` : `${Math.round(v)} kW`);
 
   const padL = big ? 62 : 70, padR = 8, padT = 10, padB = 30;
@@ -115,7 +121,7 @@ function Chart({ p, F }: { p: FlattenPlan; F: string }) {
   const eatenTop = p.naive_kw.map((v, i) => Math.max(v, p.planned_kw[i]));
   // x ticks: every 3 grid hours (6 on narrow plots), on the slot closest to a whole hour
   const xt: number[] = [];
-  const every = w < 640 ? 6 : 3;
+  const every = w < 640 || phone ? 6 : 3;
   for (let i = 1; i < n; i++) {
     const hr = ((p.hours[i] % 24) + 24) % 24;
     const prev = ((p.hours[i - 1] % 24) + 24) % 24;

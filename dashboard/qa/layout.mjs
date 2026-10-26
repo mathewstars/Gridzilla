@@ -3,27 +3,32 @@
 //   --states quick : current live state only (no scenario change; what builders use)
 //   --states full  : scenarios normal, cold-evening, sunny-noon, live-weather (10 s settle each) + "live" (20 s on the page)
 //   --dev          : test the Vite dev server (127.0.0.1:5174) instead of the built page on :8081
-import { SIZES, launch, ready, stageUrl } from "./lib.mjs";
+//   --sizes phones : the phone matrix (390x844, 390x667, 430x932, 844x390); phones also get the phone checks (the first
+//                    screen shows more than 3 texts, 44 px bar targets, no three.js file loaded)
+//   --hash /,/plan : one or more console routes (comma separated)
+//   --motion reduce,no-preference : run every cell with each prefers-reduced-motion setting
+//   GZ_QA_BASE / GZ_QA_API : another platform than :8081 (qa/lib.mjs)
+import { API, PHONES, SIZES, isPhone, launch, ready, stageUrl } from "./lib.mjs";
 import fs from "node:fs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : (process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : true); };
-const sizes = arg("sizes", "all") === "all" ? SIZES : String(arg("sizes")).split(",");
+const sizes = arg("sizes", "all") === "all" ? SIZES : arg("sizes") === "phones" ? PHONES : String(arg("sizes")).split(",");
 const pages = [String(arg("page", "stage"))];
 const statesMode = arg("states", arg("quick") ? "quick" : "full");
 const dev = !!arg("dev", false);
 const out = String(arg("out", "/tmp/gzqa/layout"));
 fs.mkdirSync(out, { recursive: true });
 const themes = String(arg("theme", "")).split(",").filter(Boolean); // ops console: dark,light (empty = page default)
-const hash = String(arg("hash", "")); // e.g. /demo for the ops console's demo mode
+const hashes = String(arg("hash", "")).split(","); // e.g. /demo for the ops console's demo mode; /,/plan,/plant for several
+const motions = String(arg("motion", "")).split(",").filter(Boolean); // reduce,no-preference (empty = the browser default)
 const bare = !!arg("bare", false); // --bare: the page alone, full-bleed (?bare=1, how the deck embeds the demo)
 const extra = String(arg("q", "")); // more query, e.g. --q hero=blatnica (the demo in Blatnica mode)
 const q = (theme) => [bare && "bare=1", theme && `theme=${theme}`, extra].filter(Boolean).join("&");
-const url = (p, theme) => stageUrl(dev, p) + (q(theme) ? `?${q(theme)}` : "") + (hash ? `#${hash}` : "");
-const API = "http://localhost:8081/api";
+const url = (p, theme, hash) => stageUrl(dev, p) + (q(theme) ? `?${q(theme)}` : "") + (hash ? `#${hash}` : "");
 const STATES = statesMode === "quick" ? ["now"] : ["normal", "cold-evening", "sunny-noon", "live-weather", "live"];
 
 // In-page detectors. Returns findings by kind; every count must be 0.
-function detect([oneScreen, W]) {
+function detect([oneScreen, W, phone = false]) {
   const vw = Math.min(innerWidth, W), vh = innerHeight; // phones may widen the layout viewport: judge against the device width
   const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], scrollCut: [], seriesOut: [], notOneScreen: [] };
   const hidden = (el) => {
@@ -51,9 +56,14 @@ function detect([oneScreen, W]) {
     if (!el || hidden(el)) continue;
     // text scrolled out of view inside a deliberate scroll area (data-scroll) is not on screen: it cannot overlap anything
     const sc = el.closest("[data-scroll]");
+    let row = null; // a sideways scroll row (data-scroll="row", phone chips): only its visible part counts
     if (sc) {
       const r0 = sc.getBoundingClientRect(), rr = el.getBoundingClientRect();
       if (rr.bottom <= r0.top || rr.top >= r0.bottom) continue;
+      if (sc.dataset.scroll === "row") {
+        if (rr.right <= r0.left + 1 || rr.left >= r0.right - 1) continue;
+        row = r0;
+      }
     }
     const svgText = el.closest("text");
     if (svgText && svgText.ownerSVGElement) {
@@ -65,13 +75,18 @@ function detect([oneScreen, W]) {
     }
     const rg = document.createRange();
     rg.selectNodeContents(n);
-    for (const r of rg.getClientRects()) if (r.width > 1 && r.height > 1) boxes.push({ el, t: t.slice(0, 40), l: r.left, t0: r.top, r: r.right, b: r.bottom });
+    for (const r of rg.getClientRects()) {
+      const l = row ? Math.max(r.left, row.left) : r.left, rt = row ? Math.min(r.right, row.right) : r.right;
+      if (rt - l > 1 && r.height > 1) boxes.push({ el, t: t.slice(0, 40), l, t0: r.top, r: rt, b: r.bottom });
+    }
   }
   // 1. text over text (different elements, not nested)
   for (let i = 0; i < boxes.length; i++)
     for (let j = i + 1; j < boxes.length; j++) {
       const a = boxes[i], b = boxes[j];
       if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+      // a fixed bar (the phone tab bar and top bar, the deck's touch controls: data-chrome) floats over content by design
+      if (!!a.el.closest("[data-chrome]") !== !!b.el.closest("[data-chrome]")) continue;
       const iw = Math.min(a.r, b.r) - Math.max(a.l, b.l), ih = Math.min(a.b, b.b) - Math.max(a.t0, b.t0);
       if (iw > 3 && ih > 3) F.overlap.push(`"${a.t}" x "${b.t}"`);
     }
@@ -113,7 +128,8 @@ function detect([oneScreen, W]) {
       const cs = getComputedStyle(e);
       const sy = /auto|scroll/.test(cs.overflowY), sx = /auto|scroll/.test(cs.overflowX);
       if (!sy && !sx) continue;
-      if (e.dataset?.scroll !== "page") {
+      // a page column scrolls like the window; a sideways chip row shows its next chip half cut on purpose
+      if (e.dataset?.scroll !== "page" && e.dataset?.scroll !== "row") {
         const r = e.getBoundingClientRect();
         if ((sy && b.t0 < r.bottom - 1 && b.b > r.bottom + 1) || (sx && b.l < r.right - 1 && b.r > r.right + 1)) F.scrollCut.push(`"${b.t}" cut by ${label(e)}`);
       }
@@ -134,6 +150,17 @@ function detect([oneScreen, W]) {
         F.seriesOut.push(`${el.getAttribute("class") || el.tagName} outside the plot of ${label(svg.parentElement)}`);
     }
   }
+  // phones: the first screen shows real content (more than 3 texts besides the bars), and every bar and sheet control
+  // is a 44 px target
+  if (phone) {
+    const first = boxes.filter((b) => b.t0 < vh && b.b > 0 && b.l < vw && b.r > 0 && !b.el.closest("[data-chrome]")).length;
+    F.texts = first > 3 ? [] : [`only ${first} texts on the first screen`];
+    F.target = [...document.querySelectorAll(".tab-item, .tb-menu, .p-touch-btn, .s0-play, .p-still-open, .sheet-row, .sheet-x")]
+      .filter((e) => !hidden(e))
+      .map((e) => [e, e.getBoundingClientRect()])
+      .filter(([, r]) => r.width < 44 || r.height < 44)
+      .map(([e, r]) => `${label(e)} ${Math.round(r.width)}x${Math.round(r.height)}`);
+  }
   if (document.documentElement.scrollWidth > vw + 1) F.wide.push(`page ${document.documentElement.scrollWidth}px wide`);
   if (oneScreen && document.documentElement.scrollHeight > vh + 1) F.notOneScreen.push(`page ${document.documentElement.scrollHeight}px tall`);
   for (const k of Object.keys(F)) F[k] = [...new Set(F[k])];
@@ -147,20 +174,24 @@ async function setScenario(name) {
 
 const browser = await launch();
 const results = [];
-async function cell(state, p, size, theme = "") {
+async function cell(state, p, size, theme = "", hash = "", motion = "") {
   const [W, H] = size.split("x").map(Number);
-  const phone = W < 500;
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone });
+  const phone = isPhone(W, H);
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone, ...(motion ? { reducedMotion: motion } : {}) });
   const page = await ctx.newPage();
   const errors = [];
+  const three = []; // phones never load three.js (the 3D street is not mounted under 900 px)
+  page.on("request", (r) => { if (/\/three[-.][^/]*\.js|Living3D|Street3D/.test(r.url())) three.push(r.url().split("/").pop()); });
   page.on("console", (m) => { if (m.type() === "error" && !/favicon/.test(m.text())) errors.push(m.text().slice(0, 160)); });
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
   try {
-    await page.goto(url(p, theme), { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(url(p, theme, hash), { waitUntil: "domcontentloaded", timeout: 30000 });
     await ready(page, state === "live" ? 20000 : 4000);
-    const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W]);
+    const f = await page.evaluate(detect, [W >= 1440 && H >= 900, W, phone]);
     f.console = errors;
-    const shot = `${out}/${state}-${p}${extra ? "-" + extra.replace(/\W+/g, "_") : ""}${bare ? "-bare" : ""}${theme ? "-" + theme : ""}-${size}.png`;
+    if (phone) f.three = three;
+    const route = hash && hash !== "/" ? "-" + hash.replace(/\W+/g, "") : "";
+    const shot = `${out}/${state}-${p}${route}${extra ? "-" + extra.replace(/\W+/g, "_") : ""}${bare ? "-bare" : ""}${theme ? "-" + theme : ""}${motion ? "-" + motion : ""}-${size}.png`;
     // Grow the window to the whole page so below-the-fold parts (the 3D street pauses off-screen) render for the capture.
     const fullH = await page.evaluate(() => document.documentElement.scrollHeight);
     if (fullH > H) { await page.setViewportSize({ width: W, height: Math.min(fullH, 6000) }); await page.waitForTimeout(1500); }
@@ -177,9 +208,10 @@ async function cell(state, p, size, theme = "") {
       }
     }
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
-    results.push({ state: theme ? `${state}/${theme}` : state, page: p, size, count, f, shot });
+    const tag = [state, theme, hash && `#${hash}`, motion].filter(Boolean).join("/");
+    results.push({ state: tag, page: p, size, count, f, shot });
   } catch (e) {
-    results.push({ state, page: p, size, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
+    results.push({ state: [state, theme, hash && `#${hash}`, motion].filter(Boolean).join("/"), page: p, size, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
   } finally {
     await ctx.close();
   }
@@ -189,7 +221,7 @@ const startScenario = (await (await fetch(`${API}/state?tree=0`).catch(() => nul
 const CONC = 5;
 for (const st of STATES) {
   if (!["now", "live"].includes(st)) await setScenario(st);
-  const jobs = pages.flatMap((p) => (themes.length ? themes : [""]).flatMap((th) => sizes.map((s) => () => cell(st, p, s, th))));
+  const jobs = pages.flatMap((p) => (themes.length ? themes : [""]).flatMap((th) => hashes.flatMap((h) => (motions.length ? motions : [""]).flatMap((m) => sizes.map((s) => () => cell(st, p, s, th, h, m))))));
   const run = async () => { while (jobs.length) await jobs.shift()(); };
   await Promise.all(Array.from({ length: CONC }, run));
 }

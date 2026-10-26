@@ -9,6 +9,9 @@ import { API_BASE, type Ack, type DevPoint, type LogEntry, type Signal } from ".
 
 export const LIVE_HH = "sim-blatnica-01";
 export const LIVE_DEVICE = "sim-blatnica-01";
+/** The twin's transformer (platform/registry.yaml). /api/state?hh= takes a grid node, not a house: asking for the
+ *  street returns its few houses, the twin among them (hh=sim-blatnica-01 returned none, so the card said offline). */
+export const LIVE_TF = "tf:atzgersdorf-1";
 
 export const LIVE_BASE: string | null = (() => {
   if (typeof location !== "undefined" && location.hostname === "gridzilla.victronlab.sk") return "/api";
@@ -16,7 +19,7 @@ export const LIVE_BASE: string | null = (() => {
   return import.meta.env.DEV ? "/live-api" : null;
 })();
 
-const STATE_PATH = `/state?hh=${LIVE_HH}&tree=0`;
+const STATE_PATH = `/state?hh=${encodeURIComponent(LIVE_TF)}&tree=0`;
 const HISTORY_PATH = `/history?devices=${LIVE_DEVICE}&limit=120`;
 
 /** The household fields the card reads (the live server may send more; heat fields are optional per plant). */

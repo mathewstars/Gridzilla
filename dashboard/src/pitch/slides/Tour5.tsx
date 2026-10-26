@@ -6,7 +6,8 @@
 // (getComputedStyle; the inner blocks have none, so the nearest rounded ancestor's). Five stops, anchored on the
 // console's own parts: Saved tonight (.op2-tonight), the Vienna chart (.op2-curve), What the AI did (.op2-tiles), the
 // Blatnica card (.blat), the city chips (.bc-chips), then the sidebar's Diet plan and Real plant. The console runs in an
-// iframe (Slide5.tsx): areas are measured in its document and mapped to the window.
+// iframe (Slide5.tsx): areas are measured in its document and mapped to the window. On phones the slide shows a still of
+// the console instead, with an empty box over each of these areas (data-anchor), so the same stops play over the picture.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./tour5.css";
 
@@ -64,7 +65,8 @@ const EDGE = 16; // the card keeps this far from the window edges
 function find(root: HTMLElement | null, stop: Stop) {
   if (!root) return null;
   for (const [sel, caption, head] of stop.try) {
-    const el = root.querySelector<HTMLElement>(sel);
+    // the phone's still of the console (Slide5.tsx) marks the same areas with data-anchor="<selector>"
+    const el = root.querySelector<HTMLElement>(sel) ?? root.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(sel)}"]`);
     if (el && el.getBoundingClientRect().width > 0) return { el, caption, head: head ?? stop.head };
   }
   return null;

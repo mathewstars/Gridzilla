@@ -10,9 +10,12 @@
 //   --base   default http://localhost:5175/pitch.html (the production preview: http://localhost:4175/pitch.html)
 //   --sizes  default 1920x1080,2560x1440,1440x900,1280x800,1240x635; --quick = 1920x1080,1240x635
 //   --out    default /tmp/gzpitch/qa (PNGs + report.json)
+//   --sizes phones   the phone matrix (390x844, 390x667, 430x932, 844x390): phones also get the phone checks (more than
+//                    3 texts on screen, 44 px touch targets), and G1 runs at each phone size by TAPS (right of the screen)
+//   --motion reduce,no-preference   every G3 cell with each prefers-reduced-motion setting
 // Prints {g1:{errors}, g3:{cells,total,byKind,bad}} and exits 1 when anything fails.
 import fs from "node:fs";
-import { launch, newPage, pool } from "./lib.mjs";
+import { PHONES, isPhone, launch, newPage, pool } from "./lib.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -22,7 +25,12 @@ const arg = (k, d) => {
 };
 const base = String(arg("base", "http://localhost:5175/pitch.html"));
 const quick = !!arg("quick", false);
-const sizes = String(arg("sizes", quick ? "1920x1080,1240x635" : "1920x1080,2560x1440,1440x900,1280x800,1240x635")).split(",");
+const sizesArg = String(arg("sizes", quick ? "1920x1080,1240x635" : "1920x1080,2560x1440,1440x900,1280x800,1240x635"));
+const sizes = sizesArg === "phones" ? PHONES : sizesArg.split(",");
+const motions = String(arg("motion", "no-preference")).split(",");
+const phoneOf = (size) => { const [w, h] = size.split("x").map(Number); return isPhone(w, h); };
+// G1 runs once at 1920x1080 by keys; with phone sizes, once per phone size by taps
+const g1Sizes = sizes.some(phoneOf) ? sizes.filter(phoneOf) : ["1920x1080"];
 const out = String(arg("out", "/tmp/gzpitch/qa"));
 const only = String(arg("only", "all"));
 const CONC = 4;
@@ -52,7 +60,7 @@ const sep = base.includes("?") ? "&" : "?";
 const themes = String(arg("themes", "dark,light")).split(",");
 
 // Copied from qa/layout.mjs (detect), verbatim: keep the two in step. Called here with oneScreen = false.
-function detect([oneScreen, W]) {
+function detect([oneScreen, W, phone = false]) {
   const vw = Math.min(innerWidth, W), vh = innerHeight; // phones may widen the layout viewport: judge against the device width
   const F = { overlap: [], clipped: [], cut: [], outside: [], wide: [], innerScroll: [], notOneScreen: [] };
   const hidden = (el) => {
@@ -95,6 +103,8 @@ function detect([oneScreen, W]) {
     for (let j = i + 1; j < boxes.length; j++) {
       const a = boxes[i], b = boxes[j];
       if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+      // a fixed bar (the phone tab bar and top bar, the deck's touch controls: data-chrome) floats over content by design
+      if (!!a.el.closest("[data-chrome]") !== !!b.el.closest("[data-chrome]")) continue;
       const iw = Math.min(a.r, b.r) - Math.max(a.l, b.l), ih = Math.min(a.b, b.b) - Math.max(a.t0, b.t0);
       if (iw > 3 && ih > 3) F.overlap.push(`"${a.t}" x "${b.t}"`);
     }
@@ -130,6 +140,17 @@ function detect([oneScreen, W]) {
     }
     if (b.r > vw + 1 || b.l < -1) F.wide.push(`"${b.t}" beyond the viewport`);
   }
+  // phones: the first screen shows real content (more than 3 texts besides the bars), and every bar and sheet control
+  // is a 44 px target
+  if (phone) {
+    const first = boxes.filter((b) => b.t0 < vh && b.b > 0 && b.l < vw && b.r > 0 && !b.el.closest("[data-chrome]")).length;
+    F.texts = first > 3 ? [] : [`only ${first} texts on the first screen`];
+    F.target = [...document.querySelectorAll(".tab-item, .tb-menu, .p-touch-btn, .s0-play, .p-still-open, .sheet-row, .sheet-x")]
+      .filter((e) => !hidden(e))
+      .map((e) => [e, e.getBoundingClientRect()])
+      .filter(([, r]) => r.width < 44 || r.height < 44)
+      .map(([e, r]) => `${label(e)} ${Math.round(r.width)}x${Math.round(r.height)}`);
+  }
   if (document.documentElement.scrollWidth > vw + 1) F.wide.push(`page ${document.documentElement.scrollWidth}px wide`);
   if (oneScreen && document.documentElement.scrollHeight > vh + 1) F.notOneScreen.push(`page ${document.documentElement.scrollHeight}px tall`);
   for (const k of Object.keys(F)) F[k] = [...new Set(F[k])];
@@ -154,8 +175,10 @@ function onScreen() {
 const browser = await launch();
 
 // ------------------------------------------------------------------ G1: the run of show, key by key
-async function g1(theme) {
-  const { ctx, page, errors } = await newPage(browser, "1920x1080");
+async function g1(theme, size = "1920x1080") {
+  const { ctx, page, errors, width, height } = await newPage(browser, size);
+  // phones move like a person on a phone: a tap on the right of the slide; desktop like the presenter, ArrowRight
+  const press = phoneOf(size) ? () => page.touchscreen.tap(Math.round(width * 0.8), Math.round(height * 0.3)) : () => page.keyboard.press("ArrowRight");
   const trace = [];
   const seen = new Set();
   try {
@@ -169,11 +192,11 @@ async function g1(theme) {
     // Slide 0: one press plays the trailer, the next skips it to the title. Then every step of slides 1-9.
     const presses = 2 + NUMS.filter((n) => n > 0).reduce((a, n) => a + STEPS[n], 0) + 1;
     for (let k = 1; k <= presses; k++) {
-      await page.keyboard.press("ArrowRight");
+      await press();
       await page.waitForTimeout(500);
       const now = await page.evaluate(onScreen);
       cur = now.length === 1 ? now[0] : now.join("+") || "none";
-      await page.waitForTimeout(cur === LIVE ? 11500 : 2000);
+      await page.waitForTimeout(cur === LIVE && !phoneOf(size) ? 11500 : 2000); // a phone's slide 6 is a still
       const settled = await page.evaluate(onScreen);
       const s = settled.length === 1 ? settled[0] : settled.join("+") || "none";
       trace.push({ press: k, slide: s });
@@ -193,19 +216,20 @@ async function g1(theme) {
 
 // ------------------------------------------------------------------ G3: layout matrix
 const results = [];
-async function cell(slide, step, size, phase, theme) {
+async function cell(slide, step, size, phase, theme, motion = "no-preference") {
   const [W] = size.split("x").map(Number);
-  const { ctx, page, errors } = await newPage(browser, size);
-  const shot = `${out}/${theme}-s${slide}-step${step}-${phase}-${size}.png`;
+  const phone = phoneOf(size);
+  const { ctx, page, errors } = await newPage(browser, size, motion);
+  const shot = `${out}/${theme}-s${slide}-step${step}-${phase}-${size}${motion === "reduce" ? "-reduce" : ""}.png`;
   try {
     const url = `${base}${sep}theme=${theme}&slide=${slide}&step=${step}${phase === "end" ? "&freeze=end" : ""}`;
     await page.goto(url, { waitUntil: "load", timeout: 30000 });
-    await page.waitForTimeout(phase === "start" ? 400 : slide === LIVE ? 8000 : 2500);
+    await page.waitForTimeout(phase === "start" ? 400 : slide === LIVE && !phone ? 8000 : 2500);
     // The slide 6 walkthrough is an overlay that sits over the demo by design: judge the demo with it hidden, then
     // check the overlay on its own (its caption card fully inside the window).
     const tour = slide === LIVE && step > 0;
     if (tour) await page.evaluate(() => document.querySelectorAll(".t5").forEach((e) => (e.style.visibility = "hidden")));
-    const f = await page.evaluate(detect, [false, W]);
+    const f = await page.evaluate(detect, [false, W, phone]);
     // Slide 6 runs the full console in an iframe that fills the window: judge what is inside it too.
     if (slide === LIVE)
       for (const fr of page.frames())
@@ -223,15 +247,18 @@ async function cell(slide, step, size, phase, theme) {
       });
     }
     delete f.notOneScreen;
+    // the deck: the landing (slide 0, what a phone opens on) shows more than 3 texts; any other slide at least one (the
+    // close and end slides are one or two lines by design, slide 6 is the console's picture and its button)
+    if (phone && slide !== 0 && f.texts?.length && !/^only 0 /.test(f.texts[0])) f.texts = [];
     if (slide === LIVE) delete f.innerScroll;
     const here = await page.evaluate(onScreen);
     f.wrongSlide = here.length === 1 && here[0] === slide ? [] : [`on screen: ${here.join("+") || "none"}`];
     await page.screenshot({ path: shot });
     f.console = errors.slice();
     const count = Object.values(f).reduce((a, v) => a + v.length, 0);
-    results.push({ slide, step, size, phase, theme, count, f, shot });
+    results.push({ slide, step, size, phase, theme, motion, count, f, shot });
   } catch (e) {
-    results.push({ slide, step, size, phase, theme, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
+    results.push({ slide, step, size, phase, theme, motion, count: 1, f: { error: [String(e).slice(0, 200)] }, shot: null });
   } finally {
     await ctx.close();
   }
@@ -240,12 +267,12 @@ async function cell(slide, step, size, phase, theme) {
 let g1res = { errors: [], trace: [], skipped: true };
 if (only !== "g3") {
   const runs = [];
-  for (const t of themes) runs.push({ theme: t, ...(await g1(t)) });
+  for (const t of themes) for (const sz of g1Sizes) runs.push({ theme: g1Sizes.length > 1 || sz !== "1920x1080" ? `${t} ${sz}` : t, ...(await g1(t, sz)) });
   g1res = { errors: runs.flatMap((r) => r.errors.map((e) => `${r.theme}: ${e}`)), trace: runs[0].trace, traces: Object.fromEntries(runs.map((r) => [r.theme, r.trace.map((x) => x.slide).join(" ")])) };
 }
 if (only !== "g1") {
   const jobs = [];
-  for (const s of slides) for (let st = 0; st < (STEPS[s] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) for (const t of themes) jobs.push(() => cell(s, st, size, ph, t));
+  for (const s of slides) for (let st = 0; st < (STEPS[s] ?? 1); st++) for (const size of sizes) for (const ph of ["start", "end"]) for (const t of themes) for (const m of motions) jobs.push(() => cell(s, st, size, ph, t, m));
   await pool(jobs, CONC);
 }
 await browser.close();
@@ -256,7 +283,7 @@ const byKind = {};
 results.forEach((r) => Object.entries(r.f).forEach(([k, v]) => v.length && (byKind[k] = (byKind[k] || 0) + v.length)));
 const bad = results
   .filter((r) => r.count)
-  .map((r) => ({ cell: `${r.theme}/s${r.slide}/step${r.step}/${r.size}/${r.phase}`, shot: r.shot, ...Object.fromEntries(Object.entries(r.f).filter(([, v]) => v.length).map(([k, v]) => [k, v.slice(0, 4)])) }));
+  .map((r) => ({ cell: `${r.theme}/s${r.slide}/step${r.step}/${r.size}/${r.phase}${r.motion === "reduce" ? "/reduce" : ""}`, shot: r.shot, ...Object.fromEntries(Object.entries(r.f).filter(([, v]) => v.length).map(([k, v]) => [k, v.slice(0, 4)])) }));
 const g3 = { cells: results.length, total, byKind, bad };
 const report = { base, sizes, steps: STEPS, g1: g1res, g3: { ...g3, shots: results.map((r) => r.shot).filter(Boolean) } };
 fs.writeFileSync(`${out}/report.json`, JSON.stringify(report, null, 1));

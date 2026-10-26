@@ -3,7 +3,9 @@
 // usage: npm run qa [-- --dev] [-- --quick]   (--quick: current state only, a few sizes, no recordings; for builders)
 import { execSync } from "node:child_process";
 import fs from "node:fs";
-import { arg } from "./lib.mjs";
+import { arg, stageUrl } from "./lib.mjs";
+
+const PHONE_ROUTES = "/,/plan,/plant,/city,/autopilot,/manual,/households,/log,/weather";
 
 const dev = !!arg("dev", false);
 const quick = !!arg("quick", false);
@@ -20,6 +22,10 @@ const steps = [
   ["G3 demo", `node qa/layout.mjs${flag} --out ${out}/demo-layout --states quick --theme dark,light --hash /demo --sizes 1920x1080,1440x900,1240x635`, true],
   ["G3 demo bare", `node qa/layout.mjs${flag} --out ${out}/demo-bare --states quick --theme dark,light --hash /demo --bare --sizes 1920x1080,1440x900,1240x635`, true],
   ["G1 soak + G4 legend keys", `node qa/demo.mjs${flag}${quick ? " --seconds 20" : ""}`, true],
+  // phones (qa/README.md "Phones"): the console's routes and the deck's every slide and step at the four phone sizes,
+  // both themes, reduced motion both ways
+  ["G3 phone console", `node qa/layout.mjs${flag} --out ${out}/phone --states quick --sizes phones --theme dark,light --motion reduce,no-preference --hash ${PHONE_ROUTES}`, true],
+  ["G1+G3 phone deck", `node qa/pitch.mjs --base ${stageUrl(dev).replace(/index\.html$/, "")}pitch.html --sizes phones --motion reduce,no-preference --out ${out}/phone-deck${quick ? " --slides 0,1,6" : ""}`, true],
 ];
 const summary = [];
 let failed = false;

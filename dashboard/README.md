@@ -51,12 +51,14 @@ request is sent, the buttons are switched off and say "read-only, live server", 
   (`https://gridzilla.victronlab.sk/static/new/index.html?api=https://gridzilla.victronlab.sk`, same origin), or ask the
   platform owner to allow GET from the deck's origin.
 
-## Phone layouts (<= 768 px)
+## Phone layouts (under 900 px wide or 500 px tall)
 
-They live in the CSS of each part, under `@media (max-width: 760px)` and the container queries: `src/ops/ops.css` (frame),
-`src/ops/shell/shell.css` (sidebar and top bar), `src/ops/city/city.css`, `src/ops/now/now.css`, `src/ops/control/control.css`,
-`src/ops/feed/feed.css`, `src/ops/demo/demo.css`. Colours come only from the theme variables in `src/index.css`, so both themes
-follow. After a change: `npm run build`, `node qa/layout.mjs --theme dark,light --sizes 390x844,390x667,360x740` must print total 0.
+`src/phone.ts` decides (`usePhone()`, the same query in CSS). The console then has its own shell: a slim top bar with the
+heartbeat and a Menu button (scenario, autopilot, signed today, weather, help and theme in a sheet), a tab bar at the
+bottom (Operations, Diet plan, Real plant, More), every view in one column (`src/ops/shell/TabBar.tsx`, `Sheet.tsx`,
+`src/ops/phone.css`). Charts keep at most five x ticks and three y ticks; the transformer chips scroll in one row. Colours
+come only from the theme variables in `src/index.css`, so both themes follow. After a change: `npm run build`, then the
+phone gates in `qa/README.md` ("Phones") must print total 0.
 
 ## Working on the shared branch
 

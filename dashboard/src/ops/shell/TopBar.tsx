@@ -1,15 +1,17 @@
 // Top bar of the operations console: scenario, autopilot mode, heartbeat (fail-safe) with Pause, signals signed today,
 // weather, help and the theme switch; nothing else. Every control answers at once (optimistic), then follows the platform; a failure snaps back and
-// says why in plain words. One line from 1240 wide (captions drop first, shell.css), wraps cleanly on phones.
+// says why in plain words. One line from 1240 wide (captions drop first, shell.css). Phones (under 900 px) keep only the
+// heartbeat and a Menu button that opens the rest in a sheet.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { createPortal } from "react-dom";
-import { Cloud, CloudSun, Moon, PenNib, Question, Sun, Warning, X } from "@phosphor-icons/react";
+import { Cloud, CloudSun, List, Moon, PenNib, Question, Sun, Warning, X } from "@phosphor-icons/react";
 import { post, READ_ONLY, READ_ONLY_TEXT } from "../../api";
 import type { Ops } from "../useOps";
 import { useTheme } from "../theme";
 import { clock } from "../views/fmt";
 import { useFeed } from "../feed/events";
+import Sheet from "./Sheet";
 import "./shell.css";
 
 const SCENARIOS = [
@@ -65,8 +67,9 @@ function Segmented({ id, opts, value, wait, onPick, label }: { id: string; opts:
 type Want = { scenario?: string; mode?: string; paused?: boolean };
 
 /** compact: only the scenario, heartbeat with Pause/Resume and the theme icon (demo mode). */
-export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: boolean }) {
+export default function TopBar({ ops, compact = false, phone = false }: { ops: Ops; compact?: boolean; phone?: boolean }) {
   const s = ops.s;
+  const [menu, setMenu] = useState(false);
   const [theme, setTheme] = useTheme();
   const [want, setWant] = useState<Want>({});
   const [busy, setBusy] = useState<keyof Want | null>(null);
@@ -136,80 +139,135 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
       : `Signals signed today since ${clock(since)} grid time: the platform only shares its newest log lines, so earlier ones today are not visible here.`;
   const WxIcon = now && (now.cloud_pct ?? 0) > 60 ? Cloud : CloudSun;
 
+  const scenarioSeg = (
+    <Segmented
+      id="tb-sc"
+      label="Scenario"
+      opts={SCENARIOS}
+      value={scenario}
+      wait={busy === "scenario" ? want.scenario ?? null : null}
+      onPick={(v) => act("scenario", v, `scenario/${v}`, undefined, "Scenario not changed")}
+    />
+  );
+  const modeSeg = (
+    <Segmented
+      id="tb-ap"
+      label="Autopilot mode"
+      opts={MODES}
+      value={mode}
+      wait={busy === "mode" ? want.mode ?? null : null}
+      onPick={(v) => act("mode", v, "autopilot", { mode: v }, "Autopilot mode not changed")}
+    />
+  );
+  const heartbeat = (
+    <Chip
+      className={`hb ${paused ? "is-dark" : "is-ok"}`}
+      title={paused ? "The platform stopped its heartbeat: every house fell back to its owner's own settings" : "The platform's heartbeat reaches every house, so they follow its signals"}
+    >
+      <span className="chip-dot" />
+      <span>{paused ? "Operator dark" : "Houses connected"}</span>
+      <button
+        type="button"
+        className={`tbtn ${paused ? "is-green" : "is-red"}`}
+        disabled={busy === "paused" || READ_ONLY}
+        onClick={() => act("paused", !paused, paused ? "heartbeat/resume" : "heartbeat/pause", undefined, paused ? "Heartbeat not resumed" : "Heartbeat not paused")}
+        title={READ_ONLY ? READ_ONLY_TEXT : paused ? "Resume the heartbeat: houses follow the grid again" : "Pause the heartbeat to show the fail-safe: houses drop back to owner mode"}
+      >
+        {paused ? "Resume" : "Pause"}
+      </button>
+    </Chip>
+  );
+  const signedChip = (
+    <Chip title={signedTip}>
+      <PenNib size={14} weight="bold" />
+      <span data-src="page" data-label="counted by this page from today's feed">{signed.toLocaleString("en-US")}</span>
+      <span className="t">signed today{since != null && <span className="tb-since"> since {clock(since)}</span>}</span>
+    </Chip>
+  );
+  const weatherChip =
+    wx.available && now ? (
+      <Chip className="tb-wx" title={`${place} now: ${Math.round(now.temp_c)} °C outside${wx.data?.summary ? `, ${wx.data.summary}` : ""}`}>
+        <WxIcon size={15} weight="bold" />
+        <span data-src={wx.sample ? "sample" : "weather/now/temp_c"} data-val={now.temp_c}>{Math.round(now.temp_c)} °C</span>
+        <span className="t tb-wx-place">{place}</span>
+        {worstWarn && (
+          <span title={worstWarn.title} style={{ display: "inline-flex", color: worstWarn.level === "red" ? "var(--sh-red)" : "var(--sh-orange)" }}>
+            <Warning size={14} weight="fill" />
+          </span>
+        )}
+      </Chip>
+    ) : (
+      <Chip className="tb-wx" title="The weather service is not answering; the city keeps running on its last scenario">
+        <Cloud size={15} />
+        <span className="t">{wx.checking ? "Weather…" : "Weather offline"}</span>
+      </Chip>
+    );
+  const errLine = err && (
+    <div className="tb-err" role="alert">
+      <Warning size={14} weight="fill" style={{ flex: "none" }} />
+      <span title={err}>{err}</span>
+      <button type="button" aria-label="Dismiss" onClick={() => setErr(null)}><X size={12} weight="bold" /></button>
+    </div>
+  );
+  const help = () => window.dispatchEvent(new CustomEvent("gz-help"));
+  const flip = () => setTheme(theme === "dark" ? "light" : "dark");
+
+  // Phones: only the heartbeat and a Menu button; everything else is in the Menu sheet.
+  if (phone)
+    return (
+      <header className="tb is-phone" data-chrome>
+        {heartbeat}
+        <span className="tb-spacer" />
+        <button type="button" className="tb-menu" aria-haspopup="dialog" aria-expanded={menu} onClick={() => setMenu(true)}>
+          <List size={17} weight="bold" />
+          Menu
+        </button>
+        {errLine}
+        <Sheet open={menu} title="Menu" onClose={() => setMenu(false)}>
+          <div className="sheet-sec">
+            <h3 className="sheet-cap">Scenario</h3>
+            {scenarioSeg}
+          </div>
+          <div className="sheet-sec">
+            <h3 className="sheet-cap">Autopilot</h3>
+            {modeSeg}
+          </div>
+          <div className="sheet-chips">
+            {signedChip}
+            {weatherChip}
+          </div>
+          <div className="sheet-list">
+            <button type="button" className="sheet-row" onClick={() => { setMenu(false); help(); }}>
+              <Question size={20} />
+              <span className="sheet-row-lbl">What is on this screen?</span>
+            </button>
+            <button type="button" className="sheet-row" onClick={flip}>
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              <span className="sheet-row-lbl">{theme === "dark" ? "Light theme" : "Dark theme"}</span>
+            </button>
+          </div>
+        </Sheet>
+        <TapTip />
+      </header>
+    );
+
   return (
     <header className={`tb${compact ? " is-compact" : ""}`}>
       <div className="tb-grp">
         <span className="tb-cap tb-cap-opt">Scenario</span>
-        <Segmented
-          id="tb-sc"
-          label="Scenario"
-          opts={SCENARIOS}
-          value={scenario}
-          wait={busy === "scenario" ? want.scenario ?? null : null}
-          onPick={(v) => act("scenario", v, `scenario/${v}`, undefined, "Scenario not changed")}
-        />
+        {scenarioSeg}
       </div>
       {!compact && (
         <div className="tb-grp">
           <span className="tb-cap">Autopilot</span>
-          <Segmented
-            id="tb-ap"
-            label="Autopilot mode"
-            opts={MODES}
-            value={mode}
-            wait={busy === "mode" ? want.mode ?? null : null}
-            onPick={(v) => act("mode", v, "autopilot", { mode: v }, "Autopilot mode not changed")}
-          />
+          {modeSeg}
         </div>
       )}
       <span className="tb-sep" />
-      <Chip
-        className={`hb ${paused ? "is-dark" : "is-ok"}`}
-        title={paused ? "The platform stopped its heartbeat: every house fell back to its owner's own settings" : "The platform's heartbeat reaches every house, so they follow its signals"}
-      >
-        <span className="chip-dot" />
-        <span>{paused ? "Operator dark" : "Houses connected"}</span>
-        <button
-          type="button"
-          className={`tbtn ${paused ? "is-green" : "is-red"}`}
-          disabled={busy === "paused" || READ_ONLY}
-          onClick={() => act("paused", !paused, paused ? "heartbeat/resume" : "heartbeat/pause", undefined, paused ? "Heartbeat not resumed" : "Heartbeat not paused")}
-          title={READ_ONLY ? READ_ONLY_TEXT : paused ? "Resume the heartbeat: houses follow the grid again" : "Pause the heartbeat to show the fail-safe: houses drop back to owner mode"}
-        >
-          {paused ? "Resume" : "Pause"}
-        </button>
-      </Chip>
-      {!compact && (
-        <Chip title={signedTip}>
-          <PenNib size={14} weight="bold" />
-          <span data-src="page" data-label="counted by this page from today's feed">{signed.toLocaleString("en-US")}</span>
-          <span className="t">signed today{since != null && <span className="tb-since"> since {clock(since)}</span>}</span>
-        </Chip>
-      )}
-      {compact ? null : wx.available && now ? (
-        <Chip className="tb-wx" title={`${place} now: ${Math.round(now.temp_c)} °C outside${wx.data?.summary ? `, ${wx.data.summary}` : ""}`}>
-          <WxIcon size={15} weight="bold" />
-          <span data-src={wx.sample ? "sample" : "weather/now/temp_c"} data-val={now.temp_c}>{Math.round(now.temp_c)} °C</span>
-          <span className="t tb-wx-place">{place}</span>
-          {worstWarn && (
-            <span title={worstWarn.title} style={{ display: "inline-flex", color: worstWarn.level === "red" ? "var(--sh-red)" : "var(--sh-orange)" }}>
-              <Warning size={14} weight="fill" />
-            </span>
-          )}
-        </Chip>
-      ) : (
-        <Chip className="tb-wx" title="The weather service is not answering; the city keeps running on its last scenario">
-          <Cloud size={15} />
-          <span className="t">{wx.checking ? "Weather…" : "Weather offline"}</span>
-        </Chip>
-      )}
-      {err && (
-        <div className="tb-err" role="alert">
-          <Warning size={14} weight="fill" style={{ flex: "none" }} />
-          <span title={err}>{err}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setErr(null)}><X size={12} weight="bold" /></button>
-        </div>
-      )}
+      {heartbeat}
+      {!compact && signedChip}
+      {compact ? null : weatherChip}
+      {errLine}
       <span className="tb-spacer" />
       <span className="tb-icons">
       <button
@@ -217,7 +275,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
         className="ibtn"
         aria-label="What is on this screen?"
         title="What is on this screen? (key ?)"
-        onClick={() => window.dispatchEvent(new CustomEvent("gz-help"))}
+        onClick={help}
       >
         <Question size={16} weight="bold" />
       </button>
@@ -226,7 +284,7 @@ export default function TopBar({ ops, compact = false }: { ops: Ops; compact?: b
         className="ibtn"
         aria-label={theme === "dark" ? "Switch to light" : "Switch to dark"}
         title={theme === "dark" ? "Light" : "Dark"}
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onClick={flip}
       >
         {theme === "dark" ? <Sun size={16} weight="bold" /> : <Moon size={16} weight="bold" />}
       </button>

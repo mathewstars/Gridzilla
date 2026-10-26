@@ -19,6 +19,10 @@ export interface SlideProps {
   jingle: JingleState;
   /** Slide 5: the presenter skipped the walkthrough with Esc, so no step shows its overlay. */
   tourOff?: boolean;
+  /** Full-bleed slides: the deck is on a phone (shell/usePhone.ts), so they show their phone version. */
+  phone?: boolean;
+  /** Full-bleed slides: the same as a tap on the right of the screen (next step or slide). */
+  onNext?: () => void;
 }
 
 export interface SlideDef {

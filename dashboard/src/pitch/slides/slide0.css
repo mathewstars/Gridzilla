@@ -12,3 +12,62 @@
   object-fit: contain;
   background: #000000;
 }
+/* Phones: the title over the waiting frame, on a 55 % scrim so it reads over any frame; real px, not the canvas. */
+.s0-title {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  text-align: center;
+  background: rgb(0 0 0 / 0.55);
+  color: #f5f5f7;
+}
+.s0-word {
+  margin: 0;
+  font-family: var(--p-font-display);
+  font-size: clamp(40px, 12vw, 72px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.s0-tag {
+  margin: 0;
+  max-width: 30ch;
+  font-family: var(--p-font-text);
+  font-size: 17px;
+  line-height: 1.4;
+  color: rgb(245 245 247 / 0.86);
+  text-wrap: balance;
+}
+.s0-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 980px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-family: var(--p-font-text);
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 100ms linear, transform 100ms linear;
+}
+.s0-play:hover {
+  background: #e8e8ed;
+}
+.s0-play:active {
+  background: #d2d2d7;
+  transform: scale(0.98);
+}
+.s0-play:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px #000000, 0 0 0 5px #f5f5f7;
+}

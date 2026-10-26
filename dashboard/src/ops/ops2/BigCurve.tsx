@@ -11,6 +11,7 @@ import { hhmm, nice, pathOf } from "../../model";
 import { loadTone } from "../../stage/palette";
 import LoadRing from "../../stage/kit/LoadRing";
 import type { Ops } from "../useOps";
+import { usePhone } from "../../phone";
 import "./bigcurve.css";
 
 const fmt = (v: number) => (Math.round(v) || 0).toLocaleString("en-US");
@@ -40,6 +41,13 @@ function ticks(lo: number, hi: number, n: number) {
   const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((k) => k >= raw) ?? 10 * mag;
   const out: number[] = [];
   for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v * 1000) / 1000);
+  return out;
+}
+
+/** At most `max` ticks: every second one until they fit, always keeping the first. */
+function fewest(t: number[], max: number) {
+  let out = t;
+  while (out.length > max) out = out.filter((_, i) => i % 2 === 0);
   return out;
 }
 
@@ -112,6 +120,8 @@ export default function BigCurve({ ops }: { ops: Ops }) {
   const node = ops.view;
   const [box, { w, h }] = useSize();
   const [hover, setHover] = useState<number | null>(null);
+  // phones: at most three y ticks and five x ticks, so the labels never crowd a narrow plot
+  const phone = usePhone();
   const all: NodePoint[] = (s && ops.history?.nodes?.[node]) || [];
   // like dad's chart: one recent stretch, the newest unbroken 24 grid hours (the fast simulator keeps several days)
   const first = lastDay(all);
@@ -128,7 +138,7 @@ export default function BigCurve({ ops }: { ops: Ops }) {
     // the top covers the limit, "with" and "without" (dataMax holds both), plus headroom: no series above the plot
     const top = Math.max(ratingNear ? rating : 0, dataMax) * 1.15;
     const lo = Math.min(0, ...pts.map((p) => Math.min(p.total_kw, base(p))));
-    const yt = ticks(lo, top, h < 240 ? 3 : 4);
+    const yt = phone ? fewest(ticks(lo, top, 2), 3) : ticks(lo, top, h < 240 ? 3 : 4);
     const yLabel = (v: number) => `${fmt(v)} kW`;
     const left = Math.max(...yt.map((v) => yLabel(v).length)) * 8.4 + 14;
     const pad = { l: left, r: 14, t: 10, b: 30 };
@@ -190,7 +200,7 @@ export default function BigCurve({ ops }: { ops: Ops }) {
       if (inside.length) band = [X(inside[0]), Math.max(X(inside[inside.length - 1]), X(inside[0]) + 3)];
     }
     // x ticks: evenly spaced, one label per clock time (a young history has several points in the same minute)
-    const nx = Math.max(2, Math.min(8, Math.floor(pw / 110)));
+    const nx = Math.max(2, Math.min(phone ? 5 : 8, Math.floor(pw / 110)));
     const seen = new Set<string>();
     const xt = Array.from({ length: nx }, (_, k) => Math.round((k * (n - 1)) / (nx - 1))).filter((i) => {
       const t = hhmm(pts[i].h);
@@ -199,7 +209,7 @@ export default function BigCurve({ ops }: { ops: Ops }) {
       return true;
     });
     return { X, Y, pad, pw, ph, yt, yLabel, withPath, withFill, eaten, basePath: line(bases), ratingNear, rating, band, xt, xMax };
-  }, [s, pts, node, w, h]);
+  }, [s, pts, node, w, h, phone]);
 
   if (!s) return null;
   const r = ratingOf(s, node);
@@ -220,7 +230,7 @@ export default function BigCurve({ ops }: { ops: Ops }) {
         <p className="bc-sentence" aria-live="polite">{sentence(s, node)}</p>
       </header>
 
-      <Chips s={s} node={node} pick={ops.setView} />
+      <Chips s={s} node={node} pick={ops.setView} row={phone} />
 
       <div className="bc-body">
         <div className="bc-plot" ref={box} onMouseLeave={() => setHover(null)}
@@ -297,7 +307,7 @@ export default function BigCurve({ ops }: { ops: Ops }) {
 
 /** His chip row: VIENNA · each substation; the selected substation opens into its feeders, the selected feeder into
  *  its transformers. */
-function Chips({ s, node, pick }: { s: State; node: string; pick: (n: string) => void }) {
+function Chips({ s, node, pick, row }: { s: State; node: string; pick: (n: string) => void; row: boolean }) {
   const path = pathOf(s, node);
   const subs = Object.keys(s.tree).filter((n) => n.startsWith("sub:"));
   const pct = (n: string) => s.aggregates[n]?.load_pct ?? null;
@@ -322,7 +332,8 @@ function Chips({ s, node, pick }: { s: State; node: string; pick: (n: string) =>
     </button>
   );
   return (
-    <nav className="bc-chips" aria-label="Pick what the curve shows">
+    // phones: one row that scrolls sideways and snaps to each chip (data-scroll="row" for the layout gate)
+    <nav className={`bc-chips${row ? " is-row" : ""}`} aria-label="Pick what the curve shows" data-scroll={row ? "row" : undefined}>
       {chip("region:at", "VIENNA", "vienna")}
       {subs.map((sub) => {
         const open = path.includes(sub);

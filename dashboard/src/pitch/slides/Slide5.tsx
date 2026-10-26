@@ -8,9 +8,13 @@
 // (Up/Down, ?, typing) stays with the app. Steps 1-7 are the walkthrough (Tour5.tsx), step 8 clears the dim.
 // 1-4 set the live scenario (normal, cold evening, sunny noon, live weather) on this slide and on the title slide (the run
 // of show: press 2 before you walk up). In read-only live mode (?api=) those POSTs are refused in the page.
+// Phones (under 900 px wide or 500 px tall) get a still of the console instead (public/pitch/console-<theme>.webp, made by
+// qa/pitch-still.mjs) with one button that opens the live console in a new tab; the walkthrough plays over the still.
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { ArrowSquareOut } from "@phosphor-icons/react";
 import { post } from "../../api";
 import Tour5, { TOUR } from "./Tour5";
+import still from "./consoleStill.json";
 import type { SlideProps } from "../types";
 import "./slide5.css";
 
@@ -26,7 +30,50 @@ const appSrc = () => {
 /** The deck's keys: caught inside the app's window and handed to the deck. */
 const DECK_KEYS = /^(ArrowRight|ArrowLeft| |Spacebar|PageUp|PageDown|Escape|[fFnNtTdD1-4])$/;
 
-export default function Slide5({ active, step, tourOff }: SlideProps) {
+/** The deck's theme, followed live (D toggles data-theme on <html>). */
+function useDocTheme() {
+  const get = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+  const [t, setT] = useState(get);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setT(get()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
+  return t;
+}
+
+/** Phones: the console as a picture, its walkthrough areas marked (data-anchor), and the way to the real thing. */
+function ConsoleStill({ active, step, tourOff }: SlideProps) {
+  const theme = useDocTheme();
+  const [src] = useState(appSrc);
+  const [fig, setFig] = useState<HTMLElement | null>(null);
+  return (
+    <div className="p-stage p-stage-app p-still" data-slide="6">
+      <figure ref={setFig} className="p-still-fig">
+        <img className="p-still-img" src={`${import.meta.env.BASE_URL}pitch/console-${theme}.webp`} width={still.w * 2} height={still.h * 2} alt="The Gridzilla console: Operations, with all of Vienna live" draggable={false} />
+        {Object.entries(still.anchors).map(([sel, b]) => (
+          <span
+            key={sel}
+            className="p-still-anchor"
+            data-anchor={sel}
+            style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%`, borderRadius: `${(b.r || 18 / still.w) * 100}cqw` }}
+          />
+        ))}
+      </figure>
+      <a className="p-still-open" href={src} target="_blank" rel="noopener">
+        Open the console
+        <ArrowSquareOut size={17} weight="bold" />
+      </a>
+      {active && step >= 1 && step <= TOUR.length && !tourOff && <Tour5 step={step} root={fig} />}
+    </div>
+  );
+}
+
+export default function Slide5(props: SlideProps) {
+  return props.phone ? <ConsoleStill {...props} /> : <LiveConsole {...props} />;
+}
+
+function LiveConsole({ active, step, tourOff }: SlideProps) {
   const [frame, setFrame] = useState<HTMLIFrameElement | null>(null);
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const [src] = useState(appSrc);
