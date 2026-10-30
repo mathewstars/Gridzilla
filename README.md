@@ -7,6 +7,8 @@ Built at the Energy Bridge Critical Infrastructure Hackathon, Vienna, 23–25 Oc
 
 Team: Mathew, Peter, Matthew.
 
+After the hackathon the same stack runs the Blatnica house every day, and VictronLab offers it for homes with Victron systems: [victronlab.sk](https://victronlab.sk) (Slovensko) · [victronlab.de](https://victronlab.de) (Deutschland).
+
 ## The problem
 
 **Home batteries are now the largest storage fleet in Europe, and the grid operator cannot see or use a single one of them.** In a crisis everyone gets cut equally, including the houses that could have ridden through.
